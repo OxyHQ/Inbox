@@ -37,7 +37,8 @@ const TINT_PRESET: Record<Exclude<SettingsTintKey, 'neutral'>, AppColorName> = {
   privacy: 'red',
   labels: 'orange',
   contacts: 'pink',
-  ai: 'amber',
+  // Was 'amber', which Bloom 0.68 removed as a duplicate of 'pumpkin'.
+  ai: 'pumpkin',
   storage: 'sky',
   advanced: 'teal',
   about: 'mint',

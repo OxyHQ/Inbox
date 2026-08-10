@@ -97,6 +97,12 @@ jobs:
       # production.
       - name: inbox.oxy.so is serving this build
         run: |
+          # `set +e` because GitHub runs this with `bash -e {0}`: the retry loop
+          # is built out of commands that are EXPECTED to fail while the edge
+          # propagates, and errexit would kill the step on the first miss
+          # instead of retrying — reporting a propagation delay as a broken
+          # deploy.
+          set +e
           set -uo pipefail
           for attempt in 1 2 3 4 5; do
             echo "::group::smoke ${attempt}/5"

@@ -1,0 +1,46 @@
+node_modules/
+
+# Build output.
+#
+# Deliberately NOT a bare `lib/`. The app keeps 17 source files in
+# packages/frontend/lib (the i18n locales and the notification modules reached
+# through `@/lib/*`). OxyHQServices needed an explicit `!/packages/inbox/lib/`
+# to un-ignore them; here the rule they were fighting simply does not exist and
+# must not be reintroduced.
+dist/
+web-build/
+
+# Generated into public/ by `bun run build` (packages/frontend/scripts/
+# write-pages-headers.ts) and copied verbatim into dist/ by `expo export`.
+# Ignored so a build never dirties the tree — and so the CSP keeps tracking
+# @oxyhq/core's baseline instead of becoming a checked-in fork of it.
+**/public/_headers
+
+# Expo
+.expo/
+.expo-shared/
+*.orig.*
+
+# NOTE: expo-env.d.ts is COMMITTED, unlike in OxyHQServices. tsconfig.json
+# `include`s it and nothing in CI regenerates it, so ignoring it made CI
+# typecheck a different program than any developer machine.
+
+# Env
+.env
+.env.local
+.env*.local
+
+# Signing / keys
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Logs
+*.log
+npm-debug.*
+
+# Misc
+.DS_Store
+*.tsbuildinfo

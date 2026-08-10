@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    name: typecheck · lint · test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      # No build prelude. In OxyHQ/oxy this job first built @oxyhq/contracts,
+      # protocol, core, services and expo-splash from workspace source; here all
+      # five arrive prebuilt from npm. That is the whole simplification of the
+      # split.
+      - run: bun install
+
+      # `--frozen-lockfile` is deliberately NOT used, here or in the deploy. On
+      # bun 1.3.14 it exits 0 on both desync shapes that actually ship (a
+      # workspace version bump, and a widened-but-satisfiable range) AND
+      # false-positives on non-deterministic configVersion churn — a flag that
+      # misses what it exists to catch and fails correct builds. This asks the
+      # same question without bun's judgement in the middle.
+      #
+      # `--minimum-release-age=0`: this step RE-RESOLVES by design, and on a
+      # cold manifest cache the bunfig quarantine judges every dependency
+      # afresh, including already-locked ones.
+      - name: bun.lock is in sync with the manifests
+        run: |
+          bun install --minimum-release-age=0
+          git diff --exit-code bun.lock || {
+            echo "::error::bun.lock does not match the package.json files. Run 'bun install' and commit bun.lock."
+            exit 1
+          }
+
+      - run: bun run typecheck
+      - run: bun run test
+
+      # `bun test` must be REFUSED, not half-run. Asserted rather than assumed:
+      # a preload that silently stopped loading would leave the suite reporting
+      # a plausible smaller number under the wrong runner, which is the entire
+      # hazard the guard exists for.
+      #
+      # The pattern is the guard's own sentence, NOT "bun test" — that substring
+      # appears in bun's `bun test v1.3.x` banner, so grepping for it would pass
+      # identically whether or not the guard ever loaded. Exit code alone is no
+      # better: a half-run suite also exits non-zero.
+      - name: '`bun test` is refused at both entry points'
+        run: |
+          set -uo pipefail
+          for dir in . packages/frontend; do
+            out=$(cd "$dir" && bun test 2>&1); code=$?
+            echo "--- $dir → exit $code"
+            if [ "$code" -eq 0 ]; then
+              echo "::error::bun test succeeded in $dir; the refuse-bun-test preload is not wired."
+              exit 1
+            fi
+            printf '%s' "$out" | grep -qF 'does not support `bun test`' || {
+              echo "::error::bun test failed in $dir, but not via the guard — it half-ran the suite:"
+              printf '%s' "$out" | head -10
+              exit 1
+            }
+          done
+
+  # Lint is REPORTED, not enforced — deliberately, and this is not permanent.
+  #
+  # `expo lint` was already failing on OxyHQServices' main when this repo was
+  # split out: measured 2026-08-10, 35 problems / 19 errors there against 37 / 21
+  # here. The two extra are not new code — eslint-config-expo 57.0.1 (a fresh
+  # lockfile resolves it; the monorepo's lock pinned 57.0.0) reclassifies four
+  # `react-hooks/preserve-manual-memoization` findings as seven
+  # `react-hooks/refs`. Inbox was never in the monorepo's lint CI at all, so
+  # nothing ever enforced this.
+  #
+  # Making it blocking on day one would mean a repo that is red from its first
+  # commit, which trains everyone to ignore the X. Fix the 21 (mostly
+  # `react-hooks/refs`, `exhaustive-deps`, `static-components` and
+  # `no-unescaped-entities`), then delete `continue-on-error` and fold this back
+  # into the job above.
+  lint:
+    name: lint (reported, not enforced — 21 pre-existing errors)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - run: bun install
+      - run: bun run lint

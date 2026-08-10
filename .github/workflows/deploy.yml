@@ -1,0 +1,117 @@
+name: Deploy to Cloudflare Pages
+
+# Inbox is a frontend and nothing else. Mailboxes, federation, SMTP and webhook
+# ingest are oxy-api, deployed from OxyHQ/oxy — so there is no backend here to
+# build, no image to push and no ECS service to wait on. A web export and a
+# Pages deploy is the whole of it.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Serialised, not cancelled: a cancelled deploy leaves the Pages project on
+# whichever build happened to land last, which is not necessarily the newest.
+concurrency:
+  group: deploy-inbox
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      # Not --frozen-lockfile — see the comment in ci.yml. Lockfile sync is
+      # gated on the pull request.
+      - run: bun install
+
+      # tsc BEFORE the export: `expo export` bundles happily through a type
+      # error, so without this a broken build ships as a green deploy.
+      - run: bun run typecheck
+
+      - run: bun run build
+        env:
+          EXPO_PUBLIC_API_URL: https://api.oxy.so
+          EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI: https://inbox.oxy.so
+          # Inbox's PRODUCTION Oxy client id. `packages/frontend/constants/oxy.ts`
+          # falls back to a committed id when this is unset, so nothing errors —
+          # the deployed bundle just authenticates against the wrong Oxy
+          # application. A repo VARIABLE rather than a secret: the id travels
+          # inside the bundle, so it is public by construction, and hiding it
+          # would only cost the ability to check what production uses.
+          EXPO_PUBLIC_OXY_CLIENT_ID: ${{ vars.INBOX_OXY_CLIENT_ID }}
+
+      # `typedRoutes` is inert as a CI gate: .expo/ is gitignored, nothing in CI
+      # generates router.d.ts, and without it expo-router's `Href` degrades to
+      # `string | HrefObject` — strictly MORE permissive. `expo export` writes
+      # .expo/types as a side effect, so this second run is the only place a
+      # route string is actually checked. ~30s.
+      - name: typecheck again, now that expo export has written .expo/types
+        run: bun run typecheck
+
+      # The export must have produced the HTML, the security headers AND the
+      # compiled Tailwind stylesheet. `expo export` exits 0 with an empty global
+      # CSS when the @source globs resolve to nothing (see bunfig.toml), and
+      # that failure is invisible until someone loads the page — colours still
+      # work, because Bloom sets those inline, and only layout collapses.
+      - name: The export is complete, not merely present
+        run: |
+          set -euo pipefail
+          d=packages/frontend/dist
+          test -f "$d/index.html"  || { echo "::error::no index.html"; exit 1; }
+          test -f "$d/_redirects"  || { echo "::error::no _redirects"; exit 1; }
+          test -f "$d/_headers"    || { echo "::error::no _headers — write-pages-headers did not run"; exit 1; }
+          grep -q 'worker-src' "$d/_headers" || { echo "::error::_headers is missing this app's CSP extensions"; exit 1; }
+          css=$(ls "$d"/_expo/static/css/global-*.css 2>/dev/null | head -1 || true)
+          [ -n "${css:-}" ] || { echo "::error::no compiled global CSS — the Tailwind/@source pipeline produced nothing"; exit 1; }
+          bytes=$(wc -c < "$css")
+          echo "global css: $css ($bytes bytes)"
+          [ "$bytes" -ge 20000 ] || { echo "::error::global CSS is only $bytes bytes; the SDK/Bloom @source globs matched nothing"; exit 1; }
+          grep -q 'flex-row' "$css" || { echo "::error::global CSS carries no SDK layout utilities"; exit 1; }
+
+      # `bunx wrangler@4` directly rather than cloudflare/wrangler-action: that
+      # action's `npx --no-install wrangler` path runs npm's Arborist, which
+      # applies npm-only `overrides` validation a bun-resolved tree has never
+      # been checked against (`npm error code EOVERRIDE`). Same lesson as
+      # OxyHQ/oxy's deploy-auth job.
+      #
+      # The Pages project `oxy-inbox` and the inbox.oxy.so custom domain ALREADY
+      # EXIST, created from OxyHQ/oxy — no create/DNS bootstrap is needed here.
+      - name: Deploy to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: bunx wrangler@4 pages deploy packages/frontend/dist --project-name=oxy-inbox --branch=main --commit-dirty=true
+
+      # Post-deploy gate on the LIVE host, public endpoints only. A blank SPA or
+      # a stylesheet-less build turns this job red instead of sitting quietly in
+      # production.
+      - name: inbox.oxy.so is serving this build
+        run: |
+          set -uo pipefail
+          for attempt in 1 2 3 4 5; do
+            echo "::group::smoke ${attempt}/5"
+            html=$(curl -sS --max-time 20 https://inbox.oxy.so/ || true)
+            csp=$(curl -sSI --max-time 20 https://inbox.oxy.so/ | tr -d '\r' | grep -i '^content-security-policy:' || true)
+            if echo "$html" | grep -q 'Inbox by Oxy' \
+               && echo "$html" | grep -q '_expo/static/css/global-' \
+               && [ -n "$csp" ]; then
+              echo "::endgroup::"; echo "OK"; exit 0
+            fi
+            echo "title: $(echo "$html" | grep -o '<title>[^<]*</title>' || echo MISSING)"
+            echo "css:   $(echo "$html" | grep -o '_expo/static/css/global-[^\"]*' || echo MISSING)"
+            echo "csp:   ${csp:-MISSING}"
+            echo "::endgroup::"
+            [ "$attempt" -lt 5 ] && sleep 15
+          done
+          echo "::error::inbox.oxy.so is not serving a complete build"
+          exit 1

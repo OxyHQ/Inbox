@@ -27,13 +27,20 @@ module.exports = {
   testMatch: ['<rootDir>/__tests__/**/*.(test|spec).(ts|tsx)'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
-    '^@oxyhq/core$': '<rootDir>/../core/src/index.ts',
-    // `@oxyhq/protocol` is mapped for the same reason as core: resolving core
-    // from SOURCE pulls its own workspace imports, and protocol ships compiled.
-    // Without this the suite passes only on a machine that happens to have
-    // `packages/protocol/dist` built, and fails in CI, which builds nothing.
-    '^@oxyhq/protocol$': '<rootDir>/../protocol/src/index.ts',
-    '^@oxyhq/contracts$': '<rootDir>/../contracts/src/index.ts',
+    // `@oxyhq/core`, `@oxyhq/protocol` and `@oxyhq/contracts` are deliberately
+    // NOT mapped. In OxyHQServices they pointed at workspace SOURCE, which then
+    // forced protocol to be mapped too (core's own imports had to resolve from
+    // source, and CI built nothing). Here all three are ordinary published
+    // dependencies: jest-resolve honours `exports`, core declares no `browser`
+    // condition, so jsdom's `browser` condition does not match and jest's
+    // `require` wins → dist/cjs/index.js, plain CJS that ts-jest never needs to
+    // see. `main` gives the same answer if a resolver ignores `exports`.
+    //
+    // Do NOT "fix" a resolution problem here by mapping to
+    // `<rootDir>/node_modules/@oxyhq/core/src/index.ts`: that path is INSIDE
+    // node_modules, so `transformIgnorePatterns` skips ts-jest and jest chokes
+    // on raw TypeScript. The monorepo's mapper worked only because
+    // `../core/src/` sat outside node_modules.
     // Native modules the app imports but that cannot load under Node. The
     // `@oxyhq/services` stub also stands in for the SDK's `expo-notifications`
     // adapter, so no `expo-*` module is reachable from a test at all.

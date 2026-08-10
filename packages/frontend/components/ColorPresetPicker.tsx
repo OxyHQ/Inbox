@@ -8,7 +8,7 @@
 
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
-import { APP_COLOR_NAMES, APP_COLOR_PRESETS } from '@oxyhq/bloom/theme';
+import { APP_COLOR_PRESETS, FREE_COLOR_NAMES } from '@oxyhq/bloom/theme';
 import type { AppColorName } from '@oxyhq/bloom/theme';
 import { Check_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
 
@@ -19,7 +19,6 @@ const PRESET_LABELS: Record<AppColorName, string> = {
   teal: 'Teal',
   blue: 'Blue',
   green: 'Green',
-  amber: 'Amber',
   yellow: 'Yellow',
   red: 'Red',
   purple: 'Purple',
@@ -29,15 +28,31 @@ const PRESET_LABELS: Record<AppColorName, string> = {
   mint: 'Mint',
   oxy: 'Oxy',
   faircoin: 'Faircoin',
+  pumpkin: 'Pumpkin',
+  gray: 'Gray',
+  brown: 'Brown',
+  peach: 'Peach',
+  rose: 'Rose',
+  mono: 'Mono',
 };
 
 export function ColorPresetPicker() {
   const { colorPreset, setColorPreset } = useThemeContext();
   const colors = useColors();
 
+  // Built from FREE_COLOR_NAMES, never from APP_COLOR_NAMES. Bloom's own source
+  // spells out why: a consumer "must NOT start from `APP_COLOR_NAMES` and add
+  // the unlocked ones, which yields the gated presets to everybody". Inbox has
+  // no entitlement plumbing, so the free set is the whole of what it may offer.
+  //
+  // Today the two are the same list — no preset in @oxyhq/bloom@0.89.0 carries a
+  // `gate`, so HANDLE_COLOR_NAMES and PREMIUM_COLOR_NAMES are empty. That is
+  // exactly why this has to be written the right way now: the day Bloom gates a
+  // preset, `APP_COLOR_NAMES` would start handing it out here with no error, no
+  // type change and no test failure.
   const presets = useMemo(
     () =>
-      APP_COLOR_NAMES.map((name) => ({
+      FREE_COLOR_NAMES.map((name) => ({
         name,
         hex: APP_COLOR_PRESETS[name].hex,
         label: PRESET_LABELS[name],

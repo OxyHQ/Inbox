@@ -25,9 +25,10 @@ import { useColors } from '@/constants/theme';
 import { CONTENT_MAX_WIDTH } from '@/constants/layout';
 import { useInboxDisplayPrefs } from '@/hooks/useInboxDisplayPrefs';
 import { SPECIAL_USE } from '@/constants/mailbox';
-import type { Message } from '@/services/emailApi';
+import type { Message, SavedEmailSearchFilters } from '@/services/emailApi';
 import { MessageRow } from '@/components/MessageRow';
 import { SearchHeader } from '@/components/SearchHeader';
+import { SavedSearchBar } from '@/components/SavedSearchBar';
 import { EmptyIllustration } from '@/components/EmptyIllustration';
 import { useEmailStore } from '@/hooks/useEmail';
 import { useOxy } from '@oxyhq/services';
@@ -100,6 +101,10 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   // Map mailbox name to mailbox ID
   const mailboxIdFromName = useMemo(() => {
     if (!requestedMailbox) return undefined;
+    // Saved searches persist the resolved mailbox id. Keep accepting the
+    // human-readable special-use names used by the parser as well.
+    const existingMailbox = mailboxes.find((mailbox) => mailbox._id === requestedMailbox);
+    if (existingMailbox) return existingMailbox._id;
     const specialUseMap: Record<string, string> = {
       inbox: SPECIAL_USE.INBOX,
       sent: SPECIAL_USE.SENT,
@@ -358,6 +363,26 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     setFilterInput('');
   }, [editingFilter, filterInput]);
 
+  const handleApplySavedSearch = useCallback((saved: { query: string; filters: SavedEmailSearchFilters }) => {
+    setQuery(saved.query);
+    setFilterFrom(saved.filters.from ?? '');
+    setFilterHasAttachment(saved.filters.hasAttachment ?? false);
+    setSubmittedQuery('');
+    setNlParsedOptions({
+      q: saved.filters.q,
+      from: saved.filters.from,
+      to: saved.filters.to,
+      subject: saved.filters.subject,
+      hasAttachment: saved.filters.hasAttachment,
+      starred: saved.filters.starred,
+      unread: saved.filters.unread,
+      after: saved.filters.dateAfter,
+      before: saved.filters.dateBefore,
+      mailbox: saved.filters.mailbox,
+    });
+    setNlInterpretation('');
+  }, []);
+
   const listExtraData = useMemo(
     () => ({
       selectedMessageId,
@@ -546,6 +571,13 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           </Text>
         </TouchableOpacity>
       </View>
+
+      <SavedSearchBar
+        query={query}
+        filters={searchOptions}
+        enabled={hasSearched}
+        onApply={handleApplySavedSearch}
+      />
 
       {/* Search interpretation display. AI is only requested on explicit submit;
           normal operator searches are rendered from the same parsed options. */}

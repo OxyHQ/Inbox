@@ -26,6 +26,8 @@ import {
   ContactSchema,
   EmailFilterSchema,
   EmailTemplateSchema,
+  EmailOutboxSchema,
+  SavedEmailSearchSchema,
 } from '@/schemas/emailSchemas';
 import type {
   EmailAddress,
@@ -46,6 +48,9 @@ import type {
   EmailFilterCondition,
   EmailFilterAction,
   EmailTemplate,
+  EmailOutbox,
+  SavedEmailSearch,
+  SavedEmailSearchFilters,
 } from '@/schemas/emailSchemas';
 
 export * from '@/schemas/emailSchemas';
@@ -266,9 +271,29 @@ export function createEmailApi(http: HttpService) {
       references?: string[];
       attachments?: { fileId: string; contentId?: string; isInline?: boolean }[];
       existingDraftId?: string;
+      expectedRevision?: number;
     }): Promise<Message> {
       const res = await http.post('/email/drafts', draft);
       return MessageSchema.parse(res);
+    },
+
+    // ─── Durable outbound delivery ─────────────────────────────────
+
+    async listOutboundMessages(options: { limit?: number } = {}): Promise<EmailOutbox[]> {
+      const res = await http.get('/email/outbox', {
+        params: options.limit === undefined ? undefined : { limit: String(options.limit) },
+      });
+      return z.array(EmailOutboxSchema).parse(res);
+    },
+
+    async retryOutboundMessage(outboxId: string): Promise<EmailOutbox> {
+      const res = await http.post(`/email/outbox/${outboxId}/retry`);
+      return EmailOutboxSchema.parse(res);
+    },
+
+    async cancelOutboundMessage(outboxId: string): Promise<EmailOutbox> {
+      const res = await http.post(`/email/outbox/${outboxId}/cancel`);
+      return EmailOutboxSchema.parse(res);
     },
 
     // ─── Search ─────────────────────────────────────────────────────
@@ -299,6 +324,25 @@ export function createEmailApi(http: HttpService) {
         data: parseMessages(res.data),
         pagination: PaginationSchema.parse(res.pagination),
       };
+    },
+
+    async listSavedSearches(): Promise<SavedEmailSearch[]> {
+      const res = await http.get('/email/saved-searches');
+      return z.array(SavedEmailSearchSchema).parse(res);
+    },
+
+    async createSavedSearch(data: {
+      name: string;
+      query: string;
+      filters: SavedEmailSearchFilters;
+      order?: number;
+    }): Promise<SavedEmailSearch> {
+      const res = await http.post('/email/saved-searches', data);
+      return SavedEmailSearchSchema.parse(res);
+    },
+
+    async deleteSavedSearch(savedSearchId: string): Promise<void> {
+      await http.delete(`/email/saved-searches/${savedSearchId}`);
     },
 
     // ─── Quota ──────────────────────────────────────────────────────

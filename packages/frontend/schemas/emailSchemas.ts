@@ -124,6 +124,7 @@ export const MessageSchema = z.object({
   aliasTag: z.string().nullable().optional(),
   snoozedUntil: z.string().nullable().optional(),
   scheduledAt: z.string().nullable().optional(),
+  draftRevision: z.number().int().min(1).default(1),
   threadCount: z.number().optional(),
   threadParticipants: z.array(z.string()).optional(),
   senderAvatarPath: z.string().nullable().optional(),
@@ -279,6 +280,42 @@ export const EmailTemplateSchema = z.object({
   updatedAt: z.string(),
 });
 
+export const EmailOutboxSchema = z.object({
+  id: z.string(),
+  messageId: z.string(),
+  status: z.enum(['pending', 'processing', 'sent', 'failed', 'cancelled']),
+  attempts: z.number().int().min(0),
+  nextAttemptAt: z.string(),
+  lastError: z.string().nullable(),
+  sentAt: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const SavedEmailSearchFiltersSchema = z.object({
+  q: z.string().optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
+  subject: z.string().optional(),
+  hasAttachment: z.boolean().optional(),
+  dateAfter: z.string().optional(),
+  dateBefore: z.string().optional(),
+  mailbox: z.string().optional(),
+  starred: z.boolean().optional(),
+  unread: z.boolean().optional(),
+  label: z.string().optional(),
+}).default({});
+
+export const SavedEmailSearchSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  query: z.string(),
+  filters: SavedEmailSearchFiltersSchema,
+  order: z.number().int(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
 // ─── Compose input validation ──────────────────────────────────────
 
 /** A single recipient email address, validated with Zod's email rule. */
@@ -328,3 +365,6 @@ export type EmailFilter = z.infer<typeof EmailFilterSchema>;
 export type EmailFilterCondition = z.infer<typeof EmailFilterConditionSchema>;
 export type EmailFilterAction = z.infer<typeof EmailFilterActionSchema>;
 export type EmailTemplate = z.infer<typeof EmailTemplateSchema>;
+export type EmailOutbox = z.infer<typeof EmailOutboxSchema>;
+export type SavedEmailSearchFilters = z.infer<typeof SavedEmailSearchFiltersSchema>;
+export type SavedEmailSearch = z.infer<typeof SavedEmailSearchSchema>;

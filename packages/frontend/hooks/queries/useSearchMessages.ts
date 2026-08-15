@@ -1,10 +1,12 @@
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query';
 import { useOxy } from '@oxyhq/services';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import type { Message, Pagination } from '@/services/emailApi';
 
-interface SearchOptions {
+const SEARCH_PAGE_SIZE = 50;
+
+export interface SearchOptions {
   q?: string;
   from?: string;
   to?: string;
@@ -14,15 +16,23 @@ interface SearchOptions {
   dateBefore?: string;
   mailbox?: string;
   starred?: boolean;
+  unread?: boolean;
   label?: string;
 }
 
-interface SearchResult {
+export interface SearchPage {
   data: Message[];
   pagination: Pagination;
 }
 
-export function useSearchMessages(options: SearchOptions) {
+export function getNextSearchPageParam(lastPage: SearchPage): number | undefined {
+  if (!lastPage.pagination.hasMore || lastPage.pagination.limit <= 0) return undefined;
+
+  const nextOffset = lastPage.pagination.offset + lastPage.pagination.limit;
+  return nextOffset < lastPage.pagination.total ? nextOffset : undefined;
+}
+
+export function useSearchMessages(options: SearchOptions = {}) {
   const api = useEmailStore((s) => s._api);
   const { user } = useOxy();
   const userId = user?.id ?? null;
@@ -37,15 +47,22 @@ export function useSearchMessages(options: SearchOptions) {
     options.dateBefore ||
     options.mailbox?.trim() ||
     options.starred ||
+    typeof options.unread === 'boolean' ||
     options.label?.trim()
   );
 
-  return useQuery<SearchResult>({
+  return useInfiniteQuery<SearchPage, Error, InfiniteData<SearchPage, number>, ReturnType<typeof emailKeys.search>, number>({
     queryKey: emailKeys.search(options, userId),
-    queryFn: async () => {
+    queryFn: async ({ pageParam }) => {
       if (!api) throw new Error('Email API not initialized');
-      return await api.search(options);
+      return await api.search({
+        ...options,
+        limit: SEARCH_PAGE_SIZE,
+        offset: pageParam,
+      });
     },
+    initialPageParam: 0,
+    getNextPageParam: getNextSearchPageParam,
     enabled: hasFilter && !!api && !!userId,
   });
 }

@@ -5,9 +5,12 @@
  * `messageCache`, the realtime socket, and the offline persistence whitelist.
  * No magic key strings should appear anywhere else in the app.
  *
- * Key shapes are preserved EXACTLY as they were when inlined, so cache
- * identity, the socket's positional predicate (`key[0]`, `key[1]`, `key[4]`),
- * and persisted blobs remain compatible:
+ * Key shapes are preserved EXACTLY as they were when inlined, so prefix
+ * invalidations, the socket's positional predicate (`key[0]`, `key[1]`,
+ * `key[4]`), and existing mutation helpers remain compatible. The QueryClient
+ * adds the active account/session scope at the hash boundary; this is
+ * deliberate because several legacy broad keys are captured by mutation
+ * modules at import time and must remain valid prefix keys.
  *   - messages list : ['messages', mailboxId|null, starred, label|null, userId]
  *   - message detail : ['message', messageId, userId]
  *   - thread         : ['thread', messageId]
@@ -17,6 +20,24 @@
  *   - `root` / bare arrays  → broad keys for invalidate / setQueriesData.
  *   - builder functions     → fully-qualified keys for a single query.
  */
+
+export type InboxQueryScope = string;
+
+let activeInboxQueryScope: InboxQueryScope | null = null;
+
+/**
+ * Set the scope used by the Inbox QueryClient hash function.
+ *
+ * This is called only by the session/cache gate after the SDK has resolved the
+ * active session. The gate keeps private UI unmounted while the scope changes.
+ */
+export function setInboxQueryScope(scope: InboxQueryScope | null): void {
+  activeInboxQueryScope = scope;
+}
+
+export function getInboxQueryScope(): InboxQueryScope | null {
+  return activeInboxQueryScope;
+}
 
 export interface MessagesListParams {
   mailboxId?: string;
@@ -128,3 +149,6 @@ export const PERSISTED_QUERY_ROOTS: ReadonlySet<string> = new Set([
   // call the comment above it claims happens once a day.
   'daily-brief',
 ]);
+
+/** Every persisted root contains private Inbox data. */
+export const PRIVATE_QUERY_ROOTS = PERSISTED_QUERY_ROOTS;

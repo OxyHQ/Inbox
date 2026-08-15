@@ -64,6 +64,22 @@ interface PaginatedResult<T> {
   pagination: Pagination;
 }
 
+export interface EmailSearchOptions {
+  q?: string;
+  from?: string;
+  to?: string;
+  subject?: string;
+  hasAttachment?: boolean;
+  dateAfter?: string;
+  dateBefore?: string;
+  mailbox?: string;
+  starred?: boolean;
+  unread?: boolean;
+  label?: string;
+  limit?: number;
+  offset?: number;
+}
+
 /** Parse an array of messages, skipping any that fail validation. */
 function parseMessages(items: unknown): Message[] {
   if (!Array.isArray(items)) return [];
@@ -244,23 +260,13 @@ export function createEmailApi(http: HttpService) {
     // ─── Search ─────────────────────────────────────────────────────
 
     async search(
-      options: {
-        q?: string;
-        from?: string;
-        to?: string;
-        subject?: string;
-        hasAttachment?: boolean;
-        dateAfter?: string;
-        dateBefore?: string;
-        mailbox?: string;
-        starred?: boolean;
-        label?: string;
-        limit?: number;
-        offset?: number;
-      } = {},
+      options: EmailSearchOptions = {},
     ): Promise<{ data: Message[]; pagination: Pagination }> {
       const params: Record<string, string> = {};
-      if (options.q) params.q = options.q;
+      const readStateOperator =
+        options.unread === undefined ? undefined : options.unread ? 'is:unread' : 'is:read';
+      const query = [readStateOperator, options.q].filter(Boolean).join(' ');
+      if (query) params.q = query;
       if (options.from) params.from = options.from;
       if (options.to) params.to = options.to;
       if (options.subject) params.subject = options.subject;

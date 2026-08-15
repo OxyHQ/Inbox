@@ -3,6 +3,7 @@ import { toast } from '@oxyhq/bloom';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import type { EmailFilter, EmailFilterCondition, EmailFilterAction } from '@/services/emailApi';
+import { useTranslation } from '@/lib/i18n';
 
 const FILTERS_KEY = emailKeys.filters;
 
@@ -24,6 +25,7 @@ async function optimisticFilters(
 export function useCreateFilter() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation({
     mutationFn: async (data: {
@@ -56,7 +58,7 @@ export function useCreateFilter() {
     },
     onError: (_err, _vars, context) => {
       if (context?.prev) queryClient.setQueryData(FILTERS_KEY, context.prev);
-      toast.error('Failed to create filter');
+      toast.error(t('ui.mutations.filterCreateFailed'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: FILTERS_KEY });
@@ -67,6 +69,7 @@ export function useCreateFilter() {
 export function useUpdateFilter() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation({
     mutationFn: async ({
@@ -92,7 +95,7 @@ export function useUpdateFilter() {
     },
     onError: (_err, _vars, context) => {
       if (context?.prev) queryClient.setQueryData(FILTERS_KEY, context.prev);
-      toast.error('Failed to update filter');
+      toast.error(t('ui.mutations.filterUpdateFailed'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: FILTERS_KEY });
@@ -103,6 +106,7 @@ export function useUpdateFilter() {
 export function useDeleteFilter() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation({
     mutationFn: async (filterId: string) => {
@@ -117,7 +121,7 @@ export function useDeleteFilter() {
     },
     onError: (_err, _vars, context) => {
       if (context?.prev) queryClient.setQueryData(FILTERS_KEY, context.prev);
-      toast.error('Failed to delete filter');
+      toast.error(t('ui.mutations.filterDeleteFailed'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: FILTERS_KEY });

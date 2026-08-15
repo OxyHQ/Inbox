@@ -3,6 +3,7 @@ import { toast } from '@oxyhq/bloom';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import type { EmailTemplate } from '@/services/emailApi';
+import { useTranslation } from '@/lib/i18n';
 
 const TEMPLATES_KEY = emailKeys.templates;
 
@@ -19,6 +20,7 @@ async function optimisticTemplates(
 export function useCreateTemplate() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation({
     mutationFn: async (data: { name: string; subject?: string; body: string }) => {
@@ -42,7 +44,7 @@ export function useCreateTemplate() {
     },
     onError: (_err, _vars, context) => {
       if (context?.prev) queryClient.setQueryData(TEMPLATES_KEY, context.prev);
-      toast.error('Failed to create template');
+      toast.error(t('ui.mutations.templateCreateFailed'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: TEMPLATES_KEY });
@@ -53,6 +55,7 @@ export function useCreateTemplate() {
 export function useUpdateTemplate() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation({
     mutationFn: async ({
@@ -75,7 +78,7 @@ export function useUpdateTemplate() {
     },
     onError: (_err, _vars, context) => {
       if (context?.prev) queryClient.setQueryData(TEMPLATES_KEY, context.prev);
-      toast.error('Failed to update template');
+      toast.error(t('ui.mutations.templateUpdateFailed'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: TEMPLATES_KEY });
@@ -86,6 +89,7 @@ export function useUpdateTemplate() {
 export function useDeleteTemplate() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation({
     mutationFn: async (templateId: string) => {
@@ -100,7 +104,7 @@ export function useDeleteTemplate() {
     },
     onError: (_err, _vars, context) => {
       if (context?.prev) queryClient.setQueryData(TEMPLATES_KEY, context.prev);
-      toast.error('Failed to delete template');
+      toast.error(t('ui.mutations.templateDeleteFailed'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: TEMPLATES_KEY });

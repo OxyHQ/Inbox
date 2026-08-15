@@ -3,6 +3,7 @@ import { toast } from '@oxyhq/bloom';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import type { Subscription, Pagination } from '@/services/emailApi';
+import { useTranslation } from '@/lib/i18n';
 
 interface SubscriptionsPage {
   data: Subscription[];
@@ -14,6 +15,7 @@ type SubscriptionsInfinite = InfiniteData<SubscriptionsPage>;
 export function useUnsubscribe() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation({
     mutationFn: async ({
@@ -61,7 +63,7 @@ export function useUnsubscribe() {
       if (context?.prev) {
         queryClient.setQueryData(emailKeys.subscriptions, context.prev);
       }
-      toast.error('Failed to unsubscribe');
+      toast.error(t('ui.mutations.unsubscribeFailed'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: emailKeys.subscriptions });

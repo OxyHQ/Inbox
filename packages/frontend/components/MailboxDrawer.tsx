@@ -25,7 +25,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import { Badge } from '@oxyhq/bloom/badge';
 import {
-  FavouriteIcon,
   InboxIcon,
   SentIcon,
   NoteEditIcon,
@@ -53,6 +52,7 @@ import { useLabels } from '@/hooks/queries/useLabels';
 import { useCreateMailbox, useDeleteMailbox } from '@/hooks/mutations/useMailboxMutations';
 import type { Mailbox } from '@/services/emailApi';
 import { LogoIcon } from '@/assets/logo';
+import { useTranslation } from '@/lib/i18n';
 
 const MAILBOX_ICONS_FALLBACK: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> = {
   Inbox: 'inbox',
@@ -124,8 +124,11 @@ function NavItem({
   onPress: () => void;
   onLongPress?: () => void;
 }) {
+  const { t } = useTranslation();
   const iconColor = isActive ? colors.sidebarItemActiveText : colors.icon;
-  const accessibilityLabel = badge != null && badge > 0 ? `${label}, ${badge} unread` : label;
+  const accessibilityLabel = badge != null && badge > 0
+    ? t('drawer.mailboxA11y', { name: label, count: badge })
+    : label;
   return (
     <TouchableOpacity
       accessibilityLabel={accessibilityLabel}
@@ -170,6 +173,7 @@ function NavItem({
 
 export function MailboxDrawer({ onClose, onToggle, collapsed }: { onClose?: () => void; onToggle?: () => void; collapsed?: boolean }) {
   const colors = useColors();
+  const { t } = useTranslation();
   const { user, isAuthenticated } = useOxy();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -191,6 +195,16 @@ export function MailboxDrawer({ onClose, onToggle, collapsed }: { onClose?: () =
   const toggleMore = useEmailStore((s) => s.toggleMore);
   const { data: mailboxes = [] } = useMailboxes();
   const { data: labels = [] } = useLabels();
+
+  const mailboxLabel = useCallback(
+    (mailbox: Mailbox & { specialUse?: string }) => {
+      const raw = mailbox.specialUse?.replace(/^\\+/, '') ?? mailbox.name;
+      const key = `drawer.mailboxes.${raw}`;
+      const translated = t(key);
+      return translated === key ? raw : translated;
+    },
+    [t],
+  );
 
   // Determine active state from URL pathname.
   // Path shapes we care about here:
@@ -357,7 +371,7 @@ export function MailboxDrawer({ onClose, onToggle, collapsed }: { onClose?: () =
       <View style={[styles.header, { borderBottomColor: colors.border }, collapsed && styles.headerCollapsed]}>
         {collapsed ? (
           <TouchableOpacity
-            accessibilityLabel="Expand sidebar"
+            accessibilityLabel={t('drawer.expandSidebar')}
             accessibilityRole="button"
             onPress={onToggle}
             style={styles.collapseButtonCenter}
@@ -374,11 +388,11 @@ export function MailboxDrawer({ onClose, onToggle, collapsed }: { onClose?: () =
             <View style={styles.headerRow}>
               <View style={styles.logoRow}>
                 <LogoIcon height={44} color={colors.primary} />
-                <Text style={[styles.appTitle, { color: colors.primary }]}>Inbox</Text>
+                <Text style={[styles.appTitle, { color: colors.primary }]}>{t('app.name')}</Text>
               </View>
               {onToggle && (
                 <TouchableOpacity
-                  accessibilityLabel="Collapse sidebar"
+                  accessibilityLabel={t('drawer.collapseSidebar')}
                   accessibilityRole="button"
                   onPress={onToggle}
                   style={styles.collapseButton}
@@ -401,7 +415,7 @@ export function MailboxDrawer({ onClose, onToggle, collapsed }: { onClose?: () =
       {isAuthenticated && !collapsed && (
         <View style={styles.composeWrapper}>
           <TouchableOpacity
-            accessibilityLabel="Compose new email"
+            accessibilityLabel={t('inbox.composeFab')}
             accessibilityRole="button"
             style={[styles.composeButton, { backgroundColor: colors.composeFab }]}
             onPress={handleCompose}
@@ -412,14 +426,14 @@ export function MailboxDrawer({ onClose, onToggle, collapsed }: { onClose?: () =
             ) : (
               <MaterialCommunityIcons name="pencil" size={20} color={colors.composeFabIcon} />
             )}
-            <Text style={[styles.composeLabel, { color: colors.composeFabText }]}>Compose</Text>
+            <Text style={[styles.composeLabel, { color: colors.composeFabText }]}>{t('inbox.composeFabLabel')}</Text>
           </TouchableOpacity>
         </View>
       )}
       {isAuthenticated && collapsed && (
         <View style={styles.composeWrapperCollapsed}>
           <TouchableOpacity
-            accessibilityLabel="Compose new email"
+            accessibilityLabel={t('inbox.composeFab')}
             accessibilityRole="button"
             style={[styles.composeButtonCollapsed, { backgroundColor: colors.composeFab }]}
             onPress={handleCompose}
@@ -446,7 +460,7 @@ export function MailboxDrawer({ onClose, onToggle, collapsed }: { onClose?: () =
 
           {/* Primary Mailboxes (Inbox, Sent, Drafts) */}
           {primaryMailboxes.map((mailbox) => {
-            const label = mailbox.specialUse.replace(/^\\+/, '');
+            const label = mailboxLabel(mailbox);
             const hasUnseen = mailbox.unseenMessages > 0;
             return (
               <NavItem
@@ -468,7 +482,7 @@ export function MailboxDrawer({ onClose, onToggle, collapsed }: { onClose?: () =
           <NavItem
             icon="star-outline"
             hugeIcon={HugeStarIcon as unknown as IconSvgElement}
-            label="Starred"
+            label={t('drawer.starred')}
             isActive={isStarredActive}
             colors={colors}
             collapsed={collapsed}
@@ -480,7 +494,7 @@ export function MailboxDrawer({ onClose, onToggle, collapsed }: { onClose?: () =
             <NavItem
               icon="clock-outline"
               hugeIcon={Clock01Icon as unknown as IconSvgElement}
-              label="Snoozed"
+              label={t('drawer.snoozed')}
               isActive={isMailboxActive(snoozedMailbox)}
               colors={colors}
               badge={snoozedMailbox.unseenMessages}
@@ -493,7 +507,7 @@ export function MailboxDrawer({ onClose, onToggle, collapsed }: { onClose?: () =
           <NavItem
             icon="newspaper-variant-outline"
             hugeIcon={Mail01Icon as unknown as IconSvgElement}
-            label="Subscriptions"
+            label={t('drawer.subscriptions')}
             isActive={isSubscriptionsActive}
             colors={colors}
             collapsed={collapsed}
@@ -517,14 +531,14 @@ export function MailboxDrawer({ onClose, onToggle, collapsed }: { onClose?: () =
                 />
               )}
               <Text style={[styles.moreToggleText, { color: colors.secondaryText }]}>
-                {moreExpanded ? 'Less' : 'More'}
+                {moreExpanded ? t('drawer.less') : t('drawer.more')}
               </Text>
             </TouchableOpacity>
           )}
 
           {/* Secondary Mailboxes (Spam, Trash, Archive) - behind "More" */}
           {(moreExpanded || collapsed) && secondaryMailboxes.map((mailbox) => {
-            const label = mailbox.specialUse.replace(/^\\+/, '');
+            const label = mailboxLabel(mailbox);
             return (
               <NavItem
                 key={mailbox._id}
@@ -544,7 +558,7 @@ export function MailboxDrawer({ onClose, onToggle, collapsed }: { onClose?: () =
           {!collapsed && labels.length > 0 && (
             <>
               <Divider />
-              <Text style={[styles.sectionTitle, { color: colors.secondaryText }]}>Labels</Text>
+              <Text style={[styles.sectionTitle, { color: colors.secondaryText }]}>{t('ui.drawer.labels')}</Text>
               {labels.map((lbl) => (
                 <NavItem
                   key={lbl._id}
@@ -567,9 +581,9 @@ export function MailboxDrawer({ onClose, onToggle, collapsed }: { onClose?: () =
             <>
               <Divider />
               <View style={styles.foldersHeaderRow}>
-                <Text style={[styles.sectionTitle, { color: colors.secondaryText }]}>Folders</Text>
+                <Text style={[styles.sectionTitle, { color: colors.secondaryText }]}>{t('ui.drawer.folders')}</Text>
                 <TouchableOpacity
-                  accessibilityLabel="Create folder"
+                  accessibilityLabel={t('ui.drawer.createFolder')}
                   accessibilityRole="button"
                   onPress={() => createFolderControl.open()}
                   style={styles.folderAddButton}
@@ -600,7 +614,7 @@ export function MailboxDrawer({ onClose, onToggle, collapsed }: { onClose?: () =
               ))}
               {customFolders.length === 0 && (
                 <Text style={[styles.foldersHint, { color: colors.secondaryText }]}>
-                  Tap + to create a folder. Long-press a folder to delete it.
+                  {t('ui.drawer.folderHint')}
                 </Text>
               )}
             </>
@@ -618,10 +632,10 @@ export function MailboxDrawer({ onClose, onToggle, collapsed }: { onClose?: () =
                 )}
               </View>
               <Text style={[styles.signedOutTitle, { color: colors.text }]}>
-                Sign in to manage your email
+                {t('drawer.signedOut.title')}
               </Text>
               <Text style={[styles.signedOutSubtitle, { color: colors.secondaryText }]}>
-                Access your mailboxes, labels, and compose new messages.
+                {t('drawer.signedOut.subtitle')}
               </Text>
               <OxySignInButton variant="contained" style={styles.signedOutCta} />
             </View>
@@ -661,7 +675,7 @@ export function MailboxDrawer({ onClose, onToggle, collapsed }: { onClose?: () =
           ]}
         >
           <Text style={[styles.footerSignedOutLabel, { color: colors.secondaryText }]}>
-            Not signed in
+            {t('drawer.notSignedIn')}
           </Text>
         </View>
       )}
@@ -685,12 +699,12 @@ export function MailboxDrawer({ onClose, onToggle, collapsed }: { onClose?: () =
       )}
 
       {/* Create folder */}
-      <Dialog control={createFolderControl} title="New folder" label="New folder">
+      <Dialog control={createFolderControl} title={t('ui.drawer.newFolder')} label={t('ui.drawer.newFolder')}>
         <View style={styles.folderDialogBody}>
           <TextInput
             value={newFolderName}
             onChangeText={setNewFolderName}
-            placeholder="Folder name"
+            placeholder={t('ui.drawer.folderName')}
             placeholderTextColor={colors.secondaryText}
             autoFocus
             onSubmitEditing={handleCreateFolder}
@@ -701,7 +715,7 @@ export function MailboxDrawer({ onClose, onToggle, collapsed }: { onClose?: () =
             onPress={handleCreateFolder}
             disabled={!newFolderName.trim() || createMailbox.isPending}
           >
-            {createMailbox.isPending ? 'Creating…' : 'Create folder'}
+            {createMailbox.isPending ? t('ui.drawer.creatingFolder') : t('ui.drawer.createFolderButton')}
           </Button>
         </View>
       </Dialog>
@@ -709,15 +723,15 @@ export function MailboxDrawer({ onClose, onToggle, collapsed }: { onClose?: () =
       {/* Delete folder confirmation */}
       <Dialog
         control={deleteFolderControl}
-        title="Delete folder?"
+        title={t('ui.drawer.deleteFolderTitle')}
         description={
           folderPendingDelete
-            ? `"${folderPendingDelete.name}" and its organization will be removed. Messages inside are not deleted.`
+            ? t('ui.drawer.deleteFolderDescription', { name: folderPendingDelete.name })
             : ''
         }
         actions={[
-          { label: 'Delete', color: 'destructive', onPress: handleConfirmDeleteFolder },
-          { label: 'Cancel', color: 'cancel' },
+          { label: t('common.delete'), color: 'destructive', onPress: handleConfirmDeleteFolder },
+          { label: t('common.cancel'), color: 'cancel' },
         ]}
       />
     </View>

@@ -40,7 +40,7 @@ import { RichTextEditor, stripHtml, type RichTextEditorHandle } from '@/componen
 import { ScheduleSendSheet } from '@/components/ScheduleSendSheet';
 import { TemplatePicker } from '@/components/TemplatePicker';
 import type { ContactSuggestion, EmailTemplate } from '@/services/emailApi';
-import { parseRecipientList } from '@/schemas/emailSchemas';
+import { isValidRecipientEmail, parseRecipientList } from '@/schemas/emailSchemas';
 
 /**
  * Local composer representation of an attachment. Just enough to render the
@@ -75,6 +75,75 @@ interface ComposeFormProps {
   body?: string;
 }
 
+export type ComposeDraftSaveState = 'idle' | 'saving' | 'saved' | 'error';
+
+export interface ComposeDraftSnapshot {
+  to: string;
+  cc: string;
+  bcc: string;
+  subject: string;
+  body: string;
+  replyTo?: string;
+}
+
+export interface ParsedComposeRecipients {
+  addresses: { address: string }[];
+  invalid: string[];
+}
+
+export interface DraftSaveQueue {
+  enqueue: (save: () => Promise<boolean>) => Promise<boolean>;
+}
+
+export function createDraftSaveQueue(): DraftSaveQueue {
+  let queue: Promise<boolean> = Promise.resolve(false);
+
+  return {
+    enqueue(save) {
+      const queuedSave = queue.then(save, save);
+      queue = queuedSave.then(
+        () => false,
+        () => false,
+      );
+      return queuedSave;
+    },
+  };
+}
+
+export function parseComposeRecipients(input: string): ParsedComposeRecipients {
+  const entries = input
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  const invalid = entries.filter((entry) => !isValidRecipientEmail(entry));
+
+  return {
+    addresses: parseRecipientList(input),
+    invalid,
+  };
+}
+
+export function buildComposeDraftPayload(
+  snapshot: ComposeDraftSnapshot,
+  existingDraftId?: string,
+  web = isWeb,
+) {
+  return {
+    to: snapshot.to.trim() ? parseComposeRecipients(snapshot.to).addresses : undefined,
+    cc: snapshot.cc.trim() ? parseComposeRecipients(snapshot.cc).addresses : undefined,
+    bcc: snapshot.bcc.trim() ? parseComposeRecipients(snapshot.bcc).addresses : undefined,
+    subject: snapshot.subject || undefined,
+    text: web ? stripHtml(snapshot.body) || undefined : snapshot.body || undefined,
+    html: web ? snapshot.body || undefined : undefined,
+    inReplyTo: snapshot.replyTo,
+    existingDraftId,
+  };
+}
+
+function recipientError(field: string, invalid: string[]): string {
+  return `Invalid ${field} recipient${invalid.length === 1 ? '' : 's'}: ${invalid.join(', ')}`;
+}
+
 export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initialCc, subject: initialSubject, body: initialBody }: ComposeFormProps) {
   // Compose can be opened from a deep link, where there is no history to pop.
   const closeCompose = useGoBack();
@@ -103,6 +172,14 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
   const [showCcBcc, setShowCcBcc] = useState(!!(initialCc));
   const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
   const [signatureLoaded, setSignatureLoaded] = useState(false);
+  const [draftSaveState, setDraftSaveState] = useState<ComposeDraftSaveState>('idle');
+  const [savedDraftKey, setSavedDraftKey] = useState<string | null>(null);
+  const [draftSaveQueue] = useState(createDraftSaveQueue);
+  const bodyValueRef = useRef(initialBody || '');
+  const updateBody = useCallback((nextBody: string) => {
+    bodyValueRef.current = nextBody;
+    setBody(nextBody);
+  }, []);
 
   // Auto-insert signature from settings
   useEffect(() => {
@@ -111,9 +188,9 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
     const loadSignature = async () => {
       try {
         const settings = await api.getSettings();
-        if (settings.signature && !initialBody) {
+        if (settings.signature && !bodyValueRef.current.trim()) {
           // Add signature with separator
-          setBody(`\n\n--\n${settings.signature}`);
+          updateBody(`\n\n--\n${settings.signature}`);
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Failed to load signature.';
@@ -123,48 +200,75 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
     };
 
     loadSignature();
-  }, [api, signatureLoaded, initialBody]);
+  }, [api, signatureLoaded, updateBody]);
 
   const draftIdRef = useRef<string | null>(null);
   const sentRef = useRef(false);
+  const mountedRef = useRef(true);
 
   const fromAddress = user?.username ? `${user.username}@oxy.so` : '';
-  const sending = sendPending;
-  const hasContent = to.trim() || subject.trim() || body.trim() || attachments.length > 0;
+  const sending = sendPending || sendMessageMutation.isPending;
+  const hasContent = Boolean(to.trim() || subject.trim() || body.trim() || attachments.length > 0);
+  const draftSnapshot = useMemo<ComposeDraftSnapshot>(
+    () => ({ to, cc, bcc, subject, body, replyTo }),
+    [to, cc, bcc, subject, body, replyTo],
+  );
+  const draftSnapshotKey = useMemo(() => JSON.stringify(draftSnapshot), [draftSnapshot]);
+  const saveDraftAsync = saveDraftMutation.mutateAsync;
 
-  // Debounced auto-save draft: fires ~8s after the user stops editing.
-  // Latest form values live in a ref so the debounce timer is not recreated
-  // on each keystroke (which would prevent it from ever firing while typing).
-  const latestDraftRef = useRef({ to, cc, bcc, subject, body, replyTo });
-  latestDraftRef.current = { to, cc, bcc, subject, body, replyTo };
-
-  const saveDraftMutate = saveDraftMutation.mutate;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: to/cc/bcc/subject/body are intentionally listed so each keystroke restarts the 8s debounce timer; the actual values are read from latestDraftRef at fire time.
   useEffect(() => {
-    if (!api || !hasContent || sentRef.current) return;
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const saveDraftSnapshot = useCallback(
+    (snapshot: ComposeDraftSnapshot, snapshotKey: string): Promise<boolean> => {
+      const save = async (): Promise<boolean> => {
+        if (!api || sentRef.current) return false;
+        if (mountedRef.current) setDraftSaveState('saving');
+        try {
+          const draft = await saveDraftAsync(
+            buildComposeDraftPayload(snapshot, draftIdRef.current ?? undefined),
+          );
+          draftIdRef.current = draft._id;
+          if (mountedRef.current) {
+            setSavedDraftKey(snapshotKey);
+            setDraftSaveState('saved');
+          }
+          return true;
+        } catch {
+          if (mountedRef.current) setDraftSaveState('error');
+          return false;
+        }
+      };
+
+      return draftSaveQueue.enqueue(save);
+    },
+    [api, draftSaveQueue, saveDraftAsync],
+  );
+
+  useEffect(() => {
+    if (!api || !hasContent || sending || sentRef.current) return;
     const timer = setTimeout(() => {
-      if (sentRef.current) return;
-      const snapshot = latestDraftRef.current;
-      saveDraftMutate(
-        {
-          to: snapshot.to.trim() ? parseRecipientList(snapshot.to) : undefined,
-          cc: snapshot.cc.trim() ? parseRecipientList(snapshot.cc) : undefined,
-          bcc: snapshot.bcc.trim() ? parseRecipientList(snapshot.bcc) : undefined,
-          subject: snapshot.subject || undefined,
-          text: isWeb ? stripHtml(snapshot.body) || undefined : snapshot.body || undefined,
-          html: isWeb ? snapshot.body || undefined : undefined,
-          inReplyTo: snapshot.replyTo,
-          existingDraftId: draftIdRef.current ?? undefined,
-        },
-        {
-          onSuccess: (draft) => {
-            draftIdRef.current = draft._id;
-          },
-        },
-      );
+      void saveDraftSnapshot(draftSnapshot, draftSnapshotKey);
     }, 8_000);
     return () => clearTimeout(timer);
-  }, [api, hasContent, to, cc, bcc, subject, body, saveDraftMutate]);
+  }, [api, hasContent, sending, draftSnapshot, draftSnapshotKey, saveDraftSnapshot]);
+
+  const visibleDraftSaveState =
+    draftSaveState === 'saved' && savedDraftKey !== draftSnapshotKey
+      ? 'idle'
+      : draftSaveState;
+  const draftStatusLabel =
+    visibleDraftSaveState === 'saving'
+      ? 'Saving draft…'
+      : visibleDraftSaveState === 'saved'
+        ? 'Draft saved'
+        : visibleDraftSaveState === 'error'
+          ? 'Draft not saved'
+          : null;
 
   // Contact autocomplete state — track which field is active and the current query
   const [activeField, setActiveField] = useState<'to' | 'cc' | 'bcc' | null>(null);
@@ -197,6 +301,38 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
   // Recipient parsing + validation is centralised in the Zod-backed
   // `parseRecipientList` (schemas/emailSchemas.ts) so the composer and any
   // future caller share one definition of a valid address.
+  const getValidatedRecipients = useCallback(() => {
+    if (!to.trim()) {
+      toast.error('Please add at least one recipient.');
+      return null;
+    }
+
+    const fields = [
+      { label: 'To', value: to },
+      { label: 'Cc', value: cc },
+      { label: 'Bcc', value: bcc },
+    ];
+    const parsed = fields.map((field) => ({
+      ...field,
+      result: parseComposeRecipients(field.value),
+    }));
+    const invalidField = parsed.find((field) => field.result.invalid.length > 0);
+    if (invalidField) {
+      toast.error(recipientError(invalidField.label, invalidField.result.invalid));
+      return null;
+    }
+
+    if (parsed[0].result.addresses.length === 0) {
+      toast.error('Please enter a valid email address.');
+      return null;
+    }
+
+    return {
+      to: parsed[0].result.addresses,
+      cc: parsed[1].result.addresses.length > 0 ? parsed[1].result.addresses : undefined,
+      bcc: parsed[2].result.addresses.length > 0 ? parsed[2].result.addresses : undefined,
+    };
+  }, [to, cc, bcc]);
 
   // Append a selected file to the attachment list, de-duplicating by fileId so
   // that picking the same Cloud file twice doesn't create a duplicate chip.
@@ -237,23 +373,15 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
   }, []);
 
   const handleSend = useCallback(() => {
-    if (!to.trim()) {
-      toast.error('Please add at least one recipient.');
-      return;
-    }
-
-    const toAddresses = parseRecipientList(to);
-    if (toAddresses.length === 0) {
-      toast.error('Please enter a valid email address.');
-      return;
-    }
+    const recipients = getValidatedRecipients();
+    if (!recipients) return;
 
     sentRef.current = true;
     sendWithUndo(
       {
-        to: toAddresses,
-        cc: cc.trim() ? parseRecipientList(cc) : undefined,
-        bcc: bcc.trim() ? parseRecipientList(bcc) : undefined,
+        to: recipients.to,
+        cc: recipients.cc,
+        bcc: recipients.bcc,
         subject,
         text: isWeb ? stripHtml(body) : body,
         html: isWeb ? body : undefined,
@@ -269,28 +397,21 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         },
       },
     );
-  }, [to, cc, bcc, subject, body, replyTo, attachments, sendWithUndo, closeCompose]);
+  }, [getValidatedRecipients, subject, body, replyTo, attachments, sendWithUndo, closeCompose]);
 
   const handleSaveDraft = useCallback(() => {
-    saveDraftMutation.mutate(
-      {
-        to: to.trim() ? parseRecipientList(to) : undefined,
-        cc: cc.trim() ? parseRecipientList(cc) : undefined,
-        bcc: bcc.trim() ? parseRecipientList(bcc) : undefined,
-        subject,
-        text: isWeb ? stripHtml(body) : body,
-        html: isWeb ? body : undefined,
-        inReplyTo: replyTo,
-        existingDraftId: draftIdRef.current ?? undefined,
-      },
-      {
-        onSuccess: (draft) => {
-          draftIdRef.current = draft._id;
-        },
-        onSettled: () => closeCompose(),
-      },
-    );
-  }, [to, cc, bcc, subject, body, replyTo, saveDraftMutation, closeCompose]);
+    if (!hasContent) {
+      closeCompose();
+      return;
+    }
+    void saveDraftSnapshot(draftSnapshot, draftSnapshotKey).then((saved) => {
+      if (saved) {
+        closeCompose();
+      } else {
+        toast.error('Unable to save draft. Your message is still open.');
+      }
+    });
+  }, [hasContent, closeCompose, saveDraftSnapshot, draftSnapshot, draftSnapshotKey]);
 
   const saveDraftDialog = useDialogControl();
 
@@ -322,7 +443,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
       if (isWeb && bodyRef.current) {
         bodyRef.current.setContent(template.body);
       } else {
-        setBody(template.body);
+        updateBody(template.body);
       }
     } else {
       // Append template body
@@ -330,42 +451,34 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
       if (isWeb && bodyRef.current) {
         bodyRef.current.setContent(newBody);
       } else {
-        setBody(newBody);
+        updateBody(newBody);
       }
     }
-  }, [subject, body]);
+  }, [subject, body, updateBody]);
 
   // Handle body changes from AI toolbar — on web, insert into contentEditable
   const handleAiBodyChange = useCallback((text: string) => {
     if (isWeb && bodyRef.current) {
       bodyRef.current.setContent(text);
     } else {
-      setBody(text);
+      updateBody(text);
     }
-  }, []);
+  }, [updateBody]);
 
   // Schedule Send state
   const [showScheduleSheet, setShowScheduleSheet] = useState(false);
   const sendMenuControl = useDialogControl();
 
   const handleScheduleSend = useCallback((scheduledDate: Date) => {
-    if (!to.trim()) {
-      toast.error('Please add at least one recipient.');
-      return;
-    }
-
-    const toAddresses = parseRecipientList(to);
-    if (toAddresses.length === 0) {
-      toast.error('Please enter a valid email address.');
-      return;
-    }
+    const recipients = getValidatedRecipients();
+    if (!recipients) return;
 
     sentRef.current = true;
     sendMessageMutation.mutate(
       {
-        to: toAddresses,
-        cc: cc.trim() ? parseRecipientList(cc) : undefined,
-        bcc: bcc.trim() ? parseRecipientList(bcc) : undefined,
+        to: recipients.to,
+        cc: recipients.cc,
+        bcc: recipients.bcc,
         subject,
         text: isWeb ? stripHtml(body) : body,
         html: isWeb ? body : undefined,
@@ -391,7 +504,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         },
       },
     );
-  }, [to, cc, bcc, subject, body, replyTo, attachments, sendMessageMutation, closeCompose]);
+  }, [getValidatedRecipients, subject, body, replyTo, attachments, sendMessageMutation, closeCompose]);
 
   return (
     <KeyboardAvoidingView
@@ -416,6 +529,14 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         <Text style={[styles.headerTitle, { color: colors.text }]}>
           {replyTo ? 'Reply' : forward ? 'Forward' : 'Compose'}
         </Text>
+        {draftStatusLabel && (
+          <Text
+            accessibilityLiveRegion="polite"
+            style={[styles.draftStatus, { color: visibleDraftSaveState === 'error' ? colors.error : colors.secondaryText }]}
+          >
+            {draftStatusLabel}
+          </Text>
+        )}
         <View style={styles.headerSpacer} />
         <TouchableOpacity onPress={handleAttachFile} style={styles.iconButton}>
           {Platform.OS === 'web' ? (
@@ -446,7 +567,9 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
             ) : (
               <MaterialCommunityIcons name="send" size={20} color={colors.background} />
             )}
-            <Text style={[styles.sendGroupLabel, { color: colors.background }]}>Send</Text>
+            <Text style={[styles.sendGroupLabel, { color: colors.background }]}>
+              {sending ? 'Sending…' : 'Send'}
+            </Text>
           </TouchableOpacity>
           <View style={[styles.sendGroupDivider, { backgroundColor: colors.background }]} />
           <TouchableOpacity
@@ -665,7 +788,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         <RichTextEditor
           ref={bodyRef}
           value={body}
-          onChange={setBody}
+          onChange={updateBody}
           placeholder="Compose email"
         />
       </ScrollView>
@@ -680,7 +803,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
       {/* Save as draft confirmation */}
       <Dialog
         control={saveDraftDialog}
-        onClose={() => closeCompose()}
+        onClose={() => saveDraftDialog.close()}
         title="Save draft?"
         description="Do you want to save this message as a draft?"
         actions={[
@@ -709,6 +832,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '500',
     flex: 0,
+    marginLeft: 4,
+  },
+  draftStatus: {
+    fontSize: 12,
     marginLeft: 4,
   },
   headerSpacer: {

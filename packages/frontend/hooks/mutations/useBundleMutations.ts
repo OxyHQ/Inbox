@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@oxyhq/bloom';
+import { useTranslation } from '@/lib/i18n';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import type { Bundle } from '@/services/emailApi';
@@ -25,6 +26,7 @@ async function optimisticBundles(
 export function useUpdateBundle() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation({
     mutationFn: async ({
@@ -48,7 +50,7 @@ export function useUpdateBundle() {
     },
     onError: (_err, _vars, context) => {
       if (context?.prev) queryClient.setQueryData(BUNDLES_KEY, context.prev);
-      toast.error('Failed to update bundle.');
+      toast.error(t('ui.mutations.bundleUpdateFailed'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: BUNDLES_KEY });
@@ -64,6 +66,7 @@ export function useUpdateBundle() {
 export function useReorderBundle() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation({
     mutationFn: async ({
@@ -103,7 +106,7 @@ export function useReorderBundle() {
     },
     onError: (_err, _vars, context) => {
       if (context?.prev) queryClient.setQueryData(BUNDLES_KEY, context.prev);
-      toast.error('Failed to reorder bundle.');
+      toast.error(t('ui.mutations.bundleReorderFailed'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: BUNDLES_KEY });

@@ -43,6 +43,7 @@ import {
 } from '@oxyhq/bloom/icons';
 
 import { useColors } from '@/constants/theme';
+import { useTranslation } from '@/lib/i18n';
 import { SectionHeader } from '@/components/settings/SectionHeader';
 import { useFilters } from '@/hooks/queries/useFilters';
 import {
@@ -67,32 +68,32 @@ type FilterField = EmailFilterCondition['field'];
 type FilterOperator = EmailFilterCondition['operator'];
 type FilterActionType = 'archive' | 'mark-read' | 'star' | 'delete';
 
-const FIELD_OPTIONS: { value: FilterField; label: string }[] = [
-  { value: 'from', label: 'From' },
-  { value: 'to', label: 'To' },
-  { value: 'subject', label: 'Subject' },
-  { value: 'has-attachment', label: 'Has attachment' },
-  { value: 'size', label: 'Size' },
+const FIELD_OPTIONS: { value: FilterField; labelKey: string }[] = [
+  { value: 'from', labelKey: 'search.filters.from' },
+  { value: 'to', labelKey: 'compose.fields.to' },
+  { value: 'subject', labelKey: 'compose.placeholders.subject' },
+  { value: 'has-attachment', labelKey: 'search.filters.hasAttachment' },
+  { value: 'size', labelKey: 'ui.settings.advanced.sizeBytes' },
 ];
 
-const TEXT_OPERATORS: { value: FilterOperator; label: string }[] = [
-  { value: 'contains', label: 'contains' },
-  { value: 'equals', label: 'equals' },
-  { value: 'not-contains', label: "doesn't contain" },
-  { value: 'starts-with', label: 'starts with' },
-  { value: 'ends-with', label: 'ends with' },
+const TEXT_OPERATORS: { value: FilterOperator; labelKey: string }[] = [
+  { value: 'contains', labelKey: 'ui.settings.advanced.contains' },
+  { value: 'equals', labelKey: 'ui.settings.advanced.equals' },
+  { value: 'not-contains', labelKey: 'ui.settings.advanced.notContains' },
+  { value: 'starts-with', labelKey: 'ui.settings.advanced.startsWith' },
+  { value: 'ends-with', labelKey: 'ui.settings.advanced.endsWith' },
 ];
 
-const SIZE_OPERATORS: { value: FilterOperator; label: string }[] = [
-  { value: 'greater-than', label: 'larger than (bytes)' },
-  { value: 'less-than', label: 'smaller than (bytes)' },
+const SIZE_OPERATORS: { value: FilterOperator; labelKey: string }[] = [
+  { value: 'greater-than', labelKey: 'ui.settings.advanced.largerThan' },
+  { value: 'less-than', labelKey: 'ui.settings.advanced.smallerThan' },
 ];
 
-const ACTION_OPTIONS: { value: FilterActionType; label: string }[] = [
-  { value: 'archive', label: 'Archive' },
-  { value: 'mark-read', label: 'Mark read' },
-  { value: 'star', label: 'Star' },
-  { value: 'delete', label: 'Delete' },
+const ACTION_OPTIONS: { value: FilterActionType; labelKey: string }[] = [
+  { value: 'archive', labelKey: 'message.actions.archive' },
+  { value: 'mark-read', labelKey: 'message.actions.markRead' },
+  { value: 'star', labelKey: 'message.actions.star' },
+  { value: 'delete', labelKey: 'message.actions.delete' },
 ];
 
 function operatorsForField(field: FilterField) {
@@ -144,6 +145,7 @@ function ChipGroup<T extends string>({ options, value, onChange }: ChipGroupProp
 export function AdvancedSection() {
   const colors = useColors();
   const theme = useTheme();
+  const { t } = useTranslation();
 
   const { data: filters = [] } = useFilters();
   const createFilter = useCreateFilter();
@@ -362,6 +364,18 @@ export function AdvancedSection() {
 
   const templateSubmitting = editingTemplateId ? updateTemplate.isPending : createTemplate.isPending;
   const showValueInput = filterField !== 'has-attachment';
+  const fieldOptions = useMemo(
+    () => FIELD_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) })),
+    [t],
+  );
+  const operatorOptions = useMemo(
+    () => operatorsForField(filterField).map((option) => ({ value: option.value, label: t(option.labelKey) })),
+    [filterField, t],
+  );
+  const actionOptions = useMemo(
+    () => ACTION_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) })),
+    [t],
+  );
 
   return (
     <KeyboardAvoidingView
@@ -370,10 +384,10 @@ export function AdvancedSection() {
     >
       {/* Filters & rules */}
       <View style={styles.subsection}>
-        <SectionHeader icon={Filter_Stroke2_Corner0_Rounded} title="Filters & rules" />
+        <SectionHeader icon={Filter_Stroke2_Corner0_Rounded} title={t('ui.settings.advanced.filters')} />
         {filters.length === 0 ? (
           <Admonition type="info">
-            No filters yet. Filters automatically apply actions like archiving, starring, or marking read to incoming messages.
+            {t('ui.settings.advanced.noFilters')}
           </Admonition>
         ) : (
           <View style={[styles.itemList, { borderColor: colors.border }]}>
@@ -418,23 +432,23 @@ export function AdvancedSection() {
           <TextInput
             value={filterName}
             onChangeText={setFilterName}
-            placeholder="Filter name"
+            placeholder={t('ui.settings.advanced.filterName')}
             placeholderTextColor={colors.secondaryText}
             style={[styles.input, inputStyle]}
           />
-          <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>When a message&apos;s</Text>
-          <ChipGroup options={FIELD_OPTIONS} value={filterField} onChange={handleFieldChange} />
+          <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>{t('ui.settings.advanced.whenMessage')}&apos;</Text>
+          <ChipGroup options={fieldOptions} value={filterField} onChange={handleFieldChange} />
           {showValueInput ? (
             <>
               <ChipGroup
-                options={operatorsForField(filterField)}
+                options={operatorOptions}
                 value={filterOperator}
                 onChange={setFilterOperator}
               />
               <TextInput
                 value={filterValue}
                 onChangeText={setFilterValue}
-                placeholder={filterField === 'size' ? 'Size in bytes' : 'Value'}
+                placeholder={filterField === 'size' ? t('ui.settings.advanced.sizeBytes') : t('ui.settings.advanced.value')}
                 placeholderTextColor={colors.secondaryText}
                 keyboardType={filterField === 'size' ? 'numeric' : 'default'}
                 autoCapitalize="none"
@@ -442,22 +456,22 @@ export function AdvancedSection() {
               />
             </>
           ) : null}
-          <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>then</Text>
-          <ChipGroup options={ACTION_OPTIONS} value={filterAction} onChange={setFilterAction} />
+          <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>{t('ui.settings.advanced.then')}</Text>
+          <ChipGroup options={actionOptions} value={filterAction} onChange={setFilterAction} />
           <Button
             onPress={handleCreateFilter}
             disabled={!filterValid || createFilter.isPending}
             icon={<PlusSmall_Stroke2_Corner0_Rounded size="sm" style={{ color: '#FFFFFF' }} />}
             iconPosition="left"
           >
-            {createFilter.isPending ? 'Creating…' : 'Add filter'}
+            {createFilter.isPending ? t('ui.settings.advanced.creating') : t('ui.settings.advanced.addFilter')}
           </Button>
         </View>
       </View>
 
       {/* Templates */}
       <View style={styles.subsection}>
-        <SectionHeader icon={PageText_Stroke2_Corner0_Rounded} title="Templates" />
+        <SectionHeader icon={PageText_Stroke2_Corner0_Rounded} title={t('ui.settings.advanced.templates')} />
         {templates.length === 0 ? null : (
           <View style={[styles.itemList, { borderColor: colors.border }]}>
             {templates.map((t, idx) => (
@@ -503,26 +517,26 @@ export function AdvancedSection() {
 
         <View style={styles.createBlock}>
           {editingTemplateId ? (
-            <Text style={[styles.fieldLabel, { color: theme.colors.primary }]}>Editing template</Text>
+            <Text style={[styles.fieldLabel, { color: theme.colors.primary }]}>{t('ui.settings.advanced.editingTemplate')}</Text>
           ) : null}
           <TextInput
             value={templateName}
             onChangeText={setTemplateName}
-            placeholder="Template name"
+            placeholder={t('ui.settings.advanced.templateName')}
             placeholderTextColor={colors.secondaryText}
             style={[styles.input, inputStyle]}
           />
           <TextInput
             value={templateSubject}
             onChangeText={setTemplateSubject}
-            placeholder="Subject (optional)"
+            placeholder={t('ui.settings.advanced.subjectOptional')}
             placeholderTextColor={colors.secondaryText}
             style={[styles.input, inputStyle]}
           />
           <TextInput
             value={templateBody}
             onChangeText={setTemplateBody}
-            placeholder="Template body"
+            placeholder={t('ui.settings.advanced.templateBody')}
             placeholderTextColor={colors.secondaryText}
             multiline
             numberOfLines={4}
@@ -544,15 +558,15 @@ export function AdvancedSection() {
             >
               {templateSubmitting
                 ? editingTemplateId
-                  ? 'Saving…'
-                  : 'Creating…'
+                  ? t('ui.settings.contacts.saving')
+                  : t('ui.settings.advanced.creating')
                 : editingTemplateId
-                  ? 'Save changes'
-                  : 'Add template'}
+                  ? t('ui.settings.advanced.saveChanges')
+                  : t('ui.settings.advanced.addTemplate')}
             </Button>
             {editingTemplateId ? (
               <Button variant="text" onPress={resetTemplateForm}>
-                Cancel
+                {t('common.cancel')}
               </Button>
             ) : null}
           </View>
@@ -562,7 +576,7 @@ export function AdvancedSection() {
       {/* Bundles */}
       {sortedBundles.length > 0 ? (
         <View style={styles.subsection}>
-          <SectionHeader icon={Group3_Stroke2_Corner0_Rounded} title="Bundles" />
+          <SectionHeader icon={Group3_Stroke2_Corner0_Rounded} title={t('ui.settings.advanced.bundles')} />
           <View style={[styles.itemList, { borderColor: colors.border }]}>
             {sortedBundles.map((b, idx) => (
               <View
@@ -583,7 +597,7 @@ export function AdvancedSection() {
                   disabled={idx === 0}
                   style={[styles.iconBtn, idx === 0 && styles.iconBtnDisabled]}
                   accessibilityRole="button"
-                  accessibilityLabel={`Move ${b.name} up`}
+                  accessibilityLabel={t('ui.settings.advanced.moveUp', { name: b.name })}
                 >
                   <ChevronTop_Stroke2_Corner0_Rounded size="sm" style={{ color: colors.icon }} />
                 </Pressable>
@@ -592,7 +606,7 @@ export function AdvancedSection() {
                   disabled={idx === sortedBundles.length - 1}
                   style={[styles.iconBtn, idx === sortedBundles.length - 1 && styles.iconBtnDisabled]}
                   accessibilityRole="button"
-                  accessibilityLabel={`Move ${b.name} down`}
+                  accessibilityLabel={t('ui.settings.advanced.moveDown', { name: b.name })}
                 >
                   <ChevronBottom_Stroke2_Corner0_Rounded size="sm" style={{ color: colors.icon }} />
                 </Pressable>
@@ -604,7 +618,7 @@ export function AdvancedSection() {
             ))}
           </View>
           <Text style={[styles.footnote, { color: colors.secondaryText }]}>
-            Bundles group related mail automatically. Toggle to enable and reorder how they stack in your inbox.
+            {t('ui.settings.advanced.bundleHint')}
           </Text>
         </View>
       ) : null}
@@ -612,9 +626,9 @@ export function AdvancedSection() {
       {/* Import */}
       {Platform.OS === 'web' ? (
         <View style={styles.subsection}>
-          <SectionHeader icon={ArrowOutOfBox_Stroke2_Corner0_Rounded} title="Import" />
+          <SectionHeader icon={ArrowOutOfBox_Stroke2_Corner0_Rounded} title={t('ui.settings.advanced.import')} />
           <Text style={[styles.body, { color: colors.secondaryText }]}>
-            Import emails from .eml files. Imported messages land in your Inbox and can be moved or labelled like any other mail.
+            {t('ui.settings.advanced.importDescription')}
           </Text>
           <Button
             onPress={handleImportFiles}
@@ -628,7 +642,7 @@ export function AdvancedSection() {
             }
             iconPosition="left"
           >
-            {importing ? 'Importing…' : 'Import .eml files'}
+            {importing ? t('ui.settings.advanced.importing') : t('ui.settings.advanced.importButton')}
           </Button>
           {importResult ? (
             <Admonition type="tip">

@@ -9,8 +9,8 @@ export function useThread(messageId: string | undefined) {
   return useQuery<Message[]>({
     queryKey: emailKeys.thread.detail(messageId),
     queryFn: async () => {
-      if (!api) throw new Error('Email API not initialized');
-      return api.getThread(messageId!);
+      if (!api || !messageId) throw new Error('Email API not initialized');
+      return api.getThread(messageId);
     },
     enabled: !!messageId && !!api,
   });

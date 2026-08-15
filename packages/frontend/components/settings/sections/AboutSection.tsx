@@ -22,6 +22,7 @@ import {
 } from '@oxyhq/bloom/icons';
 
 import { useColors } from '@/constants/theme';
+import { useTranslation } from '@/lib/i18n';
 import { SectionHeader } from '@/components/settings/SectionHeader';
 
 const LINKS = {
@@ -80,20 +81,21 @@ function LinkRow({ icon: Icon, title, description, onPress }: LinkRowProps) {
 export function AboutSection() {
   const colors = useColors();
   const theme = useTheme();
+  const { t } = useTranslation();
 
   const openLink = useCallback(async (url: string) => {
     try {
       const can = await Linking.canOpenURL(url);
       if (!can) {
-        toast.error('Could not open the link in this environment.');
+        toast.error(t('ui.settings.about.linkUnavailable'));
         return;
       }
       await Linking.openURL(url);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to open link.';
+      const message = err instanceof Error ? err.message : t('ui.settings.about.linkFailed');
       toast.error(message);
     }
-  }, []);
+  }, [t]);
 
   return (
     <View style={styles.root}>
@@ -102,34 +104,34 @@ export function AboutSection() {
           Inbox by Oxy
         </Text>
         <Text style={[styles.identitySub, { color: colors.secondaryText }]}>
-          {`Version ${getAppVersion()} · ${getPlatformLabel()}`}
+          {t('ui.settings.about.version', { version: getAppVersion(), platform: getPlatformLabel() })}
         </Text>
       </View>
 
       <View style={styles.subsection}>
-        <SectionHeader icon={CircleInfo_Stroke2_Corner0_Rounded} title="Legal & support" />
+        <SectionHeader icon={CircleInfo_Stroke2_Corner0_Rounded} title={t('ui.settings.about.legal')} />
         <View style={[styles.linkList, { borderColor: colors.border }]}>
           <LinkRow
             icon={PageText_Stroke2_Corner0_Rounded}
-            title="Terms of service"
+            title={t('ui.settings.about.terms')}
             onPress={() => openLink(LINKS.terms)}
           />
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <LinkRow
             icon={Shield_Stroke2_Corner0_Rounded}
-            title="Privacy policy"
+            title={t('ui.settings.about.privacy')}
             onPress={() => openLink(LINKS.privacy)}
           />
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <LinkRow
             icon={CircleQuestion_Stroke2_Corner2_Rounded}
-            title="Help center"
+            title={t('ui.settings.about.help')}
             onPress={() => openLink(LINKS.help)}
           />
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <LinkRow
             icon={CircleInfo_Stroke2_Corner0_Rounded}
-            title="System status"
+            title={t('ui.settings.about.status')}
             onPress={() => openLink(LINKS.status)}
           />
         </View>
@@ -138,7 +140,7 @@ export function AboutSection() {
       <View style={styles.creditsRow}>
         <Heart2_Stroke2_Corner0_Rounded size="sm" style={{ color: colors.secondaryText }} />
         <Text style={[styles.credits, { color: colors.secondaryText }]}>
-          {`Made by the Oxy team · © ${new Date().getFullYear()}`}
+          {t('ui.settings.about.madeBy', { year: new Date().getFullYear() })}
         </Text>
       </View>
     </View>

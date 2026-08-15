@@ -32,6 +32,37 @@ interface CreateReminderSheetProps {
   onUpdate?: (text: string, remindAt: Date) => void;
 }
 
+interface ReminderDraft {
+  key: string;
+  text: string;
+  selectedTime: Date | null;
+}
+
+function getReminderDraftKey(
+  visible: boolean,
+  editReminder: CreateReminderSheetProps['editReminder'],
+): string {
+  if (!editReminder) return `${visible ? 'open' : 'closed'}:create`;
+  return `${visible ? 'open' : 'closed'}:${editReminder._id}:${editReminder.text}:${editReminder.remindAt}`;
+}
+
+function getReminderDate(value: string | undefined): Date | null {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function createReminderDraft(
+  key: string,
+  editReminder: CreateReminderSheetProps['editReminder'],
+): ReminderDraft {
+  return {
+    key,
+    text: editReminder?.text ?? '',
+    selectedTime: getReminderDate(editReminder?.remindAt),
+  };
+}
+
 function getPresetTimes(): { label: string; date: Date; icon: MaterialCommunityIconName }[] {
   const now = new Date();
   const presets: { label: string; date: Date; icon: MaterialCommunityIconName }[] = [];
@@ -75,45 +106,66 @@ export function CreateReminderSheet({
 }: CreateReminderSheetProps) {
   const colors = useColors();
   const isEdit = !!editReminder;
-  const [text, setText] = useState('');
-  const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const sheetRef = useRef<BottomSheetRef>(null);
 
   const presets = useMemo(() => getPresetTimes(), []);
+  const draftKey = useMemo(
+    () => getReminderDraftKey(visible, editReminder),
+    [visible, editReminder],
+  );
+  const initialDraft = useMemo(
+    () => createReminderDraft(draftKey, editReminder),
+    [draftKey, editReminder],
+  );
+  const [storedDraft, setStoredDraft] = useState<ReminderDraft>(() => initialDraft);
+  const draft = storedDraft.key === draftKey ? storedDraft : initialDraft;
 
   useEffect(() => {
     if (visible) {
-      // Prefill from the reminder being edited (if any) whenever the sheet opens.
-      if (editReminder) {
-        setText(editReminder.text);
-        setSelectedTime(new Date(editReminder.remindAt));
-      }
       sheetRef.current?.present();
     } else {
       sheetRef.current?.dismiss();
     }
-    // Only re-run when visibility toggles; editReminder is captured on open.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
+  const handleTextChange = useCallback(
+    (nextText: string) => {
+      setStoredDraft((previous) => ({
+        key: draftKey,
+        text: nextText,
+        selectedTime: previous.key === draftKey ? previous.selectedTime : initialDraft.selectedTime,
+      }));
+    },
+    [draftKey, initialDraft.selectedTime],
+  );
+
+  const handleTimeChange = useCallback(
+    (nextTime: Date) => {
+      setStoredDraft((previous) => ({
+        key: draftKey,
+        text: previous.key === draftKey ? previous.text : initialDraft.text,
+        selectedTime: nextTime,
+      }));
+    },
+    [draftKey, initialDraft.text],
+  );
+
   const handleSubmit = useCallback(() => {
-    if (!text.trim() || !selectedTime) return;
+    if (!draft.text.trim() || !draft.selectedTime) return;
     if (isEdit) {
-      onUpdate?.(text.trim(), selectedTime);
+      onUpdate?.(draft.text.trim(), draft.selectedTime);
     } else {
-      onCreate(text.trim(), selectedTime);
+      onCreate(draft.text.trim(), draft.selectedTime);
     }
-    setText('');
-    setSelectedTime(null);
-  }, [text, selectedTime, isEdit, onUpdate, onCreate]);
+    setStoredDraft({ key: draftKey, text: '', selectedTime: null });
+  }, [draft, draftKey, isEdit, onUpdate, onCreate]);
 
   const handleClose = useCallback(() => {
-    setText('');
-    setSelectedTime(null);
+    setStoredDraft({ key: draftKey, text: '', selectedTime: null });
     onClose();
-  }, [onClose]);
+  }, [draftKey, onClose]);
 
-  const canSubmit = text.trim().length > 0 && selectedTime !== null;
+  const canSubmit = draft.text.trim().length > 0 && draft.selectedTime !== null;
 
   return (
     <BottomSheet ref={sheetRef} onDismiss={handleClose} detached>
@@ -136,8 +188,8 @@ export function CreateReminderSheet({
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
           placeholder="What do you want to be reminded about?"
           placeholderTextColor={colors.secondaryText}
-          value={text}
-          onChangeText={setText}
+          value={draft.text}
+          onChangeText={handleTextChange}
           multiline
           maxLength={500}
           autoFocus
@@ -146,7 +198,7 @@ export function CreateReminderSheet({
         <Text style={[styles.sectionLabel, { color: colors.secondaryText }]}>When?</Text>
         <View style={styles.presets}>
           {presets.map((preset) => {
-            const isSelected = selectedTime?.getTime() === preset.date.getTime();
+            const isSelected = draft.selectedTime?.getTime() === preset.date.getTime();
             return (
               <TouchableOpacity
                 key={preset.label}
@@ -155,7 +207,7 @@ export function CreateReminderSheet({
                   { borderColor: isSelected ? colors.primary : colors.border },
                   isSelected && { backgroundColor: colors.primary + '15' },
                 ]}
-                onPress={() => setSelectedTime(preset.date)}
+                onPress={() => handleTimeChange(preset.date)}
                 activeOpacity={0.7}
               >
                 <MaterialCommunityIcons

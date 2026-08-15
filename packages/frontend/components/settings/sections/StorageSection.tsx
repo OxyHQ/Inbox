@@ -18,6 +18,7 @@ import {
 } from '@oxyhq/bloom/icons';
 
 import { useColors } from '@/constants/theme';
+import { useTranslation } from '@/lib/i18n';
 import { SectionHeader } from '@/components/settings/SectionHeader';
 import { useQuota } from '@/hooks/queries/useQuota';
 
@@ -32,6 +33,7 @@ function formatBytes(bytes: number): string {
 export function StorageSection() {
   const colors = useColors();
   const theme = useTheme();
+  const { t } = useTranslation();
   const { data: quota, isLoading } = useQuota();
 
   const isLow = quota ? quota.percentage > 90 : false;
@@ -41,7 +43,7 @@ export function StorageSection() {
   return (
     <View style={styles.root}>
       <View style={styles.subsection}>
-        <SectionHeader icon={FloppyDisk_Stroke2_Corner0_Rounded} title="Mailbox usage" />
+        <SectionHeader icon={FloppyDisk_Stroke2_Corner0_Rounded} title={t('ui.settings.storage.usage')} />
         <View style={[styles.usageCard, { backgroundColor: theme.colors.backgroundSecondary }]}>
           {isLoading && !quota ? (
             <View style={styles.usageLoading}>
@@ -67,22 +69,22 @@ export function StorageSection() {
                 />
               </View>
               <Text style={[styles.usageHint, { color: colors.secondaryText }]}>
-                {`${formatBytes(Math.max(0, quota.limit - quota.used))} free`}
+                {t('ui.settings.storage.free', { value: formatBytes(Math.max(0, quota.limit - quota.used)) })}
               </Text>
             </>
           ) : null}
         </View>
         {isLow ? (
           <Admonition type="warning">
-            You're nearly out of space. Old messages will start to bounce when the quota is full.
+            {t('ui.settings.storage.nearlyFull')}
           </Admonition>
         ) : null}
       </View>
 
       <View style={styles.subsection}>
-        <SectionHeader icon={ArrowOutOfBox_Stroke2_Corner0_Rounded} title="Local cache" />
+        <SectionHeader icon={ArrowOutOfBox_Stroke2_Corner0_Rounded} title={t('ui.settings.storage.local')} />
         <Text style={[styles.body, { color: colors.secondaryText }]}>
-          The most recent 100 messages are cached on this device for fast offline access. Attachments are downloaded on demand and cleaned up automatically — there's nothing to manage manually today.
+          {t('ui.settings.storage.localDescription')}
         </Text>
       </View>
     </View>

@@ -22,6 +22,7 @@ import {
 } from '@oxyhq/bloom/icons';
 
 import { useColors } from '@/constants/theme';
+import { useTranslation } from '@/lib/i18n';
 import { SectionHeader } from '@/components/settings/SectionHeader';
 import {
   useInboxPrefs,
@@ -29,22 +30,23 @@ import {
   type SwipeAction,
 } from '@/contexts/inbox-prefs-context';
 
-const DENSITY_OPTIONS: readonly { value: MessageDensity; label: string }[] = [
-  { value: 'compact', label: 'Compact' },
-  { value: 'comfortable', label: 'Comfortable' },
-  { value: 'cozy', label: 'Cozy' },
+const DENSITY_OPTIONS: readonly { value: MessageDensity; labelKey: string }[] = [
+  { value: 'compact', labelKey: 'ui.settings.inbox.compact' },
+  { value: 'comfortable', labelKey: 'ui.settings.inbox.comfortable' },
+  { value: 'cozy', labelKey: 'ui.settings.inbox.cozy' },
 ];
 
-const SWIPE_OPTIONS: readonly { value: SwipeAction; label: string }[] = [
-  { value: 'archive', label: 'Archive' },
-  { value: 'delete', label: 'Delete' },
-  { value: 'mark-read', label: 'Mark read' },
-  { value: 'snooze', label: 'Snooze' },
-  { value: 'none', label: 'None' },
+const SWIPE_OPTIONS: readonly { value: SwipeAction; labelKey: string }[] = [
+  { value: 'archive', labelKey: 'message.actions.archive' },
+  { value: 'delete', labelKey: 'message.actions.delete' },
+  { value: 'mark-read', labelKey: 'message.actions.markRead' },
+  { value: 'snooze', labelKey: 'message.actions.snooze' },
+  { value: 'none', labelKey: 'common.no' },
 ];
 
-function swipeLabel(action: SwipeAction): string {
-  return SWIPE_OPTIONS.find((o) => o.value === action)?.label ?? action;
+function swipeLabel(action: SwipeAction, translate: (key: string) => string): string {
+  const option = SWIPE_OPTIONS.find((o) => o.value === action);
+  return option ? translate(option.labelKey) : action;
 }
 
 interface InlineToggleProps {
@@ -78,9 +80,10 @@ interface SwipePickerProps {
   label: string;
   value: SwipeAction;
   onChange: (value: SwipeAction) => void;
+  translate: (key: string) => string;
 }
 
-function SwipePicker({ label, value, onChange }: SwipePickerProps) {
+function SwipePicker({ label, value, onChange, translate }: SwipePickerProps) {
   const colors = useColors();
   const theme = useTheme();
   const handlePress = useCallback(() => {
@@ -93,13 +96,15 @@ function SwipePicker({ label, value, onChange }: SwipePickerProps) {
     <Pressable
       onPress={handlePress}
       accessibilityRole="button"
-      accessibilityLabel={`${label} swipe action: ${swipeLabel(value)}, tap to change`}
+    accessibilityLabel={translate('ui.settings.inbox.swipeA11y')
+      .replace('{{label}}', label)
+      .replace('{{value}}', swipeLabel(value, translate))}
       style={[styles.swipeRow, { borderColor: colors.border }]}
     >
       <Text style={[styles.swipeLabel, { color: colors.text }]}>{label}</Text>
       <View style={[styles.swipeBadge, { backgroundColor: theme.colors.primarySubtle }]}>
         <Text style={[styles.swipeValue, { color: theme.colors.primarySubtleForeground }]}>
-          {swipeLabel(value)}
+          {swipeLabel(value, translate)}
         </Text>
       </View>
     </Pressable>
@@ -108,6 +113,7 @@ function SwipePicker({ label, value, onChange }: SwipePickerProps) {
 
 export function InboxPrefsSection() {
   const colors = useColors();
+  const { t } = useTranslation();
   const { prefs, setPref } = useInboxPrefs();
 
   const handleDensityChange = useCallback(
@@ -119,49 +125,49 @@ export function InboxPrefsSection() {
     <View style={styles.root}>
       {/* Density */}
       <View style={styles.subsection}>
-        <SectionHeader icon={Envelope_Stroke2_Corner0_Rounded} title="Message density" />
+        <SectionHeader icon={Envelope_Stroke2_Corner0_Rounded} title={t('ui.settings.inbox.density')} />
         <SegmentedControl<MessageDensity>
-          label="Message density"
+          label={t('ui.settings.inbox.density')}
           type="radio"
           value={prefs.density}
           onChange={handleDensityChange}
         >
           {DENSITY_OPTIONS.map((opt) => (
             <SegmentedControlItem key={opt.value} value={opt.value}>
-              <SegmentedControlItemText>{opt.label}</SegmentedControlItemText>
+              <SegmentedControlItemText>{t(opt.labelKey)}</SegmentedControlItemText>
             </SegmentedControlItem>
           ))}
         </SegmentedControl>
         <Text style={[styles.footnote, { color: colors.secondaryText }]}>
-          Choose how tightly to pack message rows in the list.
+          {t('ui.settings.inbox.densityHint')}
         </Text>
       </View>
 
       {/* Display options */}
       <View style={styles.subsection}>
-        <SectionHeader icon={Eye_Stroke2_Corner0_Rounded} title="Display" />
+        <SectionHeader icon={Eye_Stroke2_Corner0_Rounded} title={t('ui.settings.inbox.display')} />
         <View style={styles.toggleGroup}>
           <InlineToggle
-            title="Show avatars"
-            description="Sender portraits at the start of each row."
+            title={t('ui.settings.inbox.avatars')}
+            description={t('ui.settings.inbox.avatarsDescription')}
             value={prefs.showAvatars}
             onChange={(v) => setPref('showAvatars', v)}
           />
           <InlineToggle
-            title="Show previews"
-            description="A short snippet of the message body."
+            title={t('ui.settings.inbox.previews')}
+            description={t('ui.settings.inbox.previewsDescription')}
             value={prefs.showPreviews}
             onChange={(v) => setPref('showPreviews', v)}
           />
           <InlineToggle
-            title="Group by thread"
-            description="Show conversations as a single row."
+            title={t('ui.settings.inbox.threads')}
+            description={t('ui.settings.inbox.threadsDescription')}
             value={prefs.conversationView}
             onChange={(v) => setPref('conversationView', v)}
           />
           <InlineToggle
-            title="Mark as read on open"
-            description="Messages are marked read as soon as you open them."
+            title={t('ui.settings.inbox.markRead')}
+            description={t('ui.settings.inbox.markReadDescription')}
             value={prefs.markReadOnOpen}
             onChange={(v) => setPref('markReadOnOpen', v)}
           />
@@ -170,21 +176,23 @@ export function InboxPrefsSection() {
 
       {/* Swipe actions */}
       <View style={styles.subsection}>
-        <SectionHeader icon={ArrowBoxLeft_Stroke2_Corner0_Rounded} title="Swipe actions" />
+        <SectionHeader icon={ArrowBoxLeft_Stroke2_Corner0_Rounded} title={t('ui.settings.inbox.swipeActions')} />
         <View style={styles.swipeStack}>
           <SwipePicker
-            label="Swipe right"
+            label={t('ui.settings.inbox.swipeRight')}
             value={prefs.leftSwipeAction}
             onChange={(v) => setPref('leftSwipeAction', v)}
+            translate={t}
           />
           <SwipePicker
-            label="Swipe left"
+            label={t('ui.settings.inbox.swipeLeft')}
             value={prefs.rightSwipeAction}
             onChange={(v) => setPref('rightSwipeAction', v)}
+            translate={t}
           />
         </View>
         <Text style={[styles.footnote, { color: colors.secondaryText }]}>
-          Tap a row to cycle through Archive · Delete · Mark read · Snooze · None.
+          {t('ui.settings.inbox.swipeHint')}
         </Text>
       </View>
     </View>

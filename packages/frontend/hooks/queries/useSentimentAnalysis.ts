@@ -84,14 +84,9 @@ function detectSentiment(message: Message): SentimentResult | null {
   const requestScore = countMatches(text, REQUEST_PATTERNS);
   const formalScore = countMatches(text, FORMAL_PATTERNS);
 
-  // Normalize scores (rough heuristic)
-  const textLength = text.length / 100; // Per 100 chars
-  const normalizedUrgency = urgencyScore / Math.max(textLength, 1);
-  const normalizedFrustration = frustrationScore / Math.max(textLength, 1);
-  const normalizedPositive = positiveScore / Math.max(textLength, 1);
-
-  // Return highest confidence sentiment
-  if (urgencyScore >= 2 || normalizedUrgency > 0.5) {
+  // Require multiple independent signals. A single word such as "urgent" or
+  // "thanks" is too weak to label a message in a primary inbox row.
+  if (urgencyScore >= 2) {
     return {
       type: 'urgent',
       confidence: Math.min(urgencyScore / 3, 1),
@@ -101,7 +96,7 @@ function detectSentiment(message: Message): SentimentResult | null {
     };
   }
 
-  if (frustrationScore >= 2 || normalizedFrustration > 0.3) {
+  if (frustrationScore >= 2) {
     return {
       type: 'frustrated',
       confidence: Math.min(frustrationScore / 3, 1),
@@ -111,7 +106,7 @@ function detectSentiment(message: Message): SentimentResult | null {
     };
   }
 
-  if (positiveScore >= 2 || normalizedPositive > 0.4) {
+  if (positiveScore >= 2) {
     return {
       type: 'positive',
       confidence: Math.min(positiveScore / 3, 1),
@@ -153,7 +148,7 @@ export function useSentimentAnalysis(message: Message | null | undefined): Senti
   return useMemo(() => {
     if (!message) return null;
     return detectSentiment(message);
-  }, [message?._id, message?.subject, message?.text]);
+  }, [message]);
 }
 
 /**
@@ -161,10 +156,13 @@ export function useSentimentAnalysis(message: Message | null | undefined): Senti
  * Returns a map of messageId -> sentiment.
  */
 export function useBatchSentimentAnalysis(
-  messages: Message[]
+  messages: Message[],
+  enabled = true,
 ): Map<string, SentimentResult> {
   return useMemo(() => {
     const results = new Map<string, SentimentResult>();
+    if (!enabled) return results;
+
     for (const msg of messages) {
       const sentiment = detectSentiment(msg);
       if (sentiment) {
@@ -172,5 +170,5 @@ export function useBatchSentimentAnalysis(
       }
     }
     return results;
-  }, [messages]);
+  }, [enabled, messages]);
 }

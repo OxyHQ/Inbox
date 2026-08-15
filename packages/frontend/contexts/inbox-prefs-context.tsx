@@ -50,7 +50,7 @@ export interface InboxPrefs {
   aiCategorization: boolean;
 }
 
-const DEFAULT_PREFS: InboxPrefs = {
+export const DEFAULT_INBOX_PREFS: InboxPrefs = {
   density: 'comfortable',
   conversationView: true,
   markReadOnOpen: true,
@@ -61,10 +61,44 @@ const DEFAULT_PREFS: InboxPrefs = {
   pushNotifications: true,
   emailDigest: false,
   notificationSound: true,
-  aiBrief: true,
+  // The brief is an explicit opt-in and is collapsed even after enabling it.
+  aiBrief: false,
   aiSmartReply: true,
   aiCategorization: true,
 };
+
+function isMessageDensity(value: unknown): value is MessageDensity {
+  return value === 'compact' || value === 'comfortable' || value === 'cozy';
+}
+
+function isSwipeAction(value: unknown): value is SwipeAction {
+  return value === 'archive' || value === 'delete' || value === 'mark-read' || value === 'snooze' || value === 'none';
+}
+
+function readBoolean(value: unknown, fallback: boolean): boolean {
+  return typeof value === 'boolean' ? value : fallback;
+}
+
+/** Merge persisted data without allowing stale or malformed values into the UI. */
+export function mergeInboxPrefs(value: unknown): InboxPrefs {
+  const stored = value && typeof value === 'object' ? value as Record<string, unknown> : {};
+
+  return {
+    density: isMessageDensity(stored.density) ? stored.density : DEFAULT_INBOX_PREFS.density,
+    conversationView: readBoolean(stored.conversationView, DEFAULT_INBOX_PREFS.conversationView),
+    markReadOnOpen: readBoolean(stored.markReadOnOpen, DEFAULT_INBOX_PREFS.markReadOnOpen),
+    showAvatars: readBoolean(stored.showAvatars, DEFAULT_INBOX_PREFS.showAvatars),
+    showPreviews: readBoolean(stored.showPreviews, DEFAULT_INBOX_PREFS.showPreviews),
+    leftSwipeAction: isSwipeAction(stored.leftSwipeAction) ? stored.leftSwipeAction : DEFAULT_INBOX_PREFS.leftSwipeAction,
+    rightSwipeAction: isSwipeAction(stored.rightSwipeAction) ? stored.rightSwipeAction : DEFAULT_INBOX_PREFS.rightSwipeAction,
+    pushNotifications: readBoolean(stored.pushNotifications, DEFAULT_INBOX_PREFS.pushNotifications),
+    emailDigest: readBoolean(stored.emailDigest, DEFAULT_INBOX_PREFS.emailDigest),
+    notificationSound: readBoolean(stored.notificationSound, DEFAULT_INBOX_PREFS.notificationSound),
+    aiBrief: readBoolean(stored.aiBrief, DEFAULT_INBOX_PREFS.aiBrief),
+    aiSmartReply: readBoolean(stored.aiSmartReply, DEFAULT_INBOX_PREFS.aiSmartReply),
+    aiCategorization: readBoolean(stored.aiCategorization, DEFAULT_INBOX_PREFS.aiCategorization),
+  };
+}
 
 interface InboxPrefsContextValue {
   prefs: InboxPrefs;
@@ -73,16 +107,20 @@ interface InboxPrefsContextValue {
   loaded: boolean;
 }
 
-const STORAGE_KEY = 'inbox_user_prefs_v1';
+const LEGACY_STORAGE_KEY = 'inbox_user_prefs_v1';
+const STORAGE_KEY_PREFIX = 'inbox_user_prefs_v2';
 const InboxPrefsContext = createContext<InboxPrefsContextValue | undefined>(undefined);
 
-function loadSync(): InboxPrefs {
+export function getInboxPrefsStorageKey(scope: string | null = null): string {
+  return `${STORAGE_KEY_PREFIX}:${encodeURIComponent(scope ?? 'anonymous')}`;
+}
+
+function loadSync(storageKey: string): InboxPrefs {
   if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
     try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
+      const stored = window.localStorage.getItem(storageKey);
       if (stored) {
-        const parsed = JSON.parse(stored) as Partial<InboxPrefs>;
-        return { ...DEFAULT_PREFS, ...parsed };
+        return mergeInboxPrefs(JSON.parse(stored));
       }
     } catch (err) {
       // Reading localStorage can throw in sandboxed/private contexts. Fall
@@ -90,12 +128,37 @@ function loadSync(): InboxPrefs {
       console.warn('[inbox-prefs] failed to load prefs', err);
     }
   }
-  return DEFAULT_PREFS;
+  return mergeInboxPrefs(undefined);
 }
 
-export function InboxPrefsProvider({ children }: { children: ReactNode }) {
-  const [prefs, setPrefs] = useState<InboxPrefs>(loadSync);
+interface InboxPrefsProviderProps {
+  children: ReactNode;
+  /** Stable user scope; preferences never cross this boundary. */
+  scope?: string | null;
+}
+
+export function InboxPrefsProvider({ children, scope = null }: InboxPrefsProviderProps) {
+  const storageKey = getInboxPrefsStorageKey(scope ?? null);
+  const [prefs, setPrefs] = useState<InboxPrefs>(() => loadSync(storageKey));
   const [loaded, setLoaded] = useState(Platform.OS === 'web');
+
+  // Delete the pre-scope device-wide blob. It is intentionally not migrated:
+  // its owner is unknowable, so copying it into the first account would make
+  // account separation implicit and surprising.
+  useEffect(() => {
+    try {
+      if (Platform.OS === 'web') {
+        window.localStorage?.removeItem(LEGACY_STORAGE_KEY);
+      } else {
+        void import('@react-native-async-storage/async-storage').then(({ default: AsyncStorage }) =>
+          AsyncStorage.removeItem(LEGACY_STORAGE_KEY),
+        );
+      }
+    } catch (err) {
+      // Storage cleanup is best effort.
+      console.warn('[inbox-prefs] failed to remove legacy prefs', err);
+    }
+  }, []);
 
   // Native: hydrate from AsyncStorage.
   useEffect(() => {
@@ -106,11 +169,10 @@ export function InboxPrefsProvider({ children }: { children: ReactNode }) {
         const AsyncStorage = await import('@react-native-async-storage/async-storage').then(
           (m) => m.default,
         );
-        const stored = await AsyncStorage.getItem(STORAGE_KEY);
+        const stored = await AsyncStorage.getItem(storageKey);
         if (cancelled) return;
         if (stored) {
-          const parsed = JSON.parse(stored) as Partial<InboxPrefs>;
-          setPrefs((curr) => ({ ...curr, ...parsed }));
+          setPrefs(mergeInboxPrefs(JSON.parse(stored)));
         }
       } catch (err) {
         console.warn('[inbox-prefs] failed to load prefs', err);
@@ -121,7 +183,7 @@ export function InboxPrefsProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [storageKey]);
 
   // Persist on change once loaded so we don't overwrite stored values with
   // defaults before the initial load resolves on native.
@@ -130,18 +192,18 @@ export function InboxPrefsProvider({ children }: { children: ReactNode }) {
     (async () => {
       try {
         if (Platform.OS === 'web') {
-          window.localStorage?.setItem(STORAGE_KEY, JSON.stringify(prefs));
+          window.localStorage?.setItem(storageKey, JSON.stringify(prefs));
         } else {
           const AsyncStorage = await import('@react-native-async-storage/async-storage').then(
             (m) => m.default,
           );
-          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+          await AsyncStorage.setItem(storageKey, JSON.stringify(prefs));
         }
       } catch (err) {
         console.warn('[inbox-prefs] failed to persist prefs', err);
       }
     })();
-  }, [prefs, loaded]);
+  }, [prefs, loaded, storageKey]);
 
   const setPref = useCallback(<K extends keyof InboxPrefs>(key: K, value: InboxPrefs[K]) => {
     setPrefs((curr) => ({ ...curr, [key]: value }));

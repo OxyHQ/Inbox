@@ -20,6 +20,7 @@ import { Text } from '@oxyhq/bloom/typography';
 
 import { SectionHeader } from '@/components/settings/SectionHeader';
 import { useColors } from '@/constants/theme';
+import { useTranslation } from '@/lib/i18n';
 
 interface DisabledToggleProps {
   title: string;
@@ -49,43 +50,44 @@ function DisabledToggle({ title, description }: DisabledToggleProps) {
 
 export function PrivacySection() {
   const colors = useColors();
+  const { t } = useTranslation();
 
   return (
     <View style={styles.root}>
       <Admonition type="info">
-        Privacy protections are on by default. Per-feature toggles are coming soon.
+        {t('ui.settings.privacy.info')}
       </Admonition>
 
       <View style={styles.subsection}>
-        <SectionHeader icon={EyeSlash_Stroke2_Corner0_Rounded} title="Tracking protection" />
+        <SectionHeader icon={EyeSlash_Stroke2_Corner0_Rounded} title={t('ui.settings.privacy.tracking')} />
         <View style={styles.toggleGroup}>
           <DisabledToggle
-            title="Block remote images"
-            description="Don't load images from external servers until you tap to allow."
+            title={t('ui.settings.privacy.blockImages')}
+            description={t('ui.settings.privacy.blockImagesDescription')}
           />
           <DisabledToggle
-            title="Hide IP from senders"
-            description="Image and font loads route through Oxy's privacy proxy."
+            title={t('ui.settings.privacy.hideIp')}
+            description={t('ui.settings.privacy.hideIpDescription')}
           />
           <DisabledToggle
-            title="Strip tracking parameters"
-            description="Remove tracking tokens from links in messages."
+            title={t('ui.settings.privacy.stripTracking')}
+            description={t('ui.settings.privacy.stripTrackingDescription')}
           />
         </View>
       </View>
 
       <View style={styles.subsection}>
-        <SectionHeader icon={Verified_Stroke2_Corner2_Rounded} title="Sender trust" />
+        <SectionHeader icon={Verified_Stroke2_Corner2_Rounded} title={t('ui.settings.privacy.trust')} />
         <View style={styles.toggleGroup}>
           <DisabledToggle
-            title="Sender verification"
-            description="Show whether messages are signed by their claimed domain."
+            title={t('ui.settings.privacy.verification')}
+            description={t('ui.settings.privacy.verificationDescription')}
           />
           <Pressable
             disabled
             style={styles.blockListRow}
             accessibilityRole="button"
-            accessibilityLabel="Manage block list"
+            accessibilityLabel={t('ui.settings.privacy.blockList')}
             accessibilityState={{ disabled: true }}
           >
             <CircleBanSign_Stroke2_Corner0_Rounded
@@ -94,10 +96,10 @@ export function PrivacySection() {
             />
             <View style={styles.inlineToggleText}>
               <Text style={[styles.inlineToggleTitle, { color: colors.text, opacity: 0.6 }]}>
-                Block list
+                {t('ui.settings.privacy.blockListTitle')}
               </Text>
               <Text style={[styles.inlineToggleSub, { color: colors.secondaryText }]}>
-                No senders are currently blocked.
+                {t('ui.settings.privacy.blockListEmpty')}
               </Text>
             </View>
           </Pressable>
@@ -105,11 +107,9 @@ export function PrivacySection() {
       </View>
 
       <View style={styles.subsection}>
-        <SectionHeader icon={ChainLink_Stroke2_Corner0_Rounded} title="Why these defaults?" />
+        <SectionHeader icon={ChainLink_Stroke2_Corner0_Rounded} title={t('ui.settings.privacy.why')} />
         <Text style={[styles.body, { color: colors.secondaryText }]}>
-          Oxy follows a privacy-by-default posture: senders never see your IP, location, or read
-          receipts, and tracking pixels are blocked at the network edge. We'll surface granular
-          per-message and per-sender overrides as the protections mature.
+          {t('ui.settings.privacy.whyDescription')}
         </Text>
       </View>
     </View>

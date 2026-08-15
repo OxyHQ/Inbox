@@ -37,77 +37,11 @@ import {
   quickParseSearch,
   type ParsedSearchQuery,
 } from '@/hooks/queries/useNaturalLanguageSearch';
-
-/**
- * Parse Gmail-style search operators from query string.
- * Supported operators:
- * - in:inbox, in:sent, in:spam, in:trash, in:drafts, in:archive, in:starred
- * - is:starred, is:unread, is:read
- * - from:address
- * - has:attachment
- * - label:name
- */
-interface ParsedQuery {
-  text: string;
-  mailbox?: string;
-  starred?: boolean;
-  unread?: boolean;
-  from?: string;
-  hasAttachment?: boolean;
-  label?: string;
-}
-
-function parseSearchQuery(query: string): ParsedQuery {
-  const result: ParsedQuery = { text: '' };
-  const textParts: string[] = [];
-
-  // Split by spaces but keep quoted strings together
-  const tokens = query.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
-
-  for (const token of tokens) {
-    const lower = token.toLowerCase();
-
-    if (lower.startsWith('in:')) {
-      const value = token.slice(3).toLowerCase();
-      if (value === 'starred') {
-        result.starred = true;
-      } else {
-        result.mailbox = value;
-      }
-    } else if (lower.startsWith('is:')) {
-      const value = token.slice(3).toLowerCase();
-      if (value === 'starred') result.starred = true;
-      else if (value === 'unread') result.unread = true;
-      else if (value === 'read') result.unread = false;
-    } else if (lower.startsWith('from:')) {
-      result.from = token.slice(5).replace(/^"|"$/g, '');
-    } else if (lower === 'has:attachment') {
-      result.hasAttachment = true;
-    } else if (lower.startsWith('label:')) {
-      result.label = token.slice(6).replace(/^"|"$/g, '');
-    } else {
-      // Regular search text
-      textParts.push(token.replace(/^"|"$/g, ''));
-    }
-  }
-
-  result.text = textParts.join(' ');
-  return result;
-}
-
-/** Format NL search interpretation for display */
-function formatInterpretation(opts: ParsedSearchQuery): string {
-  const parts: string[] = [];
-  if (opts.q) parts.push(`"${opts.q}"`);
-  if (opts.from) parts.push(`from ${opts.from}`);
-  if (opts.to) parts.push(`to ${opts.to}`);
-  if (opts.subject) parts.push(`subject contains "${opts.subject}"`);
-  if (opts.hasAttachment) parts.push('with attachments');
-  if (opts.starred) parts.push('starred');
-  if (opts.unread === true) parts.push('unread');
-  if (opts.unread === false) parts.push('read');
-  return parts.join(', ') || 'all emails';
-}
+import {
+  collapseThreads,
+  formatSearchInterpretation,
+  parseSearchQuery,
+} from '@/utils/threadGrouping';
 
 interface SearchListProps {
   replaceNavigation?: boolean;
@@ -147,16 +81,18 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   const [filterInput, setFilterInput] = useState('');
   const [nlInterpretation, setNlInterpretation] = useState('');
   const [nlParsedOptions, setNlParsedOptions] = useState<ParsedSearchQuery | null>(null);
+  const searchRunIdRef = useRef(0);
 
   // Natural language search hook
   const { parseQuery: parseNL, isLoading: nlParsing } = useNaturalLanguageSearch();
 
   // Parse the submitted query for Gmail-style operators
   const parsedQuery = useMemo(() => parseSearchQuery(submittedQuery), [submittedQuery]);
+  const requestedMailbox = nlParsedOptions?.mailbox ?? parsedQuery.mailbox;
 
   // Map mailbox name to mailbox ID
   const mailboxIdFromName = useMemo(() => {
-    if (!parsedQuery.mailbox) return undefined;
+    if (!requestedMailbox) return undefined;
     const specialUseMap: Record<string, string> = {
       inbox: SPECIAL_USE.INBOX,
       sent: SPECIAL_USE.SENT,
@@ -166,33 +102,83 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       junk: SPECIAL_USE.SPAM,
       archive: SPECIAL_USE.ARCHIVE,
     };
-    const specialUse = specialUseMap[parsedQuery.mailbox];
+    const specialUse = specialUseMap[requestedMailbox];
     if (specialUse) {
       const mailbox = mailboxes.find((m) => m.specialUse === specialUse);
       return mailbox?._id;
     }
     // Try to match by name
-    const mailbox = mailboxes.find((m) => m.name.toLowerCase() === parsedQuery.mailbox);
+    const mailbox = mailboxes.find((m) => m.name.toLowerCase() === requestedMailbox);
     return mailbox?._id;
-  }, [parsedQuery.mailbox, mailboxes]);
+  }, [requestedMailbox, mailboxes]);
 
   const searchOptions = useMemo(() => ({
-    // NL parsed options take precedence, then Gmail-style operators, then filter chips
-    q: nlParsedOptions?.q || parsedQuery.text || undefined,
-    from: nlParsedOptions?.from || parsedQuery.from || filterFrom || undefined,
-    to: nlParsedOptions?.to || undefined,
-    subject: nlParsedOptions?.subject || undefined,
-    hasAttachment: nlParsedOptions?.hasAttachment || parsedQuery.hasAttachment || filterHasAttachment || undefined,
+    // NL parsed options take precedence, then Gmail-style operators, then filter chips.
+    q: nlParsedOptions?.q ?? (parsedQuery.text || undefined),
+    from: nlParsedOptions?.from ?? parsedQuery.from ?? (filterFrom || undefined),
+    to: nlParsedOptions?.to ?? parsedQuery.to,
+    subject: nlParsedOptions?.subject ?? parsedQuery.subject,
+    hasAttachment: nlParsedOptions?.hasAttachment ?? parsedQuery.hasAttachment ?? (filterHasAttachment || undefined),
+    dateAfter: nlParsedOptions?.after ?? parsedQuery.after,
+    dateBefore: nlParsedOptions?.before ?? parsedQuery.before,
     mailbox: mailboxIdFromName,
-    starred: nlParsedOptions?.starred || parsedQuery.starred || undefined,
-    label: parsedQuery.label || undefined,
-    // Note: unread filter would need backend support
+    starred: nlParsedOptions?.starred ?? parsedQuery.starred,
+    unread: nlParsedOptions?.unread ?? parsedQuery.unread,
+    // Labels are parsed from Gmail-style operators. The natural-language
+    // result type intentionally has no label field.
+    label: parsedQuery.label,
   }), [nlParsedOptions, parsedQuery, filterFrom, filterHasAttachment, mailboxIdFromName]);
 
-  const { data: searchResult, isLoading: searching } = useSearchMessages(searchOptions);
-  const results = searchResult?.data ?? [];
-  const total = searchResult?.pagination?.total ?? 0;
-  const hasSearched = !!(submittedQuery.trim() || nlParsedOptions || filterFrom || filterHasAttachment || mailboxIdFromName);
+  const {
+    data: searchData,
+    isLoading: searching,
+    isError: searchFailed,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+  } = useSearchMessages(searchOptions);
+  const messages = useMemo(
+    () => {
+      const seen = new Set<string>();
+      return (
+        searchData?.pages
+          .flatMap((page) => page.data)
+          .filter((message) => {
+            if (seen.has(message._id)) return false;
+            seen.add(message._id);
+            return true;
+          }) ?? []
+      );
+    },
+    [searchData],
+  );
+  // Search pages are grouped only after they are merged. This avoids one row
+  // per page and lets a related message loaded later update the same row.
+  // The API still needs a server-side threadId for authoritative cross-page
+  // grouping when a result set is incomplete.
+  const results = useMemo(() => collapseThreads(messages), [messages]);
+  const total = searchData?.pages[0]?.pagination.total ?? 0;
+  const hasSearched = Boolean(
+    submittedQuery.trim() ||
+      nlParsedOptions ||
+      filterFrom ||
+      filterHasAttachment ||
+      requestedMailbox,
+  );
+  const filterInterpretation = useMemo(
+    () =>
+      formatSearchInterpretation(
+        nlParsedOptions ?? {
+          ...parsedQuery,
+          q: parsedQuery.text || undefined,
+          from: parsedQuery.from || filterFrom || undefined,
+          mailbox: requestedMailbox,
+          hasAttachment: parsedQuery.hasAttachment ?? (filterHasAttachment || undefined),
+        },
+      ),
+    [nlParsedOptions, parsedQuery, filterFrom, filterHasAttachment, requestedMailbox],
+  );
 
   /**
    * Runs the search pipeline for a given query text:
@@ -205,6 +191,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
    */
   const runSearch = useCallback(
     async (rawText: string, { allowAI }: { allowAI: boolean } = { allowAI: true }) => {
+      const searchRunId = ++searchRunIdRef.current;
       const trimmed = rawText.trim();
       if (!trimmed) {
         setSubmittedQuery('');
@@ -213,7 +200,10 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         return;
       }
 
-      const hasOperators = /\b(in:|is:|from:|to:|has:|label:|subject:)/i.test(trimmed);
+      const parsedOperators = parseSearchQuery(trimmed);
+      const hasOperators = Object.entries(parsedOperators).some(
+        ([key, value]) => key !== 'text' && value !== undefined,
+      );
       if (hasOperators) {
         setSubmittedQuery(trimmed);
         setNlInterpretation('');
@@ -224,7 +214,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       const quickResult = quickParseSearch(trimmed);
       if (quickResult) {
         setNlParsedOptions(quickResult);
-        setNlInterpretation(`Searching: ${formatInterpretation(quickResult)}`);
+        setNlInterpretation(`Searching: ${formatSearchInterpretation(quickResult)}`);
         setSubmittedQuery('');
         return;
       }
@@ -241,6 +231,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       // structured filters if the AI returns something useful.
       try {
         const result = await parseNL(trimmed);
+        if (searchRunId !== searchRunIdRef.current) return;
         const parsed = result.query;
         const hasUsefulFilters =
           !!parsed.q?.trim() ||
@@ -257,11 +248,14 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         if (hasUsefulFilters) {
           setNlParsedOptions(parsed);
           setNlInterpretation(
-            result.interpretation || `Searching: ${formatInterpretation(parsed)}`,
+            result.interpretation || `Searching: ${formatSearchInterpretation(parsed)}`,
           );
           setSubmittedQuery('');
         }
-      } catch {
+      } catch (error) {
+        if (searchRunId === searchRunIdRef.current && error instanceof Error) {
+          setNlInterpretation('');
+        }
         // AI failed; plain text search is already in flight.
       }
     },
@@ -273,6 +267,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
 
   const handleQueryChange = useCallback(
     (text: string) => {
+      searchRunIdRef.current += 1;
       setQuery(text);
       if (debounceRef.current) clearTimeout(debounceRef.current);
       const trimmed = text.trim();
@@ -318,6 +313,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   const handleBack = useGoBack();
 
   const handleClear = useCallback(() => {
+    searchRunIdRef.current += 1;
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
       debounceRef.current = null;
@@ -373,8 +369,23 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     [handleMessagePress, selectedMessageId, density, showAvatars, showPreviews],
   );
 
+  const handleEndReached = useCallback(() => {
+    if (!hasNextPage || isFetchingNextPage || searching) return;
+    void fetchNextPage();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, searching]);
+
+  const handleRetry = useCallback(() => {
+    void refetch();
+  }, [refetch]);
+
   const renderEmpty = useCallback(() => {
-    if (searching) return null;
+    if (searching) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      );
+    }
     if (!hasSearched) {
       return (
         <View style={styles.emptyContainer}>
@@ -385,13 +396,52 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         </View>
       );
     }
+    if (searchFailed) {
+      return (
+        <View style={styles.emptyContainer}>
+          <MaterialCommunityIcons name="alert-circle-outline" size={48} color={colors.secondaryText} />
+          <Text style={[styles.emptyText, { color: colors.secondaryText }]}>Could not load results</Text>
+          <TouchableOpacity
+            style={[styles.retryButton, { borderColor: colors.border }]}
+            onPress={handleRetry}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.retryButtonText, { color: colors.primary }]}>Try again</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
     return (
       <View style={styles.emptyContainer}>
         <EmptyIllustration size={180} />
         <Text style={[styles.emptyText, { color: colors.secondaryText }]}>No results found</Text>
       </View>
     );
-  }, [searching, hasSearched, colors]);
+  }, [colors, handleRetry, hasSearched, searchFailed, searching]);
+
+  const renderFooter = useCallback(() => {
+    if (isFetchingNextPage) {
+      return (
+        <View style={styles.footerLoading}>
+          <ActivityIndicator size="small" color={colors.primary} />
+        </View>
+      );
+    }
+    if (searchFailed && results.length > 0) {
+      return (
+        <View style={styles.footerError}>
+          <Text style={[styles.footerErrorText, { color: colors.secondaryText }]}>Could not load more results</Text>
+          <TouchableOpacity onPress={handleRetry} hitSlop={8}>
+            <Text style={[styles.retryButtonText, { color: colors.primary }]}>Try again</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return null;
+  }, [colors, handleRetry, isFetchingNextPage, results.length, searchFailed]);
+
+  const visibleInterpretation = nlInterpretation ||
+    (hasSearched && !nlParsing ? `Searching: ${filterInterpretation}` : '');
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -458,8 +508,9 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         </TouchableOpacity>
       </View>
 
-      {/* NL interpretation display */}
-      {(nlInterpretation || nlParsing) && (
+      {/* Search interpretation display. AI is only requested on explicit submit;
+          normal operator searches are rendered from the same parsed options. */}
+      {(visibleInterpretation || nlParsing) && (
         <View
           style={[
             styles.nlInterpretation,
@@ -471,7 +522,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           ]}
         >
           <MaterialCommunityIcons
-            name="robot-outline"
+            name={nlParsing ? 'robot-outline' : 'tune-variant'}
             size={14}
             color={colors.primary}
             style={styles.nlIcon}
@@ -485,7 +536,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
             </View>
           ) : (
             <Text style={[styles.nlText, { color: colors.text }]}>
-              {nlInterpretation}
+              {visibleInterpretation}
             </Text>
           )}
           {nlInterpretation && !nlParsing && (
@@ -493,6 +544,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
               onPress={() => {
                 setNlInterpretation('');
                 setNlParsedOptions(null);
+                setSubmittedQuery(query.trim());
               }}
               hitSlop={8}
             >
@@ -528,7 +580,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       {hasSearched && !searching && results.length > 0 && (
         <View style={styles.resultCount}>
           <Text style={[styles.resultCountText, { color: colors.secondaryText }]}>
-            {total} {total === 1 ? 'result' : 'results'}
+            {total} matching {total === 1 ? 'message' : 'messages'}
           </Text>
         </View>
       )}
@@ -545,6 +597,9 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           keyExtractor={(item) => item._id}
           extraData={listExtraData}
           ListEmptyComponent={renderEmpty}
+          ListFooterComponent={renderFooter}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.4}
           contentContainerStyle={{
             ...(results.length === 0 ? styles.emptyListContent : null),
             ...styles.listContent,
@@ -632,8 +687,30 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
   },
+  retryButton: {
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  retryButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
   emptyListContent: {
     flexGrow: 1,
+  },
+  footerLoading: {
+    alignItems: 'center',
+    paddingVertical: 18,
+  },
+  footerError: {
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 16,
+  },
+  footerErrorText: {
+    fontSize: 13,
   },
   separator: {
     height: StyleSheet.hairlineWidth,

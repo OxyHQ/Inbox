@@ -13,7 +13,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  useWindowDimensions,
   Platform,
   Linking,
 } from 'react-native';
@@ -123,7 +122,6 @@ export function MessageDetail(props: MessageDetailProps) {
 function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
-  const { width } = useWindowDimensions();
   const colors = useColors();
   const { t } = useTranslation();
 
@@ -132,7 +130,6 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const { data: mailboxes = [] } = useMailboxes();
   const { data: labels = [] } = useLabels();
   const currentMailbox = useEmailStore((s) => s.currentMailbox);
-  const api = useEmailStore((s) => s._api);
   const toggleStar = useToggleStar();
   const toggleRead = useToggleRead();
   const archiveMutation = useArchiveMessage();
@@ -302,7 +299,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         toast.error(message);
       }
     }
-  }, [oxyServices]);
+  }, [oxyServices, t]);
 
   const handleToggleLabel = useCallback((labelName: string) => {
     if (!currentMessage) return;
@@ -371,7 +368,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         }
       })();
     }
-  }, [currentMessage]);
+  }, [currentMessage, t]);
 
   const handleDownloadEml = useCallback(() => {
     if (!currentMessage) return;
@@ -471,7 +468,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         }
       })();
     }
-  }, [currentMessage]);
+  }, [currentMessage, moreMenuControl, t]);
 
   // Label data for assigned labels (backend stores label names, not IDs)
   const assignedLabels = useMemo(() => {
@@ -522,12 +519,12 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
       <View style={shellStyle}>
         {standaloneToolbar}
         <View style={styles.loadingContainer}>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>Couldn't load this message</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('ui.message.loadError')}</Text>
           <Text style={[styles.emptySubtitle, { color: colors.secondaryText }]}>
-            Check your connection and try again.
+            {t('ui.message.loadErrorDescription')}
           </Text>
           <TouchableOpacity onPress={() => refetch()} style={styles.retryButton}>
-            <Text style={[styles.retryButtonText, { color: colors.primary }]}>Try again</Text>
+            <Text style={[styles.retryButtonText, { color: colors.primary }]}>{t('common.retry')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -539,9 +536,9 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
       <View style={shellStyle}>
         {standaloneToolbar}
         <View style={styles.loadingContainer}>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>Message not found</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('ui.message.notFound')}</Text>
           <Text style={[styles.emptySubtitle, { color: colors.secondaryText }]}>
-            This message may have been deleted or moved.
+            {t('ui.message.notFoundDescription')}
           </Text>
         </View>
       </View>
@@ -580,7 +577,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         )}
         <View style={styles.toolbarSpacer} />
         <TouchableOpacity
-          accessibilityLabel="Archive"
+          accessibilityLabel={t('message.actions.archive')}
           accessibilityRole="button"
           onPress={handleArchive}
           style={styles.iconButton}
@@ -592,7 +589,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           )}
         </TouchableOpacity>
         <TouchableOpacity
-          accessibilityLabel="Delete"
+          accessibilityLabel={t('message.actions.delete')}
           accessibilityRole="button"
           onPress={handleDelete}
           style={styles.iconButton}
@@ -604,7 +601,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           )}
         </TouchableOpacity>
         <TouchableOpacity
-          accessibilityLabel="Mark as unread"
+          accessibilityLabel={t('message.actions.markUnread')}
           accessibilityRole="button"
           onPress={handleMarkUnread}
           style={styles.iconButton}
@@ -761,7 +758,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         {/* Subject and metadata - with horizontal padding */}
         <View style={styles.contentPadded}>
           <View style={styles.subjectRow}>
-            <Text style={[styles.subject, { color: colors.text }]}>{currentMessage.subject || '(no subject)'}</Text>
+            <Text style={[styles.subject, { color: colors.text }]}>{currentMessage.subject || t('message.detail.noSubject')}</Text>
             {sentiment && <SentimentIndicator sentiment={sentiment} size="medium" showLabel />}
           </View>
 
@@ -785,7 +782,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           {sortedThread.length > 1 && (
             <View style={[styles.threadCount, { backgroundColor: colors.surfaceVariant }]}>
               <Text style={[styles.threadCountText, { color: colors.secondaryText }]}>
-                {sortedThread.length} messages in this conversation
+                {t(sortedThread.length === 1 ? 'ui.message.conversationMessages_one' : 'ui.message.conversationMessages_other', { count: sortedThread.length })}
               </Text>
             </View>
           )}
@@ -806,10 +803,10 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
                 <MaterialCommunityIcons name="robot-outline" size={18} color={colors.primary} />
                 <View style={styles.threadSummaryPromptText}>
                   <Text style={[styles.threadSummaryPromptTitle, { color: colors.text }]}>
-                    Generate AI thread summary
+                    {t('ui.message.summaryTitle')}
                   </Text>
                   <Text style={[styles.threadSummaryPromptDescription, { color: colors.secondaryText }]}>
-                    Sends this conversation to Alia for summarization.
+                    {t('ui.message.summaryDescription')}
                   </Text>
                 </View>
               </TouchableOpacity>

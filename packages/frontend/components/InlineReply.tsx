@@ -26,6 +26,7 @@ import { Avatar } from '@/components/Avatar';
 import { SmartReplyChips } from '@/components/SmartReplyChips';
 import { RichTextEditor, stripHtml, type RichTextEditorHandle } from '@/components/RichTextEditor';
 import { TemplatePicker } from '@/components/TemplatePicker';
+import { useTranslation } from '@/lib/i18n';
 import type { Message, EmailAddress, EmailTemplate } from '@/services/emailApi';
 
 const isWeb = Platform.OS === 'web';
@@ -42,8 +43,7 @@ function formatQuoteDate(dateStr: string): string {
   });
 }
 
-function formatQuotedText(message: Message): string {
-  const header = `On ${formatQuoteDate(message.date)}, ${message.from.name || message.from.address} wrote:`;
+function formatQuotedText(message: Message, header: string): string {
   const originalText = message.text || '';
   const quoted = originalText
     .split('\n')
@@ -61,6 +61,7 @@ interface InlineReplyProps {
 
 export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps) {
   const colors = useColors();
+  const { t } = useTranslation();
   const { user } = useOxy();
   const api = useEmailStore((s) => s._api);
   const { sendWithUndo, isPending: sendPending } = useSendMessageWithUndo();
@@ -114,10 +115,23 @@ export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps
       }
 
       if (mode === 'forward') {
-        const forwardBody = `\n\n---------- Forwarded message ----------\nFrom: ${message.from.name || message.from.address}\nDate: ${formatQuoteDate(message.date)}\nSubject: ${message.subject}\nTo: ${message.to.map((a) => a.name || a.address).join(', ')}\n\n${message.text || ''}`;
+        const forwardBody = t('inlineReply.forwardHeader', {
+          from: message.from.name || message.from.address,
+          date: formatQuoteDate(message.date),
+          subject: message.subject,
+          to: message.to.map((a) => a.name || a.address).join(', '),
+        }) + (message.text || '');
         setQuotedText(forwardBody);
       } else {
-        setQuotedText(formatQuotedText(message));
+        setQuotedText(
+          formatQuotedText(
+            message,
+            t('inlineReply.quotedPrefix', {
+              date: formatQuoteDate(message.date),
+              author: message.from.name || message.from.address,
+            }),
+          ),
+        );
       }
 
       setBody(signature);
@@ -125,31 +139,31 @@ export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps
     };
 
     setup();
-  }, [api, signatureLoaded, message, mode]);
+  }, [api, signatureLoaded, message, mode, t]);
 
-  const userName = user?.name?.displayName ?? getNormalizedUserHandle(user) ?? 'Me';
+  const userName = user?.name?.displayName ?? getNormalizedUserHandle(user) ?? t('ui.me');
   const sending = sendPending;
 
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  const parseAddresses = (input: string): EmailAddress[] => {
+  const parseAddresses = useCallback((input: string): EmailAddress[] => {
     return input
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean)
       .filter((addr) => isValidEmail(addr))
       .map((addr) => ({ address: addr }));
-  };
+  }, []);
 
   const handleSend = useCallback(() => {
     if (!to.trim()) {
-      toast.error('Please add at least one recipient.');
+      toast.error(t('compose.toast.addRecipient'));
       return;
     }
 
     const toAddresses = parseAddresses(to);
     if (toAddresses.length === 0) {
-      toast.error('Please enter a valid email address.');
+      toast.error(t('compose.toast.invalidEmail'));
       return;
     }
 
@@ -172,10 +186,10 @@ export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps
           onClose();
         },
         onError: (err: unknown) =>
-          toast.error(err instanceof Error ? err.message : 'Unable to send email. Please try again.'),
+          toast.error(err instanceof Error ? err.message : t('compose.toast.sendFailed')),
       },
     );
-  }, [to, cc, bcc, body, quotedText, initialSubject, message, mode, sendWithUndo, onClose, onSent]);
+  }, [to, cc, bcc, body, quotedText, initialSubject, message, mode, sendWithUndo, onClose, onSent, parseAddresses, t]);
 
   const senderName = message.from.name || message.from.address.split('@')[0];
 
@@ -226,13 +240,13 @@ export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps
         <View style={styles.headerContent}>
           <View style={styles.toRow}>
             <Text style={[styles.toLabel, { color: colors.secondaryText }]}>
-              {mode === 'forward' ? 'Forward to:' : mode === 'reply-all' ? 'Reply all to:' : 'Reply to:'}
+              {mode === 'forward' ? t('inlineReply.forwardTo') : mode === 'reply-all' ? t('inlineReply.replyAllTo') : t('inlineReply.replyTo')}
             </Text>
             <TextInput
               style={[styles.toInput, { color: colors.text }]}
               value={to}
               onChangeText={setTo}
-              placeholder={mode === 'forward' ? 'Add recipients' : senderName}
+              placeholder={mode === 'forward' ? t('inlineReply.addRecipients') : senderName}
               placeholderTextColor={colors.searchPlaceholder}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -240,14 +254,14 @@ export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps
             />
             {!showCcBcc && (
               <TouchableOpacity onPress={() => setShowCcBcc(true)} style={styles.ccBccButton}>
-                <Text style={[styles.ccBccText, { color: colors.primary }]}>Cc/Bcc</Text>
+                <Text style={[styles.ccBccText, { color: colors.primary }]}>{t('inlineReply.ccBccToggle')}</Text>
               </TouchableOpacity>
             )}
           </View>
           {showCcBcc && (
             <>
               <View style={styles.toRow}>
-                <Text style={[styles.toLabel, { color: colors.secondaryText }]}>Cc:</Text>
+                <Text style={[styles.toLabel, { color: colors.secondaryText }]}>{t('inlineReply.cc')}</Text>
                 <TextInput
                   style={[styles.toInput, { color: colors.text }]}
                   value={cc}
@@ -260,7 +274,7 @@ export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps
                 />
               </View>
               <View style={styles.toRow}>
-                <Text style={[styles.toLabel, { color: colors.secondaryText }]}>Bcc:</Text>
+                <Text style={[styles.toLabel, { color: colors.secondaryText }]}>{t('inlineReply.bcc')}</Text>
                 <TextInput
                   style={[styles.toInput, { color: colors.text }]}
                   value={bcc}
@@ -291,7 +305,7 @@ export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps
           ref={bodyRef}
           value={body}
           onChange={setBody}
-          placeholder="Write your reply..."
+          placeholder={t('inlineReply.placeholder')}
           autoFocus
           style={styles.bodyEditor}
         />
@@ -312,7 +326,7 @@ export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps
           style={[styles.sendButton, { backgroundColor: colors.primary, opacity: sending ? 0.6 : 1 }]}
           disabled={sending}
         >
-          <Text style={styles.sendButtonText}>Send</Text>
+          <Text style={styles.sendButtonText}>{t('inlineReply.send')}</Text>
           <MaterialCommunityIcons name="send" size={16} color="#FFFFFF" />
         </TouchableOpacity>
 

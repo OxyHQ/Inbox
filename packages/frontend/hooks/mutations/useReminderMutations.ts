@@ -2,10 +2,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import { toast } from '@oxyhq/bloom';
+import { useTranslation } from '@/lib/i18n';
 
 export function useCreateReminder() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation({
     mutationFn: async (data: { text: string; remindAt: string; relatedMessageId?: string }) => {
@@ -16,7 +18,7 @@ export function useCreateReminder() {
       queryClient.invalidateQueries({ queryKey: emailKeys.reminders.root });
     },
     onError: () => {
-      toast.error('Failed to create reminder');
+      toast.error(t('ui.mutations.reminderCreateFailed'));
     },
   });
 }
@@ -24,6 +26,7 @@ export function useCreateReminder() {
 export function useUpdateReminder() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation({
     mutationFn: async ({
@@ -44,7 +47,7 @@ export function useUpdateReminder() {
       queryClient.invalidateQueries({ queryKey: emailKeys.reminders.root });
     },
     onError: () => {
-      toast.error('Failed to update reminder');
+      toast.error(t('ui.mutations.reminderUpdateFailed'));
     },
   });
 }
@@ -52,6 +55,7 @@ export function useUpdateReminder() {
 export function useDeleteReminder() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation({
     mutationFn: async (reminderId: string) => {
@@ -62,7 +66,7 @@ export function useDeleteReminder() {
       queryClient.invalidateQueries({ queryKey: emailKeys.reminders.root });
     },
     onError: () => {
-      toast.error('Failed to delete reminder');
+      toast.error(t('ui.mutations.reminderDeleteFailed'));
     },
   });
 }

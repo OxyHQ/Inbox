@@ -3,6 +3,7 @@ import { toast } from '@oxyhq/bloom';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import type { Contact } from '@/services/emailApi';
+import { useTranslation } from '@/lib/i18n';
 
 /**
  * Apply an optimistic updater across every cached `['contacts', …]` variant
@@ -28,6 +29,7 @@ function restoreContacts(
 export function useCreateContact() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation({
     mutationFn: async (data: {
@@ -59,7 +61,7 @@ export function useCreateContact() {
     },
     onError: (err: Error, _vars, context) => {
       if (context?.prev) restoreContacts(queryClient, context.prev);
-      toast.error(err.message || 'Failed to create contact');
+      toast.error(err.message || t('ui.mutations.contactCreateFailed'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: emailKeys.contacts.root });
@@ -70,6 +72,7 @@ export function useCreateContact() {
 export function useUpdateContact() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation({
     mutationFn: async ({
@@ -94,7 +97,7 @@ export function useUpdateContact() {
     },
     onError: (err: Error, _vars, context) => {
       if (context?.prev) restoreContacts(queryClient, context.prev);
-      toast.error(err.message || 'Failed to update contact');
+      toast.error(err.message || t('ui.mutations.contactUpdateFailed'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: emailKeys.contacts.root });
@@ -105,6 +108,7 @@ export function useUpdateContact() {
 export function useDeleteContact() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation({
     mutationFn: async (contactId: string) => {
@@ -119,7 +123,7 @@ export function useDeleteContact() {
     },
     onError: (_err, _vars, context) => {
       if (context?.prev) restoreContacts(queryClient, context.prev);
-      toast.error('Failed to delete contact');
+      toast.error(t('ui.mutations.contactDeleteFailed'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: emailKeys.contacts.root });

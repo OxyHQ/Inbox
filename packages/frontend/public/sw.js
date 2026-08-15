@@ -16,20 +16,16 @@
  *   change safe to pick up on the next reload without manual cache
  *   busting.
  *
- * - API calls (api.oxy.so, /api/*): network-first
- *   Always show fresh inbox state when online; serve last known
- *   response (good enough for read-only views) when offline.
+ * - API calls (api.oxy.so, /api/*): network-only
+ *   Private responses are never stored or served by this worker. TanStack
+ *   Query owns the authenticated offline cache and the SDK owns auth on
+ *   replay; this worker must not capture bearer or CSRF headers.
  *
- * - Mutations: not cached. Offline mutations are queued by
- *   `utils/offlineQueue.ts` in app state and replayed when the
- *   `offline-mutations` background-sync tag fires (see below).
- *
- * Bumping `CACHE_NAME` / `API_CACHE` invalidates the corresponding cache
- * on the next `activate` event (old caches are deleted there).
+ * Bumping `CACHE_NAME` invalidates old shell caches on the next `activate`
+ * event; any legacy API cache is deleted there as well.
  */
 
 const CACHE_NAME = 'inbox-v1';
-const API_CACHE = 'inbox-api-v1';
 
 // App shell files cached on install. Keep this list short — large entries
 // here block the install step. Anything else gets cached on first fetch.
@@ -61,7 +57,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) => {
       return Promise.all(
         keys
-          .filter((key) => key !== CACHE_NAME && key !== API_CACHE)
+          .filter((key) => key !== CACHE_NAME)
           .map((key) => caches.delete(key))
       );
     })
@@ -76,8 +72,8 @@ self.addEventListener('activate', (event) => {
  * Determine the caching strategy for a request.
  *
  * Returns one of:
- *  - `'network-only'` — let the browser handle it (mutations, cross-origin
- *    POST etc.)
+ *  - `'network-only'` — let the browser handle it (private API requests and
+ *    mutations)
  *  - `'stale-while-revalidate'` — serve cache immediately, refresh in
  *    background. Best for versioned static assets.
  *  - `'network-first'` — try network, fall back to cache.
@@ -85,12 +81,14 @@ self.addEventListener('activate', (event) => {
 function getStrategy(request) {
   const url = new URL(request.url);
 
-  // Skip non-GET requests (mutations go through offlineQueue, not SW cache)
+  // Skip non-GET requests; authenticated mutations stay in the SDK/TanStack
+  // flow and are never replayed by this worker.
   if (request.method !== 'GET') return 'network-only';
 
-  // API requests: network-first
+  // Private API requests are deliberately never cached. This includes both
+  // same-origin `/api/*` routes and the authenticated Oxy API origin.
   if (url.pathname.startsWith('/api/') || url.hostname === 'api.oxy.so') {
-    return 'network-first';
+    return 'network-only';
   }
 
   // Static assets: stale-while-revalidate. Metro hashes filenames so old
@@ -171,91 +169,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // network-first (default)
-  const cacheName = event.request.url.includes('api.oxy.so') || event.request.url.includes('/api/')
-    ? API_CACHE
-    : CACHE_NAME;
-  event.respondWith(networkFirst(event.request, cacheName));
+  // network-first for the public app shell and non-API same-origin resources.
+  event.respondWith(networkFirst(event.request, CACHE_NAME));
 });
-
-// ─── Background Sync ────────────────────────────────────────────────
-
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'offline-mutations') {
-    event.waitUntil(processOfflineQueue());
-  }
-});
-
-/**
- * Process queued offline mutations.
- * Reads from IndexedDB (set by offlineQueue.ts in the app).
- */
-async function processOfflineQueue() {
-  let db;
-  try {
-    db = await openDB();
-  } catch {
-    return; // IndexedDB not available
-  }
-
-  const tx = db.transaction('mutations', 'readwrite');
-  const store = tx.objectStore('mutations');
-  const request = store.getAll();
-
-  return new Promise((resolve, reject) => {
-    request.onsuccess = async () => {
-      const mutations = request.result || [];
-      const failed = [];
-
-      for (const mutation of mutations) {
-        try {
-          const response = await fetch(mutation.url, {
-            method: mutation.method,
-            headers: mutation.headers,
-            body: mutation.body ? JSON.stringify(mutation.body) : undefined,
-          });
-
-          if (!response.ok && response.status >= 500) {
-            // Server error — keep in queue for retry
-            failed.push(mutation);
-          }
-          // 4xx errors are not retried (bad request, auth issues, etc.)
-        } catch {
-          // Network error — keep in queue
-          failed.push(mutation);
-        }
-      }
-
-      // Clear processed, re-add failed
-      const clearTx = db.transaction('mutations', 'readwrite');
-      const clearStore = clearTx.objectStore('mutations');
-      clearStore.clear();
-      for (const m of failed) {
-        clearStore.add(m);
-      }
-
-      resolve();
-    };
-    request.onerror = () => reject(request.error);
-  });
-}
-
-/**
- * Open the offline mutations IndexedDB.
- */
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('inbox-offline', 1);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains('mutations')) {
-        db.createObjectStore('mutations', { keyPath: 'id', autoIncrement: true });
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
 
 // ─── Messages from clients ──────────────────────────────────────────
 

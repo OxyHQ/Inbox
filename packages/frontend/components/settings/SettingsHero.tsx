@@ -19,10 +19,12 @@ import { getNormalizedUserHandle } from '@oxyhq/core';
 import { useRouter } from 'expo-router';
 
 import { useColors } from '@/constants/theme';
+import { useTranslation } from '@/lib/i18n';
 
 export function SettingsHero() {
   const router = useRouter();
   const colors = useColors();
+  const { t } = useTranslation();
   const theme = useTheme();
   const { user, isAuthenticated } = useOxy();
 
@@ -39,9 +41,9 @@ export function SettingsHero() {
         ]}
       >
         <View style={styles.signedOutContent}>
-          <H3 style={styles.signedOutTitle}>Welcome to Inbox</H3>
+          <H3 style={styles.signedOutTitle}>{t('ui.settings.landing.welcome')}</H3>
           <P style={[styles.signedOutBody, { color: colors.secondaryText }]}>
-            Sign in to sync your messages, labels, and preferences across devices.
+            {t('ui.settings.landing.signInDescription')}
           </P>
         </View>
         <OxySignInButton variant="contained" />
@@ -56,7 +58,7 @@ export function SettingsHero() {
     <Pressable
       onPress={handlePress}
       accessibilityRole="button"
-      accessibilityLabel={`Manage account for ${fullName}`}
+      accessibilityLabel={t('ui.settings.landing.manageAccount', { name: fullName })}
       style={({ pressed }) => [
         styles.card,
         { backgroundColor: theme.colors.backgroundSecondary },

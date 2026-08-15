@@ -25,6 +25,7 @@ import { H3 } from '@oxyhq/bloom/typography';
 import { Lock_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
 
 import { useColors } from '@/constants/theme';
+import { useTranslation } from '@/lib/i18n';
 import { SettingsHero } from './SettingsHero';
 import { SettingsCategoryCard } from './SettingsCategoryCard';
 import { SettingsCategoryRow } from './SettingsCategoryRow';
@@ -38,22 +39,22 @@ type SectionBucketKey = 'personal' | 'mail' | 'system';
 
 const BUCKETS: readonly {
   key: SectionBucketKey;
-  title: string;
+  titleKey: string;
   sectionKeys: readonly SettingsSectionDef['key'][];
 }[] = [
   {
     key: 'personal',
-    title: 'Personal',
+    titleKey: 'ui.settings.landing.personal',
     sectionKeys: ['account', 'notifications', 'privacy'],
   },
   {
     key: 'mail',
-    title: 'Mail',
+    titleKey: 'ui.settings.landing.mail',
     sectionKeys: ['inbox-prefs', 'labels', 'ai', 'storage'],
   },
   {
     key: 'system',
-    title: 'System',
+    titleKey: 'ui.settings.landing.system',
     sectionKeys: ['appearance', 'advanced', 'about'],
   },
 ];
@@ -71,6 +72,7 @@ export function SettingsLanding() {
   const insets = useSafeAreaInsets();
   const tabBarClearance = useTabBarClearance();
   const colors = useColors();
+  const { t } = useTranslation();
   const { isAuthenticated } = useOxy();
 
   const handleNavigate = useCallback(
@@ -92,7 +94,7 @@ export function SettingsLanding() {
   return (
     <View style={[styles.root, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <H3 style={styles.headerTitle}>Settings</H3>
+        <H3 style={styles.headerTitle}>{t('settings.title')}</H3>
       </View>
 
       <ScrollView
@@ -109,7 +111,7 @@ export function SettingsLanding() {
         <SettingsHero />
 
         {buckets.map((bucket) => (
-          <SettingsCategoryCard key={bucket.key} title={bucket.title}>
+          <SettingsCategoryCard key={bucket.key} title={t(bucket.titleKey)}>
             {bucket.sections.map((section) => {
               const isLocked = section.requiresAuth && !isAuthenticated;
               return (
@@ -117,8 +119,8 @@ export function SettingsLanding() {
                   key={section.key}
                   icon={section.icon}
                   tint={section.tint}
-                  title={section.label}
-                  description={section.description}
+                  title={t(section.labelKey)}
+                  description={t(section.descriptionKey)}
                   trailing={
                     isLocked ? (
                       <Lock_Stroke2_Corner0_Rounded

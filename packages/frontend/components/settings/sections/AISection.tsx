@@ -20,6 +20,7 @@ import {
 } from '@oxyhq/bloom/icons';
 
 import { useColors } from '@/constants/theme';
+import { useTranslation } from '@/lib/i18n';
 import { SectionHeader } from '@/components/settings/SectionHeader';
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
 
@@ -51,16 +52,17 @@ function InlineToggle({ title, description, value, onChange }: InlineToggleProps
 }
 
 export function AISection() {
+  const { t } = useTranslation();
   const { prefs, setPref } = useInboxPrefs();
 
   return (
     <View style={styles.root}>
       <View style={styles.subsection}>
-        <SectionHeader icon={Sparkle_Stroke2_Corner0_Rounded} title="Daily Brief" />
+        <SectionHeader icon={Sparkle_Stroke2_Corner0_Rounded} title={t('ui.settings.ai.dailyBrief')} />
         <View style={styles.toggleGroup}>
           <InlineToggle
-            title="Inbox recap"
-            description="A short summary generated from your inbox counts (unread, starred, attachments). It doesn't read message contents."
+            title={t('ui.settings.ai.recap')}
+            description={t('ui.settings.ai.recapDescription')}
             value={prefs.aiBrief}
             onChange={(v) => setPref('aiBrief', v)}
           />
@@ -68,11 +70,11 @@ export function AISection() {
       </View>
 
       <View style={styles.subsection}>
-        <SectionHeader icon={Reply} title="Smart Reply" />
+        <SectionHeader icon={Reply} title={t('ui.settings.ai.smartReply')} />
         <View style={styles.toggleGroup}>
           <InlineToggle
-            title="One-tap suggestions"
-            description="Three context-aware reply chips above the message, drafted by Alia."
+            title={t('ui.settings.ai.suggestions')}
+            description={t('ui.settings.ai.suggestionsDescription')}
             value={prefs.aiSmartReply}
             onChange={(v) => setPref('aiSmartReply', v)}
           />
@@ -80,11 +82,11 @@ export function AISection() {
       </View>
 
       <View style={styles.subsection}>
-        <SectionHeader icon={Bot_Stroke} title="Priority flags" />
+        <SectionHeader icon={Bot_Stroke} title={t('ui.settings.ai.priority')} />
         <View style={styles.toggleGroup}>
           <InlineToggle
-            title="Highlight likely-urgent mail"
-            description="Flag messages as Urgent, Action needed, or Important using on-device keyword heuristics — not a full AI model."
+            title={t('ui.settings.ai.priorityTitle')}
+            description={t('ui.settings.ai.priorityDescription')}
             value={prefs.aiCategorization}
             onChange={(v) => setPref('aiCategorization', v)}
           />
@@ -92,7 +94,7 @@ export function AISection() {
       </View>
 
       <Admonition type="tip">
-        Priority flags run on-device from keyword heuristics. The Daily Brief and Smart Reply use Alia and only receive what is shown here — not your full mailbox.
+        {t('ui.settings.ai.tip')}
       </Admonition>
     </View>
   );

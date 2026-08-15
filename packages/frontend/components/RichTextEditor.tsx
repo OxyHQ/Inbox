@@ -33,6 +33,68 @@ export interface RichTextEditorHandle {
   focus: () => void;
 }
 
+interface WebToolbarButtonProps {
+  command?: string;
+  icon?: string;
+  label?: string;
+  isActive?: boolean;
+  onPress: () => void;
+  activeColor: string;
+  iconColor: string;
+}
+
+function isEditorContentEmpty(content: string): boolean {
+  if (!content.trim()) return true;
+  const textContent = content
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .trim();
+  return !textContent && !/<img\b/i.test(content);
+}
+
+function WebToolbarButton({
+  command,
+  icon,
+  label,
+  isActive = false,
+  onPress,
+  activeColor,
+  iconColor,
+}: WebToolbarButtonProps) {
+  return (
+    <TouchableOpacity
+      accessibilityLabel={command ?? label ?? icon}
+      onPress={onPress}
+      style={[
+        webStyles.toolbarButton,
+        isActive && { backgroundColor: `${activeColor}20` },
+      ]}
+      activeOpacity={0.7}
+    >
+      {icon ? (
+        <MaterialCommunityIcons
+          name={icon as keyof typeof MaterialCommunityIcons.glyphMap}
+          size={16}
+          color={isActive ? activeColor : iconColor}
+        />
+      ) : label ? (
+        <Text
+          style={[
+            webStyles.toolbarButtonLabel,
+            { color: isActive ? activeColor : iconColor },
+            label === 'B' && { fontWeight: '700' },
+            label === 'I' && { fontStyle: 'italic' },
+            label === 'U' && { textDecorationLine: 'underline' },
+            label === 'S' && { textDecorationLine: 'line-through' },
+          ]}
+        >
+          {label}
+        </Text>
+      ) : null}
+    </TouchableOpacity>
+  );
+}
+
 // ─── Web Implementation ──────────────────────────────────────────────
 
 function WebRichTextEditor(
@@ -42,8 +104,10 @@ function WebRichTextEditor(
   const colors = useColors();
   const editorRef = useRef<HTMLDivElement | null>(null);
   const isComposing = useRef(false);
-  const lastValueRef = useRef(value);
-  const [isEmpty, setIsEmpty] = useState(!value);
+  const isEmpty = isEditorContentEmpty(value);
+  const setEditorRef = useCallback((element: HTMLDivElement | null) => {
+    editorRef.current = element;
+  }, []);
 
   // Track active formatting states
   const [activeFormats, setActiveFormats] = useState<Set<string>>(new Set());
@@ -63,10 +127,8 @@ function WebRichTextEditor(
   useEffect(() => {
     const el = editorRef.current;
     if (!el) return;
-    if (value !== lastValueRef.current) {
-      lastValueRef.current = value;
+    if (el.innerHTML !== value) {
       el.innerHTML = value;
-      setIsEmpty(!value);
     }
   }, [value]);
 
@@ -83,14 +145,12 @@ function WebRichTextEditor(
       const el = editorRef.current;
       if (!el) return;
       el.innerHTML = content;
-      lastValueRef.current = content;
-      setIsEmpty(!content);
       onChange(content);
     },
     focus() {
       editorRef.current?.focus();
     },
-  }));
+  }), [onChange]);
 
   const emitChange = useCallback(() => {
     const el = editorRef.current;
@@ -99,8 +159,6 @@ function WebRichTextEditor(
     // Treat <br> or empty tags as empty
     const textContent = el.textContent || '';
     const empty = !textContent.trim() && !html.includes('<img');
-    setIsEmpty(empty);
-    lastValueRef.current = empty ? '' : html;
     onChange(empty ? '' : html);
   }, [onChange]);
 
@@ -196,55 +254,6 @@ function WebRichTextEditor(
     exec('unlink');
   }, [exec]);
 
-  // Toolbar button component
-  const ToolbarButton = useCallback(
-    ({
-      command,
-      icon,
-      label,
-      onPress,
-    }: {
-      command?: string;
-      icon?: string;
-      label?: string;
-      onPress?: () => void;
-    }) => {
-      const isActive = command ? activeFormats.has(command) : false;
-      return (
-        <TouchableOpacity
-          onPress={onPress ?? (() => command && exec(command))}
-          style={[
-            webStyles.toolbarButton,
-            isActive && { backgroundColor: `${colors.primary}20` },
-          ]}
-          activeOpacity={0.7}
-        >
-          {icon ? (
-            <MaterialCommunityIcons
-              name={icon as keyof typeof MaterialCommunityIcons.glyphMap}
-              size={16}
-              color={isActive ? colors.primary : colors.icon}
-            />
-          ) : label ? (
-            <Text
-              style={[
-                webStyles.toolbarButtonLabel,
-                { color: isActive ? colors.primary : colors.icon },
-                label === 'B' && { fontWeight: '700' },
-                label === 'I' && { fontStyle: 'italic' },
-                label === 'U' && { textDecorationLine: 'underline' },
-                label === 'S' && { textDecorationLine: 'line-through' },
-              ]}
-            >
-              {label}
-            </Text>
-          ) : null}
-        </TouchableOpacity>
-      );
-    },
-    [activeFormats, colors, exec],
-  );
-
   return (
     <View style={[webStyles.container, style]}>
       {/* Formatting toolbar */}
@@ -254,26 +263,72 @@ function WebRichTextEditor(
           { backgroundColor: colors.surface, borderBottomColor: colors.border },
         ]}
       >
-        <ToolbarButton command="bold" label="B" />
-        <ToolbarButton command="italic" label="I" />
-        <ToolbarButton command="underline" label="U" />
-        <ToolbarButton command="strikeThrough" label="S" />
+        <WebToolbarButton
+          command="bold"
+          label="B"
+          isActive={activeFormats.has('bold')}
+          onPress={() => exec('bold')}
+          activeColor={colors.primary}
+          iconColor={colors.icon}
+        />
+        <WebToolbarButton
+          command="italic"
+          label="I"
+          isActive={activeFormats.has('italic')}
+          onPress={() => exec('italic')}
+          activeColor={colors.primary}
+          iconColor={colors.icon}
+        />
+        <WebToolbarButton
+          command="underline"
+          label="U"
+          isActive={activeFormats.has('underline')}
+          onPress={() => exec('underline')}
+          activeColor={colors.primary}
+          iconColor={colors.icon}
+        />
+        <WebToolbarButton
+          command="strikeThrough"
+          label="S"
+          isActive={activeFormats.has('strikeThrough')}
+          onPress={() => exec('strikeThrough')}
+          activeColor={colors.primary}
+          iconColor={colors.icon}
+        />
         <View
           style={[webStyles.toolbarSeparator, { backgroundColor: colors.border }]}
         />
-        <ToolbarButton
+        <WebToolbarButton
           command="insertUnorderedList"
           icon="format-list-bulleted"
+          isActive={activeFormats.has('insertUnorderedList')}
+          onPress={() => exec('insertUnorderedList')}
+          activeColor={colors.primary}
+          iconColor={colors.icon}
         />
-        <ToolbarButton
+        <WebToolbarButton
           command="insertOrderedList"
           icon="format-list-numbered"
+          isActive={activeFormats.has('insertOrderedList')}
+          onPress={() => exec('insertOrderedList')}
+          activeColor={colors.primary}
+          iconColor={colors.icon}
         />
         <View
           style={[webStyles.toolbarSeparator, { backgroundColor: colors.border }]}
         />
-        <ToolbarButton icon="link-variant" onPress={handleLink} />
-        <ToolbarButton icon="format-clear" onPress={handleClearFormatting} />
+        <WebToolbarButton
+          icon="link-variant"
+          onPress={handleLink}
+          activeColor={colors.primary}
+          iconColor={colors.icon}
+        />
+        <WebToolbarButton
+          icon="format-clear"
+          onPress={handleClearFormatting}
+          activeColor={colors.primary}
+          iconColor={colors.icon}
+        />
       </View>
 
       {/* Editable area */}
@@ -287,13 +342,7 @@ function WebRichTextEditor(
           </Text>
         )}
         <div
-          ref={(el) => {
-            if (el && !editorRef.current) {
-              editorRef.current = el;
-              el.innerHTML = value;
-              setIsEmpty(!value);
-            }
-          }}
+          ref={setEditorRef}
           contentEditable
           suppressContentEditableWarning
           style={{

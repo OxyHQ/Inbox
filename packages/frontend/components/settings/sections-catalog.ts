@@ -58,10 +58,10 @@ export interface SettingsSectionDef {
   key: SettingsSectionKey;
   /** Typed route path for `router.push()`. */
   path: SettingsSectionPath;
-  /** Display label (matches subscreen title). */
-  label: string;
-  /** Short description shown under the row in the landing page. */
-  description: string;
+  /** Translation key for the display label. */
+  labelKey: string;
+  /** Translation key for the short landing-page description. */
+  descriptionKey: string;
   /** Bloom icon component (rendered inside an `IconCircle`). */
   icon: ComponentType<IconProps>;
   /** Tint key for the per-row colored IconCircle background. */
@@ -74,8 +74,8 @@ export const SETTINGS_SECTIONS: readonly SettingsSectionDef[] = [
   {
     key: 'account',
     path: '/settings/account',
-    label: 'Account',
-    description: 'Profile, signature, recovery, and sign out',
+    labelKey: 'ui.settings.landing.sections.account',
+    descriptionKey: 'ui.settings.landing.sections.accountDescription',
     icon: UserCircle_Stroke2_Corner0_Rounded,
     tint: 'account',
     requiresAuth: true,
@@ -83,8 +83,8 @@ export const SETTINGS_SECTIONS: readonly SettingsSectionDef[] = [
   {
     key: 'appearance',
     path: '/settings/appearance',
-    label: 'Appearance',
-    description: 'Theme and accent color',
+    labelKey: 'ui.settings.landing.sections.appearance',
+    descriptionKey: 'ui.settings.landing.sections.appearanceDescription',
     icon: ColorPalette_Stroke2_Corner0_Rounded,
     tint: 'appearance',
     requiresAuth: false,
@@ -92,8 +92,8 @@ export const SETTINGS_SECTIONS: readonly SettingsSectionDef[] = [
   {
     key: 'notifications',
     path: '/settings/notifications',
-    label: 'Notifications',
-    description: 'Push and email alerts',
+    labelKey: 'ui.settings.landing.sections.notifications',
+    descriptionKey: 'ui.settings.landing.sections.notificationsDescription',
     icon: Bell_Stroke2_Corner0_Rounded,
     tint: 'notifications',
     requiresAuth: true,
@@ -101,8 +101,8 @@ export const SETTINGS_SECTIONS: readonly SettingsSectionDef[] = [
   {
     key: 'inbox-prefs',
     path: '/settings/inbox-prefs',
-    label: 'Inbox',
-    description: 'Density, reading, and swipe actions',
+    labelKey: 'ui.settings.landing.sections.inbox',
+    descriptionKey: 'ui.settings.landing.sections.inboxDescription',
     icon: Envelope_Stroke2_Corner0_Rounded,
     tint: 'inbox',
     requiresAuth: false,
@@ -110,8 +110,8 @@ export const SETTINGS_SECTIONS: readonly SettingsSectionDef[] = [
   {
     key: 'privacy',
     path: '/settings/privacy',
-    label: 'Privacy',
-    description: 'Tracking protection and sender trust',
+    labelKey: 'ui.settings.landing.sections.privacy',
+    descriptionKey: 'ui.settings.landing.sections.privacyDescription',
     icon: Lock_Stroke2_Corner0_Rounded,
     tint: 'privacy',
     requiresAuth: true,
@@ -119,8 +119,8 @@ export const SETTINGS_SECTIONS: readonly SettingsSectionDef[] = [
   {
     key: 'labels',
     path: '/settings/labels',
-    label: 'Labels',
-    description: 'Organize your inbox with custom labels',
+    labelKey: 'ui.settings.landing.sections.labels',
+    descriptionKey: 'ui.settings.landing.sections.labelsDescription',
     icon: Pin_Stroke2_Corner0_Rounded,
     tint: 'labels',
     requiresAuth: true,
@@ -128,8 +128,8 @@ export const SETTINGS_SECTIONS: readonly SettingsSectionDef[] = [
   {
     key: 'contacts',
     path: '/settings/contacts',
-    label: 'Contacts',
-    description: 'People you email, for faster composing',
+    labelKey: 'ui.settings.landing.sections.contacts',
+    descriptionKey: 'ui.settings.landing.sections.contactsDescription',
     icon: Contacts_Stroke2_Corner2_Rounded,
     tint: 'contacts',
     requiresAuth: true,
@@ -137,8 +137,8 @@ export const SETTINGS_SECTIONS: readonly SettingsSectionDef[] = [
   {
     key: 'ai',
     path: '/settings/ai',
-    label: 'AI features',
-    description: 'Brief, Smart Reply, and categorization',
+    labelKey: 'ui.settings.landing.sections.ai',
+    descriptionKey: 'ui.settings.landing.sections.aiDescription',
     icon: Sparkle_Stroke2_Corner0_Rounded,
     tint: 'ai',
     requiresAuth: true,
@@ -146,8 +146,8 @@ export const SETTINGS_SECTIONS: readonly SettingsSectionDef[] = [
   {
     key: 'storage',
     path: '/settings/storage',
-    label: 'Storage',
-    description: 'Quota usage and attachment cache',
+    labelKey: 'ui.settings.landing.sections.storage',
+    descriptionKey: 'ui.settings.landing.sections.storageDescription',
     icon: FloppyDisk_Stroke2_Corner0_Rounded,
     tint: 'storage',
     requiresAuth: true,
@@ -155,8 +155,8 @@ export const SETTINGS_SECTIONS: readonly SettingsSectionDef[] = [
   {
     key: 'advanced',
     path: '/settings/advanced',
-    label: 'Advanced',
-    description: 'Filters, templates, and import',
+    labelKey: 'ui.settings.landing.sections.advanced',
+    descriptionKey: 'ui.settings.landing.sections.advancedDescription',
     icon: SettingsSliderVertical_Stroke2_Corner0_Rounded,
     tint: 'advanced',
     requiresAuth: false,
@@ -164,8 +164,8 @@ export const SETTINGS_SECTIONS: readonly SettingsSectionDef[] = [
   {
     key: 'about',
     path: '/settings/about',
-    label: 'About',
-    description: 'Version, credits, and legal',
+    labelKey: 'ui.settings.landing.sections.about',
+    descriptionKey: 'ui.settings.landing.sections.aboutDescription',
     icon: CircleInfo_Stroke2_Corner0_Rounded,
     tint: 'about',
     requiresAuth: false,

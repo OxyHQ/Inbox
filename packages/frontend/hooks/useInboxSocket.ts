@@ -172,7 +172,7 @@ interface UseInboxSocketOptions {
  * Single legitimate `useEffect`: opening + closing an external connection.
  */
 export function useInboxSocket({ baseURL }: UseInboxSocketOptions) {
-  const { user, oxyServices } = useOxy();
+  const { activeSessionId, canUsePrivateApi, user, oxyServices } = useOxy();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const viewMode = useEmailStore((s) => s.viewMode);
@@ -187,13 +187,15 @@ export function useInboxSocket({ baseURL }: UseInboxSocketOptions) {
   const tokenGetterRef = useRef(() => oxyServices.getAccessToken());
   const toastTitleRef = useRef(t);
 
-  queryClientRef.current = queryClient;
-  viewModeRef.current = viewMode;
-  tokenGetterRef.current = () => oxyServices.getAccessToken();
-  toastTitleRef.current = t;
+  useEffect(() => {
+    queryClientRef.current = queryClient;
+    viewModeRef.current = viewMode;
+    tokenGetterRef.current = () => oxyServices.getAccessToken();
+    toastTitleRef.current = t;
+  }, [queryClient, viewMode, oxyServices, t]);
 
   useEffect(() => {
-    if (!userId || !baseURL) {
+    if (!userId || !activeSessionId || !canUsePrivateApi || !baseURL) {
       const existing = socketRef.current;
       if (existing) {
         existing.disconnect();
@@ -210,6 +212,17 @@ export function useInboxSocket({ baseURL }: UseInboxSocketOptions) {
       },
     });
     socketRef.current = socket;
+
+    const handleConnect = () => {
+      // Reconcile anything received while the socket was disconnected. The
+      // message queries retain their declared polling policy in useMessages;
+      // this uses only the public QueryClient API.
+      void queryClientRef.current.invalidateQueries({
+        queryKey: emailKeys.messages.root,
+      });
+    };
+
+    socket.on('connect', handleConnect);
 
     const isEmailNewEvent = (value: unknown): value is EmailNewEvent => {
       if (typeof value !== 'object' || value === null) return false;
@@ -235,6 +248,7 @@ export function useInboxSocket({ baseURL }: UseInboxSocketOptions) {
     };
 
     const handleEvent = (eventType: InboxSocketEventType, payload: unknown) => {
+      if (socketRef.current !== socket) return;
       switch (eventType) {
         case 'email:new': {
           if (!isEmailNewEvent(payload)) {
@@ -337,6 +351,7 @@ export function useInboxSocket({ baseURL }: UseInboxSocketOptions) {
     socket.onAny(handleUnknown);
 
     return () => {
+      socket.off('connect', handleConnect);
       socket.off('email:new', handleEmailNew);
       socket.off('email:unread_count', handleEmailUnreadCount);
       socket.offAny(handleUnknown);
@@ -345,5 +360,5 @@ export function useInboxSocket({ baseURL }: UseInboxSocketOptions) {
     };
     // The socket is keyed only on the values that should force a reconnect
     // (user identity, server URL). Everything else flows via refs.
-  }, [userId, baseURL]);
+  }, [activeSessionId, baseURL, canUsePrivateApi, queryClient, userId]);
 }

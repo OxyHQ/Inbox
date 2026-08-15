@@ -4,7 +4,9 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Card, CardHeader, CardBody } from '@oxyhq/bloom/card';
 import { Text } from '@oxyhq/bloom/typography';
 import { toast } from '@oxyhq/bloom';
+import { useTheme } from '@oxyhq/bloom/theme';
 import { useColors } from '@/constants/theme';
+import { useTranslation } from '@/lib/i18n';
 import type { CardData } from '@/services/emailApi';
 
 interface EventCardProps {
@@ -82,6 +84,8 @@ function buildGoogleCalendarUrl(data: CardData): string {
 
 export function EventCard({ data }: EventCardProps) {
   const colors = useColors();
+  const theme = useTheme();
+  const { t } = useTranslation();
 
   const startTime = data.startTime
     ? new Date(data.startTime).toLocaleString(undefined, {
@@ -127,19 +131,19 @@ export function EventCard({ data }: EventCardProps) {
         if (await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(file.uri, {
             mimeType: 'text/calendar',
-            dialogTitle: 'Add to Calendar',
+            dialogTitle: t('cards.event.addToCalendarDialog'),
           });
         } else {
           // Sharing not available on this device — fall back to the Google
           // Calendar web URL so the action never silently does nothing.
-          toast.error('Sharing is unavailable. Try "Google Calendar" instead.');
+          toast.error(t('ui.event.sharingUnavailable'));
         }
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Could not open the calendar file.';
+        const message = err instanceof Error ? err.message : t('ui.event.openFailed');
         toast.error(message);
       }
     }
-  }, [data]);
+  }, [data, t]);
 
   const handleOpenGoogleCalendar = useCallback(() => {
     const url = buildGoogleCalendarUrl(data);
@@ -149,9 +153,9 @@ export function EventCard({ data }: EventCardProps) {
   return (
     <Card variant="outlined">
       <CardHeader>
-        <View style={[styles.header, { backgroundColor: '#EA433520' }]}>
-          <MaterialCommunityIcons name="calendar" size={18} color="#EA4335" />
-          <Text style={[styles.headerText, { color: '#EA4335' }]}>Event</Text>
+        <View style={[styles.header, { backgroundColor: theme.colors.backgroundSecondary }]}>
+          <MaterialCommunityIcons name="calendar" size={18} color={colors.error} />
+          <Text style={[styles.headerText, { color: colors.error }]}>{t('cards.event.header')}</Text>
         </View>
       </CardHeader>
       <CardBody>
@@ -188,7 +192,7 @@ export function EventCard({ data }: EventCardProps) {
               activeOpacity={0.7}
             >
               <MaterialCommunityIcons name="calendar-plus" size={16} color={colors.text} />
-              <Text style={[styles.actionText, { color: colors.text }]}>Add to Calendar</Text>
+              <Text style={[styles.actionText, { color: colors.text }]}>{t('cards.event.addToCalendar')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: colors.border }]}
@@ -196,7 +200,7 @@ export function EventCard({ data }: EventCardProps) {
               activeOpacity={0.7}
             >
               <MaterialCommunityIcons name="google" size={16} color={colors.text} />
-              <Text style={[styles.actionText, { color: colors.text }]}>Google Calendar</Text>
+              <Text style={[styles.actionText, { color: colors.text }]}>{t('cards.event.googleCalendar')}</Text>
             </TouchableOpacity>
           </View>
         </View>

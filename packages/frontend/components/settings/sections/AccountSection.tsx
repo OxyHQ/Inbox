@@ -33,6 +33,7 @@ import { getNormalizedUserHandle } from '@oxyhq/core';
 import { useOxy } from '@oxyhq/services';
 
 import { useColors } from '@/constants/theme';
+import { useTranslation } from '@/lib/i18n';
 import { useSettings, useUpdateSettings } from '@/hooks/queries/useSettings';
 import type { EmailSettings } from '@/services/emailApi';
 import { SectionHeader } from '@/components/settings/SectionHeader';
@@ -96,6 +97,7 @@ function useDirtySettings(settingsData: EmailSettings | undefined) {
 
 export function AccountSection() {
   const colors = useColors();
+  const { t } = useTranslation();
   const theme = useTheme();
   const { user, logout } = useOxy();
   const { data: settingsData } = useSettings();
@@ -126,7 +128,7 @@ export function AccountSection() {
         autoForwardKeepCopy,
       },
       {
-        onSuccess: () => toast.success('Settings updated.'),
+        onSuccess: () => toast.success(t('ui.settings.account.updated')),
         onError: (err: unknown) => {
           const message = err instanceof Error ? err.message : 'Failed to save settings.';
           toast.error(message);
@@ -141,6 +143,7 @@ export function AccountSection() {
     autoForwardTo,
     autoForwardKeepCopy,
     updateSettings,
+    t,
   ]);
 
   const signOutDialog = useDialogControl();
@@ -152,12 +155,12 @@ export function AccountSection() {
   const handleSignOut = useCallback(async () => {
     try {
       await logout();
-      toast.success('Signed out.');
+      toast.success(t('ui.settings.account.signedOut'));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to sign out.';
       toast.error(message);
     }
-  }, [logout]);
+  }, [logout, t]);
 
   const inputStyle = {
     color: colors.text,
@@ -187,11 +190,11 @@ export function AccountSection() {
 
       {/* Signature */}
       <View style={styles.subsection}>
-        <SectionHeader icon={Pencil_Stroke2_Corner0_Rounded} title="Signature" />
+        <SectionHeader icon={Pencil_Stroke2_Corner0_Rounded} title={t('ui.settings.account.signature')} />
         <TextInput
           value={signature}
           onChangeText={(v) => setField('signature', v)}
-          placeholder="Appended to every outgoing message"
+          placeholder={t('ui.settings.account.signaturePlaceholder')}
           placeholderTextColor={colors.secondaryText}
           multiline
           numberOfLines={4}
@@ -202,7 +205,7 @@ export function AccountSection() {
 
       {/* Vacation auto-reply */}
       <View style={styles.subsection}>
-        <SectionHeader icon={PaperPlane_Stroke2_Corner0_Rounded} title="Auto-reply" />
+        <SectionHeader icon={PaperPlane_Stroke2_Corner0_Rounded} title={t('ui.settings.account.autoReply')} />
         <Pressable
           onPress={() => setField('autoReplyEnabled', !autoReplyEnabled)}
           accessibilityRole="switch"
@@ -230,14 +233,14 @@ export function AccountSection() {
             <TextInput
               value={autoReplySubject}
               onChangeText={(v) => setField('autoReplySubject', v)}
-              placeholder="Subject"
+              placeholder={t('ui.settings.account.subjectPlaceholder')}
               placeholderTextColor={colors.secondaryText}
               style={[styles.input, inputStyle]}
             />
             <TextInput
               value={autoReplyBody}
               onChangeText={(v) => setField('autoReplyBody', v)}
-              placeholder="Message — explain when you'll be back."
+              placeholder={t('ui.settings.account.messagePlaceholder')}
               placeholderTextColor={colors.secondaryText}
               multiline
               numberOfLines={4}
@@ -250,11 +253,11 @@ export function AccountSection() {
 
       {/* Forwarding */}
       <View style={styles.subsection}>
-        <SectionHeader icon={ArrowOutOfBox_Stroke2_Corner0_Rounded} title="Forwarding" />
+        <SectionHeader icon={ArrowOutOfBox_Stroke2_Corner0_Rounded} title={t('ui.settings.account.forwarding')} />
         <TextInput
           value={autoForwardTo}
           onChangeText={(v) => setField('autoForwardTo', v)}
-          placeholder="Forward incoming mail to address"
+          placeholder={t('ui.settings.account.forwardingPlaceholder')}
           placeholderTextColor={colors.secondaryText}
           keyboardType="email-address"
           autoCapitalize="none"
@@ -295,11 +298,11 @@ export function AccountSection() {
 
       {/* Danger zone */}
       <View style={styles.subsection}>
-        <SectionHeader icon={ArrowBoxLeft_Stroke2_Corner0_Rounded} title="Account actions" />
+        <SectionHeader icon={ArrowBoxLeft_Stroke2_Corner0_Rounded} title={t('ui.settings.account.actions')} />
         <GroupedButtons>
           <GroupedButtons.Item
             label="Sign out"
-            description="You'll be signed out of this device only."
+            description={t('ui.settings.account.signOutDevice')}
             onPress={() => signOutDialog.open()}
           />
         </GroupedButtons>
@@ -307,11 +310,11 @@ export function AccountSection() {
 
       <Dialog
         control={signOutDialog}
-        title="Sign out?"
-        description="You can sign back in at any time."
+        title={t('ui.settings.account.signOutTitle')}
+        description={t('ui.settings.account.signOutDescription')}
         actions={[
-          { label: 'Sign out', color: 'destructive', onPress: handleSignOut },
-          { label: 'Cancel', color: 'cancel' },
+          { label: t('ui.settings.account.signOut'), color: 'destructive', onPress: handleSignOut },
+          { label: t('common.cancel'), color: 'cancel' },
         ]}
       />
 

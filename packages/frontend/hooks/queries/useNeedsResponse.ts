@@ -1,39 +1,31 @@
 /**
  * Hook to identify emails that need a response from the user.
  *
- * Uses simple heuristics to detect:
- * - Emails with question marks
- * - Emails asking for action/decision
- * - Emails that are unread and recent
+ * Uses small, explainable signals to detect unread emails that contain a
+ * direct question or request. The signal is returned with each result so the
+ * list can explain why it was promoted instead of presenting a silent label.
  */
 
 import { useMemo } from 'react';
 import type { Message } from '@/services/emailApi';
 
+export type NeedsResponseReason = 'question' | 'request' | 'waiting';
+
 interface UseNeedsResponseResult {
   messages: Message[];
   count: number;
+  reasons: Map<string, NeedsResponseReason>;
 }
 
-// Patterns that suggest an email needs a response
-const QUESTION_PATTERNS = [
-  /\?\s*$/m,                    // Ends with question mark
-  /could you/i,                 // Request patterns
-  /would you/i,
-  /can you/i,
-  /please (let|send|confirm)/i,
-  /waiting for (your|a) (response|reply)/i,
-  /get back to (me|us)/i,
-  /let me know/i,
-  /thoughts\??$/i,
-  /what do you think/i,
-  /when can (you|we)/i,
-  /rsvp/i,
-  /confirm(ation)?/i,
-  /deadline/i,
-  /urgent/i,
-  /asap/i,
+const DIRECT_REQUEST_PATTERNS = [
+  /\b(?:could|would|can) you\b/i,
+  /\bplease\s+(?:let|send|share|confirm|provide|review|reply)\b/i,
+  /\b(?:get back to|let me know|what do you think|when can you)\b/i,
+  /\b(?:rsvp|confirm(?:ation)?)\b/i,
 ];
+
+const WAITING_PATTERN = /\bwaiting for (?:your|a) (?:response|reply)\b/i;
+const QUESTION_PATTERN = /\?/;
 
 // Patterns that suggest an email is just informational (no response needed)
 const INFORMATIONAL_PATTERNS = [
@@ -45,14 +37,19 @@ const INFORMATIONAL_PATTERNS = [
   /noreply|no-reply|donotreply/i,
 ];
 
-function needsResponse(message: Message): boolean {
+/**
+ * Returns the signal that promoted a message, or null when it is not a
+ * candidate. Urgency/deadline words alone are deliberately not enough: many
+ * automated notices contain them but do not need a reply.
+ */
+export function getNeedsResponseReason(message: Message): NeedsResponseReason | null {
   // Skip already read emails (user probably handled it)
-  if (message.flags.seen) return false;
+  if (message.flags.seen) return null;
 
   // Skip messages from no-reply addresses
   const fromAddress = message.from.address.toLowerCase();
   if (INFORMATIONAL_PATTERNS.some(p => p.test(fromAddress))) {
-    return false;
+    return null;
   }
 
   const subject = message.subject || '';
@@ -61,18 +58,14 @@ function needsResponse(message: Message): boolean {
 
   // Skip if looks like informational
   if (INFORMATIONAL_PATTERNS.some(p => p.test(combined))) {
-    return false;
+    return null;
   }
 
-  // Check if contains question patterns
-  const hasQuestion = QUESTION_PATTERNS.some(p => p.test(combined));
-  if (hasQuestion) return true;
+  if (WAITING_PATTERN.test(combined)) return 'waiting';
+  if (DIRECT_REQUEST_PATTERNS.some(p => p.test(combined))) return 'request';
+  if (QUESTION_PATTERN.test(combined)) return 'question';
 
-  // Count question marks as strong indicator
-  const questionMarks = (combined.match(/\?/g) || []).length;
-  if (questionMarks >= 2) return true;
-
-  return false;
+  return null;
 }
 
 export function useNeedsResponse(
@@ -81,10 +74,15 @@ export function useNeedsResponse(
 ): UseNeedsResponseResult {
   const result = useMemo(() => {
     if (!messages || messages.length === 0) {
-      return { messages: [], count: 0 };
+      return { messages: [], count: 0, reasons: new Map() };
     }
 
-    const filtered = messages.filter(needsResponse);
+    const reasons = new Map<string, NeedsResponseReason>();
+    const filtered = messages.filter((message) => {
+      const reason = getNeedsResponseReason(message);
+      if (reason) reasons.set(message._id, reason);
+      return reason !== null;
+    });
 
     // Sort by date descending (most recent first)
     const sorted = [...filtered].sort(
@@ -94,6 +92,7 @@ export function useNeedsResponse(
     return {
       messages: sorted.slice(0, limit),
       count: sorted.length,
+      reasons,
     };
   }, [messages, limit]);
 

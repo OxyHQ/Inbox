@@ -30,6 +30,7 @@ import {
 } from '@oxyhq/bloom/icons';
 
 import { useColors } from '@/constants/theme';
+import { useTranslation } from '@/lib/i18n';
 import { SectionHeader } from '@/components/settings/SectionHeader';
 import {
   useLabels,
@@ -48,6 +49,7 @@ const DEFAULT_NEW_COLOR = LABEL_COLORS[0];
 export function LabelsSection() {
   const colors = useColors();
   const theme = useTheme();
+  const { t } = useTranslation();
   const { data: labels = [] } = useLabels();
   const createLabel = useCreateLabel();
   const updateLabel = useUpdateLabel();
@@ -70,15 +72,15 @@ export function LabelsSection() {
         onSuccess: () => {
           setNewLabelName('');
           setNewLabelColor(DEFAULT_NEW_COLOR);
-          toast.success('Label created.');
+          toast.success(t('common.success'));
         },
         onError: (err: unknown) => {
-          const message = err instanceof Error ? err.message : 'Failed to create label.';
+          const message = err instanceof Error ? err.message : t('ui.mutations.labelCreateFailed');
           toast.error(message);
         },
       },
     );
-  }, [newLabelName, newLabelColor, createLabel]);
+  }, [newLabelName, newLabelColor, createLabel, t]);
 
   const handleUpdateName = useCallback(
     (labelId: string) => {
@@ -92,28 +94,28 @@ export function LabelsSection() {
             setEditingLabelName('');
           },
           onError: (err: unknown) => {
-            const message = err instanceof Error ? err.message : 'Failed to update label.';
+            const message = err instanceof Error ? err.message : t('ui.mutations.labelUpdateFailed');
             toast.error(message);
           },
         },
       );
     },
-    [editingLabelName, updateLabel],
+    [editingLabelName, updateLabel, t],
   );
 
   const handleDelete = useCallback(() => {
     if (!labelPendingDelete) return;
     deleteLabel.mutate(labelPendingDelete.id, {
       onSuccess: () => {
-        toast.success('Label deleted.');
+        toast.success(t('common.success'));
         setLabelPendingDelete(null);
       },
       onError: (err: unknown) => {
-        const message = err instanceof Error ? err.message : 'Failed to delete label.';
+        const message = err instanceof Error ? err.message : t('ui.mutations.labelDeleteFailed');
         toast.error(message);
       },
     });
-  }, [labelPendingDelete, deleteLabel]);
+  }, [labelPendingDelete, deleteLabel, t]);
 
   const inputStyle = {
     color: colors.text,
@@ -128,10 +130,10 @@ export function LabelsSection() {
     >
       {/* Existing labels */}
       <View style={styles.subsection}>
-        <SectionHeader icon={Pin_Stroke2_Corner0_Rounded} title="Your labels" />
+        <SectionHeader icon={Pin_Stroke2_Corner0_Rounded} title={t('ui.settings.labels.your')} />
         {labels.length === 0 ? (
           <Admonition type="info">
-            No labels yet. Create your first one below to organize messages.
+            {t('ui.settings.labels.empty')}
           </Admonition>
         ) : (
           <View style={[styles.labelList, { borderColor: colors.border }]}>
@@ -157,7 +159,7 @@ export function LabelsSection() {
                         autoFocus
                         onSubmitEditing={() => handleUpdateName(label._id)}
                         returnKeyType="done"
-                        placeholder="Label name"
+                        placeholder={t('ui.settings.labels.labelName')}
                         placeholderTextColor={colors.secondaryText}
                         style={[styles.labelEditInput, inputStyle]}
                       />
@@ -165,7 +167,7 @@ export function LabelsSection() {
                         onPress={() => handleUpdateName(label._id)}
                         style={styles.iconBtn}
                         accessibilityRole="button"
-                        accessibilityLabel="Save label name"
+                        accessibilityLabel={t('ui.settings.labels.saveName')}
                       >
                         <CircleCheck_Stroke2_Corner0_Rounded
                           size="md"
@@ -182,7 +184,7 @@ export function LabelsSection() {
                           delete, and the server rejects both anyway. */}
                       {label.system ? (
                         <Text style={[styles.systemTag, { color: colors.secondaryText }]}>
-                          Built-in
+                          {t('ui.settings.labels.builtIn')}
                         </Text>
                       ) : (
                         <>
@@ -193,7 +195,7 @@ export function LabelsSection() {
                             }}
                             style={styles.iconBtn}
                             accessibilityRole="button"
-                            accessibilityLabel={`Rename ${label.name}`}
+                            accessibilityLabel={t('ui.settings.labels.rename', { name: label.name })}
                           >
                             <Pencil_Stroke2_Corner0_Rounded
                               size="sm"
@@ -207,7 +209,7 @@ export function LabelsSection() {
                             }}
                             style={styles.iconBtn}
                             accessibilityRole="button"
-                            accessibilityLabel={`Delete ${label.name}`}
+                            accessibilityLabel={t('ui.settings.labels.delete', { name: label.name })}
                           >
                             <Trash_Stroke2_Corner0_Rounded
                               size="sm"
@@ -227,7 +229,7 @@ export function LabelsSection() {
 
       {/* Create label */}
       <View style={styles.subsection}>
-        <SectionHeader icon={ColorPalette_Stroke2_Corner0_Rounded} title="Create label" />
+        <SectionHeader icon={ColorPalette_Stroke2_Corner0_Rounded} title={t('ui.settings.labels.create')} />
         <View style={styles.swatchRow}>
           {LABEL_COLORS.map((c) => {
             const isActive = newLabelColor === c;
@@ -236,7 +238,7 @@ export function LabelsSection() {
                 key={c}
                 onPress={() => setNewLabelColor(c)}
                 accessibilityRole="button"
-                accessibilityLabel={`Pick ${c}`}
+                accessibilityLabel={t('ui.settings.labels.pick', { color: c })}
                 style={[
                   styles.swatch,
                   { backgroundColor: c, borderColor: isActive ? colors.text : 'transparent' },
@@ -248,7 +250,7 @@ export function LabelsSection() {
         <TextInput
           value={newLabelName}
           onChangeText={setNewLabelName}
-          placeholder="New label name"
+          placeholder={t('ui.settings.labels.newName')}
           placeholderTextColor={colors.secondaryText}
           onSubmitEditing={handleCreate}
           returnKeyType="done"
@@ -260,21 +262,21 @@ export function LabelsSection() {
           icon={<PlusSmall_Stroke2_Corner0_Rounded size="sm" style={{ color: '#FFFFFF' }} />}
           iconPosition="left"
         >
-          {createLabel.isPending ? 'Creating…' : 'Add label'}
+          {createLabel.isPending ? t('ui.settings.labels.creating') : t('ui.settings.labels.add')}
         </Button>
       </View>
 
       <Dialog
         control={deleteConfirm}
-        title="Delete label?"
+        title={t('ui.settings.labels.deleteTitle')}
         description={
           labelPendingDelete
-            ? `"${labelPendingDelete.name}" will be removed from any messages it's applied to.`
+            ? t('ui.settings.labels.deleteDescription', { name: labelPendingDelete.name })
             : ''
         }
         actions={[
-          { label: 'Delete', color: 'destructive', onPress: handleDelete },
-          { label: 'Cancel', color: 'cancel' },
+          { label: t('common.delete'), color: 'destructive', onPress: handleDelete },
+          { label: t('common.cancel'), color: 'cancel' },
         ]}
       />
     </KeyboardAvoidingView>

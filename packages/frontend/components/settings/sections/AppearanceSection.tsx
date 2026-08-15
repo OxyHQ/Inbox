@@ -23,6 +23,7 @@ import {
 } from '@oxyhq/bloom/icons';
 
 import { useColors } from '@/constants/theme';
+import { useTranslation } from '@/lib/i18n';
 import { useThemeContext } from '@/contexts/theme-context';
 import { ColorPresetPicker } from '@/components/ColorPresetPicker';
 import { SectionHeader } from '@/components/settings/SectionHeader';
@@ -67,7 +68,7 @@ function InboxMiniature({ variant }: { variant: 'light' | 'dark' }) {
 
 interface ModeOption {
   value: ThemeMode;
-  label: string;
+  labelKey: string;
   render: () => React.ReactNode;
 }
 
@@ -75,12 +76,12 @@ function makeModeOptions(): ModeOption[] {
   return [
     {
       value: 'light',
-      label: 'Light',
+      labelKey: 'ui.settings.appearance.light',
       render: () => <InboxMiniature variant="light" />,
     },
     {
       value: 'system',
-      label: 'System',
+      labelKey: 'ui.settings.appearance.system',
       render: () => (
         <View style={styles.miniSystem}>
           <View style={styles.miniSystemHalf}>
@@ -94,7 +95,7 @@ function makeModeOptions(): ModeOption[] {
     },
     {
       value: 'dark',
-      label: 'Dark',
+      labelKey: 'ui.settings.appearance.dark',
       render: () => <InboxMiniature variant="dark" />,
     },
   ];
@@ -104,6 +105,7 @@ const MODE_OPTIONS = makeModeOptions();
 
 export function AppearanceSection() {
   const colors = useColors();
+  const { t } = useTranslation();
   const theme = useTheme();
   const { themePreference, setThemePreference } = useThemeContext();
 
@@ -115,7 +117,7 @@ export function AppearanceSection() {
   return (
     <View style={styles.root}>
       <View style={styles.subsection}>
-        <SectionHeader icon={Moon_Stroke2_Corner0_Rounded} title="Theme" />
+        <SectionHeader icon={Moon_Stroke2_Corner0_Rounded} title={t('ui.settings.appearance.theme')} />
         <View style={styles.modeRow}>
           {MODE_OPTIONS.map((opt) => {
             const isActive = themePreference === opt.value;
@@ -124,7 +126,7 @@ export function AppearanceSection() {
                 key={opt.value}
                 onPress={() => handleChange(opt.value)}
                 accessibilityRole="button"
-                accessibilityLabel={`Use ${opt.label} theme`}
+                accessibilityLabel={t('ui.settings.appearance.useTheme', { theme: t(opt.labelKey) })}
                 accessibilityState={{ selected: isActive }}
                 style={({ pressed }) => [
                   styles.modeCard,
@@ -145,19 +147,19 @@ export function AppearanceSection() {
                   ]}
                   numberOfLines={1}
                 >
-                  {opt.label}
+                  {t(opt.labelKey)}
                 </Text>
               </Pressable>
             );
           })}
         </View>
         <Text style={[styles.footnote, { color: colors.secondaryText }]}>
-          System follows your device's appearance setting.
+          {t('ui.settings.appearance.systemHint')}
         </Text>
       </View>
 
       <View style={styles.subsection}>
-        <SectionHeader icon={ColorPalette_Stroke2_Corner0_Rounded} title="Accent color" />
+        <SectionHeader icon={ColorPalette_Stroke2_Corner0_Rounded} title={t('ui.settings.appearance.accentColor')} />
         <ColorPresetPicker />
       </View>
     </View>

@@ -29,6 +29,7 @@ import { ChevronLeft_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
 
 import { useGoBack } from '@/hooks/useGoBack';
 import { useColors } from '@/constants/theme';
+import { useTranslation } from '@/lib/i18n';
 
 interface SettingsScreenShellProps {
   title: string;
@@ -53,6 +54,7 @@ export function SettingsScreenShell({
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const colors = useColors();
+  const { t } = useTranslation();
   const isDesktop = Platform.OS === 'web' && width >= DESKTOP_BREAKPOINT;
 
   // On desktop the sidebar is permanent and provides the back affordance, so
@@ -89,7 +91,7 @@ export function SettingsScreenShell({
           <IconButton
             onPress={handleBack}
             size="small"
-            accessibilityLabel="Back"
+            accessibilityLabel={t('common.back')}
             icon={<ChevronLeft_Stroke2_Corner0_Rounded size="md" style={{ color: colors.icon }} />}
           />
         ) : (

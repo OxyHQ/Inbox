@@ -21,6 +21,7 @@ import { H3, Text } from '@oxyhq/bloom/typography';
 import { Lock_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
 
 import { useColors } from '@/constants/theme';
+import { useTranslation } from '@/lib/i18n';
 import { useSettingsTint } from './settings-tints';
 import {
   SETTINGS_SECTIONS,
@@ -43,6 +44,7 @@ interface SidebarRowProps {
 
 function SidebarRow({ section, isActive, isLocked, onPress }: SidebarRowProps) {
   const colors = useColors();
+  const { t } = useTranslation();
   const theme = useTheme();
   const tintHex = useSettingsTint(section.tint);
   const Icon = section.icon;
@@ -51,7 +53,7 @@ function SidebarRow({ section, isActive, isLocked, onPress }: SidebarRowProps) {
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={section.label}
+      accessibilityLabel={t(section.labelKey)}
       accessibilityState={{ selected: isActive, disabled: false }}
       style={({ pressed }) => [
         styles.sectionItem,
@@ -75,7 +77,7 @@ function SidebarRow({ section, isActive, isLocked, onPress }: SidebarRowProps) {
         ]}
         numberOfLines={1}
       >
-        {section.label}
+        {t(section.labelKey)}
       </Text>
       {isLocked ? (
         <Lock_Stroke2_Corner0_Rounded
@@ -91,6 +93,7 @@ export function SettingsNav({ activeSection }: SettingsNavProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const colors = useColors();
+  const { t } = useTranslation();
   const { isAuthenticated } = useOxy();
 
   const handleSelect = useCallback(
@@ -105,7 +108,7 @@ export function SettingsNav({ activeSection }: SettingsNavProps) {
       style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}
     >
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <H3 style={styles.headerTitle}>Settings</H3>
+        <H3 style={styles.headerTitle}>{t('settings.title')}</H3>
       </View>
 
       <View style={styles.sections}>

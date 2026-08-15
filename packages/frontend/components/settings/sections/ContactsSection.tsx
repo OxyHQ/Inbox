@@ -31,6 +31,7 @@ import {
 } from '@oxyhq/bloom/icons';
 
 import { useColors } from '@/constants/theme';
+import { useTranslation } from '@/lib/i18n';
 import { SectionHeader } from '@/components/settings/SectionHeader';
 import { useContacts } from '@/hooks/queries/useContacts';
 import {
@@ -44,6 +45,7 @@ const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 export function ContactsSection() {
   const colors = useColors();
   const theme = useTheme();
+  const { t } = useTranslation();
 
   const [search, setSearch] = useState('');
   const { data: contacts = [] } = useContacts(search);
@@ -87,7 +89,7 @@ export function ContactsSection() {
 
   const handleSubmit = useCallback(() => {
     if (!formValid) {
-      toast.error('Enter a name and a valid email.');
+      toast.error(t('contacts.toast.nameEmailRequired'));
       return;
     }
     const payload = {
@@ -103,7 +105,7 @@ export function ContactsSection() {
         {
           onSuccess: () => {
             resetForm();
-            toast.success('Contact updated.');
+            toast.success(t('contacts.toast.updated'));
           },
         },
       );
@@ -112,21 +114,21 @@ export function ContactsSection() {
     createContact.mutate(payload, {
       onSuccess: () => {
         resetForm();
-        toast.success('Contact added.');
+        toast.success(t('contacts.toast.created'));
       },
     });
-  }, [formValid, name, email, company, notes, starred, editingId, updateContact, createContact, resetForm]);
+  }, [formValid, name, email, company, notes, starred, editingId, updateContact, createContact, resetForm, t]);
 
   const handleDelete = useCallback(() => {
     if (!pendingDelete) return;
     deleteContact.mutate(pendingDelete.id, {
       onSuccess: () => {
-        toast.success('Contact deleted.');
+        toast.success(t('contacts.toast.deleted'));
         if (editingId === pendingDelete.id) resetForm();
         setPendingDelete(null);
       },
     });
-  }, [pendingDelete, deleteContact, editingId, resetForm]);
+  }, [pendingDelete, deleteContact, editingId, resetForm, t]);
 
   const inputStyle = {
     color: colors.text,
@@ -141,13 +143,13 @@ export function ContactsSection() {
     >
       {/* Search + list */}
       <View style={styles.subsection}>
-        <SectionHeader icon={UserCircle_Stroke2_Corner0_Rounded} title="Your contacts" />
+        <SectionHeader icon={UserCircle_Stroke2_Corner0_Rounded} title={t('ui.settings.contacts.your')} />
         <View style={[styles.searchRow, { borderColor: colors.border, backgroundColor: theme.colors.background }]}>
           <MagnifyingGlass_Stroke2_Corner0_Rounded size="sm" style={{ color: colors.secondaryText }} />
           <TextInput
             value={search}
             onChangeText={setSearch}
-            placeholder="Search contacts"
+            placeholder={t('ui.settings.contacts.search')}
             placeholderTextColor={colors.secondaryText}
             autoCapitalize="none"
             autoCorrect={false}
@@ -157,8 +159,8 @@ export function ContactsSection() {
         {contacts.length === 0 ? (
           <Admonition type="info">
             {search.trim()
-              ? 'No contacts match your search.'
-              : 'No contacts yet. Add your frequent recipients below for faster composing.'}
+              ? t('ui.settings.contacts.noMatch')
+              : t('ui.settings.contacts.empty')}
           </Admonition>
         ) : (
           <View style={[styles.itemList, { borderColor: colors.border }]}>
@@ -183,7 +185,7 @@ export function ContactsSection() {
                   onPress={() => startEdit(c)}
                   style={styles.iconBtn}
                   accessibilityRole="button"
-                  accessibilityLabel={`Edit ${c.name}`}
+                  accessibilityLabel={t('ui.settings.contacts.edit', { name: c.name })}
                 >
                   <Pencil_Stroke2_Corner0_Rounded size="sm" style={{ color: colors.icon }} />
                 </Pressable>
@@ -194,7 +196,7 @@ export function ContactsSection() {
                   }}
                   style={styles.iconBtn}
                   accessibilityRole="button"
-                  accessibilityLabel={`Delete ${c.name}`}
+                  accessibilityLabel={t('ui.settings.contacts.delete', { name: c.name })}
                 >
                   <Trash_Stroke2_Corner0_Rounded size="sm" style={{ color: colors.error }} />
                 </Pressable>
@@ -208,19 +210,19 @@ export function ContactsSection() {
       <View style={styles.subsection}>
         <SectionHeader
           icon={editingId ? Pencil_Stroke2_Corner0_Rounded : PlusSmall_Stroke2_Corner0_Rounded}
-          title={editingId ? 'Edit contact' : 'Add contact'}
+          title={editingId ? t('ui.settings.contacts.editContact') : t('ui.settings.contacts.addContact')}
         />
         <TextInput
           value={name}
           onChangeText={setName}
-          placeholder="Name"
+          placeholder={t('ui.settings.contacts.name')}
           placeholderTextColor={colors.secondaryText}
           style={[styles.input, inputStyle]}
         />
         <TextInput
           value={email}
           onChangeText={setEmail}
-          placeholder="Email"
+          placeholder={t('ui.settings.contacts.email')}
           placeholderTextColor={colors.secondaryText}
           keyboardType="email-address"
           autoCapitalize="none"
@@ -230,14 +232,14 @@ export function ContactsSection() {
         <TextInput
           value={company}
           onChangeText={setCompany}
-          placeholder="Company (optional)"
+          placeholder={t('ui.settings.contacts.company')}
           placeholderTextColor={colors.secondaryText}
           style={[styles.input, inputStyle]}
         />
         <TextInput
           value={notes}
           onChangeText={setNotes}
-          placeholder="Notes (optional)"
+          placeholder={t('ui.settings.contacts.notes')}
           placeholderTextColor={colors.secondaryText}
           multiline
           numberOfLines={3}
@@ -245,7 +247,7 @@ export function ContactsSection() {
           style={[styles.textArea, inputStyle]}
         />
         <View style={styles.starRow}>
-          <Text style={[styles.starLabel, { color: colors.text }]}>Star this contact</Text>
+          <Text style={[styles.starLabel, { color: colors.text }]}>{t('ui.settings.contacts.star')}</Text>
           <Switch value={starred} onValueChange={setStarred} />
         </View>
         <View style={styles.buttonRow}>
@@ -263,15 +265,15 @@ export function ContactsSection() {
           >
             {submitting
               ? editingId
-                ? 'Saving…'
-                : 'Adding…'
+                ? t('ui.settings.contacts.saving')
+                : t('ui.settings.contacts.adding')
               : editingId
-                ? 'Save changes'
-                : 'Add contact'}
+                ? t('ui.settings.contacts.saveChanges')
+                : t('ui.settings.contacts.addContact')}
           </Button>
           {editingId ? (
             <Button variant="text" onPress={resetForm}>
-              Cancel
+              {t('common.cancel')}
             </Button>
           ) : null}
         </View>
@@ -279,13 +281,13 @@ export function ContactsSection() {
 
       <Dialog
         control={deleteConfirm}
-        title="Delete contact?"
+        title={t('ui.settings.contacts.deleteTitle')}
         description={
-          pendingDelete ? `"${pendingDelete.name}" will be removed from your contacts.` : ''
+          pendingDelete ? t('ui.settings.contacts.deleteDescription', { name: pendingDelete.name }) : ''
         }
         actions={[
-          { label: 'Delete', color: 'destructive', onPress: handleDelete },
-          { label: 'Cancel', color: 'cancel' },
+          { label: t('common.delete'), color: 'destructive', onPress: handleDelete },
+          { label: t('common.cancel'), color: 'cancel' },
         ]}
       />
     </KeyboardAvoidingView>

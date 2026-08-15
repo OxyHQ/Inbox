@@ -2,10 +2,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import { toast } from '@oxyhq/bloom';
+import { useTranslation } from '@/lib/i18n';
 
 export function useCreateMailbox() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation({
     mutationFn: async ({ name, parentPath }: { name: string; parentPath?: string }) => {
@@ -13,11 +15,11 @@ export function useCreateMailbox() {
       return api.createMailbox(name, parentPath);
     },
     onSuccess: () => {
-      toast.success('Folder created.');
+      toast.success(t('ui.mutations.mailboxCreated'));
       queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
     },
     onError: () => {
-      toast.error('Failed to create folder.');
+      toast.error(t('ui.mutations.mailboxCreateFailed'));
     },
   });
 }
@@ -25,6 +27,7 @@ export function useCreateMailbox() {
 export function useDeleteMailbox() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation({
     mutationFn: async ({ mailboxId }: { mailboxId: string }) => {
@@ -32,11 +35,11 @@ export function useDeleteMailbox() {
       return api.deleteMailbox(mailboxId);
     },
     onSuccess: () => {
-      toast.success('Folder deleted.');
+      toast.success(t('ui.mutations.mailboxDeleted'));
       queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
     },
     onError: () => {
-      toast.error('Failed to delete folder.');
+      toast.error(t('ui.mutations.mailboxDeleteFailed'));
     },
   });
 }

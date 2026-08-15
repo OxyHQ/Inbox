@@ -20,6 +20,7 @@ import {
 } from '@oxyhq/bloom/icons';
 
 import { useColors } from '@/constants/theme';
+import { useTranslation } from '@/lib/i18n';
 import { SectionHeader } from '@/components/settings/SectionHeader';
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
 
@@ -52,21 +53,22 @@ function InlineToggle({ title, description, value, onChange }: InlineToggleProps
 
 export function NotificationsSection() {
   const { prefs, setPref } = useInboxPrefs();
+  const { t } = useTranslation();
 
   return (
     <View style={styles.root}>
       <View style={styles.subsection}>
-        <SectionHeader icon={Bell_Stroke2_Corner0_Rounded} title="Alerts" />
+        <SectionHeader icon={Bell_Stroke2_Corner0_Rounded} title={t('ui.settings.notifications.alerts')} />
         <View style={styles.toggleGroup}>
           <InlineToggle
-            title="Push notifications"
-            description="Get notified when new messages arrive."
+            title={t('ui.settings.notifications.push')}
+            description={t('ui.settings.notifications.pushDescription')}
             value={prefs.pushNotifications}
             onChange={(v) => setPref('pushNotifications', v)}
           />
           <InlineToggle
-            title="Daily email digest"
-            description="A summary of unread messages, once per day."
+            title={t('ui.settings.notifications.digest')}
+            description={t('ui.settings.notifications.digestDescription')}
             value={prefs.emailDigest}
             onChange={(v) => setPref('emailDigest', v)}
           />
@@ -74,11 +76,11 @@ export function NotificationsSection() {
       </View>
 
       <View style={styles.subsection}>
-        <SectionHeader icon={SpeakerVolumeFull_Stroke2_Corner0_Rounded} title="Sound" />
+        <SectionHeader icon={SpeakerVolumeFull_Stroke2_Corner0_Rounded} title={t('ui.settings.notifications.sound')} />
         <View style={styles.toggleGroup}>
           <InlineToggle
-            title="Play sound"
-            description="A short chime on new messages."
+            title={t('ui.settings.notifications.playSound')}
+            description={t('ui.settings.notifications.soundDescription')}
             value={prefs.notificationSound}
             onChange={(v) => setPref('notificationSound', v)}
           />

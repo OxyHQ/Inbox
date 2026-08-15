@@ -14,13 +14,12 @@ import { OxyProvider, useOxy, RequireOxyAuth } from '@oxyhq/services';
 import { toast } from '@oxyhq/bloom';
 import { ImageResolverProvider } from '@oxyhq/bloom/image-resolver';
 import type { ImageResolver } from '@oxyhq/bloom/image-resolver';
-import { useQueryClient } from '@tanstack/react-query';
 import { BloomThemeProvider, useNavigationTheme } from '@oxyhq/bloom/theme';
 import type { ThemeMode } from '@oxyhq/bloom/theme';
 import { Provider as PortalProvider, Outlet as PortalOutlet } from '@oxyhq/bloom/portal';
 import { ConnectionStatusToasts } from '@oxyhq/bloom/connection-status';
 
-import { queryClient, clearPersistedInboxCache, restoredInboxCache } from '@/hooks/queries/queryClient';
+import { activateInboxQueryScope, queryClient } from '@/hooks/queries/queryClient';
 import { ThemeProvider as AppThemeProvider, useThemeContext } from '@/contexts/theme-context';
 import { InboxPrefsProvider } from '@/contexts/inbox-prefs-context';
 import { LocaleProvider, useTranslation } from '@/lib/i18n';
@@ -51,9 +50,7 @@ export default function RootLayout() {
     <ErrorBoundary>
       <Head.Provider>
         <AppThemeProvider>
-          <InboxPrefsProvider>
-            <ThemedRoot />
-          </InboxPrefsProvider>
+          <ThemedRoot />
         </AppThemeProvider>
       </Head.Provider>
     </ErrorBoundary>
@@ -152,23 +149,49 @@ function GatedNavigator() {
  * so Inbox owns that lifecycle here.
  */
 function InboxCacheRestoreGate({ children }: { children: ReactNode }) {
+  const { activeSessionId, isAuthResolved, user } = useOxy();
   const [ready, setReady] = useState(false);
+  const [readyScope, setReadyScope] = useState<string | null>(null);
+  const initializedScopeRef = useRef<string | null | undefined>(undefined);
+  const scope = isAuthResolved ? activeSessionId ?? user?.id ?? null : null;
 
   useEffect(() => {
-    let mounted = true;
-    void restoredInboxCache.then(() => {
-      if (mounted) setReady(true);
-    });
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    if (!isAuthResolved) return;
 
-  if (!ready) {
+    let cancelled = false;
+    const previousScope = initializedScopeRef.current;
+    const isInitialScope = previousScope === undefined;
+    initializedScopeRef.current = scope;
+
+    void activateInboxQueryScope(scope, !isInitialScope && previousScope !== null).then(() => {
+      if (cancelled) return;
+      if (!isInitialScope) {
+        useEmailStore.getState().resetAccountScopedState();
+      }
+      setReadyScope(scope);
+      setReady(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthResolved, scope]);
+
+  if (!isAuthResolved || !ready || readyScope !== scope) {
     return <View style={{ flex: 1, backgroundColor: '#ffffff' }} />;
   }
 
-  return children;
+  return <ScopedInboxPrefsProvider>{children}</ScopedInboxPrefsProvider>;
+}
+
+function ScopedInboxPrefsProvider({ children }: { children: ReactNode }) {
+  const { user } = useOxy();
+  const scope = user?.id ?? null;
+  return (
+    <InboxPrefsProvider key={scope ?? 'anonymous'} scope={scope}>
+      {children}
+    </InboxPrefsProvider>
+  );
 }
 
 /**
@@ -194,31 +217,7 @@ function BloomImageResolver({ children }: { children: ReactNode }) {
  */
 function RootEffects() {
   const { t } = useTranslation();
-  const { user, activeSessionId, canUsePrivateApi } = useOxy();
-  const queryClient = useQueryClient();
-
-  // Reset account-scoped cache/UI state DURING render (not in an effect) the
-  // instant the active Oxy session changes. `activeSessionId` covers switching
-  // between distinct accounts AND between sessions of the same user. Doing this
-  // as a render-time adjustment — the React-blessed pattern for syncing derived
-  // state to an external identity — avoids the intermediate frame where the UI
-  // would still show the previous account's cached mail. See
-  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
-  const accountKey = activeSessionId ?? user?.id ?? null;
-  const prevAccountKeyRef = useRef(accountKey);
-  if (prevAccountKeyRef.current !== accountKey) {
-    const isInitialAttach = prevAccountKeyRef.current === null && accountKey !== null;
-    prevAccountKeyRef.current = accountKey;
-    // Cold boot / first sign-in: null → session. Keep the persisted cache the
-    // restore gate just hydrated — clearing here would defeat offline-first.
-    if (!isInitialAttach) {
-      queryClient.clear();
-      // Drop the persisted blob too so the next cold start can't restore the
-      // previous account's mail after an account switch / sign-out.
-      void clearPersistedInboxCache();
-      useEmailStore.getState().resetAccountScopedState();
-    }
-  }
+  const { canUsePrivateApi } = useOxy();
 
   // Real-time inbox updates. The hook is a no-op until a user is signed in
   // and tears the socket down on sign-out or user switch; cache/state

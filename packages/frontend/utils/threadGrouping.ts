@@ -1,13 +1,10 @@
 /**
  * Client-side search parsing and conversation grouping helpers.
  *
- * The API currently returns messages rather than a stable server-side
- * `threadId`. The grouping below therefore only joins messages that share a
- * message identifier through `messageId`, `_id`, `inReplyTo`, or
- * `references`. Subject-only grouping is deliberately not used: two unrelated
- * conversations can have the same subject, and a false merge is worse than
- * showing two rows. A server-side thread id remains the authoritative fix for
- * grouping across pages and across incomplete search result sets.
+ * The API returns a stable server-derived `threadId`; the relationship fields
+ * remain as a conservative fallback for older cached responses. Subject-only
+ * grouping is deliberately not used: two unrelated conversations can have the
+ * same subject, and a false merge is worse than showing two rows.
  */
 
 import type { Message } from '@/services/emailApi';
@@ -186,6 +183,7 @@ export function formatSearchInterpretation(options: SearchInterpretationOptions)
 
 function relationIdsOf(message: Message): string[] {
   return [
+    message.threadId ? `thread:${message.threadId}` : undefined,
     message._id,
     message.messageId,
     message.inReplyTo ?? undefined,

@@ -19,6 +19,7 @@ import { useSearchFocus } from '@/contexts/search-focus-context';
 import { useFloatingHeader } from '@/hooks/useFloatingHeader';
 import { useGoBack } from '@/hooks/useGoBack';
 import { useTabBarClearance } from '@/hooks/useTabBarClearance';
+import { useTranslation } from '@/lib/i18n';
 
 import { useColors } from '@/constants/theme';
 import { CONTENT_MAX_WIDTH } from '@/constants/layout';
@@ -29,6 +30,9 @@ import { MessageRow } from '@/components/MessageRow';
 import { SearchHeader } from '@/components/SearchHeader';
 import { EmptyIllustration } from '@/components/EmptyIllustration';
 import { useEmailStore } from '@/hooks/useEmail';
+import { useOxy } from '@oxyhq/services';
+import { useRecentSearches } from '@/hooks/useRecentSearches';
+import { recordInboxMetric } from '@/utils/inboxTelemetry';
 import { useSearchMessages } from '@/hooks/queries/useSearchMessages';
 import { useMessageActions } from '@/hooks/useMessageActions';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
@@ -52,6 +56,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   const insets = useSafeAreaInsets();
   const tabBarClearance = useTabBarClearance();
   const colors = useColors();
+  const { t } = useTranslation();
   const { density, showAvatars, showPreviews } = useInboxDisplayPrefs();
   const inputRef = useRef<TextInput | null>(null);
   const { registerInput } = useSearchFocus();
@@ -67,6 +72,8 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     [registerInput],
   );
   const selectedMessageId = useEmailStore((s) => s.selectedMessageId);
+  const { user } = useOxy();
+  const { recentSearches, remember: rememberSearch, clear: clearRecentSearches } = useRecentSearches(user?.id);
   const messageActions = useMessageActions();
   const { data: mailboxes = [] } = useMailboxes();
 
@@ -291,8 +298,15 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       clearTimeout(debounceRef.current);
       debounceRef.current = null;
     }
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    rememberSearch(trimmed);
+    recordInboxMetric('search_submitted', {
+      hasQuery: true,
+      hasOperators: /\b(?:from|to|subject|in|is|has|label|after|before):/i.test(trimmed),
+    });
     runSearch(query, { allowAI: true });
-  }, [runSearch, query]);
+  }, [rememberSearch, runSearch, query]);
 
   const handleMessagePress = useCallback(
     (messageId: string) => {
@@ -391,8 +405,29 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         <View style={styles.emptyContainer}>
           <EmptyIllustration size={180} />
           <Text style={[styles.emptyText, { color: colors.secondaryText }]}>
-            Search your emails
+            {t('search.empty.idle')}
           </Text>
+          {recentSearches.length > 0 && (
+            <View style={styles.recentSearches}>
+              {recentSearches.map((recent) => (
+                <TouchableOpacity
+                  key={recent}
+                  accessibilityLabel={recent}
+                  accessibilityRole="button"
+                  style={[styles.recentSearch, { borderColor: colors.border, backgroundColor: colors.surface }]}
+                  onPress={() => {
+                    setQuery(recent);
+                    void runSearch(recent, { allowAI: false });
+                  }}
+                >
+                  <Text style={[styles.recentSearchText, { color: colors.text }]} numberOfLines={1}>{recent}</Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity accessibilityLabel={t('search.clear')} onPress={clearRecentSearches}>
+                <Text style={[styles.clearRecentText, { color: colors.primary }]}>{t('search.clear')}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       );
     }
@@ -400,13 +435,13 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       return (
         <View style={styles.emptyContainer}>
           <MaterialCommunityIcons name="alert-circle-outline" size={48} color={colors.secondaryText} />
-          <Text style={[styles.emptyText, { color: colors.secondaryText }]}>Could not load results</Text>
+          <Text style={[styles.emptyText, { color: colors.secondaryText }]}>{t('common.error')}</Text>
           <TouchableOpacity
             style={[styles.retryButton, { borderColor: colors.border }]}
             onPress={handleRetry}
             activeOpacity={0.7}
           >
-            <Text style={[styles.retryButtonText, { color: colors.primary }]}>Try again</Text>
+            <Text style={[styles.retryButtonText, { color: colors.primary }]}>{t('common.retry')}</Text>
           </TouchableOpacity>
         </View>
       );
@@ -414,10 +449,10 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     return (
       <View style={styles.emptyContainer}>
         <EmptyIllustration size={180} />
-        <Text style={[styles.emptyText, { color: colors.secondaryText }]}>No results found</Text>
+        <Text style={[styles.emptyText, { color: colors.secondaryText }]}>{t('search.empty.noResults')}</Text>
       </View>
     );
-  }, [colors, handleRetry, hasSearched, searchFailed, searching]);
+  }, [clearRecentSearches, colors, handleRetry, hasSearched, recentSearches, runSearch, searchFailed, searching, t]);
 
   const renderFooter = useCallback(() => {
     if (isFetchingNextPage) {
@@ -430,15 +465,15 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     if (searchFailed && results.length > 0) {
       return (
         <View style={styles.footerError}>
-          <Text style={[styles.footerErrorText, { color: colors.secondaryText }]}>Could not load more results</Text>
-          <TouchableOpacity onPress={handleRetry} hitSlop={8}>
-            <Text style={[styles.retryButtonText, { color: colors.primary }]}>Try again</Text>
+          <Text style={[styles.footerErrorText, { color: colors.secondaryText }]}>{t('common.error')}</Text>
+          <TouchableOpacity accessibilityLabel={t('common.retry')} onPress={handleRetry} hitSlop={8}>
+            <Text style={[styles.retryButtonText, { color: colors.primary }]}>{t('common.retry')}</Text>
           </TouchableOpacity>
         </View>
       );
     }
     return null;
-  }, [colors, handleRetry, isFetchingNextPage, results.length, searchFailed]);
+  }, [colors, handleRetry, isFetchingNextPage, results.length, searchFailed, t]);
 
   const visibleInterpretation = nlInterpretation ||
     (hasSearched && !nlParsing ? `Searching: ${filterInterpretation}` : '');
@@ -454,7 +489,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         ref={setInputRef}
         onLeftIcon={handleBack}
         leftIcon="arrow-left"
-        placeholder="Search mail"
+        placeholder={t('search.placeholder')}
         value={query}
         onChangeText={handleQueryChange}
         onSubmitEditing={handleSubmit}
@@ -476,10 +511,12 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
             filterFrom ? { backgroundColor: colors.primary + '15', borderColor: colors.primary } : undefined,
           ]}
           onPress={() => handleFilterChipPress('from')}
+          accessibilityLabel={filterFrom ? t('search.filters.fromValue', { value: filterFrom }) : t('search.filters.from')}
+          accessibilityRole="button"
           activeOpacity={0.7}
         >
           <Text style={[styles.filterChipText, { color: filterFrom ? colors.primary : colors.secondaryText }]}>
-            {filterFrom ? `From: ${filterFrom}` : 'From'}
+            {filterFrom ? t('search.filters.fromValue', { value: filterFrom }) : t('search.filters.from')}
           </Text>
           {filterFrom ? (
             <TouchableOpacity onPress={() => setFilterFrom('')} hitSlop={4}>
@@ -495,6 +532,8 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
             filterHasAttachment ? { backgroundColor: colors.primary + '15', borderColor: colors.primary } : undefined,
           ]}
           onPress={() => handleFilterChipPress('attachment')}
+          accessibilityLabel={t('search.filters.hasAttachment')}
+          accessibilityRole="button"
           activeOpacity={0.7}
         >
           <MaterialCommunityIcons
@@ -503,7 +542,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
             color={filterHasAttachment ? colors.primary : colors.secondaryText}
           />
           <Text style={[styles.filterChipText, { color: filterHasAttachment ? colors.primary : colors.secondaryText }]}>
-            Has attachment
+            {t('search.filters.hasAttachment')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -531,7 +570,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
             <View style={styles.nlParsingRow}>
               <ActivityIndicator size="small" color={colors.primary} />
               <Text style={[styles.nlText, { color: colors.secondaryText }]}>
-                Understanding your search...
+                {t('search.nl.understanding')}
               </Text>
             </View>
           ) : (
@@ -580,7 +619,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       {hasSearched && !searching && results.length > 0 && (
         <View style={styles.resultCount}>
           <Text style={[styles.resultCountText, { color: colors.secondaryText }]}>
-            {total} matching {total === 1 ? 'message' : 'messages'}
+            {t('search.results', { count: total })}
           </Text>
         </View>
       )}
@@ -686,6 +725,28 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
+  },
+  recentSearches: {
+    width: '100%',
+    maxWidth: 420,
+    alignItems: 'stretch',
+    gap: 8,
+    paddingHorizontal: 24,
+  },
+  recentSearch: {
+    minHeight: 40,
+    borderWidth: 1,
+    borderRadius: 20,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  recentSearchText: {
+    fontSize: 14,
+  },
+  clearRecentText: {
+    alignSelf: 'center',
+    fontSize: 13,
+    fontWeight: '600',
   },
   retryButton: {
     borderWidth: 1,

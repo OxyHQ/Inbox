@@ -21,6 +21,7 @@ import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import { useTranslation } from '@/lib/i18n';
 import type { Mailbox, Message, Pagination } from '@/services/emailApi';
+import { recordInboxMetric } from '@/utils/inboxTelemetry';
 
 /**
  * Server → client socket event payload contracts. Mirror exactly the
@@ -67,6 +68,7 @@ function buildOptimisticMessage(event: EmailNewEvent, userId: string): Message {
     userId,
     mailboxId: event.mailboxId,
     messageId: event.messageId,
+    threadId: event.messageId,
     from: event.from,
     to: [],
     subject: event.subject,
@@ -206,6 +208,12 @@ export function useInboxSocket({ baseURL }: UseInboxSocketOptions) {
 
     const socket = io(baseURL, {
       transports: ['websocket'],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 500,
+      reconnectionDelayMax: 10_000,
+      randomizationFactor: 0.25,
+      timeout: 10_000,
       auth: (cb) => {
         const token = tokenGetterRef.current();
         cb({ token: token ?? '' });
@@ -214,15 +222,33 @@ export function useInboxSocket({ baseURL }: UseInboxSocketOptions) {
     socketRef.current = socket;
 
     const handleConnect = () => {
+      recordInboxMetric('realtime_connected');
       // Reconcile anything received while the socket was disconnected. The
       // message queries retain their declared polling policy in useMessages;
       // this uses only the public QueryClient API.
       void queryClientRef.current.invalidateQueries({
         queryKey: emailKeys.messages.root,
       });
+      void queryClientRef.current.invalidateQueries({
+        queryKey: emailKeys.mailboxes.root,
+      });
+      void queryClientRef.current.invalidateQueries({
+        queryKey: emailKeys.reminders.root,
+      });
+      void queryClientRef.current.invalidateQueries({
+        queryKey: emailKeys.searchRoot,
+      });
+    };
+
+    const handleConnectError = (error: Error) => {
+      recordInboxMetric('realtime_connect_error');
+      if (__DEV__) {
+        console.warn('[useInboxSocket] Realtime connection failed; Socket.IO will retry:', error.message);
+      }
     };
 
     socket.on('connect', handleConnect);
+    socket.on('connect_error', handleConnectError);
 
     const isEmailNewEvent = (value: unknown): value is EmailNewEvent => {
       if (typeof value !== 'object' || value === null) return false;
@@ -352,6 +378,7 @@ export function useInboxSocket({ baseURL }: UseInboxSocketOptions) {
 
     return () => {
       socket.off('connect', handleConnect);
+      socket.off('connect_error', handleConnectError);
       socket.off('email:new', handleEmailNew);
       socket.off('email:unread_count', handleEmailUnreadCount);
       socket.offAny(handleUnknown);

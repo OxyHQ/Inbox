@@ -41,6 +41,7 @@ import { ScheduleSendSheet } from '@/components/ScheduleSendSheet';
 import { TemplatePicker } from '@/components/TemplatePicker';
 import type { ContactSuggestion, EmailTemplate } from '@/services/emailApi';
 import { isValidRecipientEmail, parseRecipientList } from '@/schemas/emailSchemas';
+import { useTranslation } from '@/lib/i18n';
 
 /**
  * Local composer representation of an attachment. Just enough to render the
@@ -83,6 +84,7 @@ export interface ComposeDraftSnapshot {
   bcc: string;
   subject: string;
   body: string;
+  attachments?: { fileId: string; contentId?: string; isInline?: boolean }[];
   replyTo?: string;
 }
 
@@ -136,6 +138,9 @@ export function buildComposeDraftPayload(
     text: web ? stripHtml(snapshot.body) || undefined : snapshot.body || undefined,
     html: web ? snapshot.body || undefined : undefined,
     inReplyTo: snapshot.replyTo,
+    ...(snapshot.attachments && snapshot.attachments.length > 0
+      ? { attachments: snapshot.attachments }
+      : {}),
     existingDraftId,
   };
 }
@@ -149,6 +154,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
   const closeCompose = useGoBack();
   const insets = useSafeAreaInsets();
   const colors = useColors();
+  const { t } = useTranslation();
 
   // Field rows inherit the static `paddingHorizontal: 16` from styles.fieldRow.
   // For landscape notch protection we widen the horizontal padding inline so
@@ -210,8 +216,16 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
   const sending = sendPending || sendMessageMutation.isPending;
   const hasContent = Boolean(to.trim() || subject.trim() || body.trim() || attachments.length > 0);
   const draftSnapshot = useMemo<ComposeDraftSnapshot>(
-    () => ({ to, cc, bcc, subject, body, replyTo }),
-    [to, cc, bcc, subject, body, replyTo],
+    () => ({
+      to,
+      cc,
+      bcc,
+      subject,
+      body,
+      attachments: attachments.map((attachment) => ({ fileId: attachment.fileId })),
+      replyTo,
+    }),
+    [to, cc, bcc, subject, body, attachments, replyTo],
   );
   const draftSnapshotKey = useMemo(() => JSON.stringify(draftSnapshot), [draftSnapshot]);
   const saveDraftAsync = saveDraftMutation.mutateAsync;
@@ -527,7 +541,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
           </TouchableOpacity>
         )}
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          {replyTo ? 'Reply' : forward ? 'Forward' : 'Compose'}
+          {replyTo ? t('compose.titleReply') : forward ? t('compose.titleForward') : t('compose.titleCompose')}
         </Text>
         {draftStatusLabel && (
           <Text
@@ -538,7 +552,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
           </Text>
         )}
         <View style={styles.headerSpacer} />
-        <TouchableOpacity onPress={handleAttachFile} style={styles.iconButton}>
+          <TouchableOpacity accessibilityLabel={t('compose.dropZone')} accessibilityRole="button" onPress={handleAttachFile} style={styles.iconButton}>
           {Platform.OS === 'web' ? (
             <HugeiconsIcon icon={Attachment01Icon as unknown as IconSvgElement} size={22} color={colors.icon} />
           ) : (
@@ -546,7 +560,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
           )}
         </TouchableOpacity>
         <TemplatePicker onSelect={handleTemplateSelect} />
-        <TouchableOpacity onPress={handleSaveDraft} style={styles.iconButton}>
+        <TouchableOpacity accessibilityLabel={t('compose.actions.saveDraft')} accessibilityRole="button" onPress={handleSaveDraft} style={styles.iconButton}>
           {Platform.OS === 'web' ? (
             <HugeiconsIcon icon={FloppyDiskIcon as unknown as IconSvgElement} size={22} color={colors.icon} />
           ) : (
@@ -555,7 +569,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         </TouchableOpacity>
         <View style={[styles.sendGroup, { backgroundColor: colors.primary, opacity: sending ? 0.5 : 1 }]}>
           <TouchableOpacity
-            accessibilityLabel="Send"
+            accessibilityLabel={t('compose.actions.send')}
             accessibilityRole="button"
             onPress={handleSend}
             style={styles.sendGroupPrimary}
@@ -568,12 +582,12 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
               <MaterialCommunityIcons name="send" size={20} color={colors.background} />
             )}
             <Text style={[styles.sendGroupLabel, { color: colors.background }]}>
-              {sending ? 'Sending…' : 'Send'}
+              {sending ? t('common.loading') : t('compose.actions.send')}
             </Text>
           </TouchableOpacity>
           <View style={[styles.sendGroupDivider, { backgroundColor: colors.background }]} />
           <TouchableOpacity
-            accessibilityLabel="More send options"
+            accessibilityLabel={t('compose.actions.moreSendOptions')}
             accessibilityRole="button"
             onPress={() => sendMenuControl.open()}
             style={styles.sendGroupChevron}
@@ -590,7 +604,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
       </View>
 
       {/* Send-options menu */}
-      <Dialog control={sendMenuControl} label="Send options" style={{ padding: 0 }}>
+      <Dialog control={sendMenuControl} label={t('compose.actions.sendOptions')} style={{ padding: 0 }}>
         <TouchableOpacity
           style={styles.sendMenuItem}
           onPress={() => {
@@ -604,7 +618,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
           ) : (
             <MaterialCommunityIcons name="send" size={18} color={colors.icon} />
           )}
-          <Text style={[styles.sendMenuItemText, { color: colors.text }]}>Send now</Text>
+          <Text style={[styles.sendMenuItemText, { color: colors.text }]}>{t('compose.actions.sendNow')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.sendMenuItem}
@@ -619,28 +633,29 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
           ) : (
             <MaterialCommunityIcons name="clock-outline" size={18} color={colors.icon} />
           )}
-          <Text style={[styles.sendMenuItemText, { color: colors.text }]}>Schedule send</Text>
+          <Text style={[styles.sendMenuItemText, { color: colors.text }]}>{t('compose.actions.scheduleSend')}</Text>
         </TouchableOpacity>
       </Dialog>
 
       <ScrollView style={styles.form} keyboardShouldPersistTaps="handled">
         {/* From */}
         <View style={[styles.fieldRow, fieldRowInset, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>From</Text>
+          <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>{t('compose.fields.from')}</Text>
           <Text style={[styles.fromAddress, { color: colors.text }]}>{fromAddress}</Text>
         </View>
 
         {/* To */}
         <View style={{ zIndex: activeField === 'to' ? 10 : 1 }}>
           <View style={[styles.fieldRow, fieldRowInset, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>To</Text>
+            <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>{t('compose.fields.to')}</Text>
             <TextInput
               style={[styles.fieldInput, { color: colors.text }]}
               value={to}
               onChangeText={(v) => { setTo(v); updateAutocomplete(v, 'to'); }}
               onFocus={() => updateAutocomplete(to, 'to')}
               onBlur={() => setTimeout(() => { if (activeField === 'to') setActiveField(null); }, 150)}
-              placeholder="Recipients"
+              accessibilityLabel={t('compose.fields.to')}
+              placeholder={t('compose.placeholders.to')}
               placeholderTextColor={colors.searchPlaceholder}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -679,14 +694,15 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
           <>
             <View style={{ zIndex: activeField === 'cc' ? 10 : 1 }}>
               <View style={[styles.fieldRow, fieldRowInset, { borderBottomColor: colors.border }]}>
-                <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>Cc</Text>
+                <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>{t('compose.fields.cc')}</Text>
                 <TextInput
                   style={[styles.fieldInput, { color: colors.text }]}
                   value={cc}
                   onChangeText={(v) => { setCc(v); updateAutocomplete(v, 'cc'); }}
                   onFocus={() => updateAutocomplete(cc, 'cc')}
                   onBlur={() => setTimeout(() => { if (activeField === 'cc') setActiveField(null); }, 150)}
-                  placeholder=""
+                  accessibilityLabel={t('compose.fields.cc')}
+                  placeholder={t('compose.fields.cc')}
                   placeholderTextColor={colors.searchPlaceholder}
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -712,14 +728,15 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
             </View>
             <View style={{ zIndex: activeField === 'bcc' ? 10 : 1 }}>
               <View style={[styles.fieldRow, fieldRowInset, { borderBottomColor: colors.border }]}>
-                <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>Bcc</Text>
+                <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>{t('compose.fields.bcc')}</Text>
                 <TextInput
                   style={[styles.fieldInput, { color: colors.text }]}
                   value={bcc}
                   onChangeText={(v) => { setBcc(v); updateAutocomplete(v, 'bcc'); }}
                   onFocus={() => updateAutocomplete(bcc, 'bcc')}
                   onBlur={() => setTimeout(() => { if (activeField === 'bcc') setActiveField(null); }, 150)}
-                  placeholder=""
+                  accessibilityLabel={t('compose.fields.bcc')}
+                  placeholder={t('compose.fields.bcc')}
                   placeholderTextColor={colors.searchPlaceholder}
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -752,7 +769,8 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
             style={[styles.subjectInput, { color: colors.text }]}
             value={subject}
             onChangeText={setSubject}
-            placeholder="Subject"
+            accessibilityLabel={t('compose.placeholders.subject')}
+            placeholder={t('compose.placeholders.subject')}
             placeholderTextColor={colors.searchPlaceholder}
           />
         </View>
@@ -769,7 +787,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
                 <Text style={[styles.attachmentSize, { color: colors.secondaryText }]}>
                   {formatSize(att.size)}
                 </Text>
-                <TouchableOpacity onPress={() => handleRemoveAttachment(i)} hitSlop={4}>
+                <TouchableOpacity accessibilityLabel={t('common.remove')} accessibilityRole="button" onPress={() => handleRemoveAttachment(i)} hitSlop={4}>
                   <MaterialCommunityIcons name="close-circle" size={16} color={colors.secondaryText} />
                 </TouchableOpacity>
               </View>
@@ -789,7 +807,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
           ref={bodyRef}
           value={body}
           onChange={updateBody}
-          placeholder="Compose email"
+          placeholder={t('compose.placeholders.body')}
         />
       </ScrollView>
 
@@ -804,12 +822,12 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
       <Dialog
         control={saveDraftDialog}
         onClose={() => saveDraftDialog.close()}
-        title="Save draft?"
-        description="Do you want to save this message as a draft?"
+        title={t('compose.saveDraftPrompt.title')}
+        description={t('compose.saveDraftPrompt.description')}
         actions={[
-          { label: 'Save', onPress: handleSaveDraft },
-          { label: 'Discard', color: 'destructive', onPress: () => closeCompose() },
-          { label: 'Cancel', color: 'cancel' },
+          { label: t('common.save'), onPress: handleSaveDraft },
+          { label: t('compose.actions.discard'), color: 'destructive', onPress: () => closeCompose() },
+          { label: t('common.cancel'), color: 'cancel' },
         ]}
       />
     </KeyboardAvoidingView>

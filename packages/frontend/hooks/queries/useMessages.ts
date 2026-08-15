@@ -11,6 +11,13 @@ interface MessagesPage {
   pagination: Pagination;
 }
 
+export function getNextMessagesPageParam(lastPage: MessagesPage): string | number | undefined {
+  if (!lastPage.pagination.hasMore || lastPage.pagination.limit <= 0) return undefined;
+  if (lastPage.pagination.nextCursor) return lastPage.pagination.nextCursor;
+  const nextOffset = lastPage.pagination.offset + lastPage.pagination.limit;
+  return nextOffset < lastPage.pagination.total ? nextOffset : undefined;
+}
+
 interface UseMessagesOptions {
   mailboxId?: string;
   starred?: boolean;
@@ -25,21 +32,20 @@ export function useMessages(options: UseMessagesOptions = {}) {
 
   const hasFilter = !!mailboxId || !!starred || !!label;
 
-  return useInfiniteQuery<MessagesPage, Error, InfiniteData<MessagesPage, number>, ReturnType<typeof emailKeys.messages.list>, number>({
+  return useInfiniteQuery<MessagesPage, Error, InfiniteData<MessagesPage, string | number>, ReturnType<typeof emailKeys.messages.list>, string | number>({
     queryKey: emailKeys.messages.list({ mailboxId, starred, label, userId }),
-    queryFn: async ({ pageParam = 0 }) => {
+    queryFn: async ({ pageParam = '' }) => {
       if (!api) throw new Error('Email API not initialized');
       return await api.listMessages({
         mailboxId,
         starred,
         label,
         limit: PAGE_SIZE,
-        offset: pageParam,
+        ...(typeof pageParam === 'string' ? { cursor: pageParam } : { offset: pageParam }),
       });
     },
-    initialPageParam: 0,
-    getNextPageParam: (lastPage) =>
-      lastPage.pagination.hasMore ? lastPage.pagination.offset + lastPage.pagination.limit : undefined,
+    initialPageParam: '',
+    getNextPageParam: getNextMessagesPageParam,
     enabled: hasFilter && !!api && !!userId,
     refetchInterval: 60_000, // Poll for new messages every 60 seconds
   });

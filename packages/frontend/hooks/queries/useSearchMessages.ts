@@ -25,8 +25,10 @@ export interface SearchPage {
   pagination: Pagination;
 }
 
-export function getNextSearchPageParam(lastPage: SearchPage): number | undefined {
+export function getNextSearchPageParam(lastPage: SearchPage): string | number | undefined {
   if (!lastPage.pagination.hasMore || lastPage.pagination.limit <= 0) return undefined;
+
+  if (lastPage.pagination.nextCursor) return lastPage.pagination.nextCursor;
 
   const nextOffset = lastPage.pagination.offset + lastPage.pagination.limit;
   return nextOffset < lastPage.pagination.total ? nextOffset : undefined;
@@ -51,17 +53,17 @@ export function useSearchMessages(options: SearchOptions = {}) {
     options.label?.trim()
   );
 
-  return useInfiniteQuery<SearchPage, Error, InfiniteData<SearchPage, number>, ReturnType<typeof emailKeys.search>, number>({
+  return useInfiniteQuery<SearchPage, Error, InfiniteData<SearchPage, string | number>, ReturnType<typeof emailKeys.search>, string | number>({
     queryKey: emailKeys.search(options, userId),
-    queryFn: async ({ pageParam }) => {
+    queryFn: async ({ pageParam = '' }) => {
       if (!api) throw new Error('Email API not initialized');
       return await api.search({
         ...options,
         limit: SEARCH_PAGE_SIZE,
-        offset: pageParam,
+        ...(typeof pageParam === 'string' ? { cursor: pageParam } : { offset: pageParam }),
       });
     },
-    initialPageParam: 0,
+    initialPageParam: '',
     getNextPageParam: getNextSearchPageParam,
     enabled: hasFilter && !!api && !!userId,
   });

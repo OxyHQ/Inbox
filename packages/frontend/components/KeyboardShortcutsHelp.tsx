@@ -10,26 +10,12 @@ import { View, StyleSheet } from 'react-native';
 import { Dialog, type DialogControlProps } from '@oxyhq/bloom';
 import { Text } from '@oxyhq/bloom/typography';
 import { useColors } from '@/constants/theme';
+import { useTranslation } from '@/lib/i18n';
 
 interface ShortcutRow {
   key: string;
   action: string;
 }
-
-const SHORTCUTS: ShortcutRow[] = [
-  { key: 'c', action: 'Compose' },
-  { key: 'r', action: 'Reply' },
-  { key: 'a', action: 'Reply all' },
-  { key: 'f', action: 'Forward' },
-  { key: 'e', action: 'Archive' },
-  { key: '#', action: 'Delete' },
-  { key: 'j', action: 'Next message' },
-  { key: 'k', action: 'Previous message' },
-  { key: 's', action: 'Star / unstar' },
-  { key: 'u', action: 'Mark unread' },
-  { key: '/', action: 'Search' },
-  { key: '?', action: 'This help' },
-];
 
 interface KeyboardShortcutsHelpProps {
   control: DialogControlProps;
@@ -37,16 +23,31 @@ interface KeyboardShortcutsHelpProps {
 
 export function KeyboardShortcutsHelp({ control }: KeyboardShortcutsHelpProps) {
   const colors = useColors();
+  const { t } = useTranslation();
+  const shortcuts: ShortcutRow[] = [
+    { key: 'c', action: t('shortcuts.actions.compose') },
+    { key: 'r', action: t('shortcuts.actions.reply') },
+    { key: 'a', action: t('shortcuts.actions.replyAll') },
+    { key: 'f', action: t('shortcuts.actions.forward') },
+    { key: 'e', action: t('shortcuts.actions.archive') },
+    { key: '#', action: t('shortcuts.actions.delete') },
+    { key: 'j', action: t('shortcuts.actions.nextMessage') },
+    { key: 'k', action: t('shortcuts.actions.previousMessage') },
+    { key: 's', action: t('shortcuts.actions.starUnstar') },
+    { key: 'u', action: t('shortcuts.actions.markUnread') },
+    { key: '/', action: t('shortcuts.actions.search') },
+    { key: '?', action: t('shortcuts.actions.help') },
+  ];
 
   return (
     <Dialog
       control={control}
       testID="keyboard-shortcuts-help"
-      title="Keyboard shortcuts"
-      actions={[{ label: 'Close', color: 'cancel' }]}
+      title={t('shortcuts.title')}
+      actions={[{ label: t('shortcuts.close'), color: 'cancel' }]}
     >
       <View style={styles.list}>
-        {SHORTCUTS.map((row) => (
+        {shortcuts.map((row) => (
           <View key={row.key} style={styles.row}>
             <View style={[styles.kbd, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Text style={[styles.kbdLabel, { color: colors.text }]}>{row.key}</Text>

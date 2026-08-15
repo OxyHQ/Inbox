@@ -78,6 +78,11 @@ export interface EmailSearchOptions {
   label?: string;
   limit?: number;
   offset?: number;
+  cursor?: string;
+}
+
+export interface EmailSendOptions {
+  idempotencyKey?: string;
 }
 
 /** Parse an array of messages, skipping any that fail validation. */
@@ -123,6 +128,7 @@ export function createEmailApi(http: HttpService) {
         label?: string;
         limit?: number;
         offset?: number;
+        cursor?: string;
         unseenOnly?: boolean;
       } = {},
     ): Promise<{ data: Message[]; pagination: Pagination }> {
@@ -132,6 +138,7 @@ export function createEmailApi(http: HttpService) {
       if (options.label) params.label = options.label;
       if (options.limit !== undefined) params.limit = String(options.limit);
       if (options.offset !== undefined) params.offset = String(options.offset);
+      if (options.cursor !== undefined) params.cursor = options.cursor;
       if (options.unseenOnly) params.unseen = 'true';
 
       const res = (await http.get('/email/messages', { params })) as PaginatedResult<unknown>;
@@ -233,8 +240,14 @@ export function createEmailApi(http: HttpService) {
       references?: string[];
       attachments?: { fileId: string; contentId?: string; isInline?: boolean }[];
       scheduledAt?: string;
+      idempotencyKey?: string;
     }): Promise<{ messageId: string; queued: boolean; message: string }> {
-      const res = await http.post('/email/messages', message);
+      const { idempotencyKey, ...payload } = message;
+      const res = await http.post(
+        '/email/messages',
+        payload,
+        idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey }, cache: false } : { cache: false },
+      );
       return z.object({
         messageId: z.string(),
         queued: z.boolean(),
@@ -251,6 +264,7 @@ export function createEmailApi(http: HttpService) {
       html?: string;
       inReplyTo?: string;
       references?: string[];
+      attachments?: { fileId: string; contentId?: string; isInline?: boolean }[];
       existingDraftId?: string;
     }): Promise<Message> {
       const res = await http.post('/email/drafts', draft);
@@ -278,6 +292,7 @@ export function createEmailApi(http: HttpService) {
       if (options.label) params.label = options.label;
       if (options.limit !== undefined) params.limit = String(options.limit);
       if (options.offset !== undefined) params.offset = String(options.offset);
+      if (options.cursor !== undefined) params.cursor = options.cursor;
 
       const res = (await http.get('/email/search', { params })) as PaginatedResult<unknown>;
       return {

@@ -17,6 +17,7 @@ import {
 } from '@hugeicons/core-free-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/constants/theme';
+import { useTranslation } from '@/lib/i18n';
 
 interface SelectionToolbarProps {
   count: number;
@@ -32,14 +33,16 @@ function ToolbarButton({
   icon,
   hugeIcon,
   color,
+  accessibilityLabel,
 }: {
   onPress: () => void;
   icon: keyof typeof MaterialCommunityIcons.glyphMap;
   hugeIcon: IconSvgElement;
   color: string;
+  accessibilityLabel: string;
 }) {
   return (
-    <TouchableOpacity onPress={onPress} style={styles.actionButton} activeOpacity={0.7}>
+    <TouchableOpacity accessibilityLabel={accessibilityLabel} accessibilityRole="button" onPress={onPress} style={styles.actionButton} activeOpacity={0.7}>
       {Platform.OS === 'web' ? (
         <HugeiconsIcon icon={hugeIcon} size={22} color={color} />
       ) : (
@@ -59,6 +62,7 @@ export function SelectionToolbar({
 }: SelectionToolbarProps) {
   const insets = useSafeAreaInsets();
   const colors = useColors();
+  const { t } = useTranslation();
 
   return (
     <View
@@ -73,7 +77,7 @@ export function SelectionToolbar({
       ]}
     >
       <View style={styles.bar}>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton} activeOpacity={0.7}>
+        <TouchableOpacity accessibilityLabel={t('common.close')} accessibilityRole="button" onPress={onClose} style={styles.closeButton} activeOpacity={0.7}>
           {Platform.OS === 'web' ? (
             <HugeiconsIcon icon={Cancel01Icon as unknown as IconSvgElement} size={22} color={colors.icon} />
           ) : (
@@ -90,24 +94,28 @@ export function SelectionToolbar({
           icon="archive-outline"
           hugeIcon={Archive01Icon as unknown as IconSvgElement}
           color={colors.icon}
+          accessibilityLabel={t('selection.archive')}
         />
         <ToolbarButton
           onPress={onDelete}
           icon="delete-outline"
           hugeIcon={Delete01Icon as unknown as IconSvgElement}
           color={colors.icon}
+          accessibilityLabel={t('selection.delete')}
         />
         <ToolbarButton
           onPress={onStar}
           icon="star-outline"
           hugeIcon={StarIcon as unknown as IconSvgElement}
           color={colors.icon}
+          accessibilityLabel={t('selection.star')}
         />
         <ToolbarButton
           onPress={onMarkRead}
           icon="email-open-outline"
           hugeIcon={MailOpen01Icon as unknown as IconSvgElement}
           color={colors.icon}
+          accessibilityLabel={t('selection.markRead')}
         />
       </View>
     </View>

@@ -46,6 +46,9 @@ jest.mock('@/components/RichTextEditor', () => ({
 }));
 jest.mock('@/components/ScheduleSendSheet', () => ({ ScheduleSendSheet: () => null }));
 jest.mock('@/components/TemplatePicker', () => ({ TemplatePicker: () => null }));
+jest.mock('@/lib/i18n', () => ({
+  useTranslation: () => ({ t: (key: string) => key }),
+}));
 
 import {
   buildComposeDraftPayload,

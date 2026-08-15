@@ -90,6 +90,8 @@ export const emailKeys = {
   },
   search: (options: SearchOptions, userId: string | null) =>
     ['search', options, userId] as const,
+  /** Broad key for reconciling every active search after a realtime reconnect. */
+  searchRoot: ['search'] as const,
   quota: (userId: string | null) => ['quota', userId] as const,
   settings: (userId: string | null) => ['settings', userId] as const,
   labels: ['labels'] as const,

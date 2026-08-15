@@ -5,6 +5,7 @@ import { useOxy } from '@oxyhq/services';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import type { Message } from '@/services/emailApi';
+import { recordInboxMetric } from '@/utils/inboxTelemetry';
 import {
   cancelMessageQueries,
   findCachedMessage,
@@ -211,7 +212,10 @@ export function useSendMessage() {
   return useMutation({
     mutationFn: async (params: Parameters<NonNullable<typeof api>['sendMessage']>[0]) => {
       if (!api) throw new Error('Email API not initialized');
-      await api.sendMessage(params);
+      await api.sendMessage({
+        ...params,
+        idempotencyKey: params.idempotencyKey ?? `inbox-send-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`}`,
+      });
     },
     onSuccess: () => {
       toast.success('Message sent.');
@@ -245,6 +249,11 @@ export function useSendMessageWithUndo() {
         return;
       }
 
+      const request = {
+        ...params,
+        idempotencyKey: params.idempotencyKey ?? `inbox-send-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`}`,
+      };
+
       cancelledRef.current = false;
       setIsPending(true);
 
@@ -274,14 +283,16 @@ export function useSendMessageWithUndo() {
         }
 
         try {
-          await api.sendMessage(params);
+          await api.sendMessage(request);
           toast.success('Message sent.');
+          recordInboxMetric('composer_send_succeeded');
           queryClient.invalidateQueries({ queryKey: emailKeys.messages.root });
           queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
           options?.onSuccess?.();
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : 'Failed to send message.';
           toast.error(message);
+          recordInboxMetric('composer_send_failed');
           options?.onError?.(err);
         } finally {
           setIsPending(false);

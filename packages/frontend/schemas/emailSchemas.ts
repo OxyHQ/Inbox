@@ -103,6 +103,7 @@ export const MessageSchema = z.object({
   userId: z.string(),
   mailboxId: z.string(),
   messageId: z.string(),
+  threadId: z.string().optional(),
   from: EmailAddressSchema,
   to: z.array(EmailAddressSchema).default([]),
   cc: z.array(EmailAddressSchema).optional(),
@@ -157,6 +158,7 @@ export const PaginationSchema = z.object({
   limit: z.number(),
   offset: z.number(),
   hasMore: z.boolean(),
+  nextCursor: z.string().nullable().optional(),
 });
 
 export const QuotaUsageSchema = z.object({

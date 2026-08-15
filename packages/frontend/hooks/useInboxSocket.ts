@@ -84,6 +84,7 @@ function buildOptimisticMessage(event: EmailNewEvent, userId: string): Message {
       pinned: false,
     },
     labels: [],
+    draftRevision: 1,
     size: 0,
     date: event.receivedAt,
     receivedAt: event.receivedAt,

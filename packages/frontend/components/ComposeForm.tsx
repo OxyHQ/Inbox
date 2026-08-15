@@ -145,6 +145,12 @@ export function buildComposeDraftPayload(
   };
 }
 
+function isDraftConflict(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as { status?: number; statusCode?: number; response?: { status?: number } };
+  return candidate.status === 409 || candidate.statusCode === 409 || candidate.response?.status === 409;
+}
+
 function recipientError(field: string, invalid: string[]): string {
   return `Invalid ${field} recipient${invalid.length === 1 ? '' : 's'}: ${invalid.join(', ')}`;
 }
@@ -179,6 +185,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
   const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
   const [signatureLoaded, setSignatureLoaded] = useState(false);
   const [draftSaveState, setDraftSaveState] = useState<ComposeDraftSaveState>('idle');
+  const [draftConflict, setDraftConflict] = useState(false);
   const [savedDraftKey, setSavedDraftKey] = useState<string | null>(null);
   const [draftSaveQueue] = useState(createDraftSaveQueue);
   const bodyValueRef = useRef(initialBody || '');
@@ -209,6 +216,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
   }, [api, signatureLoaded, updateBody]);
 
   const draftIdRef = useRef<string | null>(null);
+  const draftRevisionRef = useRef<number | null>(null);
   const sentRef = useRef(false);
   const mountedRef = useRef(true);
 
@@ -243,16 +251,32 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         if (!api || sentRef.current) return false;
         if (mountedRef.current) setDraftSaveState('saving');
         try {
-          const draft = await saveDraftAsync(
-            buildComposeDraftPayload(snapshot, draftIdRef.current ?? undefined),
-          );
+          const draft = await saveDraftAsync({
+            ...buildComposeDraftPayload(snapshot, draftIdRef.current ?? undefined),
+            ...(draftIdRef.current && draftRevisionRef.current
+              ? { expectedRevision: draftRevisionRef.current }
+              : {}),
+          });
           draftIdRef.current = draft._id;
+          draftRevisionRef.current = draft.draftRevision;
           if (mountedRef.current) {
             setSavedDraftKey(snapshotKey);
             setDraftSaveState('saved');
+            setDraftConflict(false);
           }
           return true;
-        } catch {
+        } catch (error) {
+          if (isDraftConflict(error)) {
+            // Do not overwrite the other device's version. The next autosave
+            // creates a new draft copy from the edits still open in this
+            // composer, while the user can continue working uninterrupted.
+            draftIdRef.current = null;
+            draftRevisionRef.current = null;
+            if (mountedRef.current) {
+              setDraftConflict(true);
+              toast.error('This draft changed elsewhere. Your edits will be saved as a new draft.');
+            }
+          }
           if (mountedRef.current) setDraftSaveState('error');
           return false;
         }
@@ -281,7 +305,9 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
       : visibleDraftSaveState === 'saved'
         ? 'Draft saved'
         : visibleDraftSaveState === 'error'
-          ? 'Draft not saved'
+          ? draftConflict
+            ? 'Draft changed elsewhere — saving a copy'
+            : 'Draft not saved'
           : null;
 
   // Contact autocomplete state — track which field is active and the current query

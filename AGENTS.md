@@ -2,7 +2,7 @@
 
 > Universal standards live in `~/AGENTS.md`, Oxy-wide gotchas in `~/Oxy/AGENTS.md`.
 > Files stack root→cwd and a child carries only its own DELTA, so this file holds
-> only what is true HERE. **Budget: under 4 KB.**
+> only what is true HERE. **Budget: under 4 KB**, enforced by `scripts/check-agents-md-size.mjs` (`bun run validate:agents-md`).
 
 Expo Router app, web (Cloudflare Pages project `oxy-inbox`) + Android.
 Extracted from `OxyHQ/oxy` `packages/inbox` in 2026-08, history preserved.
@@ -58,22 +58,10 @@ Never a `catalog:` or `workspace:*` specifier — there is no catalog and one
 package. After any `package.json` change run `bun install` and commit `bun.lock`
 in the SAME commit.
 
-Three peers reach this app only because they are declared: `expo-symbols`
-(hard peer of `@oxyhq/bloom`), `@react-native-community/netinfo` and
-`react-native-qrcode-svg` (hard peers of `@oxyhq/services`). In the monorepo
-they arrived by hoisting from sibling packages. Removing them lets `bun install`,
-`tsc`, jest and `expo export` all pass and throws in the browser.
-
-**A zero-import census cannot justify pruning a dependency here.** Measured:
-48 of this package's deps have zero source references, including `nativewind`,
-`tailwindcss`, `typescript`, `react-dom`, `react-native-web`, `expo-font` and
-`babel-plugin-module-resolver` (which `babel.config.js` names `module-resolver`,
-and which makes the `@/*` alias work at runtime). Build tooling, `app.json`
-plugins and peers are all invisible to it.
-
-`expo.install.exclude` pins three packages ABOVE what SDK 57 bundles because
-`@oxyhq/services` requires it. Nothing in CI runs `expo install --fix`, so the
-exclusions look like dead config — they are not.
+**A zero-import census cannot justify pruning a dependency here** — 48 of this
+package's deps have zero source references, build tooling and hard peers
+included. The three declared peers, the measured census and the
+`expo.install.exclude` pins: `docs/dependencies.md`.
 
 ## Oxy SDK conventions
 

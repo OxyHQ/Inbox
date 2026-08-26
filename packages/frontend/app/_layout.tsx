@@ -16,7 +16,7 @@ import { ImageResolverProvider } from '@oxyhq/bloom/image-resolver';
 import type { ImageResolver } from '@oxyhq/bloom/image-resolver';
 import { BloomThemeProvider, useNavigationTheme } from '@oxyhq/bloom/theme';
 import type { ThemeMode } from '@oxyhq/bloom/theme';
-import { Provider as PortalProvider, Outlet as PortalOutlet } from '@oxyhq/bloom/portal';
+import { PortalProvider, PortalOutlet } from '@oxyhq/bloom/portal';
 import { ConnectionStatusToasts } from '@oxyhq/bloom/connection-status';
 
 import { activateInboxQueryScope, queryClient } from '@/hooks/queries/queryClient';

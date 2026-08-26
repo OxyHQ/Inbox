@@ -19,7 +19,7 @@ import {
 import { Avatar } from '@oxyhq/bloom/avatar';
 import { Button } from '@oxyhq/bloom/button';
 import { Switch } from '@oxyhq/bloom/switch';
-import { GroupedButtons } from '@oxyhq/bloom/grouped-buttons';
+import { SettingsListGroup, SettingsListItem } from '@oxyhq/bloom/settings-list';
 import { Text } from '@oxyhq/bloom/typography';
 import { useTheme } from '@oxyhq/bloom/theme';
 import { Dialog, useDialogControl, toast } from '@oxyhq/bloom';
@@ -299,13 +299,15 @@ export function AccountSection() {
       {/* Danger zone */}
       <View style={styles.subsection}>
         <SectionHeader icon={ArrowBoxLeft_Stroke2_Corner0_Rounded} title={t('ui.settings.account.actions')} />
-        <GroupedButtons>
-          <GroupedButtons.Item
-            label="Sign out"
+        <SettingsListGroup>
+          {/* No chevron: this opens a confirmation dialog, it does not navigate. */}
+          <SettingsListItem
+            title="Sign out"
             description={t('ui.settings.account.signOutDevice')}
+            showChevron={false}
             onPress={() => signOutDialog.open()}
           />
-        </GroupedButtons>
+        </SettingsListGroup>
       </View>
 
       <Dialog

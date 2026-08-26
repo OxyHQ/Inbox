@@ -768,7 +768,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
               {assignedLabels.map((lbl) => (
                 <Chip
                   key={lbl._id}
-                  variant="soft"
+                  variant="subtle"
                   size="small"
                   onClose={() => handleToggleLabel(lbl.name)}
                 >

@@ -6,80 +6,61 @@
  * search bg, primary buttons, links) follows the selection in real time.
  */
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
-import { APP_COLOR_PRESETS, FREE_COLOR_NAMES } from '@oxyhq/bloom/theme';
+import { APP_COLOR_PRESETS, COLOR_PRESET_REGISTRY, FREE_COLOR_NAMES } from '@oxyhq/bloom/theme';
 import type { AppColorName } from '@oxyhq/bloom/theme';
 import { Check_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
 
 import { useThemeContext } from '@/contexts/theme-context';
 import { useColors } from '@/constants/theme';
 
-const PRESET_LABELS: Record<AppColorName, string> = {
-  teal: 'Teal',
-  blue: 'Blue',
-  green: 'Green',
-  yellow: 'Yellow',
-  red: 'Red',
-  purple: 'Purple',
-  pink: 'Pink',
-  sky: 'Sky',
-  orange: 'Orange',
-  mint: 'Mint',
-  oxy: 'Oxy',
-  faircoin: 'Faircoin',
-  pumpkin: 'Pumpkin',
-  gray: 'Gray',
-  brown: 'Brown',
-  peach: 'Peach',
-  rose: 'Rose',
-  mono: 'Mono',
-};
+// Both lists are derived from Bloom's own registry, whose entries already carry
+// the swatch colour and the human-readable name. A `Record<AppColorName, string>`
+// maintained here would turn every preset Bloom adds into a compile error in this
+// app for no editorial reason — the list went from 18 entries to 64 in Bloom 1.0.
+
+// Keyed over the WHOLE registry, because the persisted preference may name a
+// gated preset that the grid below will not offer.
+const PRESET_LABELS = new Map<AppColorName, string>(
+  COLOR_PRESET_REGISTRY.map((preset) => [preset.name, preset.displayName]),
+);
+
+// Filtered by FREE_COLOR_NAMES, never by APP_COLOR_NAMES. Bloom's own source
+// spells out why: a consumer "must NOT start from `APP_COLOR_NAMES` and add the
+// unlocked ones, which yields the gated presets to everybody". Inbox has no
+// entitlement plumbing, so the free set is the whole of what it may offer — of
+// Bloom 1.x's 64 presets, `oxy` and `faircoin` are handle-gated and `mono` is
+// premium, leaving 61. The registry is already in picker order, so filtering it
+// preserves that order exactly.
+const FREE_PRESETS = COLOR_PRESET_REGISTRY.filter((preset) =>
+  FREE_COLOR_NAMES.includes(preset.name),
+);
 
 export function ColorPresetPicker() {
   const { colorPreset, setColorPreset } = useThemeContext();
   const colors = useColors();
 
-  // Built from FREE_COLOR_NAMES, never from APP_COLOR_NAMES. Bloom's own source
-  // spells out why: a consumer "must NOT start from `APP_COLOR_NAMES` and add
-  // the unlocked ones, which yields the gated presets to everybody". Inbox has
-  // no entitlement plumbing, so the free set is the whole of what it may offer.
-  //
-  // Today the two are the same list — no preset in @oxyhq/bloom@0.89.0 carries a
-  // `gate`, so HANDLE_COLOR_NAMES and PREMIUM_COLOR_NAMES are empty. That is
-  // exactly why this has to be written the right way now: the day Bloom gates a
-  // preset, `APP_COLOR_NAMES` would start handing it out here with no error, no
-  // type change and no test failure.
-  const presets = useMemo(
-    () =>
-      FREE_COLOR_NAMES.map((name) => ({
-        name,
-        hex: APP_COLOR_PRESETS[name].hex,
-        label: PRESET_LABELS[name],
-      })),
-    [],
-  );
-
-  const activeHex = APP_COLOR_PRESETS[colorPreset].hex;
+  const activeLabel = PRESET_LABELS.get(colorPreset) ?? colorPreset;
 
   return (
     <View style={styles.root}>
       <View style={styles.activeRow}>
-        <View style={[styles.activeDot, { backgroundColor: activeHex }]} />
+        <View style={[styles.activeDot, { backgroundColor: APP_COLOR_PRESETS[colorPreset].hex }]} />
         <Text style={[styles.activeLabel, { color: colors.secondaryText }]}>
-          {PRESET_LABELS[colorPreset]}
+          {activeLabel}
         </Text>
       </View>
 
       <View style={styles.grid}>
-        {presets.map((preset) => {
+        {FREE_PRESETS.map((preset) => {
           const isActive = preset.name === colorPreset;
           return (
             <Pressable
               key={preset.name}
               onPress={() => setColorPreset(preset.name)}
               accessibilityRole="button"
-              accessibilityLabel={`Use ${preset.label} accent color`}
+              accessibilityLabel={`Use ${preset.displayName} accent color`}
               accessibilityState={{ selected: isActive }}
               style={({ pressed }) => [
                 styles.swatchCell,
@@ -104,7 +85,7 @@ export function ColorPresetPicker() {
                 style={[styles.swatchLabel, { color: colors.secondaryText }]}
                 numberOfLines={1}
               >
-                {preset.label}
+                {preset.displayName}
               </Text>
             </Pressable>
           );

@@ -404,7 +404,7 @@ function MessageRowExtrasInner({ message, sentiment }: { message: Message; senti
               return (
                 <Chip
                   key={labelName}
-                  variant="soft"
+                  variant="subtle"
                   size="small"
                 >
                   {labelName}

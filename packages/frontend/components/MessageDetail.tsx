@@ -67,6 +67,7 @@ import { SnoozeSheet } from '@/components/SnoozeSheet';
 import { CardRenderer } from '@/components/cards/CardRenderer';
 import type { EmailAddress } from '@/services/emailApi';
 import { useCidResolver } from '@/hooks/useCidResolver';
+import { safeDownloadFilename } from '@/utils/downloadFilename';
 
 function formatFullDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -275,14 +276,14 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     try {
       const url = await oxyServices.getFileDownloadUrlAsync(fileId);
       if (Platform.OS === 'web') {
-        window.open(url, '_blank');
+        window.open(url, '_blank', 'noopener,noreferrer');
       } else {
         const documentDirectory = FileSystem.documentDirectory;
         if (!documentDirectory) {
           await Linking.openURL(url);
           return;
         }
-        const localUri = documentDirectory + filename;
+        const localUri = documentDirectory + safeDownloadFilename(filename);
         const { uri } = await FileSystem.downloadAsync(url, localUri);
         if (await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(uri);
@@ -290,12 +291,16 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           await Linking.openURL(url);
         }
       }
-    } catch {
+    } catch (error: unknown) {
       try {
         const url = await oxyServices.getFileDownloadUrlAsync(fileId);
         await Linking.openURL(url);
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : t('message.toast.attachmentFailed');
+        const message = err instanceof Error
+          ? err.message
+          : error instanceof Error
+            ? error.message
+            : t('message.toast.attachmentFailed');
         toast.error(message);
       }
     }
@@ -435,7 +440,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     const emlContent = `${headers}\r\n${mimeBody}`;
 
     const safeSubject = subject.replace(/[^a-zA-Z0-9_\- ]/g, '_').slice(0, 60).trim();
-    const filename = `${safeSubject}.eml`;
+    const filename = `${safeDownloadFilename(safeSubject || 'message')}.eml`;
 
     if (Platform.OS === 'web') {
       const blob = new Blob([emlContent], { type: 'message/rfc822' });

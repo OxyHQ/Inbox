@@ -279,7 +279,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       items.push({
         type: 'triage-header',
         title: t('home.needsResponse'),
-        description: 'Unread messages with a direct question or request.',
+        description: t('home.needsResponse'),
         key: 'triage-needs-response-header',
         count: needsResponseCount,
       });
@@ -295,7 +295,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       items.push({
         type: 'triage-header',
         title: t('home.followUp'),
-        description: 'Sent 3+ days ago with no matching reply detected.',
+        description: t('home.followUp'),
         key: 'triage-follow-up-header',
         count: followUpCount,
       });
@@ -340,14 +340,14 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       );
 
       if (dueReminders.length > 0) {
-        items.push({ type: 'header', title: 'Reminders', key: 'header-Reminders' });
+        items.push({ type: 'header', title: t('inbox.sections.reminders'), key: 'header-Reminders' });
         for (const r of dueReminders) {
           items.push({ type: 'reminder', data: r });
         }
       }
       if (upcomingReminders.length > 0 && upcomingReminders.length <= 3) {
         if (dueReminders.length === 0) {
-          items.push({ type: 'header', title: 'Reminders', key: 'header-Reminders' });
+          items.push({ type: 'header', title: t('inbox.sections.reminders'), key: 'header-Reminders' });
         }
         for (const r of upcomingReminders) {
           items.push({ type: 'reminder', data: r });
@@ -364,7 +364,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     const pinned = !isSnoozedView ? triagedMessages.filter((m) => m.flags.pinned) : [];
     const unpinned = !isSnoozedView ? triagedMessages.filter((m) => !m.flags.pinned) : triagedMessages;
 
-    pushGroup(items, 'Pinned', 'header-Pinned', pinned);
+    pushGroup(items, t('inbox.sections.pinned'), 'header-Pinned', pinned);
 
     // Bundle view: group by bundle labels
     if (showBundles) {
@@ -559,22 +559,22 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const handleBulkArchive = useCallback(() => {
     const archiveBox = mailboxes.find((m) => m.specialUse === SPECIAL_USE.ARCHIVE);
     if (!archiveBox) {
-      toast.error('Archive folder not available.');
+      toast.error(t('inbox.toast.archiveUnavailable'));
       return;
     }
     bulkMove.mutate({ messageIds: [...selectedMessageIds], mailboxId: archiveBox._id });
     clearSelection();
-  }, [selectedMessageIds, mailboxes, bulkMove, clearSelection]);
+  }, [bulkMove, clearSelection, mailboxes, selectedMessageIds, t]);
 
   const handleBulkDelete = useCallback(() => {
     const trashBox = mailboxes.find((m) => m.specialUse === SPECIAL_USE.TRASH);
     if (!trashBox) {
-      toast.error('Trash folder not available.');
+      toast.error(t('inbox.toast.trashUnavailable'));
       return;
     }
     bulkMove.mutate({ messageIds: [...selectedMessageIds], mailboxId: trashBox._id });
     clearSelection();
-  }, [selectedMessageIds, mailboxes, bulkMove, clearSelection]);
+  }, [bulkMove, clearSelection, mailboxes, selectedMessageIds, t]);
 
   const handleBulkStar = useCallback(() => {
     const selected = messages.filter((m) => selectedMessageIds.has(m._id));
@@ -592,11 +592,17 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
 
   // Derive title from view mode
   const mailboxTitle = useMemo(() => {
-    if (viewMode?.type === 'starred') return 'Starred';
+    if (viewMode?.type === 'starred') return t('drawer.starred');
     if (viewMode?.type === 'label') return viewMode.labelName;
-    if (currentMailbox?.specialUse) return currentMailbox.specialUse.replace(/^\\+/, '');
-    return currentMailbox?.name || 'Inbox';
-  }, [viewMode, currentMailbox]);
+    if (currentMailbox?.specialUse === SPECIAL_USE.INBOX) return t('drawer.mailboxes.Inbox');
+    if (currentMailbox?.specialUse === SPECIAL_USE.SENT) return t('drawer.mailboxes.Sent');
+    if (currentMailbox?.specialUse === SPECIAL_USE.DRAFTS) return t('drawer.mailboxes.Drafts');
+    if (currentMailbox?.specialUse === SPECIAL_USE.TRASH) return t('drawer.mailboxes.Trash');
+    if (currentMailbox?.specialUse === SPECIAL_USE.SPAM) return t('drawer.mailboxes.Spam');
+    if (currentMailbox?.specialUse === SPECIAL_USE.ARCHIVE) return t('drawer.mailboxes.Archive');
+    if (currentMailbox?.specialUse === SPECIAL_USE.SNOOZED) return t('drawer.mailboxes.Snoozed');
+    return currentMailbox?.name || t('drawer.mailboxes.Inbox');
+  }, [currentMailbox, t, viewMode]);
 
   // Single entry point for swipe actions. `SwipeableRow` only knows which
   // action the user configured; the behaviour lives here via `useMessageActions`.
@@ -696,12 +702,12 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const renderTriageMessage = useCallback(
     (item: Extract<ListItem, { type: 'triage-message' }>) => {
       const reasonLabel = item.category === 'follow-up'
-        ? 'Sent 3+ days ago · no reply detected'
+        ? t('home.followUp')
         : item.reason === 'question'
-          ? 'Unread · direct question'
+          ? t('home.needsResponse')
           : item.reason === 'waiting'
-            ? 'Unread · waiting for your reply'
-            : 'Unread · direct request';
+            ? t('home.needsResponse')
+            : t('home.needsResponse');
 
       return (
         <View style={styles.triageMessageItem}>
@@ -710,7 +716,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
         </View>
       );
     },
-    [colors.secondaryText, renderMessageRow],
+    [colors.secondaryText, renderMessageRow, t],
   );
 
   const renderItem = useCallback(
@@ -790,18 +796,18 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     return (
       <View style={styles.emptyContainer}>
         <EmptyIllustration size={180} />
-        <Text style={[styles.emptyTitle, { color: colors.text }]}>Nothing here</Text>
+        <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('inbox.emptyTitle')}</Text>
         <Text style={[styles.emptySubtitle, { color: colors.secondaryText }]}>
           {isAuthenticated
-            ? "You're all caught up."
-            : 'Sign in to access your mail.'}
+            ? t('inbox.emptyAllCaught')
+            : t('inbox.emptySignIn')}
         </Text>
         {!isAuthenticated && (
           <OxySignInButton variant="contained" style={{ marginTop: 8 }} />
         )}
       </View>
     );
-  }, [isLoading, colors, isAuthenticated]);
+  }, [colors, isAuthenticated, isLoading, t]);
 
   const renderFooter = useCallback(() => {
     if (!isFetchingNextPage) return null;
@@ -915,7 +921,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
             <MaterialCommunityIcons name="pencil" size={24} color={colors.composeFabIcon} />
           )}
           {Platform.OS === 'web' && (
-            <Text style={[styles.fabLabel, { color: colors.composeFabText }]}>Compose</Text>
+            <Text style={[styles.fabLabel, { color: colors.composeFabText }]}>{t('inbox.composeFabLabel')}</Text>
           )}
         </TouchableOpacity>
       )}

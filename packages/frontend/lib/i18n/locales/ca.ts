@@ -35,6 +35,9 @@ const ca: LocaleDict = {
     of: 'de',
     more: 'Més',
     less: 'Menys',
+    saving: 'Desant…',
+    saved: 'Desat',
+    notSaved: 'No s’ha desat',
   },
 
   app: {

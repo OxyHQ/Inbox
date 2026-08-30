@@ -173,6 +173,60 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(networkFirst(event.request, CACHE_NAME));
 });
 
+// ─── Web push ──────────────────────────────────────────────────────
+
+function notificationPayload(data) {
+  const payload = data && typeof data === 'object' ? data : {};
+  const messageId = typeof payload.messageId === 'string' ? payload.messageId : null;
+  const sender = typeof payload.sender === 'string' ? payload.sender : 'New email';
+  const subject = typeof payload.subject === 'string' ? payload.subject : '';
+  const body = typeof payload.body === 'string' ? payload.body : subject;
+
+  return {
+    title: sender,
+    options: {
+      body: body || 'You have a new message.',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      tag: messageId ? `inbox-message-${messageId}` : 'inbox-message',
+      renotify: Boolean(messageId),
+      data: { messageId },
+    },
+  };
+}
+
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (error) {
+    data = { body: event.data ? event.data.text() : '' };
+  }
+
+  const notification = notificationPayload(data);
+  event.waitUntil(
+    self.registration.showNotification(notification.title, notification.options),
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const messageId = event.notification.data?.messageId;
+  const target = messageId
+    ? new URL(`/conversation/${encodeURIComponent(messageId)}`, self.location.origin).href
+    : new URL('/', self.location.origin).href;
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      const existing = clients.find((client) => client.url.startsWith(self.location.origin));
+      if (existing && 'navigate' in existing) {
+        return existing.navigate(target).then(() => existing.focus());
+      }
+      return self.clients.openWindow(target);
+    }),
+  );
+});
+
 // ─── Messages from clients ──────────────────────────────────────────
 
 self.addEventListener('message', (event) => {

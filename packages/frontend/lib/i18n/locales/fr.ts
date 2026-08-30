@@ -35,6 +35,9 @@ const fr: LocaleDict = {
     of: 'sur',
     more: 'Plus',
     less: 'Moins',
+    saving: 'Enregistrement…',
+    saved: 'Enregistré',
+    notSaved: 'Non enregistré',
   },
 
   app: {

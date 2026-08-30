@@ -34,6 +34,9 @@ const ja: LocaleDict = {
     of: '/',
     more: 'もっと見る',
     less: '折りたたむ',
+    saving: '保存中…',
+    saved: '保存済み',
+    notSaved: '未保存',
   },
 
   app: {

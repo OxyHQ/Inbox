@@ -4,6 +4,7 @@ import { toast } from '@oxyhq/bloom';
 import { useOxy } from '@oxyhq/services';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
+import { INBOX_MUTATION_KEYS } from '@/hooks/queries/queryClient';
 import type { Message } from '@/services/emailApi';
 import { recordInboxMetric } from '@/utils/inboxTelemetry';
 import {
@@ -27,6 +28,7 @@ export function useToggleStar() {
   const userId = user?.id ?? null;
 
   return useMutation({
+    mutationKey: INBOX_MUTATION_KEYS.toggleStar,
     // Offline-first: when the device is offline this mutation is queued
     // (status "paused") and auto-resumes when connectivity returns. The
     // mutationFn re-runs through the SDK `httpService`, so auth + CSRF are
@@ -79,6 +81,7 @@ export function useToggleRead() {
   const userId = user?.id ?? null;
 
   return useMutation({
+    mutationKey: INBOX_MUTATION_KEYS.toggleRead,
     // Offline-first — see useToggleStar for the queue/replay rationale.
     networkMode: 'offlineFirst',
     mutationFn: async ({ messageId, seen }: { messageId: string; seen: boolean }) => {
@@ -122,6 +125,7 @@ export function useArchiveMessage() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: INBOX_MUTATION_KEYS.archive,
     // Offline-first — see useToggleStar for the queue/replay rationale.
     networkMode: 'offlineFirst',
     mutationFn: async ({ messageId, archiveMailboxId }: { messageId: string; archiveMailboxId: string }) => {
@@ -159,6 +163,7 @@ export function useDeleteMessage() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: INBOX_MUTATION_KEYS.delete,
     // Offline-first — see useToggleStar for the queue/replay rationale.
     networkMode: 'offlineFirst',
     mutationFn: async ({

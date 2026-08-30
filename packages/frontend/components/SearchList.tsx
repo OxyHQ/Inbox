@@ -188,8 +188,9 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           mailbox: requestedMailbox,
           hasAttachment: parsedQuery.hasAttachment ?? (filterHasAttachment || undefined),
         },
+        t,
       ),
-    [nlParsedOptions, parsedQuery, filterFrom, filterHasAttachment, requestedMailbox],
+    [filterFrom, filterHasAttachment, nlParsedOptions, parsedQuery, requestedMailbox, t],
   );
 
   /**
@@ -226,7 +227,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       const quickResult = quickParseSearch(trimmed);
       if (quickResult) {
         setNlParsedOptions(quickResult);
-        setNlInterpretation(`Searching: ${formatSearchInterpretation(quickResult)}`);
+        setNlInterpretation(t('search.nl.searching', { filters: formatSearchInterpretation(quickResult, t) }));
         setSubmittedQuery('');
         return;
       }
@@ -260,7 +261,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         if (hasUsefulFilters) {
           setNlParsedOptions(parsed);
           setNlInterpretation(
-            result.interpretation || `Searching: ${formatSearchInterpretation(parsed)}`,
+            result.interpretation || t('search.nl.searching', { filters: formatSearchInterpretation(parsed, t) }),
           );
           setSubmittedQuery('');
         }
@@ -271,7 +272,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         // AI failed; plain text search is already in flight.
       }
     },
-    [parseNL],
+    [parseNL, t],
   );
 
   // Debounced search-as-you-type. The user pressing Enter submits immediately.
@@ -501,7 +502,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   }, [colors, handleRetry, isFetchingNextPage, results.length, searchFailed, t]);
 
   const visibleInterpretation = nlInterpretation ||
-    (hasSearched && !nlParsing ? `Searching: ${filterInterpretation}` : '');
+    (hasSearched && !nlParsing ? t('search.nl.searching', { filters: filterInterpretation }) : '');
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -529,26 +530,36 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           { paddingLeft: 16 + insets.left, paddingRight: 16 + insets.right },
         ]}
       >
-        <TouchableOpacity
+        <View
           style={[
             styles.filterChip,
             { borderColor: colors.border },
             filterFrom ? { backgroundColor: colors.primary + '15', borderColor: colors.primary } : undefined,
           ]}
-          onPress={() => handleFilterChipPress('from')}
-          accessibilityLabel={filterFrom ? t('search.filters.fromValue', { value: filterFrom }) : t('search.filters.from')}
-          accessibilityRole="button"
-          activeOpacity={0.7}
         >
-          <Text style={[styles.filterChipText, { color: filterFrom ? colors.primary : colors.secondaryText }]}>
-            {filterFrom ? t('search.filters.fromValue', { value: filterFrom }) : t('search.filters.from')}
-          </Text>
+          <TouchableOpacity
+            style={styles.filterChipMain}
+            onPress={() => handleFilterChipPress('from')}
+            accessibilityLabel={filterFrom ? t('search.filters.fromValue', { value: filterFrom }) : t('search.filters.from')}
+            accessibilityRole="button"
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.filterChipText, { color: filterFrom ? colors.primary : colors.secondaryText }]}>
+              {filterFrom ? t('search.filters.fromValue', { value: filterFrom }) : t('search.filters.from')}
+            </Text>
+          </TouchableOpacity>
           {filterFrom ? (
-            <TouchableOpacity onPress={() => setFilterFrom('')} hitSlop={4}>
+            <TouchableOpacity
+              onPress={() => setFilterFrom('')}
+              accessibilityLabel={t('common.remove')}
+              accessibilityRole="button"
+              style={styles.filterChipRemove}
+              hitSlop={4}
+            >
               <MaterialCommunityIcons name="close-circle" size={14} color={colors.primary} />
             </TouchableOpacity>
           ) : null}
-        </TouchableOpacity>
+        </View>
 
         <TouchableOpacity
           style={[
@@ -715,6 +726,17 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
+  },
+  filterChipMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingLeft: 12,
+  },
+  filterChipRemove: {
+    paddingVertical: 6,
+    paddingRight: 8,
+    paddingLeft: 4,
   },
   filterChipText: {
     fontSize: 12,

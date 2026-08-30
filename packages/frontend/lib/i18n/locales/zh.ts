@@ -32,6 +32,9 @@ const zh: LocaleDict = {
     of: '/',
     more: '更多',
     less: '收起',
+    saving: '保存中…',
+    saved: '已保存',
+    notSaved: '未保存',
   },
 
   app: {

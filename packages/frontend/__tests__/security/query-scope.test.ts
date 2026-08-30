@@ -61,5 +61,8 @@ describe('Inbox Service Worker privacy boundary', () => {
     expect(serviceWorker).not.toContain('processOfflineQueue');
     expect(serviceWorker).not.toContain("fetch(mutation.url");
     expect(serviceWorker).toContain("const CACHE_NAME = 'inbox-v1';");
+    expect(serviceWorker).toContain("self.addEventListener('push'");
+    expect(serviceWorker).toContain("self.addEventListener('notificationclick'");
+    expect(serviceWorker).toContain("new URL(`/conversation/${encodeURIComponent(messageId)}`");
   });
 });

@@ -176,7 +176,7 @@ export function AliaFace({ expression = DEFAULT_EXPRESSION, size = 120 }: AliaFa
       true,
     );
     return () => cancelAnimation(breatheY);
-  }, []);
+  }, [breatheY]);
 
   // Blink (always on)
   useEffect(() => {
@@ -190,7 +190,7 @@ export function AliaFace({ expression = DEFAULT_EXPRESSION, size = 120 }: AliaFa
       false,
     );
     return () => cancelAnimation(blinkScale);
-  }, []);
+  }, [blinkScale]);
 
   // Expression morph
   useEffect(() => {
@@ -222,7 +222,7 @@ export function AliaFace({ expression = DEFAULT_EXPRESSION, size = 120 }: AliaFa
     nb9.value = withTiming(target.noseBrow[9], MORPH_CONFIG);
     nb10.value = withTiming(target.noseBrow[10], MORPH_CONFIG);
     nb11.value = withTiming(target.noseBrow[11], MORPH_CONFIG);
-  }, [expression]);
+  }, [expression, leR, leX, leY, lb0, lb1, lb2, lb3, lb4, lb5, nb0, nb1, nb10, nb11, nb2, nb3, nb4, nb5, nb6, nb7, nb8, nb9, reR, reX, reY]);
 
   // Thinking wave (conditional)
   useEffect(() => {
@@ -248,7 +248,7 @@ export function AliaFace({ expression = DEFAULT_EXPRESSION, size = 120 }: AliaFa
       });
     }
     return () => waves.forEach((sv) => cancelAnimation(sv));
-  }, [expression]);
+  }, [expression, tw0, tw1, tw2, tw3]);
 
   // Look around (conditional)
   useEffect(() => {
@@ -267,7 +267,7 @@ export function AliaFace({ expression = DEFAULT_EXPRESSION, size = 120 }: AliaFa
       lookX.value = withTiming(0, { duration: 300 });
     }
     return () => cancelAnimation(lookX);
-  }, [expression]);
+  }, [expression, lookX]);
 
   // Animated props
   const leftBrowProps = useAnimatedProps(() => ({

@@ -25,7 +25,6 @@ import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import { Text } from '@oxyhq/bloom/typography';
 import * as Haptics from 'expo-haptics';
 import {
-  PinIcon,
   Clock01Icon,
   Image01Icon,
   PlayCircle02Icon,

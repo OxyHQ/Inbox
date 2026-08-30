@@ -38,6 +38,11 @@ function isSafeEmailUrl(value: string): boolean {
   }
 }
 
+function isSafeSrcset(value: string): boolean {
+  const entries = value.split(',').map((entry) => entry.trim()).filter(Boolean);
+  return entries.length > 0 && entries.every((entry) => isSafeEmailUrl(entry.split(/\s+/)[0]));
+}
+
 /**
  * Remove active content and dangerous URLs from untrusted email HTML before it is
  * rendered in an iframe or native WebView. This is intentionally conservative:
@@ -55,6 +60,14 @@ export function sanitizeEmailHtml(html: string): string {
   }
 
   sanitized = sanitized.replace(/\s+on[a-z0-9_-]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+
+  sanitized = sanitized.replace(
+    /\s+(srcset|imagesrcset)\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/gi,
+    (_match, attr: string, _raw: string, doubleQuoted?: string, singleQuoted?: string, unquoted?: string) => {
+      const value = doubleQuoted ?? singleQuoted ?? unquoted ?? '';
+      return isSafeSrcset(value) ? ` ${attr}="${escapeAttributeValue(value)}"` : '';
+    },
+  );
 
   sanitized = sanitized.replace(
     /\s+(href|src|xlink:href|action|formaction|poster)\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/gi,
@@ -106,6 +119,21 @@ function buildProxyUrl(originalUrl: string, proxyBaseUrl: string): string {
   return `${proxyBaseUrl}?url=${encodeURIComponent(encoded)}`;
 }
 
+function proxySrcset(srcset: string, proxyBaseUrl: string): string {
+  return srcset
+    .split(',')
+    .map((entry: string) => {
+      const [url, ...rest] = entry.trim().split(/\s+/);
+      if (isExternalUrl(url)) {
+        return rest.length
+          ? `${buildProxyUrl(url, proxyBaseUrl)} ${rest.join(' ')}`
+          : buildProxyUrl(url, proxyBaseUrl);
+      }
+      return entry;
+    })
+    .join(', ');
+}
+
 /**
  * Transform email HTML to route external images and fonts through our proxy.
  */
@@ -119,22 +147,11 @@ export function proxyExternalImages(html: string, proxyBaseUrl: string): string 
       isExternalUrl(src) ? `${prefix}${buildProxyUrl(src, proxyBaseUrl)}${suffix}` : match
   );
 
-  // Transform <source srcset="...">
+  // Transform responsive image sources on both <img> and <source>. Without
+  // this, an image could bypass the privacy proxy through img[srcset].
   result = result.replace(
-    /(<source[^>]+srcset\s*=\s*["'])([^"']+)(["'])/gi,
-    (match, prefix, srcset, suffix) => {
-      const transformed = srcset
-        .split(',')
-        .map((entry: string) => {
-          const [url, ...rest] = entry.trim().split(/\s+/);
-          if (isExternalUrl(url)) {
-            return rest.length ? `${buildProxyUrl(url, proxyBaseUrl)} ${rest.join(' ')}` : buildProxyUrl(url, proxyBaseUrl);
-          }
-          return entry;
-        })
-        .join(', ');
-      return `${prefix}${transformed}${suffix}`;
-    }
+    /(<(?:img|source)[^>]+(?:srcset|imagesrcset)\s*=\s*["'])([^"']+)(["'])/gi,
+    (match, prefix, srcset, suffix) => `${prefix}${proxySrcset(srcset, proxyBaseUrl)}${suffix}`,
   );
 
   // Transform url(...) in CSS

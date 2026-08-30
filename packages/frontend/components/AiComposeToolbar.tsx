@@ -101,17 +101,6 @@ export function AiComposeToolbar({ body, onBodyChange, onSubjectSuggested }: AiC
     }
   }, [body, hasBody, adjustLength, onBodyChange]);
 
-  // Handler for "Longer" button
-  const handleLonger = useCallback(async () => {
-    if (!hasBody) return;
-    try {
-      const longer = await adjustLength(body, 'longer');
-      onBodyChange(longer);
-    } catch {
-      // Error handled by hook
-    }
-  }, [body, hasBody, adjustLength, onBodyChange]);
-
   // Handler for tone change
   const handleToneChange = useCallback(async (tone: ComposeTone) => {
     setShowToneMenu(false);

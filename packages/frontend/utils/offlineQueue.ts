@@ -24,14 +24,12 @@
  * probe (`isOfflineQueueSupported`) and connectivity helpers; `enqueue` /
  * `flushQueue` have no producers in the app.
  *
- * ── Cross-restart replay (future enhancement) ────────────────────────
- * Paused mutations are persisted (so they survive a cold restart), but full
- * cross-restart replay additionally needs `queryClient.setMutationDefaults(key,
- * { mutationFn })` for each mutation key so the dehydrated mutation can be
- * rehydrated with a live `mutationFn`. Within a single session the closure is
- * alive and replay works today. Adding `setMutationDefaults` keyed on the SDK
- * `api` instance is the clean upstream-friendly next step; it is intentionally
- * NOT hacked in here with a raw-fetch fallback.
+ * ── Cross-restart replay ────────────────────────────────────────────
+ * The critical message mutations register serializable mutation keys and
+ * SDK-backed defaults in `hooks/queries/queryClient.ts`, so paused actions can
+ * survive a cold restart without persisting auth material. This legacy module
+ * remains only as a capability probe and compatibility boundary; it must not
+ * be used for authenticated replay.
  */
 
 import { Platform } from 'react-native';

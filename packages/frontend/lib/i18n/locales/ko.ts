@@ -34,6 +34,9 @@ const ko: LocaleDict = {
     of: '/',
     more: '더 보기',
     less: '접기',
+    saving: '저장 중…',
+    saved: '저장됨',
+    notSaved: '저장되지 않음',
   },
 
   app: {

@@ -5,8 +5,8 @@
  *   refetches in the background; on the critical message mutations (star, read,
  *   archive, delete — see `useMessageMutations`) it queues the mutation while
  *   offline and auto-resumes it when connectivity returns.
- * - `persistQueryClient(...)` dehydrates a whitelist of email queries to the
- *   active scope's storage. Paused mutations are deliberately memory-only.
+ * - `persistQueryClient(...)` dehydrates a whitelist of email queries and
+ *   paused critical mutations to the active scope's storage.
  * - `onlineManager` resume hook replays paused mutations the instant the network
  *   is reported back (network monitoring itself is wired by `OxyProvider`).
  *
@@ -17,9 +17,9 @@
  * Isolation: query hashes and persistence storage are both scoped to the
  * active Oxy account/session. Hydration starts only after the SDK has resolved
  * that scope; there is no device-wide private-mail blob to restore blindly.
- * Paused mutations remain in memory for the current session, but are not
- * persisted across restarts because a dehydrated mutation has no live SDK
- * mutation function and must never capture/replay bearer or CSRF headers.
+ * Paused mutations carry only serializable variables. Their replay functions
+ * resolve the current SDK API at execution time, so no bearer or CSRF header
+ * is ever persisted.
  */
 
 import { Platform } from 'react-native';
@@ -29,6 +29,7 @@ import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persist
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Persister } from '@tanstack/react-query-persist-client';
+import { useEmailStore } from '@/hooks/useEmail';
 
 import {
   getInboxQueryScope,
@@ -38,7 +39,7 @@ import {
 
 const CACHE_KEY_PREFIX = 'inbox_query_cache_v2';
 const LEGACY_CACHE_KEY = 'inbox_query_cache_v1';
-const CACHE_BUSTER = 'inbox-scoped-v2';
+const CACHE_BUSTER = 'inbox-scoped-v3';
 const CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days
 const PERSIST_THROTTLE_MS = 1_000;
 
@@ -48,6 +49,47 @@ const PERSIST_THROTTLE_MS = 1_000;
  */
 export function hashInboxQueryKey(queryKey: QueryKey): string {
   return hashKey([getInboxQueryScope(), queryKey]);
+}
+
+export const INBOX_MUTATION_KEYS = {
+  toggleStar: ['inbox', 'message', 'toggle-star'] as const,
+  toggleRead: ['inbox', 'message', 'toggle-read'] as const,
+  archive: ['inbox', 'message', 'archive'] as const,
+  delete: ['inbox', 'message', 'delete'] as const,
+};
+
+const PERSISTED_MUTATION_KEYS = new Set([
+  hashKey(INBOX_MUTATION_KEYS.toggleStar),
+  hashKey(INBOX_MUTATION_KEYS.toggleRead),
+  hashKey(INBOX_MUTATION_KEYS.archive),
+  hashKey(INBOX_MUTATION_KEYS.delete),
+]);
+
+interface ToggleStarVariables {
+  messageId: string;
+  starred: boolean;
+}
+
+interface ToggleReadVariables {
+  messageId: string;
+  seen: boolean;
+}
+
+interface ArchiveVariables {
+  messageId: string;
+  archiveMailboxId: string;
+}
+
+interface DeleteVariables {
+  messageId: string;
+  trashMailboxId?: string;
+  isInTrash: boolean;
+}
+
+function activeEmailApi() {
+  const api = useEmailStore.getState()._api;
+  if (!api) throw new Error('Email API not initialized');
+  return api;
 }
 
 export const queryClient = new QueryClient({
@@ -70,12 +112,41 @@ export const queryClient = new QueryClient({
   },
 });
 
-// Replay any paused (offline) mutations the moment the network returns. TanStack
-// does this internally too; wiring it explicitly keeps behaviour robust if the
-// host swaps in a custom onlineManager implementation.
+queryClient.setMutationDefaults<unknown, Error, ToggleStarVariables>(INBOX_MUTATION_KEYS.toggleStar, {
+  networkMode: 'offlineFirst',
+  mutationFn: async ({ messageId, starred }) => activeEmailApi().updateFlags(messageId, { starred }),
+});
+queryClient.setMutationDefaults<unknown, Error, ToggleReadVariables>(INBOX_MUTATION_KEYS.toggleRead, {
+  networkMode: 'offlineFirst',
+  mutationFn: async ({ messageId, seen }) => activeEmailApi().updateFlags(messageId, { seen }),
+});
+queryClient.setMutationDefaults<void, Error, ArchiveVariables>(INBOX_MUTATION_KEYS.archive, {
+  networkMode: 'offlineFirst',
+  mutationFn: async ({ messageId, archiveMailboxId }) => {
+    await activeEmailApi().moveMessage(messageId, archiveMailboxId);
+  },
+});
+queryClient.setMutationDefaults<void, Error, DeleteVariables>(INBOX_MUTATION_KEYS.delete, {
+  networkMode: 'offlineFirst',
+  mutationFn: async ({ messageId, trashMailboxId, isInTrash }) => {
+    const api = activeEmailApi();
+    if (isInTrash) await api.deleteMessage(messageId, true);
+    else if (trashMailboxId) await api.moveMessage(messageId, trashMailboxId);
+    else await api.deleteMessage(messageId);
+  },
+});
+
+// Replay paused (offline) mutations the moment the network returns, but only
+// after the SDK has created the active email API for the current account.
+export function resumeInboxMutations(): void {
+  if (onlineManager.isOnline() && useEmailStore.getState()._api) {
+    void queryClient.getMutationCache().resumePausedMutations();
+  }
+}
+
 onlineManager.subscribe((isOnline) => {
   if (isOnline) {
-    void queryClient.getMutationCache().resumePausedMutations();
+    resumeInboxMutations();
   }
 });
 
@@ -91,11 +162,14 @@ function shouldDehydrateQuery(query: Query): boolean {
 }
 
 /**
- * Do not persist mutations. Rehydrated mutation closures cannot safely recover
- * the SDK auth context across a restart.
+ * Persist only paused mutations with a registered replay function. The
+ * mutation defaults above resolve the current SDK API after hydration.
  */
-function shouldDehydrateMutation(_mutation: Mutation): boolean {
-  return false;
+function shouldDehydrateMutation(mutation: Mutation): boolean {
+  const mutationKey = mutation.options.mutationKey;
+  return mutation.state.isPaused &&
+    mutationKey !== undefined &&
+    PERSISTED_MUTATION_KEYS.has(hashKey(mutationKey));
 }
 
 /**

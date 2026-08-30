@@ -61,6 +61,9 @@ export const useEmailStore = create<EmailState>((set, get) => ({
     }
     const api = createEmailApi(http);
     set({ _api: api });
+    void import('@/hooks/queries/queryClient').then(({ resumeInboxMutations }) => {
+      resumeInboxMutations();
+    });
     return api;
   },
 

@@ -8,6 +8,7 @@
  */
 
 import type { Message } from '@/services/emailApi';
+import type { TranslateFn } from '@/lib/i18n';
 
 export interface ParsedSearchQuery {
   text: string;
@@ -161,24 +162,41 @@ export function parseSearchQuery(query: string): ParsedSearchQuery {
 }
 
 /** Render structured filters consistently in the search interpretation row. */
-export function formatSearchInterpretation(options: SearchInterpretationOptions): string {
+export function formatSearchInterpretation(
+  options: SearchInterpretationOptions,
+  translate?: TranslateFn,
+): string {
   const parts: string[] = [];
   const text = options.q?.trim() || options.text?.trim();
+  const t: TranslateFn = translate ?? ((key, vars) => {
+    const value = vars?.value ?? '';
+    switch (key) {
+      case 'search.nl.fromValue': return `from ${value}`;
+      case 'search.nl.toValue': return `to ${value}`;
+      case 'search.nl.subjectContains': return `subject contains "${value}"`;
+      case 'search.nl.withAttachments': return 'with attachments';
+      case 'search.nl.starred': return 'starred';
+      case 'search.nl.unread': return 'unread';
+      case 'search.nl.read': return 'read';
+      case 'search.nl.allEmails': return 'all emails';
+      default: return key;
+    }
+  });
 
   if (text) parts.push(`"${text}"`);
-  if (options.from) parts.push(`from ${options.from}`);
-  if (options.to) parts.push(`to ${options.to}`);
-  if (options.subject) parts.push(`subject contains "${options.subject}"`);
-  if (options.hasAttachment) parts.push('with attachments');
+  if (options.from) parts.push(t('search.nl.fromValue', { value: options.from }));
+  if (options.to) parts.push(t('search.nl.toValue', { value: options.to }));
+  if (options.subject) parts.push(t('search.nl.subjectContains', { value: options.subject }));
+  if (options.hasAttachment) parts.push(t('search.nl.withAttachments'));
   if (options.mailbox) parts.push(`in ${options.mailbox}`);
   if (options.label) parts.push(`label ${options.label}`);
-  if (options.starred) parts.push('starred');
-  if (options.unread === true) parts.push('unread');
-  if (options.unread === false) parts.push('read');
+  if (options.starred) parts.push(t('search.nl.starred'));
+  if (options.unread === true) parts.push(t('search.nl.unread'));
+  if (options.unread === false) parts.push(t('search.nl.read'));
   if (options.after) parts.push(`after ${options.after}`);
   if (options.before) parts.push(`before ${options.before}`);
 
-  return parts.join(', ') || 'all emails';
+  return parts.join(', ') || t('search.nl.allEmails');
 }
 
 function relationIdsOf(message: Message): string[] {

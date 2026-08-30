@@ -35,6 +35,9 @@ const ar: LocaleDict = {
     of: 'من',
     more: 'المزيد',
     less: 'أقل',
+    saving: 'جارٍ الحفظ…',
+    saved: 'تم الحفظ',
+    notSaved: 'لم يُحفظ',
   },
 
   app: {

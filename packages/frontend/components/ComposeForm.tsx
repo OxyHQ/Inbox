@@ -42,6 +42,13 @@ import { TemplatePicker } from '@/components/TemplatePicker';
 import type { ContactSuggestion, EmailTemplate } from '@/services/emailApi';
 import { isValidRecipientEmail, parseRecipientList } from '@/schemas/emailSchemas';
 import { useTranslation } from '@/lib/i18n';
+import {
+  clearComposeRecovery,
+  composeRecoveryStorageKey,
+  loadComposeRecovery,
+  saveComposeRecovery,
+  type ComposeRecoverySnapshot,
+} from '@/utils/composeRecovery';
 
 /**
  * Local composer representation of an attachment. Just enough to render the
@@ -78,15 +85,7 @@ interface ComposeFormProps {
 
 export type ComposeDraftSaveState = 'idle' | 'saving' | 'saved' | 'error';
 
-export interface ComposeDraftSnapshot {
-  to: string;
-  cc: string;
-  bcc: string;
-  subject: string;
-  body: string;
-  attachments?: { fileId: string; contentId?: string; isInline?: boolean }[];
-  replyTo?: string;
-}
+export type ComposeDraftSnapshot = ComposeRecoverySnapshot;
 
 export interface ParsedComposeRecipients {
   addresses: { address: string }[];
@@ -139,7 +138,7 @@ export function buildComposeDraftPayload(
     html: web ? snapshot.body || undefined : undefined,
     inReplyTo: snapshot.replyTo,
     ...(snapshot.attachments && snapshot.attachments.length > 0
-      ? { attachments: snapshot.attachments }
+      ? { attachments: snapshot.attachments.map(({ fileId }) => ({ fileId })) }
       : {}),
     existingDraftId,
   };
@@ -149,10 +148,6 @@ function isDraftConflict(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
   const candidate = error as { status?: number; statusCode?: number; response?: { status?: number } };
   return candidate.status === 409 || candidate.statusCode === 409 || candidate.response?.status === 409;
-}
-
-function recipientError(field: string, invalid: string[]): string {
-  return `Invalid ${field} recipient${invalid.length === 1 ? '' : 's'}: ${invalid.join(', ')}`;
 }
 
 export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initialCc, subject: initialSubject, body: initialBody }: ComposeFormProps) {
@@ -185,14 +180,51 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
   const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
   const [signatureLoaded, setSignatureLoaded] = useState(false);
   const [draftSaveState, setDraftSaveState] = useState<ComposeDraftSaveState>('idle');
-  const [draftConflict, setDraftConflict] = useState(false);
   const [savedDraftKey, setSavedDraftKey] = useState<string | null>(null);
+  const [recoveryLoaded, setRecoveryLoaded] = useState(false);
   const [draftSaveQueue] = useState(createDraftSaveQueue);
   const bodyValueRef = useRef(initialBody || '');
   const updateBody = useCallback((nextBody: string) => {
     bodyValueRef.current = nextBody;
     setBody(nextBody);
   }, []);
+
+  const recoveryKey = useMemo(
+    () => composeRecoveryStorageKey(
+      user?.id,
+      replyTo ? `reply:${replyTo}` : forward ? `forward:${forward}` : 'new',
+    ),
+    [forward, replyTo, user?.id],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    const hasServerDraft = Boolean(initialTo || initialCc || initialSubject || initialBody);
+
+    void loadComposeRecovery(recoveryKey).then((record) => {
+      if (cancelled) return;
+      if (record && !hasServerDraft) {
+        setTo(record.snapshot.to);
+        setCc(record.snapshot.cc);
+        setBcc(record.snapshot.bcc);
+        setSubject(record.snapshot.subject);
+        updateBody(record.snapshot.body);
+        setAttachments(
+          (record.snapshot.attachments ?? []).map(({ fileId }) => ({
+            fileId,
+            name: fileId,
+            contentType: 'application/octet-stream',
+            size: 0,
+          })),
+        );
+      }
+      setRecoveryLoaded(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialBody, initialCc, initialSubject, initialTo, recoveryKey, updateBody]);
 
   // Auto-insert signature from settings
   useEffect(() => {
@@ -206,14 +238,14 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
           updateBody(`\n\n--\n${settings.signature}`);
         }
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Failed to load signature.';
+        const message = err instanceof Error ? err.message : t('compose.toast.signatureFailed');
         toast.error(message);
       }
       setSignatureLoaded(true);
     };
 
     loadSignature();
-  }, [api, signatureLoaded, updateBody]);
+  }, [api, signatureLoaded, t, updateBody]);
 
   const draftIdRef = useRef<string | null>(null);
   const draftRevisionRef = useRef<number | null>(null);
@@ -262,8 +294,8 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
           if (mountedRef.current) {
             setSavedDraftKey(snapshotKey);
             setDraftSaveState('saved');
-            setDraftConflict(false);
           }
+          void clearComposeRecovery(recoveryKey);
           return true;
         } catch (error) {
           if (isDraftConflict(error)) {
@@ -273,8 +305,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
             draftIdRef.current = null;
             draftRevisionRef.current = null;
             if (mountedRef.current) {
-              setDraftConflict(true);
-              toast.error('This draft changed elsewhere. Your edits will be saved as a new draft.');
+              toast.error(t('common.notSaved'));
             }
           }
           if (mountedRef.current) setDraftSaveState('error');
@@ -284,7 +315,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
 
       return draftSaveQueue.enqueue(save);
     },
-    [api, draftSaveQueue, saveDraftAsync],
+    [api, draftSaveQueue, recoveryKey, saveDraftAsync, t],
   );
 
   useEffect(() => {
@@ -295,19 +326,25 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
     return () => clearTimeout(timer);
   }, [api, hasContent, sending, draftSnapshot, draftSnapshotKey, saveDraftSnapshot]);
 
+  useEffect(() => {
+    if (!recoveryLoaded || !hasContent || sending || sentRef.current) return;
+    const timer = setTimeout(() => {
+      void saveComposeRecovery(recoveryKey, draftSnapshot);
+    }, 750);
+    return () => clearTimeout(timer);
+  }, [draftSnapshot, hasContent, recoveryKey, recoveryLoaded, sending]);
+
   const visibleDraftSaveState =
     draftSaveState === 'saved' && savedDraftKey !== draftSnapshotKey
       ? 'idle'
       : draftSaveState;
   const draftStatusLabel =
     visibleDraftSaveState === 'saving'
-      ? 'Saving draft…'
+      ? t('common.saving')
       : visibleDraftSaveState === 'saved'
-        ? 'Draft saved'
+        ? t('common.saved')
         : visibleDraftSaveState === 'error'
-          ? draftConflict
-            ? 'Draft changed elsewhere — saving a copy'
-            : 'Draft not saved'
+          ? t('common.notSaved')
           : null;
 
   // Contact autocomplete state — track which field is active and the current query
@@ -343,7 +380,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
   // future caller share one definition of a valid address.
   const getValidatedRecipients = useCallback(() => {
     if (!to.trim()) {
-      toast.error('Please add at least one recipient.');
+      toast.error(t('compose.toast.addRecipient'));
       return null;
     }
 
@@ -358,12 +395,12 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
     }));
     const invalidField = parsed.find((field) => field.result.invalid.length > 0);
     if (invalidField) {
-      toast.error(recipientError(invalidField.label, invalidField.result.invalid));
+      toast.error(`${t('compose.toast.invalidEmail')} (${invalidField.result.invalid.join(', ')})`);
       return null;
     }
 
     if (parsed[0].result.addresses.length === 0) {
-      toast.error('Please enter a valid email address.');
+      toast.error(t('compose.toast.invalidEmail'));
       return null;
     }
 
@@ -372,7 +409,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
       cc: parsed[1].result.addresses.length > 0 ? parsed[1].result.addresses : undefined,
       bcc: parsed[2].result.addresses.length > 0 ? parsed[2].result.addresses : undefined,
     };
-  }, [to, cc, bcc]);
+  }, [to, cc, bcc, t]);
 
   // Append a selected file to the attachment list, de-duplicating by fileId so
   // that picking the same Cloud file twice doesn't create a duplicate chip.
@@ -429,18 +466,22 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         attachments: attachments.length > 0 ? attachments.map((a) => ({ fileId: a.fileId })) : undefined,
       },
       {
-        onSuccess: () => closeCompose(),
+        onSuccess: () => {
+          void clearComposeRecovery(recoveryKey);
+          closeCompose();
+        },
         onError: (err: unknown) => {
           sentRef.current = false;
-          const message = err instanceof Error ? err.message : 'Unable to send email. Please try again.';
+          const message = err instanceof Error ? err.message : t('compose.toast.sendFailed');
           toast.error(message);
         },
       },
     );
-  }, [getValidatedRecipients, subject, body, replyTo, attachments, sendWithUndo, closeCompose]);
+  }, [attachments, body, closeCompose, getValidatedRecipients, recoveryKey, replyTo, sendWithUndo, subject, t]);
 
   const handleSaveDraft = useCallback(() => {
     if (!hasContent) {
+      void clearComposeRecovery(recoveryKey);
       closeCompose();
       return;
     }
@@ -448,20 +489,22 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
       if (saved) {
         closeCompose();
       } else {
-        toast.error('Unable to save draft. Your message is still open.');
+        toast.error(t('common.notSaved'));
       }
     });
-  }, [hasContent, closeCompose, saveDraftSnapshot, draftSnapshot, draftSnapshotKey]);
+  }, [closeCompose, draftSnapshot, draftSnapshotKey, hasContent, recoveryKey, saveDraftSnapshot, t]);
 
   const saveDraftDialog = useDialogControl();
 
   const handleClose = useCallback(() => {
     if (hasContent) {
+      void saveComposeRecovery(recoveryKey, draftSnapshot);
       saveDraftDialog.open();
     } else {
+      void clearComposeRecovery(recoveryKey);
       closeCompose();
     }
-  }, [hasContent, saveDraftDialog, closeCompose]);
+  }, [closeCompose, draftSnapshot, hasContent, recoveryKey, saveDraftDialog]);
 
   const formatSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -536,15 +579,16 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
             minute: '2-digit',
           });
           toast.success(`Email scheduled for ${timeStr}`);
+          void clearComposeRecovery(recoveryKey);
           closeCompose();
         },
         onError: (err: Error) => {
           sentRef.current = false;
-          toast.error(err.message || 'Failed to schedule email. Please try again.');
+          toast.error(err.message || t('compose.toast.scheduleFailed'));
         },
       },
     );
-  }, [getValidatedRecipients, subject, body, replyTo, attachments, sendMessageMutation, closeCompose]);
+  }, [attachments, body, closeCompose, getValidatedRecipients, recoveryKey, replyTo, sendMessageMutation, subject, t]);
 
   return (
     <KeyboardAvoidingView
@@ -852,7 +896,14 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         description={t('compose.saveDraftPrompt.description')}
         actions={[
           { label: t('common.save'), onPress: handleSaveDraft },
-          { label: t('compose.actions.discard'), color: 'destructive', onPress: () => closeCompose() },
+          {
+            label: t('compose.actions.discard'),
+            color: 'destructive',
+            onPress: () => {
+              void clearComposeRecovery(recoveryKey);
+              closeCompose();
+            },
+          },
           { label: t('common.cancel'), color: 'cancel' },
         ]}
       />

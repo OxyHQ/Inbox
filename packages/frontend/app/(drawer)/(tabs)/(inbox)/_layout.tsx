@@ -13,7 +13,7 @@ import { useDialogControl } from '@oxyhq/bloom';
 import { ContentPanel } from '@oxyhq/bloom/content-panel';
 
 import { useColors } from '@/constants/theme';
-import { SPACING, RADIUS } from '@/constants/layout';
+import { SPACING } from '@/constants/layout';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { InboxList } from '@/components/InboxList';
 import { KeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp';

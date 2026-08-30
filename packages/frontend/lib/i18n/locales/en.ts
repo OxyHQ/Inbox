@@ -41,6 +41,9 @@ const en: LocaleDict = {
     of: 'of',
     more: 'More',
     less: 'Less',
+    saving: 'Saving…',
+    saved: 'Saved',
+    notSaved: 'Not saved',
   },
 
   app: {

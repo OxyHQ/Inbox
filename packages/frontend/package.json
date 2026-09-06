@@ -23,7 +23,7 @@
     "@lottiefiles/dotlottie-react": "^0.19.9",
     "@lottiefiles/dotlottie-react-native": "^0.12.1",
     "@oxyhq/app-preset": "^0.3.0",
-    "@oxyhq/bloom": "^1.8.0",
+    "@oxyhq/bloom": "^1.14.0",
     "@oxyhq/contracts": "^0.34.0",
     "@oxyhq/core": "^23.0.0",
     "@oxyhq/services": "^30.2.0",

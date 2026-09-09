@@ -29,7 +29,7 @@
  * `bun packages/frontend/scripts/write-pages-headers.ts` works from the repo
  * root too.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildOxyPagesHeaders, type OxyPagesHeadersOptions } from '@oxyhq/core/server';
@@ -42,7 +42,24 @@ const config: OxyPagesHeadersOptions = existsSync(configPath)
   ? (JSON.parse(readFileSync(configPath, 'utf8')) as OxyPagesHeadersOptions)
   : {};
 
+function readBuiltHtml(directory: string): string[] {
+  if (!existsSync(directory)) return [];
+
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const path = resolve(directory, entry.name);
+    if (entry.isDirectory()) return readBuiltHtml(path);
+    return entry.isFile() && entry.name.endsWith('.html')
+      ? [readFileSync(path, 'utf8')]
+      : [];
+  });
+}
+
+// When writing into the completed export, derive CSP hashes from the exact HTML
+// that Cloudflare Pages will serve. `public/` is written before export and has
+// no HTML yet, so it intentionally receives only the baseline policy.
+const html = outputDir === resolve(projectRoot, 'dist') ? readBuiltHtml(outputDir) : [];
+
 const outputPath = resolve(outputDir, '_headers');
 mkdirSync(outputDir, { recursive: true });
-writeFileSync(outputPath, buildOxyPagesHeaders(config), 'utf8');
+writeFileSync(outputPath, buildOxyPagesHeaders({ ...config, html }), 'utf8');
 process.stdout.write(`Wrote ${outputPath}\n`);

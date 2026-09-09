@@ -21,14 +21,12 @@ import { useRouter, useNavigation } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOxy, OxySignInButton } from '@oxyhq/services';
 import { toast } from '@oxyhq/bloom';
-import { useTabBarFootprint } from '@oxyhq/bloom/tab-bar';
 
 import { useFloatingHeader } from '@/hooks/useFloatingHeader';
 import { useColors } from '@/constants/theme';
 import { SPACING, CONTENT_MAX_WIDTH } from '@/constants/layout';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { useEmailStore } from '@/hooks/useEmail';
-import { useTabBarClearance } from '@/hooks/useTabBarClearance';
 import { useTranslation, type TranslateFn } from '@/lib/i18n';
 import { useInboxPrefs, type SwipeAction } from '@/contexts/inbox-prefs-context';
 import { useInboxDisplayPrefs } from '@/hooks/useInboxDisplayPrefs';
@@ -141,8 +139,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const router = useRouter();
   const navigation = useNavigation<DrawerNavigation>();
   const insets = useSafeAreaInsets();
-  const tabBarFootprint = useTabBarFootprint();
-  const tabBarClearance = useTabBarClearance();
   const colors = useColors();
   const { t } = useTranslation();
   const aliaChatRef = useRef<AliaChatSheetRef>(null);
@@ -878,7 +874,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
               ...(listItems.length === 0 ? styles.emptyListContent : null),
               ...styles.listContent,
               paddingTop: headerHeight,
-              paddingBottom: tabBarClearance,
+              paddingBottom: 12,
             }}
             showsVerticalScrollIndicator={false}
           />
@@ -893,12 +889,9 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
             styles.fab,
             {
               backgroundColor: colors.composeFab,
-              // Anchored on the floating bar's own footprint, which already has
-              // the bottom safe-area inset folded into it — so this is uniform
-              // across platforms, where the old NativeTabs anchor had to special-
-              // case Android (its tab content sat in a bottom-edge SafeAreaView
-              // that applied the inset a second time).
-              bottom: tabBarFootprint + 16,
+              // The navigator reserves the bar's complete safe-area-aware
+              // footprint, so this is relative to the unobscured screen edge.
+              bottom: 16,
               right: insets.right + 16,
             },
             Platform.select({

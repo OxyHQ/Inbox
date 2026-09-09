@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useKeyboardState } from 'react-native-keyboard-controller';
-import { TabBar, TabBarButton, type TabBarItem } from '@oxyhq/bloom/tab-bar';
+import { TabBar, TabBarButton, useTabBarFootprint, type TabBarItem } from '@oxyhq/bloom/tab-bar';
 import {
   Envelope_Filled_Stroke2_Corner0_Rounded,
   Envelope_Stroke2_Corner0_Rounded,
@@ -73,6 +73,7 @@ const TAB_BAR_MAX_WIDTH = 440;
  */
 export function InboxTabBar({ state, navigation }: BottomTabBarProps) {
   const { t } = useTranslation();
+  const footprint = useTabBarFootprint();
 
   // The bar is for NARROW layouts only. On a wide viewport the mailbox drawer
   // is `permanent` and is the whole navigation, exactly as before this bar
@@ -149,7 +150,7 @@ export function InboxTabBar({ state, navigation }: BottomTabBarProps) {
   if (isDesktopLayout || keyboardVisible) return null;
 
   return (
-    <View style={styles.host}>
+    <View style={[styles.host, { height: footprint }]}>
       <TabBar
         activeIndex={activeIndex}
         onIndexChange={handleIndexChange}
@@ -174,24 +175,15 @@ InboxTabBar.displayName = 'InboxTabBar';
 
 const styles = StyleSheet.create({
   /**
-   * POSITIONING: the navigator renders this element as the LAST child of a flex
-   * column whose other child is the screen container. Left in normal flow the
-   * host would take real layout space and shrink every screen by the bar's
-   * height, which is exactly what a floating bar must not do — so it is pulled
-   * out of the flow and pinned to the bottom edge.
-   *
-   * It stays ZERO-HEIGHT on purpose: Bloom's bar is itself `position: absolute`
-   * against this host, so it hangs off the host's bottom edge and needs nothing
-   * from its box but that edge's position.
+   * The navigator lays this host out after the active screen. Its height is the
+   * bar's real Bloom footprint (including the safe-area inset), so every tab
+   * screen ends above the bar without needing per-screen padding. The pill is
+   * still absolutely positioned inside this host by Bloom.
    *
    * `pointerEvents: 'box-none'` in the style object rather than as a prop —
    * react-native-web deprecated the prop and warns on every render.
    */
   host: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
     pointerEvents: 'box-none',
   },
 });

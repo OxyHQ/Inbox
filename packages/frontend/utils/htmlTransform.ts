@@ -5,6 +5,8 @@
  * providing CORS bypass and tracking protection.
  */
 
+import { resolveFaviconUrl } from '@clarity.surf/sdk';
+
 const DANGEROUS_TAGS = [
   'script',
   'iframe',
@@ -92,6 +94,32 @@ export function sanitizeEmailHtml(html: string): string {
 }
 
 const INTERNAL_DOMAINS = ['oxy.so', 'localhost', '127.0.0.1'];
+const TRANSPARENT_PIXEL =
+  'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+
+function isConventionalFavicon(url: string): boolean {
+  try {
+    return new URL(url).pathname.toLowerCase() === '/favicon.ico';
+  } catch {
+    return false;
+  }
+}
+
+function isMalformedRemoteImageUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    // Broken email templates occasionally concatenate a second absolute URL
+    // onto an image path (for example `logo.svg;a=https://...`). The proxy
+    // correctly rejects those, so do not issue a request that can only be 404.
+    return /https?:\/\//i.test(`${parsed.pathname}${parsed.search}${parsed.hash}`);
+  } catch {
+    return true;
+  }
+}
+
+function proxyableImageUrl(url: string): boolean {
+  return isExternalUrl(url) && !isMalformedRemoteImageUrl(url);
+}
 
 function isExternalUrl(url: string): boolean {
   if (!url || url.startsWith('data:') || url.startsWith('#') || url.startsWith('/')) {
@@ -124,7 +152,7 @@ function proxySrcset(srcset: string, proxyBaseUrl: string): string {
     .split(',')
     .map((entry: string) => {
       const [url, ...rest] = entry.trim().split(/\s+/);
-      if (isExternalUrl(url)) {
+      if (proxyableImageUrl(url)) {
         return rest.length
           ? `${buildProxyUrl(url, proxyBaseUrl)} ${rest.join(' ')}`
           : buildProxyUrl(url, proxyBaseUrl);
@@ -144,7 +172,13 @@ export function proxyExternalImages(html: string, proxyBaseUrl: string): string 
   let result = html.replace(
     /(<img[^>]+src\s*=\s*["'])([^"']+)(["'])/gi,
     (match, prefix, src, suffix) =>
-      isExternalUrl(src) ? `${prefix}${buildProxyUrl(src, proxyBaseUrl)}${suffix}` : match
+      isConventionalFavicon(src)
+        ? `${prefix}${buildProxyUrl(resolveFaviconUrl(src) ?? TRANSPARENT_PIXEL, proxyBaseUrl)}${suffix}`
+        : isMalformedRemoteImageUrl(src)
+          ? `${prefix}${TRANSPARENT_PIXEL}${suffix}`
+        : proxyableImageUrl(src)
+          ? `${prefix}${buildProxyUrl(src, proxyBaseUrl)}${suffix}`
+          : match
   );
 
   // Transform responsive image sources on both <img> and <source>. Without
@@ -157,7 +191,7 @@ export function proxyExternalImages(html: string, proxyBaseUrl: string): string 
   // Transform url(...) in CSS
   result = result.replace(
     /url\(\s*["']?([^"')]+)["']?\s*\)/gi,
-    (match, url) => (isExternalUrl(url) ? `url("${buildProxyUrl(url, proxyBaseUrl)}")` : match)
+    (match, url) => (proxyableImageUrl(url) ? `url("${buildProxyUrl(url, proxyBaseUrl)}")` : match)
   );
 
   return result;

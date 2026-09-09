@@ -19,7 +19,6 @@ import React, { useCallback, useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTabBarClearance } from '@/hooks/useTabBarClearance';
 import { useOxy } from '@oxyhq/services';
 import { H3 } from '@oxyhq/bloom/typography';
 import { Lock_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
@@ -70,7 +69,6 @@ function findSection(key: SettingsSectionDef['key']): SettingsSectionDef {
 export function SettingsLanding() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const tabBarClearance = useTabBarClearance();
   const colors = useColors();
   const { t } = useTranslation();
   const { isAuthenticated } = useOxy();
@@ -101,9 +99,7 @@ export function SettingsLanding() {
         style={styles.scroll}
         contentContainerStyle={{
           paddingTop: 16,
-          // The floating tab bar's footprint (bottom safe-area inset already
-          // folded in) plus this screen's own 40pt of air.
-          paddingBottom: tabBarClearance + 40,
+          paddingBottom: 40,
           paddingHorizontal: Math.max(insets.left, insets.right),
         }}
         showsVerticalScrollIndicator={false}

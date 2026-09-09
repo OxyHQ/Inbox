@@ -37,6 +37,31 @@ describe('email HTML security boundary', () => {
     expect((html.match(/https:\/\/api\.example\/email\/proxy\?url=/g) ?? []).length).toBe(2);
   });
 
+  it('resolves conventional favicons by hostname through the privacy proxy', () => {
+    const html = proxyExternalImages(
+      '<img src="https://example.com/favicon.ico">',
+      'https://api.example/email/proxy',
+    );
+
+    expect(html).toContain('/email/proxy');
+    const encoded = new URL(html.match(/src="([^"]+)/)?.[1] ?? '').searchParams.get('url');
+    expect(Buffer.from(encoded ?? '', 'base64').toString('utf8')).toBe(
+      'https://www.google.com/s2/favicons?sz=64&domain_url=example.com',
+    );
+  });
+
+  it('does not proxy malformed image URLs containing a second absolute URL', () => {
+    const malformed =
+      'https://cdn.example/logo.svg;a=https://cdn.example/certificate.pem';
+    const html = proxyExternalImages(
+      `<img src="${malformed}">`,
+      'https://api.example/email/proxy',
+    );
+
+    expect(html).toContain('data:image/gif;base64,');
+    expect(html).not.toContain('/email/proxy');
+  });
+
   it('resolves only known CID attachments', () => {
     expect(resolveCidImages('<img src="cid:known"><img src="cid:unknown">', {
       known: 'https://files.example/known',

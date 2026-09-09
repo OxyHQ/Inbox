@@ -18,7 +18,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSearchFocus } from '@/contexts/search-focus-context';
 import { useFloatingHeader } from '@/hooks/useFloatingHeader';
 import { useGoBack } from '@/hooks/useGoBack';
-import { useTabBarClearance } from '@/hooks/useTabBarClearance';
 import { useTranslation } from '@/lib/i18n';
 
 import { useColors } from '@/constants/theme';
@@ -55,7 +54,6 @@ interface SearchListProps {
 export function SearchList({ replaceNavigation }: SearchListProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const tabBarClearance = useTabBarClearance();
   const colors = useColors();
   const { t } = useTranslation();
   const { density, showAvatars, showPreviews } = useInboxDisplayPrefs();
@@ -686,10 +684,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
             ...(results.length === 0 ? styles.emptyListContent : null),
             ...styles.listContent,
             paddingTop: headerHeight,
-            // The floating tab bar's footprint, which already folds in the
-            // bottom safe-area inset — so the last result row clears both the
-            // bar and the home indicator, on every platform.
-            paddingBottom: tabBarClearance,
+            paddingBottom: 12,
           }}
           showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={() => (

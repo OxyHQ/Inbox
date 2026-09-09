@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "start": "RCT_METRO_PORT=8103 expo start",
-    "build": "bun scripts/write-pages-headers.ts public && node scripts/export-web.js",
+    "build": "bun scripts/write-pages-headers.ts public && node scripts/export-web.js && bun scripts/write-pages-headers.ts dist",
     "web": "RCT_METRO_PORT=8103 expo start --web",
     "android": "RCT_METRO_PORT=8103 expo run:android",
     "ios": "RCT_METRO_PORT=8103 expo run:ios",
@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@alia.onl/sdk": "^5.1.0",
+    "@clarity.surf/sdk": "^0.2.3",
     "@expo/metro-runtime": "~57.0.8",
     "@expo/vector-icons": "^15.1.1",
     "@hugeicons/core-free-icons": "^3.3.0",

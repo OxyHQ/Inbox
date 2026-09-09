@@ -1,17 +1,17 @@
-name: Deploy to Cloudflare Pages
+name: Deploy to Cloudflare
 
 # Inbox is a frontend and nothing else. Mailboxes, federation, SMTP and webhook
 # ingest are oxy-api, deployed from OxyHQ/oxy — so there is no backend here to
 # build, no image to push and no ECS service to wait on. A web export and a
-# Pages deploy is the whole of it.
+# Worker deploy is the whole of it.
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
-# Serialised, not cancelled: a cancelled deploy leaves the Pages project on
-# whichever build happened to land last, which is not necessarily the newest.
+# Serialised, not cancelled: a cancelled deploy leaves the Worker on whichever
+# build happened to land last, which is not necessarily the newest.
 concurrency:
   group: deploy-inbox
   cancel-in-progress: false
@@ -22,7 +22,6 @@ jobs:
     environment: production
     permissions:
       contents: read
-      deployments: write
     steps:
       - uses: actions/checkout@v4
 
@@ -68,7 +67,6 @@ jobs:
           set -euo pipefail
           d=packages/frontend/dist
           test -f "$d/index.html"  || { echo "::error::no index.html"; exit 1; }
-          test -f "$d/_redirects"  || { echo "::error::no _redirects"; exit 1; }
           test -f "$d/_headers"    || { echo "::error::no _headers — write-pages-headers did not run"; exit 1; }
           grep -q 'worker-src' "$d/_headers" || { echo "::error::_headers is missing this app's CSP extensions"; exit 1; }
           css=$(ls "$d"/_expo/static/css/global-*.css 2>/dev/null | head -1 || true)
@@ -78,19 +76,76 @@ jobs:
           [ "$bytes" -ge 20000 ] || { echo "::error::global CSS is only $bytes bytes; the SDK/Bloom @source globs matched nothing"; exit 1; }
           grep -q 'flex-row' "$css" || { echo "::error::global CSS carries no SDK layout utilities"; exit 1; }
 
-      # `bunx wrangler@4` directly rather than cloudflare/wrangler-action: that
-      # action's `npx --no-install wrangler` path runs npm's Arborist, which
-      # applies npm-only `overrides` validation a bun-resolved tree has never
-      # been checked against (`npm error code EOVERRIDE`). Same lesson as
-      # OxyHQ/oxy's deploy-auth job.
+      # THE POINT OF THE WORKER, asserted rather than assumed. Deleting
+      # `workers_dev = false` is a one-line, entirely silent regression to the
+      # defect this migration exists to remove: a second, complete copy of Inbox
+      # on a hostname that is in no CORS allowlist and no `redirectUris` list.
       #
-      # The Pages project `oxy-inbox` and the inbox.oxy.so custom domain ALREADY
-      # EXIST, created from OxyHQ/oxy — no create/DNS bootstrap is needed here.
-      - name: Deploy to Cloudflare Pages
+      # `not_found_handling` is here for the same reason. It is the ONLY thing
+      # serving the shell for `/conversation/<id>`, `/label/<name>` and `/<view>`
+      # now that `public/_redirects` is gone — measured locally against
+      # `wrangler dev`, which parses that file and then reports its one rule
+      # ("Infinite loop detected in this rule and has been ignored"). A Worker
+      # does not honour it, so it cannot be the spare tyre it looks like.
+      - name: The Worker declines its default hostname and keeps the SPA fallback
+        run: |
+          set -euo pipefail
+          c=packages/frontend/wrangler.toml
+          d=packages/frontend/dist
+          grep -qE '^workers_dev[[:space:]]*=[[:space:]]*false' "$c" \
+            || { echo "::error::$c does not set workers_dev = false — the deploy would publish a second copy of Inbox on a workers.dev hostname"; exit 1; }
+          grep -qE '^not_found_handling[[:space:]]*=[[:space:]]*"single-page-application"' "$c" \
+            || { echo "::error::$c has lost the SPA fallback that replaced public/_redirects — deep links would 404"; exit 1; }
+          grep -qE '^pattern[[:space:]]*=[[:space:]]*"inbox\.oxy\.so"' "$c" \
+            || { echo "::error::$c no longer claims inbox.oxy.so"; exit 1; }
+          if [ -e "$d/_redirects" ]; then
+            echo "::error::$d/_redirects is back. A Worker IGNORES it; not_found_handling is what serves the shell, and a file that looks like routing but is not will outlive whoever added it."
+            exit 1
+          fi
+          echo "workers_dev=false · SPA fallback · inbox.oxy.so · no _redirects"
+
+      # A WORKER, not a Pages project. A Pages project ALWAYS serves
+      # `<project>.pages.dev` and Cloudflare offers no way to switch it off —
+      # `wrangler pages project` has only `list`, `create` and `delete`. Alia
+      # measured what that costs: `alia.onl` and `alia-app.pages.dev` served
+      # byte-identical deployments, and the second, being in no CORS allowlist,
+      # rendered the shell and failed every call it made. `oxy-inbox.pages.dev`
+      # was the same second copy of THIS app. `workers_dev = false` in
+      # packages/frontend/wrangler.toml leaves inbox.oxy.so as the only name
+      # that reaches this deployment, and the assets directory, the SPA fallback
+      # and the custom domain are declared in that file rather than passed here,
+      # so a deploy cannot disagree with the config.
+      #
+      # `bunx wrangler` DIRECTLY, never `cloudflare/wrangler-action`, and the
+      # migration did not change that. The action installs its own wrangler and
+      # picks the package manager by looking for a lockfile beside
+      # `workingDirectory` — there is none in `packages/frontend`, the lockfile
+      # is at the repository root — so it falls back to npm. Here that is npm's
+      # Arborist applying npm-only `overrides` validation a bun-resolved tree
+      # has never been checked against (`npm error code EOVERRIDE`), the same
+      # lesson as OxyHQ/oxy's deploy-auth job. Elsewhere in the fleet the same
+      # fallback has cost more: Homiio took a production outage from it on
+      # 2026-08-09 (run 31292337344: `Fail extracting tarball for "wrangler"`,
+      # published nothing, left a stale bundle against a changed API) and moved
+      # off the action in #291; Mercaria's AGENTS.md:196 forbids it outright;
+      # Alia's canvas job failed five consecutive runs on it; Clarity's frontend
+      # deploy hit the identical error. Do not "modernise" this back.
+      #
+      # `wrangler@4` is PINNED: an unpinned `bunx wrangler` re-resolves the
+      # latest major on every deploy, changing the deploy path with no diff.
+      #
+      # A Worker with no `main` is created by this deploy if it does not exist,
+      # so there is no bootstrap step. The custom domain is claimed from
+      # wrangler.toml — which is why the inbox.oxy.so DNS record Pages was using
+      # must be deleted BEFORE the first run of this: a Worker custom domain
+      # refuses a hostname that already has externally managed records
+      # (code 100117).
+      - name: Deploy the Worker
+        working-directory: packages/frontend
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: bunx wrangler@4 pages deploy packages/frontend/dist --project-name=oxy-inbox --branch=main --commit-dirty=true
+        run: bunx wrangler@4 deploy
 
       # Post-deploy gate on the LIVE host, public endpoints only. A blank SPA or
       # a stylesheet-less build turns this job red instead of sitting quietly in

@@ -21,6 +21,10 @@ web-build/
 .expo-shared/
 *.orig.*
 
+# wrangler's local state directory, written by `wrangler dev` next to
+# packages/frontend/wrangler.toml.
+.wrangler/
+
 # NOTE: expo-env.d.ts is COMMITTED, unlike in OxyHQServices. tsconfig.json
 # `include`s it and nothing in CI regenerates it, so ignoring it made CI
 # typecheck a different program than any developer machine.

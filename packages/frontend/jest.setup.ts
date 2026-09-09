@@ -10,10 +10,14 @@
  * noise install their own spy.
  */
 
+import { TextDecoder, TextEncoder } from 'node:util';
+
 declare global {
   var __DEV__: boolean;
 }
 
 (globalThis as { __DEV__?: boolean }).__DEV__ = false;
+(globalThis as { TextEncoder?: typeof TextEncoder }).TextEncoder = TextEncoder;
+(globalThis as { TextDecoder?: typeof TextDecoder }).TextDecoder = TextDecoder;
 
 export {};

@@ -116,14 +116,23 @@ jobs:
       # and the custom domain are declared in that file rather than passed here,
       # so a deploy cannot disagree with the config.
       #
-      # `bunx wrangler@4` directly rather than cloudflare/wrangler-action, and
-      # the migration did not change that: the action's `npx --no-install
-      # wrangler` path runs npm's Arborist, which applies npm-only `overrides`
-      # validation a bun-resolved tree has never been checked against (`npm
-      # error code EOVERRIDE`). Same lesson as OxyHQ/oxy's deploy-auth job, and
-      # the same one Alia's canvas job learned from five consecutive failed
-      # runs — there the action picked npm because its `workingDirectory` had no
-      # lockfile, which is exactly the shape `packages/frontend` has here.
+      # `bunx wrangler` DIRECTLY, never `cloudflare/wrangler-action`, and the
+      # migration did not change that. The action installs its own wrangler and
+      # picks the package manager by looking for a lockfile beside
+      # `workingDirectory` — there is none in `packages/frontend`, the lockfile
+      # is at the repository root — so it falls back to npm. Here that is npm's
+      # Arborist applying npm-only `overrides` validation a bun-resolved tree
+      # has never been checked against (`npm error code EOVERRIDE`), the same
+      # lesson as OxyHQ/oxy's deploy-auth job. Elsewhere in the fleet the same
+      # fallback has cost more: Homiio took a production outage from it on
+      # 2026-08-09 (run 31292337344: `Fail extracting tarball for "wrangler"`,
+      # published nothing, left a stale bundle against a changed API) and moved
+      # off the action in #291; Mercaria's AGENTS.md:196 forbids it outright;
+      # Alia's canvas job failed five consecutive runs on it; Clarity's frontend
+      # deploy hit the identical error. Do not "modernise" this back.
+      #
+      # `wrangler@4` is PINNED: an unpinned `bunx wrangler` re-resolves the
+      # latest major on every deploy, changing the deploy path with no diff.
       #
       # A Worker with no `main` is created by this deploy if it does not exist,
       # so there is no bootstrap step. The custom domain is claimed from

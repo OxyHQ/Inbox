@@ -1,0 +1,47 @@
+# Inbox's web build is a Worker, not a Pages project.
+#
+# WHY: a Pages project ALWAYS serves `<project>.pages.dev` and Cloudflare offers
+# no way to switch it off — `wrangler pages project` has only `list`, `create`
+# and `delete`. That is not hypothetical; Alia measured it before migrating:
+#
+#   alia.onl            200  md5 045c76d292e7ec40
+#   alia-app.pages.dev  200  md5 045c76d292e7ec40   <- byte-identical
+#
+# The same deployment under two names, the second in NO CORS allowlist, so it
+# rendered the shell and failed every call. `oxy-inbox.pages.dev` is the same
+# shape of defect here, and worse than most: this origin is named explicitly in
+# oxy-api's `dynamicOriginRegistry.ts`, in `@oxyhq/core`'s official-origin
+# allowlists and in the seeded Oxy application's `redirectUris`, so the second
+# copy authenticates against nothing and every mailbox call is a CORS failure.
+# `workers_dev = false` leaves `inbox.oxy.so` as the only name that reaches this.
+name = "oxy-inbox"
+compatibility_date = "2026-09-09"
+
+workers_dev = false
+
+# Static assets with no `main`: no Worker script runs, every request is served
+# from the uploaded directory. 176 files, 21 MB, largest 14.5 MB — inside the
+# 20,000-file and 25 MiB-per-file limits.
+#
+# `_headers` travels in this directory and still carries the CSP: it is written
+# into `public/` by `scripts/write-pages-headers.ts` from
+# `@oxyhq/core/server`'s baseline and copied into `dist/` by `expo export`. The
+# deploy asserts it is there before uploading, and asserts the header is on the
+# live response afterwards.
+[assets]
+directory = "./dist"
+# Replaces `public/_redirects` (`/*  /index.html  200`), deleted in the same
+# change. `app.json` sets `web.output: "static"`, so `expo export` writes real
+# HTML for every static route (`settings/about.html`, `search/index.html`, …)
+# and those are served as files; the fallback is only reached by the dynamic
+# routes that have no static page — `/conversation/<id>`, `/label/<name>`,
+# `/<view>` — which is exactly what the `_redirects` rule was catching.
+not_found_handling = "single-page-application"
+
+# The only way in. Cloudflare writes the DNS record for a custom domain itself,
+# which is why the existing proxied record for this hostname has to be deleted
+# before the first deploy — a Worker custom domain refuses a hostname that
+# already has externally managed records (code 100117).
+[[routes]]
+pattern = "inbox.oxy.so"
+custom_domain = true

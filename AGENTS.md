@@ -4,7 +4,7 @@
 > Files stack root→cwd and a child carries only its own DELTA, so this file holds
 > only what is true HERE. **Budget: under 4 KB**, enforced by `scripts/check-agents-md-size.mjs` (`bun run validate:agents-md`).
 
-Expo Router app, web (Cloudflare Pages project `oxy-inbox`) + Android.
+Expo Router app, web (Cloudflare Worker `oxy-inbox`, `packages/frontend/wrangler.toml`) + Android.
 Extracted from `OxyHQ/oxy` `packages/inbox` in 2026-08, history preserved.
 
 ## There is no backend here

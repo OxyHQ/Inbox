@@ -1,7 +1,7 @@
 # Inbox
 
 **Inbox by Oxy** — the email client at [inbox.oxy.so](https://inbox.oxy.so).
-Expo Router, web (static export → Cloudflare Pages) and Android.
+Expo Router, web (static export → a Cloudflare Worker) and Android.
 
 Extracted from [OxyHQ/oxy](https://github.com/OxyHQ/oxy) (`packages/inbox`)
 with its history intact.

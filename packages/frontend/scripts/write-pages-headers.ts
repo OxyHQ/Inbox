@@ -1,7 +1,13 @@
 #!/usr/bin/env bun
 /**
- * Writes the Cloudflare Pages `_headers` file into `public/`, which
- * `expo export` then copies verbatim into `dist/`.
+ * Writes the Cloudflare `_headers` file into `public/`, which `expo export`
+ * then copies verbatim into `dist/`. Same file, same format, since this origin
+ * moved off Pages: wrangler parses `_headers` out of the assets directory and
+ * applies it to the Worker's responses ("Parsed 1 valid header rule"), and the
+ * deploy asserts the CSP is on the live response afterwards. Its `_redirects`
+ * sibling did NOT survive the move and is deliberately gone — a Worker ignores
+ * `/*  /index.html  200`; `not_found_handling` in wrangler.toml serves the
+ * shell instead.
  *
  * The policy is NOT defined here. `buildOxyPagesHeaders` is the single source
  * of truth for the Oxy CSP baseline — the Cloudflare Insights beacon (both the

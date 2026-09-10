@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSearchFocus } from '@/contexts/search-focus-context';
 import { useFloatingHeader } from '@/hooks/useFloatingHeader';
+import { useTabBarClearance } from '@/hooks/useTabBarClearance';
 import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from '@/lib/i18n';
 
@@ -54,6 +55,7 @@ interface SearchListProps {
 export function SearchList({ replaceNavigation }: SearchListProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const tabBarClearance = useTabBarClearance();
   const colors = useColors();
   const { t } = useTranslation();
   const { density, showAvatars, showPreviews } = useInboxDisplayPrefs();
@@ -684,7 +686,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
             ...(results.length === 0 ? styles.emptyListContent : null),
             ...styles.listContent,
             paddingTop: headerHeight,
-            paddingBottom: 12,
+            paddingBottom: tabBarClearance,
           }}
           showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={() => (

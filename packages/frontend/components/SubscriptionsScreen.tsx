@@ -28,6 +28,7 @@ import {
   News01Icon,
 } from '@hugeicons/core-free-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTabBarClearance } from '@/hooks/useTabBarClearance';
 import { useGoBack } from '@/hooks/useGoBack';
 import { useColors } from '@/constants/theme';
 import { fadeOut } from '@/utils/fadeOut';
@@ -38,6 +39,7 @@ import type { Subscription } from '@/services/emailApi';
 
 export function SubscriptionsScreen() {
   const insets = useSafeAreaInsets();
+  const tabBarClearance = useTabBarClearance();
   const { width } = useWindowDimensions();
   const colors = useColors();
   const isDesktop = Platform.OS === 'web' && width >= 900;
@@ -264,10 +266,7 @@ export function SubscriptionsScreen() {
           contentContainerStyle={{
             ...(subscriptions.length === 0 ? styles.emptyListContent : null),
             paddingTop: headerHeight,
-            // NativeTabs already adds bottom safe-area inset on Android, so
-            // pad iOS / web explicitly to keep the last row above the home
-            // indicator.
-            paddingBottom: Platform.OS === 'android' ? 0 : insets.bottom,
+            paddingBottom: tabBarClearance,
           }}
         />
       )}

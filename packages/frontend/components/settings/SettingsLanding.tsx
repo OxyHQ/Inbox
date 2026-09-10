@@ -25,6 +25,7 @@ import { Lock_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
 
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';
+import { useTabBarClearance } from '@/hooks/useTabBarClearance';
 import { SettingsHero } from './SettingsHero';
 import { SettingsCategoryCard } from './SettingsCategoryCard';
 import { SettingsCategoryRow } from './SettingsCategoryRow';
@@ -69,6 +70,7 @@ function findSection(key: SettingsSectionDef['key']): SettingsSectionDef {
 export function SettingsLanding() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const tabBarClearance = useTabBarClearance();
   const colors = useColors();
   const { t } = useTranslation();
   const { isAuthenticated } = useOxy();
@@ -99,7 +101,7 @@ export function SettingsLanding() {
         style={styles.scroll}
         contentContainerStyle={{
           paddingTop: 16,
-          paddingBottom: 40,
+          paddingBottom: tabBarClearance + 40,
           paddingHorizontal: Math.max(insets.left, insets.right),
         }}
         showsVerticalScrollIndicator={false}

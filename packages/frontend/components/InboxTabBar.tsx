@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useKeyboardState } from 'react-native-keyboard-controller';
-import { TabBar, TabBarButton, useTabBarFootprint, type TabBarItem } from '@oxyhq/bloom/tab-bar';
+import { TabBar, TabBarButton, type TabBarItem } from '@oxyhq/bloom/tab-bar';
 import {
   Envelope_Filled_Stroke2_Corner0_Rounded,
   Envelope_Stroke2_Corner0_Rounded,
@@ -73,7 +73,6 @@ const TAB_BAR_MAX_WIDTH = 440;
  */
 export function InboxTabBar({ state, navigation }: BottomTabBarProps) {
   const { t } = useTranslation();
-  const footprint = useTabBarFootprint();
 
   // The bar is for NARROW layouts only. On a wide viewport the mailbox drawer
   // is `permanent` and is the whole navigation, exactly as before this bar
@@ -150,7 +149,7 @@ export function InboxTabBar({ state, navigation }: BottomTabBarProps) {
   if (isDesktopLayout || keyboardVisible) return null;
 
   return (
-    <View style={[styles.host, { height: footprint }]}>
+    <View style={styles.host}>
       <TabBar
         activeIndex={activeIndex}
         onIndexChange={handleIndexChange}
@@ -175,15 +174,18 @@ InboxTabBar.displayName = 'InboxTabBar';
 
 const styles = StyleSheet.create({
   /**
-   * The navigator lays this host out after the active screen. Its height is the
-   * bar's real Bloom footprint (including the safe-area inset), so every tab
-   * screen ends above the bar without needing per-screen padding. The pill is
-   * still absolutely positioned inside this host by Bloom.
+   * Bloom's bar is floating and absolutely positioned, matching Mention. The
+   * host is therefore pinned to the viewport edge and consumes no layout space;
+   * scroll surfaces reserve `useTabBarFootprint()` explicitly.
    *
    * `pointerEvents: 'box-none'` in the style object rather than as a prop —
    * react-native-web deprecated the prop and warns on every render.
    */
   host: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     pointerEvents: 'box-none',
   },
 });

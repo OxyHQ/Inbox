@@ -46,6 +46,7 @@ import { usePathname } from 'expo-router';
 import { useOxy } from '@oxyhq/services';
 
 import { useGoBack } from '@/hooks/useGoBack';
+import { useTabBarClearance } from '@/hooks/useTabBarClearance';
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';
 import { SPECIAL_USE } from '@/constants/mailbox';
@@ -122,6 +123,7 @@ export function MessageDetail(props: MessageDetailProps) {
 
 function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const insets = useSafeAreaInsets();
+  const tabBarClearance = useTabBarClearance();
   const pathname = usePathname();
   const colors = useColors();
   const { t } = useTranslation();
@@ -755,7 +757,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         style={styles.body}
         contentContainerStyle={[
           styles.bodyContent,
-          { paddingBottom: replyMode ? (mode === 'standalone' ? insets.bottom + 16 : 16) : 16 },
+          { paddingBottom: replyMode && mode === 'standalone' ? tabBarClearance + 16 : 16 },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -1051,7 +1053,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
             {
               backgroundColor: colors.background,
               borderTopColor: colors.border,
-              paddingBottom: mode === 'standalone' ? insets.bottom + 8 : 8,
+              paddingBottom: mode === 'standalone' ? tabBarClearance + 8 : 8,
             },
           ]}
         >

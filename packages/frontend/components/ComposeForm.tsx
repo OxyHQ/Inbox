@@ -31,6 +31,7 @@ import { useOxy } from '@oxyhq/services';
 import type { FileMetadata } from '@oxyhq/core';
 
 import { useGoBack } from '@/hooks/useGoBack';
+import { useTabBarClearance } from '@/hooks/useTabBarClearance';
 import { useColors } from '@/constants/theme';
 import { useEmailStore } from '@/hooks/useEmail';
 import { useSendMessageWithUndo, useSendMessage, useSaveDraft } from '@/hooks/mutations/useMessageMutations';
@@ -154,6 +155,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
   // Compose can be opened from a deep link, where there is no history to pop.
   const closeCompose = useGoBack();
   const insets = useSafeAreaInsets();
+  const tabBarClearance = useTabBarClearance();
   const colors = useColors();
   const { t } = useTranslation();
 
@@ -707,7 +709,11 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         </TouchableOpacity>
       </Dialog>
 
-      <ScrollView style={styles.form} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={styles.form}
+        contentContainerStyle={{ paddingBottom: mode === 'standalone' ? tabBarClearance : 0 }}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* From */}
         <View style={[styles.fieldRow, fieldRowInset, { borderBottomColor: colors.border }]}>
           <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>{t('compose.fields.from')}</Text>

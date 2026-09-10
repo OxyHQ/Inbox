@@ -30,6 +30,7 @@ import { ChevronLeft_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
 import { useGoBack } from '@/hooks/useGoBack';
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';
+import { useTabBarClearance } from '@/hooks/useTabBarClearance';
 
 interface SettingsScreenShellProps {
   title: string;
@@ -52,6 +53,7 @@ export function SettingsScreenShell({
   children,
 }: SettingsScreenShellProps) {
   const insets = useSafeAreaInsets();
+  const tabBarClearance = useTabBarClearance();
   const { width } = useWindowDimensions();
   const colors = useColors();
   const { t } = useTranslation();
@@ -65,7 +67,7 @@ export function SettingsScreenShell({
   const handleBack = useGoBack('/settings');
 
   const headerTopPad = isDesktop ? 0 : insets.top;
-  const contentBottomPad = insets.bottom + 32;
+  const contentBottomPad = tabBarClearance + 32;
   const horizontalLandscapePad = Math.max(insets.left, insets.right);
 
   const body = (

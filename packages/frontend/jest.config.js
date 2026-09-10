@@ -50,6 +50,7 @@ module.exports = {
     // stub as the barrel so a test asserting on a notification mock sees the one
     // `jest.fn()` instance whichever specifier the code under test imported.
     '^@oxyhq/services/notifications$': '<rootDir>/__mocks__/oxyhq-services.ts',
+    '^@oxyhq/bloom/tab-bar$': '<rootDir>/__mocks__/bloom-tab-bar.tsx',
     '^@expo/vector-icons(/.*)?$': '<rootDir>/__mocks__/expo-vector-icons.tsx',
   },
   testTimeout: 10000,

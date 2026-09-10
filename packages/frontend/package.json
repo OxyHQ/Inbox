@@ -21,7 +21,7 @@
     "@expo/vector-icons": "^15.1.1",
     "@hugeicons/core-free-icons": "^3.3.0",
     "@hugeicons/react": "^1.1.9",
-    "@lottiefiles/dotlottie-react": "^0.19.9",
+    "@lottiefiles/dotlottie-react": "^0.19.16",
     "@lottiefiles/dotlottie-react-native": "^0.12.1",
     "@oxy.so/app-preset": "^1.0.1",
     "@oxy.so/bloom": "^1.0.6",

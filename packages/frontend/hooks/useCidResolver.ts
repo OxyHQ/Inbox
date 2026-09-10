@@ -7,7 +7,7 @@
  */
 
 import { useState, useRef, useEffect, useMemo } from 'react';
-import type { OxyServices } from '@oxyhq/core';
+import type { OxyServices } from '@oxy.so/core';
 import type { Message } from '@/services/emailApi';
 import { resolveCidImages } from '@/utils/htmlTransform';
 

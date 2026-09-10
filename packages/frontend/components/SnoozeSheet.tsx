@@ -14,7 +14,7 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
-import { BottomSheet, type BottomSheetRef } from '@oxyhq/bloom/bottom-sheet';
+import { BottomSheet, type BottomSheetRef } from '@oxy.so/bloom/bottom-sheet';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import { Clock01Icon } from '@hugeicons/core-free-icons';

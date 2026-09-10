@@ -7,8 +7,8 @@
 
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Dialog, type DialogControlProps } from '@oxyhq/bloom';
-import { Text } from '@oxyhq/bloom/typography';
+import { Dialog, type DialogControlProps } from '@oxy.so/bloom';
+import { Text } from '@oxy.so/bloom/typography';
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';
 

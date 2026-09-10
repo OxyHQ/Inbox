@@ -7,8 +7,8 @@
 
 import React, { useMemo } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
-import { Avatar as BloomAvatar } from '@oxyhq/bloom/avatar';
-import { Text } from '@oxyhq/bloom/typography';
+import { Avatar as BloomAvatar } from '@oxy.so/bloom/avatar';
+import { Text } from '@oxy.so/bloom/typography';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import { Tick02Icon } from '@hugeicons/core-free-icons';

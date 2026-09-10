@@ -10,11 +10,11 @@ Extracted from `OxyHQ/oxy` `packages/inbox` in 2026-08, history preserved.
 ## There is no backend here
 
 Mailboxes, threads, labels, filters, federation, SMTP and webhook ingest are all
-`@oxyhq/api` in OxyHQ/oxy (~8 200 lines there). This repo is a client.
+`@oxy.so/api` in OxyHQ/oxy (~8 200 lines there). This repo is a client.
 
 Things that stay in OxyHQ/oxy and name this origin — **do not "clean them up"
 from there**: the API's CORS allowlist (`dynamicOriginRegistry.ts`),
-`@oxyhq/core`'s official-origin allowlists (`server/cors.ts`,
+`@oxy.so/core`'s official-origin allowlists (`server/cors.ts`,
 `utils/oauthPkce.ts`) *and the tests asserting them*, the seeded Oxy
 application's `redirectUris`, and SMTP's ARF `reportingUA`. Deleting the first
 is a total outage; deleting the fourth silently degrades outbound
@@ -23,7 +23,7 @@ origin that did not.**
 
 ## `linker = "hoisted"` is not a preference
 
-`@oxyhq/app-preset/css/base.css` finds Bloom's and the SDK's class names through
+`@oxy.so/app-preset/css/base.css` finds Bloom's and the SDK's class names through
 RELATIVE `@source` globs (`../../services/lib`, `../../bloom/lib`). They resolve
 only in a hoisted `node_modules`. Under bun's default isolated linker they match
 nothing, Tailwind emits a stylesheet with no SDK utilities in it, and web layout
@@ -65,10 +65,10 @@ included. The three declared peers, the measured census and the
 
 ## Oxy SDK conventions
 
-- **One provider:** `OxyProvider` from `@oxyhq/services` with `clientId` +
+- **One provider:** `OxyProvider` from `@oxy.so/services` with `clientId` +
   `authRedirectUri`. Sign-in is the in-app `OxyAccountDialog` behind
   `RequireOxyAuth` — never a redirect to auth.oxy.so.
-- **Config** comes from `@oxyhq/app-preset` (Metro, Babel, ESLint, base CSS).
+- **Config** comes from `@oxy.so/app-preset` (Metro, Babel, ESLint, base CSS).
   Fix the preset upstream; never copy config back into the app.
 - **Theming** is Bloom tokens + NativeWind classNames. Never hardcode brand
   colours, never redefine `--bloom-*`.

@@ -8,9 +8,9 @@
 
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useTheme } from '@oxyhq/bloom/theme';
-import { Text } from '@oxyhq/bloom/typography';
-import type { Props as IconProps } from '@oxyhq/bloom/icons';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { Text } from '@oxy.so/bloom/typography';
+import type { Props as IconProps } from '@oxy.so/bloom/icons';
 
 interface SectionHeaderProps {
   icon: React.ComponentType<IconProps>;

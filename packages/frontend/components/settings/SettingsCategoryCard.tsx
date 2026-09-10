@@ -12,8 +12,8 @@
 
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useTheme } from '@oxyhq/bloom/theme';
-import { Text } from '@oxyhq/bloom/typography';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { Text } from '@oxy.so/bloom/typography';
 
 interface SettingsCategoryCardProps {
   title?: string;

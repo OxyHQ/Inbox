@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { ArrowOutOfBox_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
+import { ArrowOutOfBox_Stroke2_Corner0_Rounded } from '@oxy.so/bloom/icons';
 import { useColors } from '@/constants/theme';
 import { useOutboundMessages } from '@/hooks/queries/useOutboundMessages';
 import { useCancelOutboundMessage, useRetryOutboundMessage } from '@/hooks/mutations/useOutboundMutations';

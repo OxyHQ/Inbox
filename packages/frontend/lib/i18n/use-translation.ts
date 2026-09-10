@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { translate as coreTranslate } from '@oxyhq/core';
+import { translate as coreTranslate } from '@oxy.so/core';
 import { useLocale } from './locale-context';
 import enInbox from './locales/en';
 import esInbox from './locales/es';
@@ -96,7 +96,7 @@ interface UseTranslationResult {
  * Resolution order:
  *   1. Inbox-namespaced dict for the active locale (all 11 locales).
  *   2. Core's `translate(locale, key, vars)` for shared strings such as
- *      `signin.*`, `signup.*`, etc. that live in `@oxyhq/core` dictionaries.
+ *      `signin.*`, `signup.*`, etc. that live in `@oxy.so/core` dictionaries.
  *   3. The raw key string, so missing translations surface visibly without
  *      breaking the UI.
  */

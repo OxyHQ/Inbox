@@ -14,7 +14,7 @@ import { View, StyleSheet, Platform } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import { Alert01Icon, ThumbsUpIcon, SentIcon } from '@hugeicons/core-free-icons';
-import { Text } from '@oxyhq/bloom/typography';
+import { Text } from '@oxy.so/bloom/typography';
 
 import type { SentimentResult } from '@/hooks/queries/useSentimentAnalysis';
 

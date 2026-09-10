@@ -15,10 +15,10 @@ import React, { useCallback } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useOxy } from '@oxyhq/services';
-import { useTheme } from '@oxyhq/bloom/theme';
-import { H3, Text } from '@oxyhq/bloom/typography';
-import { Lock_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
+import { useOxy } from '@oxy.so/services';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { H3, Text } from '@oxy.so/bloom/typography';
+import { Lock_Stroke2_Corner0_Rounded } from '@oxy.so/bloom/icons';
 
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';

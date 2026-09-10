@@ -16,9 +16,9 @@
  * The danger is not that `bun test` fails — it is that it fails PARTIALLY and
  * reports a plausible number:
  *
- *   @oxyhq/protocol   bun run test 137/137 pass   |  bun test 134 pass / 3 fail
- *   @oxyhq/core       bun run test 1282/1282 pass |  bun test 1183 pass / 38 fail
- *   @oxyhq/api        bun run test 2091/2091 pass |  bun test 329 pass / 214 fail
+ *   @oxy.so/protocol   bun run test 137/137 pass   |  bun test 134 pass / 3 fail
+ *   @oxy.so/core       bun run test 1282/1282 pass |  bun test 1183 pass / 38 fail
+ *   @oxy.so/api        bun run test 2091/2091 pass |  bun test 329 pass / 214 fail
  *
  * Core's is the worse of the two: nothing in that output names a runner
  * problem, so 38 failures in a 1200-test suite read as a genuine regression.

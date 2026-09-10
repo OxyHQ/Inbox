@@ -9,7 +9,7 @@
  * payload is rendered — the detail screen re-fetches the message server-side.
  */
 
-import { INBOX_EMAIL_PUSH_TYPE } from '@oxyhq/contracts';
+import { INBOX_EMAIL_PUSH_TYPE } from '@oxy.so/contracts';
 
 /**
  * Extract the message id from a notification's `content.data`.

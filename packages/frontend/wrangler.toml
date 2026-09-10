@@ -10,7 +10,7 @@
 # The same deployment under two names, the second in NO CORS allowlist, so it
 # rendered the shell and failed every call. `oxy-inbox.pages.dev` is the same
 # shape of defect here, and worse than most: this origin is named explicitly in
-# oxy-api's `dynamicOriginRegistry.ts`, in `@oxyhq/core`'s official-origin
+# oxy-api's `dynamicOriginRegistry.ts`, in `@oxy.so/core`'s official-origin
 # allowlists and in the seeded Oxy application's `redirectUris`, so the second
 # copy authenticates against nothing and every mailbox call is a CORS failure.
 # `workers_dev = false` leaves `inbox.oxy.so` as the only name that reaches this.
@@ -25,7 +25,7 @@ workers_dev = false
 #
 # `_headers` travels in this directory and still carries the CSP: it is written
 # into `public/` by `scripts/write-pages-headers.ts` from
-# `@oxyhq/core/server`'s baseline and copied into `dist/` by `expo export`. The
+# `@oxy.so/core/server`'s baseline and copied into `dist/` by `expo export`. The
 # deploy asserts it is there before uploading, and asserts the header is on the
 # live response afterwards.
 [assets]

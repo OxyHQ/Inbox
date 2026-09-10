@@ -14,7 +14,7 @@ import React from 'react';
 import { Platform, useWindowDimensions } from 'react-native';
 import { Redirect } from 'expo-router';
 import Head from 'expo-router/head';
-import { useOxy } from '@oxyhq/services';
+import { useOxy } from '@oxy.so/services';
 
 import { SettingsLanding } from '@/components/settings/SettingsLanding';
 

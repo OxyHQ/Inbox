@@ -1,5 +1,5 @@
 /**
- * Lightweight `@oxyhq/services` stub for unit tests in the inbox package.
+ * Lightweight `@oxy.so/services` stub for unit tests in the inbox package.
  *
  * `useOxy()` is implemented with `useSyncExternalStore`, so a `__setOxyState()`
  * call made outside React is reflected in any mounted consumer's next render.
@@ -14,9 +14,9 @@
  */
 
 import { useSyncExternalStore } from 'react';
-import type { PushTokenPlatform } from '@oxyhq/core';
+import type { PushTokenPlatform } from '@oxy.so/core';
 
-/** The `@oxyhq/core` push surface, plus the bearer probe teardown consults. */
+/** The `@oxy.so/core` push surface, plus the bearer probe teardown consults. */
 export interface MockOxyServices {
   registerPushToken: jest.Mock;
   unregisterPushToken: jest.Mock;

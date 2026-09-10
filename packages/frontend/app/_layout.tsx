@@ -1,5 +1,5 @@
 // Tailwind v4 + NativeWind entry — compiles className utilities for web so
-// @oxyhq/services screens (FileManagement, etc.) render layout correctly.
+// @oxy.so/services screens (FileManagement, etc.) render layout correctly.
 import '../global.css';
 
 import { Stack, ThemeProvider } from 'expo-router';
@@ -10,14 +10,14 @@ import type { ReactNode } from 'react';
 import { Platform, View } from 'react-native';
 import 'react-native-reanimated';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
-import { OxyProvider, useOxy, RequireOxyAuth } from '@oxyhq/services';
-import { toast } from '@oxyhq/bloom';
-import { ImageResolverProvider } from '@oxyhq/bloom/image-resolver';
-import type { ImageResolver } from '@oxyhq/bloom/image-resolver';
-import { BloomThemeProvider, useNavigationTheme } from '@oxyhq/bloom/theme';
-import type { ThemeMode } from '@oxyhq/bloom/theme';
-import { PortalProvider, PortalOutlet } from '@oxyhq/bloom/portal';
-import { ConnectionStatusToasts } from '@oxyhq/bloom/connection-status';
+import { OxyProvider, useOxy, RequireOxyAuth } from '@oxy.so/services';
+import { toast } from '@oxy.so/bloom';
+import { ImageResolverProvider } from '@oxy.so/bloom/image-resolver';
+import type { ImageResolver } from '@oxy.so/bloom/image-resolver';
+import { BloomThemeProvider, useNavigationTheme } from '@oxy.so/bloom/theme';
+import type { ThemeMode } from '@oxy.so/bloom/theme';
+import { PortalProvider, PortalOutlet } from '@oxy.so/bloom/portal';
+import { ConnectionStatusToasts } from '@oxy.so/bloom/connection-status';
 
 import { activateInboxQueryScope, queryClient } from '@/hooks/queries/queryClient';
 import { ThemeProvider as AppThemeProvider, useThemeContext } from '@/contexts/theme-context';

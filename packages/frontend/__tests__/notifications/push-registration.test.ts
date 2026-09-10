@@ -8,13 +8,13 @@
  * all in place.
  *
  * The `expo-notifications` adapter behind those facts belongs to
- * `@oxyhq/services` and is covered by that package's own suites. What is
+ * `@oxy.so/services` and is covered by that package's own suites. What is
  * asserted here is the wiring Inbox owns: that `registerInboxPushToken` reaches
  * for the SDK adapter (never an app-local copy) and scopes the registration to
  * Inbox's client id.
  */
 
-import type { PushTokenPlatform } from '@oxyhq/core';
+import type { PushTokenPlatform } from '@oxy.so/core';
 
 import {
   MOCK_EXPO_PUSH_TOKEN,
@@ -25,7 +25,7 @@ import {
   requestNotificationPermission as sdkRequestNotificationPermission,
 } from '@/__mocks__/oxyhq-services';
 import { OXY_CLIENT_ID } from '@/constants/oxy';
-import { INBOX_EMAIL_PUSH_CHANNEL } from '@oxyhq/contracts';
+import { INBOX_EMAIL_PUSH_CHANNEL } from '@oxy.so/contracts';
 import {
   registerInboxPushToken,
   registerInstallationPushToken,
@@ -174,7 +174,7 @@ describe('registerInboxPushToken', () => {
     });
 
     // Inbox holds no adapter of its own: every device fact came from
-    // `@oxyhq/services`.
+    // `@oxy.so/services`.
     expect(sdkPushTokenPlatform).toHaveBeenCalledTimes(1);
     expect(sdkRequestNotificationPermission).toHaveBeenCalledTimes(1);
     expect(sdkGetExpoPushToken).toHaveBeenCalledTimes(1);

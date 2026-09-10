@@ -15,7 +15,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { Dialog, useDialogControl, toast } from '@oxyhq/bloom';
+import { Dialog, useDialogControl, toast } from '@oxy.so/bloom';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import {
@@ -27,8 +27,8 @@ import {
   Clock01Icon,
 } from '@hugeicons/core-free-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useOxy } from '@oxyhq/services';
-import type { FileMetadata } from '@oxyhq/core';
+import { useOxy } from '@oxy.so/services';
+import type { FileMetadata } from '@oxy.so/core';
 
 import { useGoBack } from '@/hooks/useGoBack';
 import { useTabBarClearance } from '@/hooks/useTabBarClearance';

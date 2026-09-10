@@ -19,10 +19,10 @@
 import React, { useCallback, useState, useRef } from 'react';
 import { View, Pressable, TouchableOpacity, ScrollView, StyleSheet, Platform } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
-import { useOxy } from '@oxyhq/services';
+import { useOxy } from '@oxy.so/services';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
-import { Text } from '@oxyhq/bloom/typography';
+import { Text } from '@oxy.so/bloom/typography';
 import * as Haptics from 'expo-haptics';
 import {
   Clock01Icon,
@@ -36,8 +36,8 @@ import {
   FileZipIcon,
   File01Icon,
 } from '@hugeicons/core-free-icons';
-import { Chip } from '@oxyhq/bloom/chip';
-import { Badge } from '@oxyhq/bloom/badge';
+import { Chip } from '@oxy.so/bloom/chip';
+import { Badge } from '@oxy.so/bloom/badge';
 import { Avatar } from './Avatar';
 import { AttachmentThumbnail } from './AttachmentThumbnail';
 import { ImportanceBadge } from './ImportanceBadge';

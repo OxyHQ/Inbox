@@ -10,12 +10,12 @@
 
 import React, { useCallback } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Avatar } from '@oxyhq/bloom/avatar';
-import { H3, P, Text } from '@oxyhq/bloom/typography';
-import { useTheme } from '@oxyhq/bloom/theme';
-import { ChevronRight_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
-import { useOxy, OxySignInButton } from '@oxyhq/services';
-import { getNormalizedUserHandle } from '@oxyhq/core';
+import { Avatar } from '@oxy.so/bloom/avatar';
+import { H3, P, Text } from '@oxy.so/bloom/typography';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { ChevronRight_Stroke2_Corner0_Rounded } from '@oxy.so/bloom/icons';
+import { useOxy, OxySignInButton } from '@oxy.so/services';
+import { getNormalizedUserHandle } from '@oxy.so/core';
 import { useRouter } from 'expo-router';
 
 import { useColors } from '@/constants/theme';

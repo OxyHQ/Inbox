@@ -6,19 +6,19 @@
  * persisted to localStorage on web and AsyncStorage on native.
  *
  * The actual `BloomThemeProvider` is mounted by `OxyProvider`
- * (`@oxyhq/services`) which shadows any outer Bloom context. Consumers
+ * (`@oxy.so/services`) which shadows any outer Bloom context. Consumers
  * pass these preferences into `OxyProvider` via its `themeMode` and
  * `colorPreset` props so the inbox tracks the user's selection in real
  * time. Components read the resolved theme through `useTheme()` from
- * `@oxyhq/bloom/theme`. The Settings page reads/writes the preferences
+ * `@oxy.so/bloom/theme`. The Settings page reads/writes the preferences
  * through `useThemeContext()`.
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { Platform } from 'react-native';
-import { APP_COLOR_NAMES } from '@oxyhq/bloom/theme';
-import type { AppColorName } from '@oxyhq/bloom/theme';
+import { APP_COLOR_NAMES } from '@oxy.so/bloom/theme';
+import type { AppColorName } from '@oxy.so/bloom/theme';
 
 type ThemePreference = 'light' | 'dark' | 'system';
 

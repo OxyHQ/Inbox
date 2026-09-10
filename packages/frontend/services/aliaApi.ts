@@ -5,10 +5,10 @@
  * Alia API key management server-side. That backend IS the origin the
  * OxyProvider session owner already talks to, so authentication rides the
  * SDK's own `HttpService` — no app-local token provider, interceptor, or
- * manual `Authorization` plumbing (see `@oxyhq/services` D4 contract).
+ * manual `Authorization` plumbing (see `@oxy.so/services` D4 contract).
  */
 
-import type { OxyServices } from '@oxyhq/core';
+import type { OxyServices } from '@oxy.so/core';
 import { AliaChatResponseSchema } from '@/schemas/aiSchemas';
 
 type HttpService = OxyServices['httpService'];

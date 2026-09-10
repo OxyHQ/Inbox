@@ -3,4 +3,4 @@
  * Wraps children, catches render errors, and shows a fallback UI with retry.
  */
 
-export { ErrorBoundary } from '@oxyhq/bloom/error-boundary';
+export { ErrorBoundary } from '@oxy.so/bloom/error-boundary';

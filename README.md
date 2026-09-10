@@ -21,9 +21,9 @@ The web build lands in `packages/frontend/dist`.
 ## There is no backend here
 
 Mailboxes, threads, labels, filters, federation, SMTP and webhook ingest are all
-`@oxyhq/api` in [OxyHQ/oxy](https://github.com/OxyHQ/oxy), served from
+`@oxy.so/api` in [OxyHQ/oxy](https://github.com/OxyHQ/oxy), served from
 `api.oxy.so`. This repo is a client. Add an email capability there and consume it
-through `@oxyhq/services` / `@oxyhq/core` — never a second copy.
+through `@oxy.so/services` / `@oxy.so/core` — never a second copy.
 
 ## Configuration
 
@@ -42,7 +42,7 @@ staging target.
 
 ```
 packages/
-  frontend/    the app — Expo Router · NativeWind · @oxyhq/bloom · @oxyhq/services
+  frontend/    the app — Expo Router · NativeWind · @oxy.so/bloom · @oxy.so/services
 ```
 
 ## Licence

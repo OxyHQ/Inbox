@@ -7,7 +7,7 @@
 
 import React, { useMemo } from 'react';
 import { TouchableOpacity } from 'react-native';
-import { Badge } from '@oxyhq/bloom/badge';
+import { Badge } from '@oxy.so/bloom/badge';
 
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
 import type { Message } from '@/services/emailApi';

@@ -17,7 +17,7 @@ jobs:
         with:
           bun-version: 1.3.14
 
-      # No build prelude. In OxyHQ/oxy this job first built @oxyhq/contracts,
+      # No build prelude. In OxyHQ/oxy this job first built @oxy.so/contracts,
       # protocol, core, services and expo-splash from workspace source; here all
       # five arrive prebuilt from npm. That is the whole simplification of the
       # split.

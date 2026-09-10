@@ -8,14 +8,14 @@
 
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Text } from '@oxyhq/bloom/typography';
-import { useTheme } from '@oxyhq/bloom/theme';
-import { Admonition } from '@oxyhq/bloom/admonition';
-import { Loading } from '@oxyhq/bloom/loading';
+import { Text } from '@oxy.so/bloom/typography';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { Admonition } from '@oxy.so/bloom/admonition';
+import { Loading } from '@oxy.so/bloom/loading';
 import {
   FloppyDisk_Stroke2_Corner0_Rounded,
   ArrowOutOfBox_Stroke2_Corner0_Rounded,
-} from '@oxyhq/bloom/icons';
+} from '@oxy.so/bloom/icons';
 
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';

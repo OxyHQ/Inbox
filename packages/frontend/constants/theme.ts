@@ -12,7 +12,7 @@
 
 import { useMemo } from 'react';
 import { Platform } from 'react-native';
-import { useTheme } from '@oxyhq/bloom/theme';
+import { useTheme } from '@oxy.so/bloom/theme';
 
 // ── Inbox-specific domain tokens (not modeled by Bloom) ───────────
 // Reduced to truly app-specific values: read/unread row text, starred yellow,

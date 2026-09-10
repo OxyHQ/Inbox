@@ -16,12 +16,14 @@
  */
 
 import React, { useCallback, useMemo } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useOxy } from '@oxyhq/services';
-import { H3 } from '@oxyhq/bloom/typography';
-import { Lock_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
+import { useOxy } from '@oxy.so/services';
+import { H3 } from '@oxy.so/bloom/typography';
+import { Lock_Stroke2_Corner0_Rounded } from '@oxy.so/bloom/icons';
+import { useMinimizeOnScroll } from '@oxy.so/bloom/tab-bar';
 
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';
@@ -71,6 +73,7 @@ export function SettingsLanding() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const tabBarClearance = useTabBarClearance();
+  const minimizeTabBarOnScroll = useMinimizeOnScroll();
   const colors = useColors();
   const { t } = useTranslation();
   const { isAuthenticated } = useOxy();
@@ -97,8 +100,10 @@ export function SettingsLanding() {
         <H3 style={styles.headerTitle}>{t('settings.title')}</H3>
       </View>
 
-      <ScrollView
+      <Animated.ScrollView
         style={styles.scroll}
+        onScroll={minimizeTabBarOnScroll}
+        scrollEventThrottle={16}
         contentContainerStyle={{
           paddingTop: 16,
           paddingBottom: tabBarClearance + 40,
@@ -133,7 +138,7 @@ export function SettingsLanding() {
             })}
           </SettingsCategoryCard>
         ))}
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }

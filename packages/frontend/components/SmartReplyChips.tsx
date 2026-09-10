@@ -13,8 +13,8 @@ import {
   Platform,
   TouchableOpacity,
 } from 'react-native';
-import { Chip } from '@oxyhq/bloom/chip';
-import * as Skeleton from '@oxyhq/bloom/skeleton';
+import { Chip } from '@oxy.so/bloom/chip';
+import * as Skeleton from '@oxy.so/bloom/skeleton';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import { AiMail01Icon } from '@hugeicons/core-free-icons';

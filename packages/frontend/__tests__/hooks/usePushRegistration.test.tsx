@@ -1,13 +1,13 @@
 /**
  * The hook's contract: the ONLY path to the push registry is the SDK
- * (`oxyServices.registerPushToken` / `unregisterPushToken` from `@oxyhq/core`),
+ * (`oxyServices.registerPushToken` / `unregisterPushToken` from `@oxy.so/core`),
  * it fires only once a bearer exists and the user has asked to be notified, and
  * turning the preference off retires the exact token that was registered.
  */
 
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { configureLogger, resetLoggerConfig } from '@oxyhq/core';
-import type { LogEntry } from '@oxyhq/core';
+import { configureLogger, resetLoggerConfig } from '@oxy.so/core';
+import type { LogEntry } from '@oxy.so/core';
 
 import {
   MOCK_EXPO_PUSH_TOKEN,
@@ -25,7 +25,7 @@ import { usePushRegistration } from '@/hooks/usePushRegistration';
 let pushNotifications = true;
 
 // Hoisted above the imports by ts-jest, so the hook binds to this stub. The
-// device adapter itself is `@oxyhq/services` (already stubbed at the package
+// device adapter itself is `@oxy.so/services` (already stubbed at the package
 // boundary), so the real orchestration and the real Inbox client-id wiring stay
 // under test.
 jest.mock('@/contexts/inbox-prefs-context', () => ({

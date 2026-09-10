@@ -1,11 +1,11 @@
 [install]
 # Bun's default "isolated" linker does NOT hoist, and this app cannot survive
-# that. `@oxyhq/app-preset/css/base.css` reaches its `@source` globs by RELATIVE
+# that. `@oxy.so/app-preset/css/base.css` reaches its `@source` globs by RELATIVE
 # path — "../../services/lib", "../../bloom/lib" — which resolve only when
-# app-preset, services and bloom are real siblings under ONE node_modules/@oxyhq/.
+# app-preset, services and bloom are real siblings under ONE node_modules/@oxy.so/.
 # Under the isolated linker those globs match nothing: Tailwind still emits a
 # stylesheet, the SDK's and Bloom's class names are simply absent from it, and
-# every className layout utility in @oxyhq/services' web screens is inert —
+# every className layout utility in @oxy.so/services' web screens is inert —
 # react-native-web's base View reset shows through (flex-direction:column,
 # padding:0) with no error anywhere. `createOxyMetroConfig`'s nodeModulesPaths
 # ([projectRoot/node_modules, repoRoot/node_modules]) assumes the same layout.
@@ -13,8 +13,8 @@ linker = "hoisted"
 
 # NOTE: `peer = false` is deliberately NOT set here, though OxyHQServices sets it
 # at its root. In the monorepo three REQUIRED peers reach this app only because
-# some OTHER workspace package declares them — expo-symbols (@oxyhq/bloom), and
-# @react-native-community/netinfo + react-native-qrcode-svg (@oxyhq/services,
+# some OTHER workspace package declares them — expo-symbols (@oxy.so/bloom), and
+# @react-native-community/netinfo + react-native-qrcode-svg (@oxy.so/services,
 # neither in peerDependenciesMeta, so both are hard requirements). This repo has
 # no other package. All three are now declared explicitly in
 # packages/frontend/package.json as well; letting bun install peers is the belt
@@ -26,13 +26,13 @@ linker = "hoisted"
 # `--minimum-release-age=0` or it goes red on any recently-published dependency.
 #
 # The excludes are EXACT names, so every first-party package must be listed
-# individually. OxyHQServices only had to exclude @oxyhq/bloom, because core,
+# individually. OxyHQServices only had to exclude @oxy.so/bloom, because core,
 # services, contracts and app-preset were `workspace:*` there and never touched
 # the registry at all. Here they are ordinary registry dependencies, and the
 # whole Oxy SDK ships faster than a 7-day window — measured 2026-08-10, every
 # one of these was published within the preceding four days — so without them
-# listed `bun install` refuses to resolve them outright. @oxyhq/protocol and
-# @oxyhq/expo-splash are transitive but resolve the same way.
+# listed `bun install` refuses to resolve them outright. @oxy.so/protocol and
+# @oxy.so/expo-splash are transitive but resolve the same way.
 #
 # The quarantine keeps doing its actual job: it guards against a freshly
 # compromised THIRD-PARTY release. These are first-party.
@@ -40,13 +40,14 @@ minimumReleaseAge = 604800
 minimumReleaseAgeExcludes = [
   "@alia.onl/sdk",
   "@clarity.surf/sdk",
-  "@oxyhq/app-preset",
-  "@oxyhq/bloom",
-  "@oxyhq/contracts",
-  "@oxyhq/core",
-  "@oxyhq/expo-splash",
-  "@oxyhq/protocol",
-  "@oxyhq/services",
+  "@oxy.so/app-preset",
+  "@oxy.so/bloom",
+  "@oxy.so/contracts",
+  "@oxy.so/core",
+  "@oxy.so/expo-splash",
+  "@oxy.so/protocol",
+  "@oxy.so/services",
+  "@oxy.so/telemetry",
 ]
 
 [test]

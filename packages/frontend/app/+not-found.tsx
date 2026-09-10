@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Platform, useWindowDimensions } from 'react-native';
 import { Link, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { H1, H4 } from '@oxyhq/bloom/typography';
+import { H1, H4 } from '@oxy.so/bloom/typography';
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';
 

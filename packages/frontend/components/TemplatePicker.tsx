@@ -15,7 +15,7 @@ import {
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import { NoteEditIcon } from '@hugeicons/core-free-icons';
-import { Dialog, useDialogControl } from '@oxyhq/bloom';
+import { Dialog, useDialogControl } from '@oxy.so/bloom';
 
 import { useColors } from '@/constants/theme';
 import { useTemplates } from '@/hooks/queries/useTemplates';

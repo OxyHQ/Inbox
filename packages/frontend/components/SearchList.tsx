@@ -7,11 +7,12 @@ import {
   View,
   Text,
   TextInput,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
+import { useMinimizeOnScroll } from '@oxy.so/bloom/tab-bar';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -31,7 +32,7 @@ import { SearchHeader } from '@/components/SearchHeader';
 import { SavedSearchBar } from '@/components/SavedSearchBar';
 import { EmptyIllustration } from '@/components/EmptyIllustration';
 import { useEmailStore } from '@/hooks/useEmail';
-import { useOxy } from '@oxyhq/services';
+import { useOxy } from '@oxy.so/services';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
 import { recordInboxMetric } from '@/utils/inboxTelemetry';
 import { useSearchMessages } from '@/hooks/queries/useSearchMessages';
@@ -56,6 +57,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const tabBarClearance = useTabBarClearance();
+  const minimizeTabBarOnScroll = useMinimizeOnScroll();
   const colors = useColors();
   const { t } = useTranslation();
   const { density, showAvatars, showPreviews } = useInboxDisplayPrefs();
@@ -673,7 +675,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
-        <FlatList
+        <Animated.FlatList
           data={results}
           renderItem={renderItem}
           keyExtractor={(item) => item._id}
@@ -682,6 +684,8 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           ListFooterComponent={renderFooter}
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.4}
+          onScroll={minimizeTabBarOnScroll}
+          scrollEventThrottle={16}
           contentContainerStyle={{
             ...(results.length === 0 ? styles.emptyListContent : null),
             ...styles.listContent,

@@ -16,8 +16,10 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { FlashList, type FlashListRef } from '@shopify/flash-list';
+import { FlashList, type FlashListProps, type FlashListRef } from '@shopify/flash-list';
+import Animated, { type AnimatedProps } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useMinimizeOnScroll } from '@oxy.so/bloom/tab-bar';
 
 import { useFloatingHeader } from '@/hooks/useFloatingHeader';
 import { SubscriptionStacks } from '@/components/SubscriptionStacks';
@@ -37,9 +39,18 @@ import { useUnsubscribe } from '@/hooks/mutations/useUnsubscribe';
 import { SubscriptionRow } from '@/components/SubscriptionRow';
 import type { Subscription } from '@/services/emailApi';
 
+const AnimatedSubscriptionsList = Animated.createAnimatedComponent(
+  FlashList as React.ComponentType<FlashListProps<Subscription>>,
+) as React.ComponentType<
+  AnimatedProps<FlashListProps<Subscription>> & {
+    ref?: React.Ref<FlashListRef<Subscription>>;
+  }
+>;
+
 export function SubscriptionsScreen() {
   const insets = useSafeAreaInsets();
   const tabBarClearance = useTabBarClearance();
+  const minimizeTabBarOnScroll = useMinimizeOnScroll();
   const { width } = useWindowDimensions();
   const colors = useColors();
   const isDesktop = Platform.OS === 'web' && width >= 900;
@@ -233,7 +244,7 @@ export function SubscriptionsScreen() {
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
-        <FlashList
+        <AnimatedSubscriptionsList
           ref={listRef}
           data={subscriptions}
           renderItem={renderItem}
@@ -256,6 +267,8 @@ export function SubscriptionsScreen() {
           ListFooterComponent={renderFooter}
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.3}
+          onScroll={minimizeTabBarOnScroll}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl
               refreshing={isRefetching && !isFetchingNextPage}

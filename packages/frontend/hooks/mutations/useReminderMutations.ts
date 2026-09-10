@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
-import { toast } from '@oxyhq/bloom';
+import { toast } from '@oxy.so/bloom';
 import { useTranslation } from '@/lib/i18n';
 
 export function useCreateReminder() {

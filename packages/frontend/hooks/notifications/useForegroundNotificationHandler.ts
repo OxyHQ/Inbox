@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import {
   installForegroundNotificationHandler,
   type ForegroundPresentation,
-} from '@oxyhq/services/notifications';
+} from '@oxy.so/services/notifications';
 
 import { emailMessageIdFromPush } from '@/lib/notifications/email-push';
 

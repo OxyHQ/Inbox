@@ -11,10 +11,10 @@
 
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Item } from '@oxyhq/bloom/item';
-import { Button } from '@oxyhq/bloom/button';
-import { Text } from '@oxyhq/bloom/typography';
-import { SPACING as BLOOM_SPACING } from '@oxyhq/bloom/design-tokens';
+import { Item } from '@oxy.so/bloom/item';
+import { Button } from '@oxy.so/bloom/button';
+import { Text } from '@oxy.so/bloom/typography';
+import { SPACING as BLOOM_SPACING } from '@oxy.so/bloom/design-tokens';
 import { useColors } from '@/constants/theme';
 import { SenderAvatar } from '@/components/Avatar';
 import type { Subscription } from '@/services/emailApi';

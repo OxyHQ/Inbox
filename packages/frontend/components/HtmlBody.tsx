@@ -10,7 +10,7 @@
 
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import { Platform, StyleSheet, Linking } from 'react-native';
-import { useTheme } from '@oxyhq/bloom/theme';
+import { useTheme } from '@oxy.so/bloom/theme';
 import { proxyExternalImages, getProxyBaseUrl, sanitizeEmailHtml } from '../utils/htmlTransform';
 
 interface HtmlBodyProps {

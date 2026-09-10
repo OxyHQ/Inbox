@@ -7,7 +7,7 @@
 
 import { create } from 'zustand';
 import { createEmailApi, type EmailApiInstance, type Mailbox } from '@/services/emailApi';
-import type { OxyServices } from '@oxyhq/core';
+import type { OxyServices } from '@oxy.so/core';
 
 type HttpService = OxyServices['httpService'];
 

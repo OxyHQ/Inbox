@@ -27,15 +27,33 @@
  * fallback and the bar never minimizes, with no error anywhere.
  */
 
+import { useEffect } from 'react';
+import { usePathname } from 'expo-router';
 import { Tabs } from 'expo-router/tabs';
-import { TabBarMinimizeProvider } from '@oxyhq/bloom/tab-bar';
+import {
+  TabBarMinimizeProvider,
+  useExpandTabBar,
+} from '@oxy.so/bloom/tab-bar';
 
 import { InboxTabBar } from '@/components/InboxTabBar';
 import { SearchFocusProvider } from '@/contexts/search-focus-context';
 
+/** Every route starts with fully visible navigation, including retained tab stacks. */
+function ResetTabBarOnRouteChange() {
+  const pathname = usePathname();
+  const expandTabBar = useExpandTabBar();
+
+  useEffect(() => {
+    expandTabBar();
+  }, [expandTabBar, pathname]);
+
+  return null;
+}
+
 export default function TabsLayout() {
   return (
     <TabBarMinimizeProvider>
+      <ResetTabBarOnRouteChange />
       {/*
         Wraps the navigator so it is an ancestor of both the tab bar (rendered
         inside `BottomTabView`) and the search screen that owns the input. That

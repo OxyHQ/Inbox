@@ -12,8 +12,8 @@
  */
 
 import { useMemo } from 'react';
-import { APP_COLOR_PRESETS, useTheme } from '@oxyhq/bloom/theme';
-import type { AppColorName } from '@oxyhq/bloom/theme';
+import { APP_COLOR_PRESETS, useTheme } from '@oxy.so/bloom/theme';
+import type { AppColorName } from '@oxy.so/bloom/theme';
 
 export type SettingsTintKey =
   | 'account'

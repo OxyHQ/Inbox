@@ -7,21 +7,21 @@ import React, { useCallback, useMemo, useEffect, useState, useRef } from 'react'
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
   Platform,
   RefreshControl,
 } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
-import { Loading } from '@oxyhq/bloom/loading';
+import { FlashList, type FlashListProps } from '@shopify/flash-list';
+import Animated, { type AnimatedProps } from 'react-native-reanimated';
+import { Loading } from '@oxy.so/bloom/loading';
+import { Fab } from '@oxy.so/bloom/fab';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import { PencilEdit01Icon } from '@hugeicons/core-free-icons';
 import { useRouter, useNavigation } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useOxy, OxySignInButton } from '@oxyhq/services';
-import { toast } from '@oxyhq/bloom';
-import { useTabBarFootprint } from '@oxyhq/bloom/tab-bar';
+import { useOxy, OxySignInButton } from '@oxy.so/services';
+import { toast } from '@oxy.so/bloom';
+import { useMinimizeOnScroll } from '@oxy.so/bloom/tab-bar';
 
 import { useFloatingHeader } from '@/hooks/useFloatingHeader';
 import { useTabBarClearance } from '@/hooks/useTabBarClearance';
@@ -73,6 +73,11 @@ type ListItem =
 
 type TriageCategory = 'needs-response' | 'follow-up';
 type TriageReason = NeedsResponseReason | 'awaiting-reply';
+
+/** FlashList wrapped once so Bloom's scroll worklet stays on the UI thread. */
+const AnimatedInboxList = Animated.createAnimatedComponent(
+  FlashList as React.ComponentType<FlashListProps<ListItem>>,
+) as React.ComponentType<AnimatedProps<FlashListProps<ListItem>>>;
 
 /** Section title for a message: one card per calendar bucket. */
 function getDateCategory(dateStr: string, t: TranslateFn): string {
@@ -140,9 +145,8 @@ const TRIAGE_LIMIT = 3;
 export function InboxList({ replaceNavigation }: InboxListProps) {
   const router = useRouter();
   const navigation = useNavigation<DrawerNavigation>();
-  const insets = useSafeAreaInsets();
-  const tabBarFootprint = useTabBarFootprint();
   const tabBarClearance = useTabBarClearance();
+  const minimizeTabBarOnScroll = useMinimizeOnScroll();
   const colors = useColors();
   const { t } = useTranslation();
   const aliaChatRef = useRef<AliaChatSheetRef>(null);
@@ -850,7 +854,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
         </View>
       ) : (
         <View style={styles.listContainer}>
-          <FlashList
+          <AnimatedInboxList
             data={listItems}
             renderItem={renderItem}
             keyExtractor={keyExtractor}
@@ -865,6 +869,8 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
             ListFooterComponent={renderFooter}
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.3}
+            onScroll={minimizeTabBarOnScroll}
+            scrollEventThrottle={16}
             extraData={listExtraData}
             refreshControl={
               <RefreshControl
@@ -886,39 +892,18 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       )}
 
       {isAuthenticated && !isSelectionMode && (
-        <TouchableOpacity
+        <Fab
           accessibilityLabel={t('inbox.composeFab')}
-          accessibilityRole="button"
-          style={[
-            styles.fab,
-            {
-              backgroundColor: colors.composeFab,
-              bottom: tabBarFootprint + 16,
-              right: insets.right + 16,
-            },
-            Platform.select({
-              ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.2,
-                shadowRadius: 8,
-              },
-              android: { elevation: 6 },
-              web: { boxShadow: '0 2px 10px rgba(0,0,0,0.2)' },
-            }),
-          ]}
-          onPress={handleCompose}
-          activeOpacity={0.8}
-        >
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={PencilEdit01Icon as unknown as IconSvgElement} size={24} color={colors.composeFabIcon} />
+          icon={Platform.OS === 'web' ? (
+            <HugeiconsIcon icon={PencilEdit01Icon as unknown as IconSvgElement} size={24} />
           ) : (
-            <MaterialCommunityIcons name="pencil" size={24} color={colors.composeFabIcon} />
+            <MaterialCommunityIcons name="pencil" size={24} />
           )}
-          {Platform.OS === 'web' && (
-            <Text style={[styles.fabLabel, { color: colors.composeFabText }]}>{t('inbox.composeFabLabel')}</Text>
-          )}
-        </TouchableOpacity>
+          label={Platform.OS === 'web' ? t('inbox.composeFabLabel') : undefined}
+          placement="bottom-right"
+          variant="tertiary"
+          onPress={handleCompose}
+        />
       )}
 
       {/* Alia remains available from the inline header action. */}
@@ -1000,22 +985,6 @@ const styles = StyleSheet.create({
   footer: {
     paddingVertical: 20,
     alignItems: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    // `right` is set inline so it can include `insets.right` for landscape
-    // notch protection (see JSX).
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    gap: 10,
-  },
-  fabLabel: {
-    fontSize: 15,
-    fontWeight: '600',
   },
   messageItem: {
     marginHorizontal: SPACING.md,

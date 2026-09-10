@@ -7,7 +7,7 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useOxy } from '@oxyhq/services';
+import { useOxy } from '@oxy.so/services';
 import { streamAliaChatCompletion, type AliaMessage } from '@/services/aliaApi';
 import type { Message } from '@/services/emailApi';
 

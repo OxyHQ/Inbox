@@ -9,9 +9,9 @@
 import React, { useCallback } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Constants from 'expo-constants';
-import { Text } from '@oxyhq/bloom/typography';
-import { useTheme } from '@oxyhq/bloom/theme';
-import { toast } from '@oxyhq/bloom';
+import { Text } from '@oxy.so/bloom/typography';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { toast } from '@oxy.so/bloom';
 import {
   CircleInfo_Stroke2_Corner0_Rounded,
   PageText_Stroke2_Corner0_Rounded,
@@ -19,7 +19,7 @@ import {
   CircleQuestion_Stroke2_Corner2_Rounded,
   Heart2_Stroke2_Corner0_Rounded,
   SquareArrowTopRight_Stroke2_Corner0_Rounded,
-} from '@oxyhq/bloom/icons';
+} from '@oxy.so/bloom/icons';
 
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';

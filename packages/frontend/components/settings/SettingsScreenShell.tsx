@@ -17,15 +17,16 @@
 import React from 'react';
 import {
   Platform,
-  ScrollView,
   StyleSheet,
   View,
   useWindowDimensions,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { H3, Text } from '@oxyhq/bloom/typography';
-import { IconButton } from '@oxyhq/bloom/button';
-import { ChevronLeft_Stroke2_Corner0_Rounded } from '@oxyhq/bloom/icons';
+import { H3, Text } from '@oxy.so/bloom/typography';
+import { IconButton } from '@oxy.so/bloom/button';
+import { ChevronLeft_Stroke2_Corner0_Rounded } from '@oxy.so/bloom/icons';
+import { useMinimizeOnScroll } from '@oxy.so/bloom/tab-bar';
 
 import { useGoBack } from '@/hooks/useGoBack';
 import { useColors } from '@/constants/theme';
@@ -54,6 +55,7 @@ export function SettingsScreenShell({
 }: SettingsScreenShellProps) {
   const insets = useSafeAreaInsets();
   const tabBarClearance = useTabBarClearance();
+  const minimizeTabBarOnScroll = useMinimizeOnScroll();
   const { width } = useWindowDimensions();
   const colors = useColors();
   const { t } = useTranslation();
@@ -113,13 +115,15 @@ export function SettingsScreenShell({
       </View>
 
       {scrollable ? (
-        <ScrollView
+        <Animated.ScrollView
           style={styles.scroll}
+          onScroll={minimizeTabBarOnScroll}
+          scrollEventThrottle={16}
           contentContainerStyle={{ paddingBottom: contentBottomPad, paddingTop: 16 }}
           showsVerticalScrollIndicator={false}
         >
           {body}
-        </ScrollView>
+        </Animated.ScrollView>
       ) : (
         body
       )}

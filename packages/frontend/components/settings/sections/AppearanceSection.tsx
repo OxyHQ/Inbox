@@ -15,12 +15,12 @@
 
 import React, { useCallback } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Text } from '@oxyhq/bloom/typography';
-import { useTheme } from '@oxyhq/bloom/theme';
+import { Text } from '@oxy.so/bloom/typography';
+import { useTheme } from '@oxy.so/bloom/theme';
 import {
   Moon_Stroke2_Corner0_Rounded,
   ColorPalette_Stroke2_Corner0_Rounded,
-} from '@oxyhq/bloom/icons';
+} from '@oxy.so/bloom/icons';
 
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';

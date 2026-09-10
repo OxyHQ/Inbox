@@ -11,7 +11,7 @@
 
 import { useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { useOxy } from '@oxyhq/services';
+import { useOxy } from '@oxy.so/services';
 import { aliaChatCompletion, streamAliaChatCompletion } from '@/services/aliaApi';
 import { aiKeys } from '@/hooks/queries/queryKeys';
 

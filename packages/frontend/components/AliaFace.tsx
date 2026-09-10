@@ -17,7 +17,7 @@ import Animated, {
   cancelAnimation,
   Easing,
 } from 'react-native-reanimated';
-import { useTheme } from '@oxyhq/bloom/theme';
+import { useTheme } from '@oxy.so/bloom/theme';
 import { useColors } from '@/constants/theme';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);

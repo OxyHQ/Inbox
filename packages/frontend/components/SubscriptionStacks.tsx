@@ -25,8 +25,8 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Text } from '@oxyhq/bloom/typography';
-import { SPACING as BLOOM_SPACING } from '@oxyhq/bloom/design-tokens';
+import { Text } from '@oxy.so/bloom/typography';
+import { SPACING as BLOOM_SPACING } from '@oxy.so/bloom/design-tokens';
 
 import { Avatar } from './Avatar';
 import { useColors } from '@/constants/theme';

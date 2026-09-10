@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { useColors } from '@/constants/theme';
 import { MailboxDrawer } from '@/components/MailboxDrawer';
-import { useOxy } from '@oxyhq/services';
+import { useOxy } from '@oxy.so/services';
 import { useEmailStore } from '@/hooks/useEmail';
 import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 

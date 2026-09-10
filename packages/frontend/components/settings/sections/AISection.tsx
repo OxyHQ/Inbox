@@ -10,14 +10,14 @@
 
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Switch } from '@oxyhq/bloom/switch';
-import { Text } from '@oxyhq/bloom/typography';
-import { Admonition } from '@oxyhq/bloom/admonition';
+import { Switch } from '@oxy.so/bloom/switch';
+import { Text } from '@oxy.so/bloom/typography';
+import { Admonition } from '@oxy.so/bloom/admonition';
 import {
   Sparkle_Stroke2_Corner0_Rounded,
   Bot_Stroke,
   Reply,
-} from '@oxyhq/bloom/icons';
+} from '@oxy.so/bloom/icons';
 
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';

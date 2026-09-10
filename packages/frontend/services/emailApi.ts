@@ -7,7 +7,7 @@
  */
 
 import { z } from 'zod';
-import type { OxyServices } from '@oxyhq/core';
+import type { OxyServices } from '@oxy.so/core';
 
 // Runtime schemas + inferred types live in `@/schemas/emailSchemas`. They are
 // re-exported here so existing `@/services/emailApi` imports keep working.

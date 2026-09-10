@@ -10,9 +10,9 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { useOxy } from '@oxyhq/services';
-import { getNormalizedUserHandle } from '@oxyhq/core';
-import { SPACING as BLOOM_SPACING } from '@oxyhq/bloom/design-tokens';
+import { useOxy } from '@oxy.so/services';
+import { getNormalizedUserHandle } from '@oxy.so/core';
+import { SPACING as BLOOM_SPACING } from '@oxy.so/bloom/design-tokens';
 
 import { useColors } from '@/constants/theme';
 import { useDailyBrief } from '@/hooks/queries/useDailyBrief';

@@ -1,10 +1,10 @@
 import React, { useCallback } from 'react';
 import { View, StyleSheet, TouchableOpacity, Platform, Linking } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Card, CardHeader, CardBody } from '@oxyhq/bloom/card';
-import { Text } from '@oxyhq/bloom/typography';
-import { toast } from '@oxyhq/bloom';
-import { useTheme } from '@oxyhq/bloom/theme';
+import { Card, CardHeader, CardBody } from '@oxy.so/bloom/card';
+import { Text } from '@oxy.so/bloom/typography';
+import { toast } from '@oxy.so/bloom';
+import { useTheme } from '@oxy.so/bloom/theme';
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';
 import type { CardData } from '@/services/emailApi';

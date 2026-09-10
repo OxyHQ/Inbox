@@ -11,15 +11,15 @@
 
 import React, { useCallback } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Switch } from '@oxyhq/bloom/switch';
-import { SegmentedControl, SegmentedControlItem, SegmentedControlItemText } from '@oxyhq/bloom/segmented-control';
-import { Text } from '@oxyhq/bloom/typography';
-import { useTheme } from '@oxyhq/bloom/theme';
+import { Switch } from '@oxy.so/bloom/switch';
+import { SegmentedControl, SegmentedControlItem, SegmentedControlItemText } from '@oxy.so/bloom/segmented-control';
+import { Text } from '@oxy.so/bloom/typography';
+import { useTheme } from '@oxy.so/bloom/theme';
 import {
   Envelope_Stroke2_Corner0_Rounded,
   Eye_Stroke2_Corner0_Rounded,
   ArrowBoxLeft_Stroke2_Corner0_Rounded,
-} from '@oxyhq/bloom/icons';
+} from '@oxy.so/bloom/icons';
 
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';

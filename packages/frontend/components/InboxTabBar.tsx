@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useKeyboardState } from 'react-native-keyboard-controller';
-import { TabBar, TabBarButton, type TabBarItem } from '@oxyhq/bloom/tab-bar';
+import { TabBar, TabBarButton, type TabBarItem } from '@oxy.so/bloom/tab-bar';
 import {
   Envelope_Filled_Stroke2_Corner0_Rounded,
   Envelope_Stroke2_Corner0_Rounded,
@@ -9,7 +9,7 @@ import {
   MagnifyingGlass_Stroke2_Corner0_Rounded,
   SettingsGear2_Filled_Corner0_Rounded,
   SettingsGear2_Stroke2_Corner0_Rounded,
-} from '@oxyhq/bloom/icons';
+} from '@oxy.so/bloom/icons';
 import type { BottomTabBarProps } from 'expo-router/tabs';
 
 import { useSearchFocus } from '@/contexts/search-focus-context';

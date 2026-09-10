@@ -6,8 +6,8 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { useOxy } from '@oxyhq/services';
-import type { OxyServices } from '@oxyhq/core';
+import { useOxy } from '@oxy.so/services';
+import type { OxyServices } from '@oxy.so/core';
 import { aliaChatCompletion } from '@/services/aliaApi';
 import { aiKeys } from '@/hooks/queries/queryKeys';
 import { parseLlmJson, SmartRepliesSchema } from '@/schemas/aiSchemas';

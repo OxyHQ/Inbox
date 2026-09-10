@@ -1,4 +1,4 @@
-jest.mock('@oxyhq/bloom', () => ({
+jest.mock('@oxy.so/bloom', () => ({
   Dialog: () => null,
   toast: { error: jest.fn(), success: jest.fn() },
   useDialogControl: () => ({ open: jest.fn(), close: jest.fn() }),
@@ -13,7 +13,7 @@ jest.mock('react-native', () => ({
   TouchableOpacity: () => null,
   View: () => null,
 }));
-jest.mock('@oxyhq/services', () => ({ useOxy: jest.fn() }));
+jest.mock('@oxy.so/services', () => ({ useOxy: jest.fn() }));
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));

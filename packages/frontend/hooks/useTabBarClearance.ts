@@ -1,4 +1,4 @@
-import { useTabBarFootprint } from '@oxyhq/bloom/tab-bar';
+import { useTabBarFootprint } from '@oxy.so/bloom/tab-bar';
 
 import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 

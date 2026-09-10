@@ -2,9 +2,9 @@
  * Registering this installation with the Oxy push registry.
  *
  * Push is cross-cutting, so BOTH of its reusable halves belong to the SDK:
- * `@oxyhq/core` owns the bearer-authed transport (`registerPushToken` /
+ * `@oxy.so/core` owns the bearer-authed transport (`registerPushToken` /
  * `unregisterPushToken`, which validates the token shape before a request leaves
- * the client), and `@oxyhq/services` owns the `expo-notifications` adapter —
+ * the client), and `@oxy.so/services` owns the `expo-notifications` adapter —
  * permission, platform tag, EXPO push token — that core, barred from importing
  * any `expo-*` module, cannot host. Every Oxy app needs that adapter verbatim,
  * so no app keeps a copy of it.
@@ -25,19 +25,19 @@
  * gates on `canUsePrivateApi`).
  */
 
-import type { PushTokenPlatform, RegisterPushTokenInput } from '@oxyhq/core';
-import { INBOX_EMAIL_PUSH_CHANNEL } from '@oxyhq/contracts';
+import type { PushTokenPlatform, RegisterPushTokenInput } from '@oxy.so/core';
+import { INBOX_EMAIL_PUSH_CHANNEL } from '@oxy.so/contracts';
 import {
   ensureNotificationChannel,
   getExpoPushToken,
   pushTokenPlatform,
   requestNotificationPermission,
-} from '@oxyhq/services/notifications';
+} from '@oxy.so/services/notifications';
 
 import { OXY_CLIENT_ID } from '@/constants/oxy';
 
 /**
- * The `@oxyhq/core` surface this module drives, satisfied by `OxyServices`.
+ * The `@oxy.so/core` surface this module drives, satisfied by `OxyServices`.
  *
  * Only the register half: retiring a token is a single `unregisterPushToken`
  * call the caller already holds the token for, so it goes straight to the SDK

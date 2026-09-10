@@ -1,4 +1,4 @@
-import { INBOX_EMAIL_PUSH_TYPE } from '@oxyhq/contracts';
+import { INBOX_EMAIL_PUSH_TYPE } from '@oxy.so/contracts';
 
 import {
   __resetClaimedEmailMessageIds,

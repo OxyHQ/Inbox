@@ -9,7 +9,7 @@
 
 import type { ComponentType } from 'react';
 
-import type { Props as IconProps } from '@oxyhq/bloom/icons';
+import type { Props as IconProps } from '@oxy.so/bloom/icons';
 import {
   UserCircle_Stroke2_Corner0_Rounded,
   Contacts_Stroke2_Corner2_Rounded,
@@ -22,7 +22,7 @@ import {
   FloppyDisk_Stroke2_Corner0_Rounded,
   SettingsSliderVertical_Stroke2_Corner0_Rounded,
   CircleInfo_Stroke2_Corner0_Rounded,
-} from '@oxyhq/bloom/icons';
+} from '@oxy.so/bloom/icons';
 
 import type { SettingsTintKey } from './settings-tints';
 

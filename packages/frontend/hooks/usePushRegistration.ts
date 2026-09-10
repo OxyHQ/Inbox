@@ -2,7 +2,7 @@
  * Push-notification token registration.
  *
  * Wires the `pushNotifications` inbox preference to the SDK's push registry
- * (`oxyServices.registerPushToken` / `unregisterPushToken` from `@oxyhq/core`).
+ * (`oxyServices.registerPushToken` / `unregisterPushToken` from `@oxy.so/core`).
  * The registry is the ONE implementation for the whole ecosystem — an app-local
  * copy is how this app ended up registering raw APNs/FCM device tokens that the
  * server, which delivers through Expo, could never push to.
@@ -16,8 +16,8 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { useOxy } from '@oxyhq/services';
-import { logger } from '@oxyhq/core';
+import { useOxy } from '@oxy.so/services';
+import { logger } from '@oxy.so/core';
 
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
 import { useTranslation } from '@/lib/i18n';

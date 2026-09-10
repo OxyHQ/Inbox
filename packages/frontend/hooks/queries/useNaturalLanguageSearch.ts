@@ -9,7 +9,7 @@
  */
 
 import { useMutation } from '@tanstack/react-query';
-import { useOxy } from '@oxyhq/services';
+import { useOxy } from '@oxy.so/services';
 import { aliaChatCompletion } from '@/services/aliaApi';
 import { aiKeys } from '@/hooks/queries/queryKeys';
 import { parseLlmJson, NaturalLanguageSearchSchema } from '@/schemas/aiSchemas';

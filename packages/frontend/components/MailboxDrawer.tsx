@@ -17,13 +17,13 @@ import {
   Platform,
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useOxy, OxySignInButton, openAccountDialog, ProfileButton } from '@oxyhq/services';
-import { Dialog, useDialogControl } from '@oxyhq/bloom';
-import { Button } from '@oxyhq/bloom/button';
+import { useOxy, OxySignInButton, openAccountDialog, ProfileButton } from '@oxy.so/services';
+import { Dialog, useDialogControl } from '@oxy.so/bloom';
+import { Button } from '@oxy.so/bloom/button';
 import { useRouter, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
-import { Badge } from '@oxyhq/bloom/badge';
+import { Badge } from '@oxy.so/bloom/badge';
 import {
   InboxIcon,
   SentIcon,
@@ -44,7 +44,7 @@ import {
   Add01Icon,
 } from '@hugeicons/core-free-icons';
 import { useColors } from '@/constants/theme';
-import { Divider } from '@oxyhq/bloom/divider';
+import { Divider } from '@oxy.so/bloom/divider';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { useEmailStore } from '@/hooks/useEmail';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';

@@ -15,12 +15,12 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Button } from '@oxyhq/bloom/button';
-import { Switch } from '@oxyhq/bloom/switch';
-import { Text } from '@oxyhq/bloom/typography';
-import { useTheme } from '@oxyhq/bloom/theme';
-import { Admonition } from '@oxyhq/bloom/admonition';
-import { Dialog, useDialogControl, toast } from '@oxyhq/bloom';
+import { Button } from '@oxy.so/bloom/button';
+import { Switch } from '@oxy.so/bloom/switch';
+import { Text } from '@oxy.so/bloom/typography';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { Admonition } from '@oxy.so/bloom/admonition';
+import { Dialog, useDialogControl, toast } from '@oxy.so/bloom';
 import {
   UserCircle_Stroke2_Corner0_Rounded,
   MagnifyingGlass_Stroke2_Corner0_Rounded,
@@ -28,7 +28,7 @@ import {
   Trash_Stroke2_Corner0_Rounded,
   PlusSmall_Stroke2_Corner0_Rounded,
   CircleCheck_Stroke2_Corner0_Rounded,
-} from '@oxyhq/bloom/icons';
+} from '@oxy.so/bloom/icons';
 
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';

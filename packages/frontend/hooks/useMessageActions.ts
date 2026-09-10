@@ -8,8 +8,8 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import { useOxy } from '@oxyhq/services';
-import { toast } from '@oxyhq/bloom';
+import { useOxy } from '@oxy.so/services';
+import { toast } from '@oxy.so/bloom';
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
 import { useEmailStore } from '@/hooks/useEmail';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';

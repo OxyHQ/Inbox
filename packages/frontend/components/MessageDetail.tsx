@@ -19,9 +19,9 @@ import {
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
-import { Loading } from '@oxyhq/bloom/loading';
-import { Chip } from '@oxyhq/bloom/chip';
-import { Dialog, useDialogControl, toast } from '@oxyhq/bloom';
+import { Loading } from '@oxy.so/bloom/loading';
+import { Chip } from '@oxy.so/bloom/chip';
+import { Dialog, useDialogControl, toast } from '@oxy.so/bloom';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import {
@@ -43,7 +43,7 @@ import {
 } from '@hugeicons/core-free-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePathname } from 'expo-router';
-import { useOxy } from '@oxyhq/services';
+import { useOxy } from '@oxy.so/services';
 
 import { useGoBack } from '@/hooks/useGoBack';
 import { useTabBarClearance } from '@/hooks/useTabBarClearance';

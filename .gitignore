@@ -13,7 +13,7 @@ web-build/
 # Generated into public/ by `bun run build` (packages/frontend/scripts/
 # write-pages-headers.ts) and copied verbatim into dist/ by `expo export`.
 # Ignored so a build never dirties the tree — and so the CSP keeps tracking
-# @oxyhq/core's baseline instead of becoming a checked-in fork of it.
+# @oxy.so/core's baseline instead of becoming a checked-in fork of it.
 **/public/_headers
 
 # Expo

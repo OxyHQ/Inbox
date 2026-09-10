@@ -12,13 +12,13 @@
  * The policy is NOT defined here. `buildOxyPagesHeaders` is the single source
  * of truth for the Oxy CSP baseline — the Cloudflare Insights beacon (both the
  * script origin and the reporting origin), api.oxy.so, wss://api.oxy.so and
- * cloud.oxy.so — and it lives in `@oxyhq/core/server`, so this origin cannot
+ * cloud.oxy.so — and it lives in `@oxy.so/core/server`, so this origin cannot
  * drift from every other Oxy document origin. Extensions that are genuinely
  * this app's (worker-src for public/sw.js, img-src blob:/https: for remote mail
  * images) stay declarative in `oxy.pages-headers.json`.
  *
  * In OxyHQServices this step was `bun ../core/scripts/writePagesHeaders.ts
- * public`, reaching across a package boundary into a file @oxyhq/core does not
+ * public`, reaching across a package boundary into a file @oxy.so/core does not
  * publish (its `files` is ["NOTICE","dist","src"] — `scripts/` is not in it).
  * Same twenty lines, against the published entry point instead. Vendoring
  * `securityHeaders.ts` was rejected: a local copy re-creates exactly the
@@ -32,7 +32,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildOxyPagesHeaders, type OxyPagesHeadersOptions } from '@oxyhq/core/server';
+import { buildOxyPagesHeaders, type OxyPagesHeadersOptions } from '@oxy.so/core/server';
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const outputDir = resolve(projectRoot, process.argv[2] ?? 'public');

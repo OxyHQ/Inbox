@@ -7,15 +7,15 @@
  * mailbox unread badges update without a follow-up HTTP fetch.
  *
  * Follows the same strict-whitelist pattern as `useSessionSocket` in
- * `@oxyhq/services` — unknown events log a dev warning and are otherwise
+ * `@oxy.so/services` — unknown events log a dev warning and are otherwise
  * a no-op. Never add an `else` branch that triggers side effects.
  */
 
 import { useEffect, useRef } from 'react';
 import io, { type Socket } from 'socket.io-client';
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
-import { toast } from '@oxyhq/bloom';
-import { useOxy } from '@oxyhq/services';
+import { toast } from '@oxy.so/bloom';
+import { useOxy } from '@oxy.so/services';
 
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';

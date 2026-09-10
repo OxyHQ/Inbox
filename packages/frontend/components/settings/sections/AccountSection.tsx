@@ -16,21 +16,21 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Avatar } from '@oxyhq/bloom/avatar';
-import { Button } from '@oxyhq/bloom/button';
-import { Switch } from '@oxyhq/bloom/switch';
-import { SettingsListGroup, SettingsListItem } from '@oxyhq/bloom/settings-list';
-import { Text } from '@oxyhq/bloom/typography';
-import { useTheme } from '@oxyhq/bloom/theme';
-import { Dialog, useDialogControl, toast } from '@oxyhq/bloom';
+import { Avatar } from '@oxy.so/bloom/avatar';
+import { Button } from '@oxy.so/bloom/button';
+import { Switch } from '@oxy.so/bloom/switch';
+import { SettingsListGroup, SettingsListItem } from '@oxy.so/bloom/settings-list';
+import { Text } from '@oxy.so/bloom/typography';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { Dialog, useDialogControl, toast } from '@oxy.so/bloom';
 import {
   Pencil_Stroke2_Corner0_Rounded,
   ArrowBoxLeft_Stroke2_Corner0_Rounded,
   ArrowOutOfBox_Stroke2_Corner0_Rounded,
   PaperPlane_Stroke2_Corner0_Rounded,
-} from '@oxyhq/bloom/icons';
-import { getNormalizedUserHandle } from '@oxyhq/core';
-import { useOxy } from '@oxyhq/services';
+} from '@oxy.so/bloom/icons';
+import { getNormalizedUserHandle } from '@oxy.so/core';
+import { useOxy } from '@oxy.so/services';
 
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';

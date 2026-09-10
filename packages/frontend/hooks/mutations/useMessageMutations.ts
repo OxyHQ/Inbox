@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from '@oxyhq/bloom';
-import { useOxy } from '@oxyhq/services';
+import { toast } from '@oxy.so/bloom';
+import { useOxy } from '@oxy.so/services';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import { INBOX_MUTATION_KEYS } from '@/hooks/queries/queryClient';

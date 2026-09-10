@@ -71,7 +71,7 @@ export function SmartReplyChips({ message, onSelectReply }: SmartReplyChipsProps
           </Text>
         </TouchableOpacity>
         <Text style={[styles.privacyText, { color: colors.secondaryText }]}>
-          Sends this email to Alia after a sensitive-content check.
+          Oxy checks for sensitive content before sending bounded email context to Kaana.
         </Text>
       </View>
     );

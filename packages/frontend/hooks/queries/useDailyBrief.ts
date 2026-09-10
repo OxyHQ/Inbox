@@ -8,26 +8,9 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useOxy } from '@oxy.so/services';
-import { streamAliaChatCompletion, type AliaMessage } from '@/services/aliaApi';
-import type { Message } from '@/services/emailApi';
+import { inboxLocalDayWindow, streamInboxDailyBrief } from '@/services/inboxInferenceApi';
 
 const BRIEF_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
-const SYSTEM_PROMPT = `You are Alia, an AI email assistant built into the Inbox app.
-
-Generate a concise daily brief (2-4 sentences) using only aggregate inbox counts. Do not claim to know sender names, subject lines, message contents, deadlines, or action items because those private details are not provided. Be warm but efficient — no greetings, no sign-offs, just the brief. Write in second person ("You have...").`;
-
-function buildPrompt(messages: Message[]): AliaMessage[] {
-  const unreadCount = messages.filter((m) => !m.flags.seen).length;
-  const starredCount = messages.filter((m) => m.flags.starred).length;
-  const attachmentCount = messages.filter((m) => m.attachments.length > 0).length;
-
-  const userMessage = `Recent inbox counts: ${messages.length} total emails, ${unreadCount} unread, ${starredCount} starred, ${attachmentCount} with attachments. Write a brief daily summary for this inbox using only these aggregate counts.`;
-
-  return [
-    { role: 'system' as const, content: SYSTEM_PROMPT },
-    { role: 'user' as const, content: userMessage },
-  ];
-}
 
 export interface UseDailyBriefOptions {
   /** When false, the hook does no work — used to honor the `aiBrief` pref. */
@@ -36,13 +19,14 @@ export interface UseDailyBriefOptions {
   autoGenerate?: boolean;
 }
 
-export function useDailyBrief(messages: Message[], options: UseDailyBriefOptions = {}) {
+export function useDailyBrief(options: UseDailyBriefOptions = {}) {
   const { enabled = true, autoGenerate = false } = options;
   const queryClient = useQueryClient();
   const { oxyServices, user } = useOxy();
 
-  // Re-read the day so an app left open across midnight gets a fresh slot.
-  const day = new Date().toISOString().slice(0, 10);
+  // The API receives the exact UTC instants bounding the user's local calendar
+  // day. This remains correct across 23/25-hour daylight-saving transitions.
+  const { day, startAt, endAt } = inboxLocalDayWindow();
   const userId = user?.id ?? null;
   // Briefs contain private account-derived counts, so a same-day account
   // switch must never reuse another account's cache entry.
@@ -108,71 +92,77 @@ export function useDailyBrief(messages: Message[], options: UseDailyBriefOptions
       runControllerRef.current?.abort();
       runControllerRef.current = controller;
 
-      const prompt = buildPrompt(messages);
       let accumulated = '';
 
-      for await (const delta of streamAliaChatCompletion(
-        oxyServices.httpService,
-        {
-          model: 'alia-lite',
-          messages: prompt,
-          maxTokens: 300,
-          temperature: 0.7,
-        },
-        controller.signal,
-      )) {
-        accumulated += delta;
-        // Commit at most once per frame so the list header is not remeasured
-        // once per streamed token.
-        if (pendingFrameRef.current === null) {
-          pendingFrameRef.current = requestAnimationFrame(() => {
-            pendingFrameRef.current = null;
-            if (!unmountedRef.current) setBriefState({ scope: generationKey, text: accumulated });
-          });
+      try {
+        for await (const delta of streamInboxDailyBrief(
+          oxyServices.httpService,
+          { startAt, endAt },
+          controller.signal,
+        )) {
+          accumulated += delta;
+          // Commit at most once per frame so the list header is not remeasured
+          // once per streamed token.
+          if (pendingFrameRef.current === null) {
+            pendingFrameRef.current = requestAnimationFrame(() => {
+              pendingFrameRef.current = null;
+              if (!unmountedRef.current) setBriefState({ scope: generationKey, text: accumulated });
+            });
+          }
         }
+
+        if (pendingFrameRef.current !== null) {
+          cancelAnimationFrame(pendingFrameRef.current);
+          pendingFrameRef.current = null;
+        }
+        if (!accumulated) throw new Error('Inbox AI returned an empty brief');
+        if (!unmountedRef.current) setBriefState({ scope: generationKey, text: accumulated });
+
+        queryClient.setQueryDefaults(cacheKey, {
+          staleTime: BRIEF_CACHE_TTL,
+          gcTime: BRIEF_CACHE_TTL,
+        });
+        queryClient.setQueryData(cacheKey, accumulated, { updatedAt: Date.now() });
+
+        return accumulated;
+      } catch (error) {
+        if (pendingFrameRef.current !== null) {
+          cancelAnimationFrame(pendingFrameRef.current);
+          pendingFrameRef.current = null;
+        }
+        // A truncated or rejected stream is not a valid brief. Do not leave
+        // partial model output looking like a completed account summary.
+        if (!unmountedRef.current) setBriefState({ scope: generationKey, text: '' });
+        throw error;
+      } finally {
+        if (runControllerRef.current === controller) runControllerRef.current = null;
       }
-
-      if (pendingFrameRef.current !== null) {
-        cancelAnimationFrame(pendingFrameRef.current);
-        pendingFrameRef.current = null;
-      }
-      if (!unmountedRef.current) setBriefState({ scope: generationKey, text: accumulated });
-
-      if (!accumulated) throw new Error('Alia returned an empty brief');
-
-      queryClient.setQueryDefaults(cacheKey, {
-        staleTime: BRIEF_CACHE_TTL,
-        gcTime: BRIEF_CACHE_TTL,
-      });
-      queryClient.setQueryData(cacheKey, accumulated, { updatedAt: Date.now() });
-
-      return accumulated;
     },
   });
 
   const { mutate: runGenerate, isPending } = generateMutation;
 
-  const generate = useCallback(() => {
-    if (!enabled || messages.length === 0 || !userId || isPending) return;
+  const generate = useCallback((): boolean => {
+    if (!enabled || !userId || isPending) return false;
 
     const cached = queryClient.getQueryData<string>(cacheKey);
     if (cached) {
       setBriefState({ scope: generationKey, text: cached });
-      return;
+      return true;
     }
 
     setBriefState({ scope: generationKey, text: '' });
     runGenerate();
-  }, [cacheKey, enabled, generationKey, isPending, messages, queryClient, runGenerate, userId]);
+    return true;
+  }, [cacheKey, enabled, generationKey, isPending, queryClient, runGenerate, userId]);
 
   // A caller may opt into one automatic attempt after opening the brief. The
   // user/day guard prevents pagination and refetches from starting another.
   useEffect(() => {
-    if (!autoGenerate || !enabled || messages.length === 0 || !generationKey) return;
+    if (!autoGenerate || !enabled || !generationKey) return;
     if (autoGeneratedForRef.current === generationKey) return;
-    autoGeneratedForRef.current = generationKey;
-    generate();
-  }, [autoGenerate, enabled, generate, generationKey, messages.length]);
+    if (generate()) autoGeneratedForRef.current = generationKey;
+  }, [autoGenerate, enabled, generate, generationKey]);
 
   const regenerate = useCallback(() => {
     queryClient.removeQueries({ queryKey: cacheKey });

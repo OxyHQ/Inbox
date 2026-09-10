@@ -10,9 +10,8 @@
 
 import { useMutation } from '@tanstack/react-query';
 import { useOxy } from '@oxy.so/services';
-import { aliaChatCompletion } from '@/services/aliaApi';
+import { runInboxNaturalSearch } from '@/services/inboxInferenceApi';
 import { aiKeys } from '@/hooks/queries/queryKeys';
-import { parseLlmJson, NaturalLanguageSearchSchema } from '@/schemas/aiSchemas';
 
 export interface ParsedSearchQuery {
   q?: string;
@@ -32,35 +31,6 @@ export interface NaturalLanguageSearchResult {
   interpretation: string;
 }
 
-const SEARCH_PARSE_PROMPT_PREFIX = `You are an email search assistant. Parse the user's natural language query into structured search parameters.
-
-Output a JSON object with these optional fields:
-- q: General search text (keywords, phrases)
-- from: Sender email or name
-- to: Recipient email or name
-- subject: Subject line keywords
-- hasAttachment: true if looking for emails with attachments
-- starred: true if looking for starred emails
-- unread: true if looking for unread emails, false for read emails
-- after: Date string (YYYY-MM-DD) for emails after this date
-- before: Date string (YYYY-MM-DD) for emails before this date
-- mailbox: "inbox", "sent", "drafts", "trash", "spam", "archive"
-- interpretation: A brief human-readable interpretation of the query
-
-For relative dates like "last week", "yesterday", "this month", calculate the actual date from today's date.
-
-Examples:
-"emails from Sarah last week" → {"from":"sarah","after":"2025-01-27","interpretation":"Emails from Sarah in the last 7 days"}
-"unread emails about the budget proposal" → {"q":"budget proposal","unread":true,"interpretation":"Unread emails mentioning budget proposal"}
-"attachments I received yesterday" → {"hasAttachment":true,"after":"2025-02-03","before":"2025-02-04","interpretation":"Emails with attachments from yesterday"}
-
-Respond with ONLY the JSON object, nothing else.`;
-
-function buildSearchParsePrompt(): string {
-  const today = new Date().toISOString().split('T')[0];
-  return `${SEARCH_PARSE_PROMPT_PREFIX}\nToday's date is: ${today}`;
-}
-
 export function useNaturalLanguageSearch() {
   const { oxyServices } = useOxy();
 
@@ -78,31 +48,15 @@ export function useNaturalLanguageSearch() {
         return { query: { q: naturalLanguage }, interpretation: 'Using search operators' };
       }
 
-      const response = await aliaChatCompletion(oxyServices.httpService, {
-        model: 'alia-lite',
-        messages: [
-          { role: 'system', content: buildSearchParsePrompt() },
-          { role: 'user', content: naturalLanguage },
-        ],
-        maxTokens: 200,
-        temperature: 0.3,
-      });
-
-      // Validate the model's JSON. On any failure, fall back to a plain text
-      // search so the user still gets results.
-      const parsed = parseLlmJson(response, NaturalLanguageSearchSchema);
-      if (!parsed) {
+      try {
+        return await runInboxNaturalSearch(oxyServices.httpService, naturalLanguage);
+      } catch (error: unknown) {
+        if (error instanceof Error && error.name === 'AbortError') throw error;
         return {
           query: { q: naturalLanguage },
           interpretation: `Searching for "${naturalLanguage}"`,
         };
       }
-
-      const { interpretation, ...query } = parsed;
-      return {
-        query: query as ParsedSearchQuery,
-        interpretation: interpretation || 'Searching...',
-      };
     },
   });
 

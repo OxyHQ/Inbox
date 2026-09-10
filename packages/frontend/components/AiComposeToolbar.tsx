@@ -8,7 +8,7 @@
  * - Tone dropdown - Professional, Casual, Friendly, Formal
  */
 
-import React, { useState, useCallback, type ComponentProps } from 'react';
+import React, { useState, useCallback, useEffect, useRef, type ComponentProps } from 'react';
 import {
   View,
   Text,
@@ -50,11 +50,19 @@ const TONE_OPTIONS: { value: ComposeTone; label: string; icon: MaterialCommunity
 export function AiComposeToolbar({ body, onBodyChange, onSubjectSuggested }: AiComposeToolbarProps) {
   const colors = useColors();
   const { streamDraft, polish, changeTone, adjustLength, suggestSubject, isLoading } = useAiCompose();
+  const mountedRef = useRef(false);
 
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [showToneMenu, setShowToneMenu] = useState(false);
   const [draftPrompt, setDraftPrompt] = useState('');
   const [selectedTone, setSelectedTone] = useState<ComposeTone>('professional');
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const hasBody = body.trim().length > 0;
 
@@ -74,10 +82,16 @@ export function AiComposeToolbar({ body, onBodyChange, onSubjectSuggested }: AiC
       await streamDraft(draftPrompt, selectedTone, (text) => {
         onBodyChange(text);
       });
-    } catch {
-      // Error handled by hook
+    } catch (error: unknown) {
+      // A rejected/truncated stream is not a valid draft. Restore the exact
+      // body that was present before generation instead of leaving partial AI
+      // output in a sendable composer. An abort belongs to an unmounted or
+      // superseded request and must not race a replacement draft.
+      if (mountedRef.current && (!(error instanceof Error) || error.name !== 'AbortError')) {
+        onBodyChange(body);
+      }
     }
-  }, [draftPrompt, selectedTone, streamDraft, onBodyChange]);
+  }, [body, draftPrompt, selectedTone, streamDraft, onBodyChange]);
 
   // Handler for "Polish" button
   const handlePolish = useCallback(async () => {
@@ -85,7 +99,8 @@ export function AiComposeToolbar({ body, onBodyChange, onSubjectSuggested }: AiC
     try {
       const polished = await polish(body);
       onBodyChange(polished);
-    } catch {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') return;
       // Error handled by hook
     }
   }, [body, hasBody, polish, onBodyChange]);
@@ -96,7 +111,8 @@ export function AiComposeToolbar({ body, onBodyChange, onSubjectSuggested }: AiC
     try {
       const shorter = await adjustLength(body, 'shorter');
       onBodyChange(shorter);
-    } catch {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') return;
       // Error handled by hook
     }
   }, [body, hasBody, adjustLength, onBodyChange]);
@@ -109,7 +125,8 @@ export function AiComposeToolbar({ body, onBodyChange, onSubjectSuggested }: AiC
     try {
       const rewritten = await changeTone(body, tone);
       onBodyChange(rewritten);
-    } catch {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') return;
       // Error handled by hook
     }
   }, [body, hasBody, changeTone, onBodyChange]);
@@ -120,7 +137,8 @@ export function AiComposeToolbar({ body, onBodyChange, onSubjectSuggested }: AiC
     try {
       const subject = await suggestSubject(body);
       onSubjectSuggested(subject);
-    } catch {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') return;
       // Error handled by hook
     }
   }, [body, hasBody, suggestSubject, onSubjectSuggested]);
@@ -235,7 +253,7 @@ export function AiComposeToolbar({ body, onBodyChange, onSubjectSuggested }: AiC
             </View>
 
             <Text style={[styles.modalSubtitle, { color: colors.secondaryText }]}>
-              Describe what you want to say, and Alia will draft it for you.
+              Describe what you want to say, and AI will draft it for you.
             </Text>
 
             <TextInput

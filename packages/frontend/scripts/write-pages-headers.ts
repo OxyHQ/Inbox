@@ -14,8 +14,9 @@
  * script origin and the reporting origin), api.oxy.so, wss://api.oxy.so and
  * cloud.oxy.so — and it lives in `@oxy.so/core/server`, so this origin cannot
  * drift from every other Oxy document origin. Extensions that are genuinely
- * this app's (worker-src for public/sw.js, img-src blob:/https: for remote mail
- * images) stay declarative in `oxy.pages-headers.json`.
+ * this app's (the Alia agent API, worker-src for public/sw.js and img-src
+ * blob:/https: for remote mail images) stay declarative in
+ * `oxy.pages-headers.json`.
  *
  * In OxyHQServices this step was `bun ../core/scripts/writePagesHeaders.ts
  * public`, reaching across a package boundary into a file @oxy.so/core does not

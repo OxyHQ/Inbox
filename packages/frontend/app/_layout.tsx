@@ -248,6 +248,8 @@ function RootEffects() {
   // Inject Bloom Dialog CSS keyframe animations on web
   useEffect(() => {
     if (Platform.OS !== 'web') return;
+    const head = document.head;
+    if (!head) return;
     const style = document.createElement('style');
     style.textContent = [
       '@keyframes bloomDialogFadeIn { from { opacity: 0; } to { opacity: 1; } }',
@@ -255,8 +257,8 @@ function RootEffects() {
       '@keyframes bloomDialogZoomFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }',
       '@keyframes bloomDialogZoomFadeOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.95); } }',
     ].join('\n');
-    document.head.appendChild(style);
-    return () => { document.head.removeChild(style); };
+    head.appendChild(style);
+    return () => { style.remove(); };
   }, []);
 
   return null;

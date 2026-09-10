@@ -37,16 +37,15 @@ describe('email HTML security boundary', () => {
     expect((html.match(/https:\/\/api\.example\/email\/proxy\?url=/g) ?? []).length).toBe(2);
   });
 
-  it('resolves conventional favicons by hostname through the privacy proxy', () => {
+  it('resolves conventional favicons through Clarity without sending email data', () => {
     const html = proxyExternalImages(
       '<img src="https://example.com/favicon.ico">',
       'https://api.example/email/proxy',
     );
 
-    expect(html).toContain('/email/proxy');
-    const encoded = new URL(html.match(/src="([^"]+)/)?.[1] ?? '').searchParams.get('url');
-    expect(Buffer.from(encoded ?? '', 'base64').toString('utf8')).toBe(
-      'https://www.google.com/s2/favicons?sz=64&domain_url=example.com',
+    expect(html).not.toContain('/email/proxy');
+    expect(html).toContain(
+      'src="https://www.google.com/s2/favicons?sz=64&domain_url=example.com"',
     );
   });
 

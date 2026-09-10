@@ -1,18 +1,4 @@
-/**
- * Theme preference store.
- *
- * Holds the user's light/dark/system preference AND the active Bloom
- * color preset (e.g. `blue`, `oxy`, `green`...). Both preferences are
- * persisted to localStorage on web and AsyncStorage on native.
- *
- * The actual `BloomThemeProvider` is mounted by `OxyProvider`
- * (`@oxy.so/services`) which shadows any outer Bloom context. Consumers
- * pass these preferences into `OxyProvider` via its `themeMode` and
- * `colorPreset` props so the inbox tracks the user's selection in real
- * time. Components read the resolved theme through `useTheme()` from
- * `@oxy.so/bloom/theme`. The Settings page reads/writes the preferences
- * through `useThemeContext()`.
- */
+/** Persisted light/dark mode and Bloom color preset. */
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';

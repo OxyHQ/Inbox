@@ -152,27 +152,25 @@ jobs:
       # production.
       - name: inbox.oxy.so is serving this build
         run: |
-          # `set +e` because GitHub runs this with `bash -e {0}`: the retry loop
-          # is built out of commands that are EXPECTED to fail while the edge
-          # propagates, and errexit would kill the step on the first miss
-          # instead of retrying — reporting a propagation delay as a broken
-          # deploy.
           set +e
           set -uo pipefail
-          for attempt in 1 2 3 4 5; do
-            echo "::group::smoke ${attempt}/5"
-            html=$(curl -sS --max-time 20 https://inbox.oxy.so/ || true)
+          expected_entry=$(grep -o '_expo/static/js/web/entry-[^"]*\.js' packages/frontend/dist/index.html | head -1)
+          [ -n "$expected_entry" ] || { echo "::error::built index has no entry bundle"; exit 1; }
+          for attempt in {1..12}; do
+            echo "::group::smoke ${attempt}/12"
+            html=$(curl -sS --max-time 20 "https://inbox.oxy.so/?build=${GITHUB_SHA}" || true)
             csp=$(curl -sSI --max-time 20 https://inbox.oxy.so/ | tr -d '\r' | grep -i '^content-security-policy:' || true)
             if echo "$html" | grep -q 'Inbox by Oxy' \
-               && echo "$html" | grep -q '_expo/static/css/global-' \
+               && echo "$html" | grep -qF "$expected_entry" \
                && [ -n "$csp" ]; then
-              echo "::endgroup::"; echo "OK"; exit 0
+              echo "::endgroup::"; echo "OK: $expected_entry"; exit 0
             fi
+            echo "expected: $expected_entry"
             echo "title: $(echo "$html" | grep -o '<title>[^<]*</title>' || echo MISSING)"
-            echo "css:   $(echo "$html" | grep -o '_expo/static/css/global-[^\"]*' || echo MISSING)"
+            echo "entry: $(echo "$html" | grep -o '_expo/static/js/web/entry-[^\"]*' || echo MISSING)"
             echo "csp:   ${csp:-MISSING}"
             echo "::endgroup::"
-            [ "$attempt" -lt 5 ] && sleep 15
+            [ "$attempt" -lt 12 ] && sleep 10
           done
-          echo "::error::inbox.oxy.so is not serving a complete build"
+          echo "::error::inbox.oxy.so is not serving the bundle built by this run"
           exit 1

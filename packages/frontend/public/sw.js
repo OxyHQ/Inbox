@@ -25,7 +25,7 @@
  * event; any legacy API cache is deleted there as well.
  */
 
-const CACHE_NAME = 'inbox-v1';
+const CACHE_NAME = 'inbox-v2';
 
 // App shell files cached on install. Keep this list short — large entries
 // here block the install step. Anything else gets cached on first fetch.

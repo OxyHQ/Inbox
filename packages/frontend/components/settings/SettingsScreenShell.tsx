@@ -16,10 +16,8 @@
 
 import React from 'react';
 import {
-  Platform,
   StyleSheet,
   View,
-  useWindowDimensions,
 } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -32,6 +30,7 @@ import { useGoBack } from '@/hooks/useGoBack';
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';
 import { useTabBarClearance } from '@/hooks/useTabBarClearance';
+import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 
 interface SettingsScreenShellProps {
   title: string;
@@ -44,8 +43,6 @@ interface SettingsScreenShellProps {
   children: React.ReactNode;
 }
 
-const DESKTOP_BREAKPOINT = 900;
-
 export function SettingsScreenShell({
   title,
   subtitle,
@@ -55,21 +52,16 @@ export function SettingsScreenShell({
 }: SettingsScreenShellProps) {
   const insets = useSafeAreaInsets();
   const tabBarClearance = useTabBarClearance();
+  const isDesktopLayout = useIsDesktopLayout();
   const minimizeTabBarOnScroll = useMinimizeOnScroll();
-  const { width } = useWindowDimensions();
   const colors = useColors();
   const { t } = useTranslation();
-  const isDesktop = Platform.OS === 'web' && width >= DESKTOP_BREAKPOINT;
-
-  // On desktop the sidebar is permanent and provides the back affordance, so
-  // we hide the back chevron there. On mobile we always show it for browsers
-  // and native alike.
-  const showBack = !isDesktop;
+  const showBack = !isDesktopLayout;
 
   const handleBack = useGoBack('/settings');
 
-  const headerTopPad = isDesktop ? 0 : insets.top;
-  const contentBottomPad = tabBarClearance + 32;
+  const headerTopPad = isDesktopLayout ? 0 : insets.top;
+  const contentBottomPad = isDesktopLayout ? 0 : tabBarClearance + 32;
   const horizontalLandscapePad = Math.max(insets.left, insets.right);
 
   const body = (

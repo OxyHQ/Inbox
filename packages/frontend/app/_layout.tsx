@@ -1,5 +1,3 @@
-// Tailwind v4 + NativeWind entry — compiles className utilities for web so
-// @oxy.so/services screens (FileManagement, etc.) render layout correctly.
 import '../global.css';
 
 import { Stack, ThemeProvider } from 'expo-router';
@@ -14,7 +12,8 @@ import { OxyProvider, useOxy, RequireOxyAuth } from '@oxy.so/services';
 import { toast } from '@oxy.so/bloom';
 import { ImageResolverProvider } from '@oxy.so/bloom/image-resolver';
 import type { ImageResolver } from '@oxy.so/bloom/image-resolver';
-import { BloomThemeProvider, useNavigationTheme } from '@oxy.so/bloom/theme';
+import { BloomProvider } from '@oxy.so/bloom/provider';
+import { useNavigationTheme } from '@oxy.so/bloom/theme';
 import type { ThemeMode } from '@oxy.so/bloom/theme';
 import { PortalProvider, PortalOutlet } from '@oxy.so/bloom/portal';
 import { ConnectionStatusToasts } from '@oxy.so/bloom/connection-status';
@@ -34,13 +33,8 @@ import { clearQueue } from '@/utils/offlineQueue';
 import { OXY_CLIENT_ID, OXY_AUTH_REDIRECT_URI } from '@/constants/oxy';
 import * as SplashScreen from 'expo-splash-screen';
 
-// Hide the native splash immediately on import. Font loading is owned entirely
-// by `BloomThemeProvider`'s `FontLoader`, which gates its own subtree and
-// applies the default family via `Text.defaultProps` once the bundled families
-// are ready. No artificial wait is required here before unhiding the splash.
 SplashScreen.hideAsync().catch(() => {
-  // hideAsync rejects if the splash has already been hidden (e.g. during a
-  // fast-refresh re-import). The state is idempotent, so swallow this case.
+  // Already hidden during a fast-refresh re-import.
 });
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://api.oxy.so';
@@ -57,21 +51,13 @@ export default function RootLayout() {
   );
 }
 
-/**
- * Reads the persisted theme preferences from `AppThemeProvider` and feeds
- * them into `BloomThemeProvider`, which owns the react-navigation theme
- * (via `useNavigationTheme`) AND the resolved colors consumed throughout
- * the tree. `OxyProvider` does NOT mount its own `BloomThemeProvider`
- * (see `packages/services/src/ui/components/OxyProvider.tsx`), so this is
- * the single source of truth.
- */
 function ThemedRoot() {
   const { themePreference, colorPreset } = useThemeContext();
   const themeMode = themePreference as ThemeMode;
   return (
-    <BloomThemeProvider mode={themeMode} colorPreset={colorPreset}>
+    <BloomProvider mode={themeMode} colorPreset={colorPreset}>
       <RootLayoutContent />
-    </BloomThemeProvider>
+    </BloomProvider>
   );
 }
 
@@ -80,37 +66,14 @@ function RootLayoutContent() {
 
   return (
     <KeyboardProvider>
-      {/*
-        LocaleProvider sits INSIDE OxyProvider so it can read the signed-in
-        user's `language` preference via `useOxy()` and seed the initial
-        locale accordingly. Persisted overrides flow through AsyncStorage.
-
-        The app's `queryClient` is handed to `OxyProvider`, which owns the
-        single `QueryClientProvider` for the tree. Passing it here (rather than
-        wrapping OxyProvider in an outer provider) guarantees the SDK's account
-        hooks and the app's email hooks share ONE cache, so a render-time reset
-        in `RootEffects` actually clears the data the UI reads.
-      */}
       <OxyProvider baseURL={API_URL} clientId={OXY_CLIENT_ID} authRedirectUri={OXY_AUTH_REDIRECT_URI} queryClient={queryClient}>
         <InboxCacheRestoreGate>
           <BloomImageResolver>
             <LocaleProvider>
-              {/* No `<SafeAreaProvider>` here: `OxyProvider` above mounts one
-                  (on both the ready and the boot-shell path), so a second,
-                  deeper one only re-measures the same full-screen frame. */}
               <PortalProvider>
                 <ThemeProvider value={navTheme}>
                   <ConnectionStatusToasts />
                   <RootEffects />
-                  {/*
-                    The whole app is gated behind the shared SDK signed-out wall
-                    (`RequireOxyAuth prompt="hard"`). It replaces the former
-                    hand-rolled sign-in gate: it blocks the navigator until the
-                    device-first cold boot resolves a session, shows a neutral
-                    loading state while pending (never flashes the wall), and its
-                    primary CTA opens the ONE shared account dialog. See
-                    `GatedNavigator` for the localized copy.
-                  */}
                   <GatedNavigator />
                   <StatusBar style="auto" />
                 </ThemeProvider>
@@ -124,13 +87,6 @@ function RootLayoutContent() {
   );
 }
 
-/**
- * The app navigator, gated behind the shared SDK signed-out wall. `RequireOxyAuth`
- * (prompt="hard") keys on the SDK readiness state so it renders a neutral loading
- * state until the device-first cold boot resolves, then either mounts the
- * navigator (signed in) or the centered signed-out wall whose CTA opens the ONE
- * account dialog. Lives under `LocaleProvider` so the localized copy resolves.
- */
 function GatedNavigator() {
   const { t } = useTranslation();
   return (
@@ -143,11 +99,6 @@ function GatedNavigator() {
   );
 }
 
-/**
- * Block the mail UI until the persisted TanStack Query cache has been hydrated.
- * OxyProvider skips persistence restore when a host `queryClient` is supplied,
- * so Inbox owns that lifecycle here.
- */
 function InboxCacheRestoreGate({ children }: { children: ReactNode }) {
   const { activeSessionId, isAuthResolved, user } = useOxy();
   const [ready, setReady] = useState(false);
@@ -194,13 +145,6 @@ function ScopedInboxPrefsProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/**
- * Registers the single Bloom `ImageResolver` for the app. Bloom `Avatar`s
- * (and any other Bloom media surface) that receive a bare Oxy file ID in
- * `source` resolve it through `oxyServices.getFileDownloadUrl(id, variant)` —
- * the one chokepoint where the canonical `cloud.oxy.so`/signed URL is built.
- * Lives inside `OxyProvider` so `useOxy()` is available.
- */
 function BloomImageResolver({ children }: { children: ReactNode }) {
   const { oxyServices } = useOxy();
   const resolve = useCallback<ImageResolver>(
@@ -210,29 +154,14 @@ function BloomImageResolver({ children }: { children: ReactNode }) {
   return <ImageResolverProvider value={resolve}>{children}</ImageResolverProvider>;
 }
 
-/**
- * Renders no UI — runs the web-only side effects (service worker registration,
- * offline-queue flush listener, Bloom Dialog keyframes) inside `LocaleProvider`
- * so that translated toast strings are available when those handlers fire.
- */
 function RootEffects() {
   const { t } = useTranslation();
   const { canUsePrivateApi } = useOxy();
 
-  // Real-time inbox updates. The hook is a no-op until a user is signed in
-  // and tears the socket down on sign-out or user switch; cache/state
-  // invalidation above prevents cross-user inbox data reuse.
   useInboxSocket({ baseURL: API_URL });
-
-  // Register the device push token with the backend when the user has push
-  // notifications enabled (native only). No-op on web / signed-out.
   usePushRegistration();
-
-  // Route tapped / cold-launched mail pushes into the conversation screen.
   useEmailPushNotifications(canUsePrivateApi);
   useForegroundNotificationHandler();
-
-  // Register service worker on web
   useEffect(() => {
     if (Platform.OS !== 'web') return;
 
@@ -240,12 +169,9 @@ function RootEffects() {
       toast.info(t('inbox.toast.newVersionAvailable'));
     });
 
-    // Drop any legacy raw-fetch queue entries from pre-TanStack builds. Offline
-    // writes now replay through paused TanStack mutations (queryClient.ts).
     void clearQueue();
   }, [t]);
 
-  // Inject Bloom Dialog CSS keyframe animations on web
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     const head = document.head;

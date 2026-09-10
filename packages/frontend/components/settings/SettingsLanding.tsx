@@ -28,6 +28,7 @@ import { useMinimizeOnScroll } from '@oxy.so/bloom/tab-bar';
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';
 import { useTabBarClearance } from '@/hooks/useTabBarClearance';
+import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 import { SettingsHero } from './SettingsHero';
 import { SettingsCategoryCard } from './SettingsCategoryCard';
 import { SettingsCategoryRow } from './SettingsCategoryRow';
@@ -73,6 +74,7 @@ export function SettingsLanding() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const tabBarClearance = useTabBarClearance();
+  const isDesktopLayout = useIsDesktopLayout();
   const minimizeTabBarOnScroll = useMinimizeOnScroll();
   const colors = useColors();
   const { t } = useTranslation();
@@ -95,7 +97,7 @@ export function SettingsLanding() {
   );
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+    <View style={[styles.root, { backgroundColor: colors.background, paddingTop: isDesktopLayout ? 0 : insets.top }]}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <H3 style={styles.headerTitle}>{t('settings.title')}</H3>
       </View>
@@ -106,7 +108,7 @@ export function SettingsLanding() {
         scrollEventThrottle={16}
         contentContainerStyle={{
           paddingTop: 16,
-          paddingBottom: tabBarClearance + 40,
+          paddingBottom: isDesktopLayout ? 0 : tabBarClearance + 40,
           paddingHorizontal: Math.max(insets.left, insets.right),
         }}
         showsVerticalScrollIndicator={false}

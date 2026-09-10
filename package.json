@@ -13,6 +13,7 @@
     "build": "bun run --cwd packages/frontend build",
     "typecheck": "bun run --cwd packages/frontend typecheck",
     "lint": "bun run --cwd packages/frontend lint",
+    "doctor:oxy": "oxy-doctor --ci",
     "validate:agents-md": "bun ./scripts/check-agents-md-size.mjs && bun ./scripts/test-check-agents-md-size.mjs",
     "test": "bun run --cwd packages/frontend test"
   },
@@ -26,5 +27,8 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "@oxy.so/doctor": "1.0.0"
   }
 }

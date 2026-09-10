@@ -41,6 +41,9 @@ jobs:
             exit 1
           }
 
+      - name: Verify Oxy dependency health
+        run: bun run doctor:oxy
+
       - run: bun run typecheck
 
       # AGENTS.md is prepended to EVERY agent session, so its bytes are paid on

@@ -18,3 +18,13 @@ plugins and peers are all invisible to it.
 `expo.install.exclude` pins three packages ABOVE what SDK 57 bundles because
 `@oxy.so/services` requires it. Nothing in CI runs `expo install --fix`, so the
 exclusions look like dead config — they are not.
+
+## Updates
+
+Dependabot checks weekly and groups `@oxy.so/*` releases into one reviewable
+pull request. Because this is a Bun workspace, every accepted manifest change
+must be followed by `bun install` and include the resulting `bun.lock` change.
+
+`bun run doctor:oxy` is read-only. It fails CI when direct Oxy dependencies are
+out of date or the lockfile contains duplicate Oxy versions. Neither CI nor the
+application installs `latest` or modifies dependencies at runtime.

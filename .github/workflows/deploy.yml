@@ -40,6 +40,7 @@ jobs:
       - run: bun run build
         env:
           EXPO_PUBLIC_API_URL: https://api.oxy.so
+          EXPO_PUBLIC_ALIA_API_URL: https://api.alia.onl
           EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI: https://inbox.oxy.so
           # Inbox's PRODUCTION Oxy client id. `packages/frontend/constants/oxy.ts`
           # falls back to a committed id when this is unset, so nothing errors —
@@ -69,6 +70,9 @@ jobs:
           test -f "$d/index.html"  || { echo "::error::no index.html"; exit 1; }
           test -f "$d/_headers"    || { echo "::error::no _headers — write-pages-headers did not run"; exit 1; }
           grep -q 'worker-src' "$d/_headers" || { echo "::error::_headers is missing this app's CSP extensions"; exit 1; }
+          grep -qF 'https://api.alia.onl' "$d/_headers" || { echo "::error::_headers does not allow the canonical Alia API"; exit 1; }
+          grep -qF 'wss://api.alia.onl' "$d/_headers" || { echo "::error::_headers does not allow Alia realtime sessions"; exit 1; }
+          grep -qF 'wss://livekit.oxy.so' "$d/_headers" || { echo "::error::_headers does not allow Alia's production LiveKit room"; exit 1; }
           css=$(ls "$d"/_expo/static/css/global-*.css 2>/dev/null | head -1 || true)
           [ -n "${css:-}" ] || { echo "::error::no compiled global CSS — the Tailwind/@source pipeline produced nothing"; exit 1; }
           bytes=$(wc -c < "$css")
@@ -162,7 +166,9 @@ jobs:
             csp=$(curl -sSI --max-time 20 https://inbox.oxy.so/ | tr -d '\r' | grep -i '^content-security-policy:' || true)
             if echo "$html" | grep -q 'Inbox by Oxy' \
                && echo "$html" | grep -qF "$expected_entry" \
-               && [ -n "$csp" ]; then
+               && echo "$csp" | grep -qF 'https://api.alia.onl' \
+               && echo "$csp" | grep -qF 'wss://api.alia.onl' \
+               && echo "$csp" | grep -qF 'wss://livekit.oxy.so'; then
               echo "::endgroup::"; echo "OK: $expected_entry"; exit 0
             fi
             echo "expected: $expected_entry"

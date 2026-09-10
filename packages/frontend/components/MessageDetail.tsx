@@ -794,10 +794,10 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
             </View>
           )}
 
-          {/* AI Thread Summary - requires explicit user action before sending thread content to Alia */}
+          {/* AI Thread Summary - explicit opt-in before Oxy processes bounded thread content. */}
           {sortedThread.length >= 4 && (
             threadSummaryRequested ? (
-              <ThreadSummary messages={sortedThread} minMessages={4} />
+              <ThreadSummary messageId={messageId} messages={sortedThread} minMessages={4} />
             ) : (
               <TouchableOpacity
                 style={[

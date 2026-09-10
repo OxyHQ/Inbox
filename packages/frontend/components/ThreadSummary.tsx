@@ -30,6 +30,7 @@ import { useThreadSummary, type ActionItem } from '@/hooks/queries/useThreadSumm
 import type { Message } from '@/services/emailApi';
 
 interface ThreadSummaryProps {
+  messageId: string;
   messages: Message[];
   minMessages?: number;
 }
@@ -72,12 +73,13 @@ function ActionItemRow({
   );
 }
 
-export function ThreadSummary({ messages, minMessages = 4 }: ThreadSummaryProps) {
+export function ThreadSummary({ messageId, messages, minMessages = 4 }: ThreadSummaryProps) {
   const colors = useColors();
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(true);
 
   const { summary, keyPoints, actionItems, isLoading, error, refetch } = useThreadSummary(
+    messageId,
     messages,
     { minMessages }
   );

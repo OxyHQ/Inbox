@@ -59,7 +59,7 @@ type MessagesInfinite = InfiniteData<MessagesPage>;
  *
  * The placeholder MUST satisfy `Message` (zod-inferred) at the type level —
  * every required field gets a safe default. `_id` is namespaced so it never
- * collides with a real Mongo id; dedupe of the eventual real row happens on
+ * collides with a persisted message id; dedupe of the eventual row happens on
  * the `messageId` (MIME `Message-Id`) field, which IS stable.
  */
 function buildOptimisticMessage(event: EmailNewEvent, userId: string): Message {

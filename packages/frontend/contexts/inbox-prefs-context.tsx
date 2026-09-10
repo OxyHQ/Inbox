@@ -42,7 +42,7 @@ export interface InboxPrefs {
   /** Play a sound when a new message arrives. */
   notificationSound: boolean;
 
-  /** Enable the Alia daily Brief feature. */
+  /** Enable Inbox's bounded daily brief feature. */
   aiBrief: boolean;
   /** Enable Smart Reply suggestions. */
   aiSmartReply: boolean;

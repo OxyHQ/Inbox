@@ -61,7 +61,7 @@ export function InboxGreeting({ messages, onAskAlia }: InboxGreetingProps) {
     [messages, today],
   );
 
-  const { briefText, isStreaming, isLoading, error, regenerate } = useDailyBrief(dayMessages, {
+  const { briefText, isStreaming, isLoading, error, regenerate } = useDailyBrief({
     enabled: prefs.aiBrief && briefExpanded,
     autoGenerate: true,
   });

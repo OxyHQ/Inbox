@@ -115,19 +115,15 @@ export const emailKeys = {
     ['attachment-url', fileId, variant ?? null] as const,
 } as const;
 
-/** Query/mutation keys for the Alia AI features. */
+/** Query/mutation keys for Inbox's bounded product-inference features. */
 export const aiKeys = {
-  threadSummary: (messageIdsSignature: string | undefined) =>
-    ['threadSummary', messageIdsSignature] as const,
+  threadSummary: (messageId: string | undefined) =>
+    ['threadSummary', messageId] as const,
   smartReplies: (messageId: string | undefined) => ['smartReplies', messageId] as const,
-  // Its own root, not under 'alia': the brief is one LLM call per day and is
-  // worth persisting, while the rest of the `alia` keys are per-interaction
-  // scratch space that should not survive a restart.
-  dailyBrief: (day: string) => ['daily-brief', day] as const,
   /** Mutation key for the unified AI compose operations. */
-  compose: ['alia', 'compose'] as const,
+  compose: ['inbox-ai', 'compose'] as const,
   /** Mutation key for the natural-language search parser. */
-  naturalLanguageSearch: ['alia', 'nl-search'] as const,
+  naturalLanguageSearch: ['inbox-ai', 'nl-search'] as const,
 } as const;
 
 /**

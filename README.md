@@ -25,16 +25,32 @@ Mailboxes, threads, labels, filters, federation, SMTP and webhook ingest are all
 `api.oxy.so`. This repo is a client. Add an email capability there and consume it
 through `@oxy.so/services` / `@oxy.so/core` — never a second copy.
 
+## AI routing
+
+Inbox keeps product inference and agent conversation separate:
+
+- Compose assistance, daily brief, natural-language search, smart replies and
+  thread summaries call the authenticated `/email/ai/*` routes on Oxy. Oxy
+  bounds the data and prompt, authorizes an exact routing profile and executes
+  it through Kaana.
+- “Ask Alia” and voice remain Alia agent capabilities through
+  `@alia.onl/sdk` and `https://api.alia.onl`; they do not use the removed
+  Oxy-to-Alia completion proxy.
+
+No provider credential belongs in this app or its environment. Hosted provider
+keys are encrypted in Kaana's PostgreSQL/KMS-backed credential store.
+
 ## Configuration
 
 Everything is `EXPO_PUBLIC_*` and is inlined into the bundle by Metro at build
-time, so all three are public by construction. The committed defaults are
+time, so all four are public by construction. The committed defaults are
 correct for production; override in `packages/frontend/.env` for a local or
 staging target.
 
 | Variable | Default |
 |---|---|
 | `EXPO_PUBLIC_API_URL` | `https://api.oxy.so` |
+| `EXPO_PUBLIC_ALIA_API_URL` | `https://api.alia.onl` (owned by `@alia.onl/sdk`) |
 | `EXPO_PUBLIC_OXY_CLIENT_ID` | the registered production client id (`packages/frontend/constants/oxy.ts`) |
 | `EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI` | `https://inbox.oxy.so` |
 

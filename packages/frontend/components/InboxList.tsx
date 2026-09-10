@@ -136,7 +136,6 @@ interface DrawerNavigation {
   dispatch?: (action: unknown) => void;
 }
 
-const ALIA_PROXY_API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://api.oxy.so';
 const TRIAGE_LIMIT = 3;
 
 export function InboxList({ replaceNavigation }: InboxListProps) {
@@ -902,8 +901,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       {isAuthenticated && (
         <AliaChatSheet
           ref={aliaChatRef}
-          apiUrl={ALIA_PROXY_API_URL}
-          model="alia-lite"
           voiceSession={VoiceSession}
           clientContext={t('inbox.aliaClientContext')}
           welcomeSuggestions={aliaWelcomeSuggestions}

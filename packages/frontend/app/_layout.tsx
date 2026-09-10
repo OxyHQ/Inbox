@@ -13,7 +13,7 @@ import { toast } from '@oxy.so/bloom';
 import { ImageResolverProvider } from '@oxy.so/bloom/image-resolver';
 import type { ImageResolver } from '@oxy.so/bloom/image-resolver';
 import { BloomProvider } from '@oxy.so/bloom/provider';
-import { useNavigationTheme } from '@oxy.so/bloom/theme';
+import { useNavigationTheme, useTheme } from '@oxy.so/bloom/theme';
 import type { ThemeMode } from '@oxy.so/bloom/theme';
 import { PortalProvider, PortalOutlet } from '@oxy.so/bloom/portal';
 import { ConnectionStatusToasts } from '@oxy.so/bloom/connection-status';
@@ -100,6 +100,7 @@ function GatedNavigator() {
 }
 
 function InboxCacheRestoreGate({ children }: { children: ReactNode }) {
+  const { colors } = useTheme();
   const { activeSessionId, isAuthResolved, user } = useOxy();
   const [ready, setReady] = useState(false);
   const [readyScope, setReadyScope] = useState<string | null>(null);
@@ -129,7 +130,7 @@ function InboxCacheRestoreGate({ children }: { children: ReactNode }) {
   }, [isAuthResolved, scope]);
 
   if (!isAuthResolved || !ready || readyScope !== scope) {
-    return <View style={{ flex: 1, backgroundColor: '#ffffff' }} />;
+    return <View style={{ flex: 1, backgroundColor: colors.background }} />;
   }
 
   return <ScopedInboxPrefsProvider>{children}</ScopedInboxPrefsProvider>;
@@ -171,21 +172,6 @@ function RootEffects() {
 
     void clearQueue();
   }, [t]);
-
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    const head = document.head;
-    if (!head) return;
-    const style = document.createElement('style');
-    style.textContent = [
-      '@keyframes bloomDialogFadeIn { from { opacity: 0; } to { opacity: 1; } }',
-      '@keyframes bloomDialogFadeOut { from { opacity: 1; } to { opacity: 0; } }',
-      '@keyframes bloomDialogZoomFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }',
-      '@keyframes bloomDialogZoomFadeOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.95); } }',
-    ].join('\n');
-    head.appendChild(style);
-    return () => { style.remove(); };
-  }, []);
 
   return null;
 }

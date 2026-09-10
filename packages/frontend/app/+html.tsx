@@ -39,12 +39,12 @@ export default function Root({ children }: PropsWithChildren) {
         {/* Theme color (light + dark) */}
         <meta
           name="theme-color"
-          content="#FFFFFF"
+          content="#f3f3f7"
           media="(prefers-color-scheme: light)"
         />
         <meta
           name="theme-color"
-          content="#0A0A0A"
+          content="#0c0e11"
           media="(prefers-color-scheme: dark)"
         />
 

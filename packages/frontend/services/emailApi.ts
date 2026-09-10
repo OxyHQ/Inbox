@@ -246,7 +246,7 @@ export function createEmailApi(http: HttpService) {
       attachments?: { fileId: string; contentId?: string; isInline?: boolean }[];
       scheduledAt?: string;
       idempotencyKey?: string;
-    }): Promise<{ messageId: string; queued: boolean; message: string }> {
+    }): Promise<{ messageId: string; queued?: boolean; scheduledAt?: string; message: string }> {
       const { idempotencyKey, ...payload } = message;
       const res = await http.post(
         '/email/messages',
@@ -255,7 +255,8 @@ export function createEmailApi(http: HttpService) {
       );
       return z.object({
         messageId: z.string(),
-        queued: z.boolean(),
+        queued: z.boolean().optional(),
+        scheduledAt: z.string().optional(),
         message: z.string(),
       }).parse(res);
     },

@@ -12,6 +12,7 @@ export type InboxMetricName =
   | 'realtime_connect_error'
   | 'search_submitted'
   | 'composer_send_succeeded'
+  | 'composer_send_queued'
   | 'composer_send_failed';
 
 export interface InboxMetricDimensions {

@@ -472,14 +472,12 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
           void clearComposeRecovery(recoveryKey);
           closeCompose();
         },
-        onError: (err: unknown) => {
+        onError: () => {
           sentRef.current = false;
-          const message = err instanceof Error ? err.message : t('compose.toast.sendFailed');
-          toast.error(message);
         },
       },
     );
-  }, [attachments, body, closeCompose, getValidatedRecipients, recoveryKey, replyTo, sendWithUndo, subject, t]);
+  }, [attachments, body, closeCompose, getValidatedRecipients, recoveryKey, replyTo, sendWithUndo, subject]);
 
   const handleSaveDraft = useCallback(() => {
     if (!hasContent) {

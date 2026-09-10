@@ -185,8 +185,6 @@ export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps
           onSent?.();
           onClose();
         },
-        onError: (err: unknown) =>
-          toast.error(err instanceof Error ? err.message : t('compose.toast.sendFailed')),
       },
     );
   }, [to, cc, bcc, body, quotedText, initialSubject, message, mode, sendWithUndo, onClose, onSent, parseAddresses, t]);

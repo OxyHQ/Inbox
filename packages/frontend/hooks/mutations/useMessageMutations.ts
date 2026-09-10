@@ -217,16 +217,10 @@ export function useSendMessage() {
   return useMutation({
     mutationFn: async (params: Parameters<NonNullable<typeof api>['sendMessage']>[0]) => {
       if (!api) throw new Error('Email API not initialized');
-      await api.sendMessage({
+      return api.sendMessage({
         ...params,
         idempotencyKey: params.idempotencyKey ?? `inbox-send-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`}`,
       });
-    },
-    onSuccess: () => {
-      toast.success('Message sent.');
-    },
-    onError: () => {
-      toast.error('Failed to send message.');
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: emailKeys.messages.root });
@@ -288,9 +282,14 @@ export function useSendMessageWithUndo() {
         }
 
         try {
-          await api.sendMessage(request);
-          toast.success('Message sent.');
-          recordInboxMetric('composer_send_succeeded');
+          const result = await api.sendMessage(request);
+          if (result.queued) {
+            toast.info(result.message);
+            recordInboxMetric('composer_send_queued');
+          } else {
+            toast.success(result.message);
+            recordInboxMetric('composer_send_succeeded');
+          }
           queryClient.invalidateQueries({ queryKey: emailKeys.messages.root });
           queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
           options?.onSuccess?.();

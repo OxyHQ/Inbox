@@ -93,4 +93,23 @@ describe('email search client contract', () => {
     expect(http.get).toHaveBeenNthCalledWith(1, '/email/outbox', { params: undefined });
     expect(http.get).toHaveBeenNthCalledWith(2, '/email/saved-searches');
   });
+
+  it('preserves immediate, queued, and scheduled delivery outcomes', async () => {
+    const http = {
+      post: jest.fn()
+        .mockResolvedValueOnce({ messageId: '<sent@example.test>', queued: false, message: 'Message sent' })
+        .mockResolvedValueOnce({ messageId: '<queued@example.test>', queued: true, message: 'Message queued for delivery' })
+        .mockResolvedValueOnce({
+          messageId: '<scheduled@example.test>',
+          scheduledAt: '2026-02-01T12:00:00.000Z',
+          message: 'Message scheduled for delivery',
+        }),
+    };
+    const api = createEmailApi(http as never);
+    const input = { to: [{ address: 'recipient@example.test' }], subject: 'Hello' };
+
+    await expect(api.sendMessage(input)).resolves.toMatchObject({ queued: false });
+    await expect(api.sendMessage(input)).resolves.toMatchObject({ queued: true });
+    await expect(api.sendMessage(input)).resolves.toMatchObject({ scheduledAt: '2026-02-01T12:00:00.000Z' });
+  });
 });

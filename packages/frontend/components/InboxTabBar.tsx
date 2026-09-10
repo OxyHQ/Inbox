@@ -3,8 +3,6 @@ import { StyleSheet, View } from 'react-native';
 import { useKeyboardState } from 'react-native-keyboard-controller';
 import { TabBar, TabBarButton, type TabBarItem } from '@oxy.so/bloom/tab-bar';
 import {
-  Envelope_Filled_Stroke2_Corner0_Rounded,
-  Envelope_Stroke2_Corner0_Rounded,
   MagnifyingGlass_Filled_Stroke2_Corner0_Rounded,
   MagnifyingGlass_Stroke2_Corner0_Rounded,
   SettingsGear2_Filled_Corner0_Rounded,
@@ -15,6 +13,7 @@ import type { BottomTabBarProps } from 'expo-router/tabs';
 import { useSearchFocus } from '@/contexts/search-focus-context';
 import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 import { useTranslation } from '@/lib/i18n';
+import { UpcomingFilledIcon, UpcomingOutlineIcon } from '@/components/icons/MailActionIcons';
 
 const TAB_ROUTES = ['(inbox)', 'search', 'settings'] as const;
 const ICON_SIZE = 'md';
@@ -30,8 +29,8 @@ export function InboxTabBar({ state, navigation }: BottomTabBarProps) {
       {
         name: '(inbox)',
         label: t('tabs.inbox'),
-        icon: <Envelope_Stroke2_Corner0_Rounded size={ICON_SIZE} />,
-        activeIcon: <Envelope_Filled_Stroke2_Corner0_Rounded size={ICON_SIZE} />,
+        icon: <UpcomingOutlineIcon />,
+        activeIcon: <UpcomingFilledIcon />,
       },
       {
         name: 'search',

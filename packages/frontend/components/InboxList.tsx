@@ -15,16 +15,12 @@ import { FlashList, type FlashListProps } from '@shopify/flash-list';
 import Animated, { type AnimatedProps } from 'react-native-reanimated';
 import { Loading } from '@oxy.so/bloom/loading';
 import { Fab } from '@oxy.so/bloom/fab';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
-import { PencilEdit01Icon } from '@hugeicons/core-free-icons';
 import { useRouter, useNavigation } from 'expo-router';
 import { useOxy, OxySignInButton } from '@oxy.so/services';
 import { toast } from '@oxy.so/bloom';
 import { useMinimizeOnScroll } from '@oxy.so/bloom/tab-bar';
 
 import { useFloatingHeader } from '@/hooks/useFloatingHeader';
-import { useTabBarClearance } from '@/hooks/useTabBarClearance';
 import { useColors } from '@/constants/theme';
 import { SPACING, CONTENT_MAX_WIDTH } from '@/constants/layout';
 import { SPECIAL_USE } from '@/constants/mailbox';
@@ -53,6 +49,7 @@ import { BundleRow } from '@/components/BundleRow';
 import { ReminderRow } from '@/components/ReminderRow';
 import { CreateReminderSheet } from '@/components/CreateReminderSheet';
 import { EmptyIllustration } from '@/components/EmptyIllustration';
+import { DrawOutlineIcon } from '@/components/icons/MailActionIcons';
 import { AliaChatSheet, type AliaChatSheetRef } from '@alia.onl/sdk';
 import { VoiceSession } from '@alia.onl/sdk/voice';
 import { useBatchSentimentAnalysis } from '@/hooks/queries/useSentimentAnalysis';
@@ -145,7 +142,6 @@ const TRIAGE_LIMIT = 3;
 export function InboxList({ replaceNavigation }: InboxListProps) {
   const router = useRouter();
   const navigation = useNavigation<DrawerNavigation>();
-  const tabBarClearance = useTabBarClearance();
   const minimizeTabBarOnScroll = useMinimizeOnScroll();
   const colors = useColors();
   const { t } = useTranslation();
@@ -884,7 +880,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
               ...(listItems.length === 0 ? styles.emptyListContent : null),
               ...styles.listContent,
               paddingTop: headerHeight,
-              paddingBottom: tabBarClearance,
             }}
             showsVerticalScrollIndicator={false}
           />
@@ -894,12 +889,9 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       {isAuthenticated && !isSelectionMode && (
         <Fab
           accessibilityLabel={t('inbox.composeFab')}
-          icon={Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={PencilEdit01Icon as unknown as IconSvgElement} size={24} />
-          ) : (
-            <MaterialCommunityIcons name="pencil" size={24} />
-          )}
+          icon={<DrawOutlineIcon />}
           label={Platform.OS === 'web' ? t('inbox.composeFabLabel') : undefined}
+          minimizeBehavior="collapse"
           placement="bottom-right"
           variant="tertiary"
           onPress={handleCompose}

@@ -15,12 +15,12 @@
 # copy authenticates against nothing and every mailbox call is a CORS failure.
 # `workers_dev = false` leaves `inbox.oxy.so` as the only name that reaches this.
 name = "oxy-inbox"
+main = "worker/index.js"
 compatibility_date = "2026-09-09"
 
 workers_dev = false
 
-# Static assets with no `main`: no Worker script runs, every request is served
-# from the uploaded directory. 176 files, 21 MB, largest 14.5 MB — inside the
+# The Worker observes every request before streaming the asset response. 176 files, 21 MB, largest 14.5 MB — inside the
 # 20,000-file and 25 MiB-per-file limits.
 #
 # `_headers` travels in this directory and still carries the CSP: it is written
@@ -29,6 +29,8 @@ workers_dev = false
 # deploy asserts it is there before uploading, and asserts the header is on the
 # live response afterwards.
 [assets]
+binding = "ASSETS"
+run_worker_first = true
 directory = "./dist"
 # Replaces `public/_redirects` (`/*  /index.html  200`), deleted in the same
 # change. `app.json` sets `web.output: "static"`, so `expo export` writes real

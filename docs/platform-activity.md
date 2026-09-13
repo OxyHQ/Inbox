@@ -6,4 +6,4 @@ Enable only the deployed Worker with private bindings `OXY_EDGE_ACTIVITY_ENABLED
 
 Each request and response contributes a bounded operation with service, Cloudflare PoP, direction and category. No IPs, URLs, user IDs or payloads are published. A serving PoP is infrastructure metadata: external activity appears as a pulse, not an invented arc to a visitor location.
 
-Pending the shared npm release: add `@oxy.so/telemetry@^1.1.0` to frontend dependencies and regenerate `bun.lock` in the same commit before merging. Current draft validation uses local built SDK artifacts.
+The Worker uses published `@oxy.so/telemetry@1.1.1`, pinned in `bun.lock`. Edge checks run with the frontend test command.

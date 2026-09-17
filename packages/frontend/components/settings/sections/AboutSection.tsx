@@ -13,12 +13,12 @@ import { Text } from '@oxy.so/bloom/typography';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { toast } from '@oxy.so/bloom';
 import {
-  CircleInfo_Stroke2_Corner0_Rounded,
-  PageText_Stroke2_Corner0_Rounded,
-  Shield_Stroke2_Corner0_Rounded,
-  CircleQuestion_Stroke2_Corner2_Rounded,
-  Heart2_Stroke2_Corner0_Rounded,
-  SquareArrowTopRight_Stroke2_Corner0_Rounded,
+  RiInformationLine,
+  RiFileTextLine,
+  RiShieldLine,
+  RiQuestionLine,
+  RiHeartLine,
+  RiExternalLinkLine,
 } from '@oxy.so/bloom/icons';
 
 import { useColors } from '@/constants/theme';
@@ -70,7 +70,7 @@ function LinkRow({ icon: Icon, title, description, onPress }: LinkRowProps) {
           </Text>
         ) : null}
       </View>
-      <SquareArrowTopRight_Stroke2_Corner0_Rounded
+      <RiExternalLinkLine
         size="sm"
         style={{ color: colors.icon, opacity: 0.6 }}
       />
@@ -109,28 +109,28 @@ export function AboutSection() {
       </View>
 
       <View style={styles.subsection}>
-        <SectionHeader icon={CircleInfo_Stroke2_Corner0_Rounded} title={t('ui.settings.about.legal')} />
+        <SectionHeader icon={RiInformationLine} title={t('ui.settings.about.legal')} />
         <View style={[styles.linkList, { borderColor: colors.border }]}>
           <LinkRow
-            icon={PageText_Stroke2_Corner0_Rounded}
+            icon={RiFileTextLine}
             title={t('ui.settings.about.terms')}
             onPress={() => openLink(LINKS.terms)}
           />
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <LinkRow
-            icon={Shield_Stroke2_Corner0_Rounded}
+            icon={RiShieldLine}
             title={t('ui.settings.about.privacy')}
             onPress={() => openLink(LINKS.privacy)}
           />
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <LinkRow
-            icon={CircleQuestion_Stroke2_Corner2_Rounded}
+            icon={RiQuestionLine}
             title={t('ui.settings.about.help')}
             onPress={() => openLink(LINKS.help)}
           />
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <LinkRow
-            icon={CircleInfo_Stroke2_Corner0_Rounded}
+            icon={RiInformationLine}
             title={t('ui.settings.about.status')}
             onPress={() => openLink(LINKS.status)}
           />
@@ -138,7 +138,7 @@ export function AboutSection() {
       </View>
 
       <View style={styles.creditsRow}>
-        <Heart2_Stroke2_Corner0_Rounded size="sm" style={{ color: colors.secondaryText }} />
+        <RiHeartLine size="sm" style={{ color: colors.secondaryText }} />
         <Text style={[styles.credits, { color: colors.secondaryText }]}>
           {t('ui.settings.about.madeBy', { year: new Date().getFullYear() })}
         </Text>

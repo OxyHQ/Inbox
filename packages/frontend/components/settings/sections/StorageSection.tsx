@@ -13,8 +13,8 @@ import { useTheme } from '@oxy.so/bloom/theme';
 import { Admonition } from '@oxy.so/bloom/admonition';
 import { Loading } from '@oxy.so/bloom/loading';
 import {
-  FloppyDisk_Stroke2_Corner0_Rounded,
-  ArrowOutOfBox_Stroke2_Corner0_Rounded,
+  RiSaveLine,
+  RiUpload2Line,
 } from '@oxy.so/bloom/icons';
 
 import { useColors } from '@/constants/theme';
@@ -43,7 +43,7 @@ export function StorageSection() {
   return (
     <View style={styles.root}>
       <View style={styles.subsection}>
-        <SectionHeader icon={FloppyDisk_Stroke2_Corner0_Rounded} title={t('ui.settings.storage.usage')} />
+        <SectionHeader icon={RiSaveLine} title={t('ui.settings.storage.usage')} />
         <View style={[styles.usageCard, { backgroundColor: theme.colors.backgroundSecondary }]}>
           {isLoading && !quota ? (
             <View style={styles.usageLoading}>
@@ -82,7 +82,7 @@ export function StorageSection() {
       </View>
 
       <View style={styles.subsection}>
-        <SectionHeader icon={ArrowOutOfBox_Stroke2_Corner0_Rounded} title={t('ui.settings.storage.local')} />
+        <SectionHeader icon={RiUpload2Line} title={t('ui.settings.storage.local')} />
         <Text style={[styles.body, { color: colors.secondaryText }]}>
           {t('ui.settings.storage.localDescription')}
         </Text>

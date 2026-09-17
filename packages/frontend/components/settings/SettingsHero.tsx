@@ -13,7 +13,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Avatar } from '@oxy.so/bloom/avatar';
 import { H3, P, Text } from '@oxy.so/bloom/typography';
 import { useTheme } from '@oxy.so/bloom/theme';
-import { ChevronRight_Stroke2_Corner0_Rounded } from '@oxy.so/bloom/icons';
+import { RiArrowRightSLine } from '@oxy.so/bloom/icons';
 import { useOxy, OxySignInButton } from '@oxy.so/services';
 import { getNormalizedUserHandle } from '@oxy.so/core';
 import { useRouter } from 'expo-router';
@@ -77,7 +77,7 @@ export function SettingsHero() {
           {emailHandle}
         </Text>
       </View>
-      <ChevronRight_Stroke2_Corner0_Rounded size="md" style={{ color: colors.icon }} />
+      <RiArrowRightSLine size="md" style={{ color: colors.icon }} />
     </Pressable>
   );
 }

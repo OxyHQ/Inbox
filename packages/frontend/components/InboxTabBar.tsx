@@ -3,10 +3,10 @@ import { StyleSheet, View } from 'react-native';
 import { useKeyboardState } from 'react-native-keyboard-controller';
 import { TabBar, TabBarButton, type TabBarItem } from '@oxy.so/bloom/tab-bar';
 import {
-  MagnifyingGlass_Filled_Stroke2_Corner0_Rounded,
-  MagnifyingGlass_Stroke2_Corner0_Rounded,
-  SettingsGear2_Filled_Corner0_Rounded,
-  SettingsGear2_Stroke2_Corner0_Rounded,
+  RiSearchFill,
+  RiSearchLine,
+  RiSettings3Fill,
+  RiSettings3Line,
 } from '@oxy.so/bloom/icons';
 import type { BottomTabBarProps } from 'expo-router/tabs';
 
@@ -35,14 +35,14 @@ export function InboxTabBar({ state, navigation }: BottomTabBarProps) {
       {
         name: 'search',
         label: t('tabs.search'),
-        icon: <MagnifyingGlass_Stroke2_Corner0_Rounded size={ICON_SIZE} />,
-        activeIcon: <MagnifyingGlass_Filled_Stroke2_Corner0_Rounded size={ICON_SIZE} />,
+        icon: <RiSearchLine size={ICON_SIZE} />,
+        activeIcon: <RiSearchFill size={ICON_SIZE} />,
       },
       {
         name: 'settings',
         label: t('tabs.settings'),
-        icon: <SettingsGear2_Stroke2_Corner0_Rounded size={ICON_SIZE} />,
-        activeIcon: <SettingsGear2_Filled_Corner0_Rounded size={ICON_SIZE} />,
+        icon: <RiSettings3Line size={ICON_SIZE} />,
+        activeIcon: <RiSettings3Fill size={ICON_SIZE} />,
       },
     ],
     [t],

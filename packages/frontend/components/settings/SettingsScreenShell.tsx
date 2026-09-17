@@ -23,7 +23,7 @@ import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { H3, Text } from '@oxy.so/bloom/typography';
 import { IconButton } from '@oxy.so/bloom/button';
-import { ChevronLeft_Stroke2_Corner0_Rounded } from '@oxy.so/bloom/icons';
+import { RiArrowLeftSLine } from '@oxy.so/bloom/icons';
 import { useMinimizeOnScroll } from '@oxy.so/bloom/tab-bar';
 
 import { useGoBack } from '@/hooks/useGoBack';
@@ -88,7 +88,7 @@ export function SettingsScreenShell({
             onPress={handleBack}
             size="small"
             accessibilityLabel={t('common.back')}
-            icon={<ChevronLeft_Stroke2_Corner0_Rounded size="md" style={{ color: colors.icon }} />}
+            icon={<RiArrowLeftSLine size="md" style={{ color: colors.icon }} />}
           />
         ) : (
           <View style={styles.headerSpacerLeft} />

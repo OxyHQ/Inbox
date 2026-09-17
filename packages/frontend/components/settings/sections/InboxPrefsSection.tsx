@@ -16,9 +16,9 @@ import { SegmentedControl, SegmentedControlItem, SegmentedControlItemText } from
 import { Text } from '@oxy.so/bloom/typography';
 import { useTheme } from '@oxy.so/bloom/theme';
 import {
-  Envelope_Stroke2_Corner0_Rounded,
-  Eye_Stroke2_Corner0_Rounded,
-  ArrowBoxLeft_Stroke2_Corner0_Rounded,
+  RiMailLine,
+  RiEyeLine,
+  RiLogoutBoxRLine,
 } from '@oxy.so/bloom/icons';
 
 import { useColors } from '@/constants/theme';
@@ -125,7 +125,7 @@ export function InboxPrefsSection() {
     <View style={styles.root}>
       {/* Density */}
       <View style={styles.subsection}>
-        <SectionHeader icon={Envelope_Stroke2_Corner0_Rounded} title={t('ui.settings.inbox.density')} />
+        <SectionHeader icon={RiMailLine} title={t('ui.settings.inbox.density')} />
         <SegmentedControl<MessageDensity>
           label={t('ui.settings.inbox.density')}
           type="radio"
@@ -145,7 +145,7 @@ export function InboxPrefsSection() {
 
       {/* Display options */}
       <View style={styles.subsection}>
-        <SectionHeader icon={Eye_Stroke2_Corner0_Rounded} title={t('ui.settings.inbox.display')} />
+        <SectionHeader icon={RiEyeLine} title={t('ui.settings.inbox.display')} />
         <View style={styles.toggleGroup}>
           <InlineToggle
             title={t('ui.settings.inbox.avatars')}
@@ -176,7 +176,7 @@ export function InboxPrefsSection() {
 
       {/* Swipe actions */}
       <View style={styles.subsection}>
-        <SectionHeader icon={ArrowBoxLeft_Stroke2_Corner0_Rounded} title={t('ui.settings.inbox.swipeActions')} />
+        <SectionHeader icon={RiLogoutBoxRLine} title={t('ui.settings.inbox.swipeActions')} />
         <View style={styles.swipeStack}>
           <SwipePicker
             label={t('ui.settings.inbox.swipeRight')}

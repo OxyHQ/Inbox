@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOxy } from '@oxy.so/services';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { H3, Text } from '@oxy.so/bloom/typography';
-import { Lock_Stroke2_Corner0_Rounded } from '@oxy.so/bloom/icons';
+import { RiLockLine } from '@oxy.so/bloom/icons';
 
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';
@@ -80,7 +80,7 @@ function SidebarRow({ section, isActive, isLocked, onPress }: SidebarRowProps) {
         {t(section.labelKey)}
       </Text>
       {isLocked ? (
-        <Lock_Stroke2_Corner0_Rounded
+        <RiLockLine
           size="sm"
           style={{ color: colors.icon, opacity: 0.6 }}
         />

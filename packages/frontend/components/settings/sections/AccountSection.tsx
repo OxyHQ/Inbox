@@ -24,10 +24,10 @@ import { Text } from '@oxy.so/bloom/typography';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { Dialog, useDialogControl, toast } from '@oxy.so/bloom';
 import {
-  Pencil_Stroke2_Corner0_Rounded,
-  ArrowBoxLeft_Stroke2_Corner0_Rounded,
-  ArrowOutOfBox_Stroke2_Corner0_Rounded,
-  PaperPlane_Stroke2_Corner0_Rounded,
+  RiEditLine,
+  RiLogoutBoxRLine,
+  RiUpload2Line,
+  RiSendPlaneLine,
 } from '@oxy.so/bloom/icons';
 import { getNormalizedUserHandle } from '@oxy.so/core';
 import { useOxy } from '@oxy.so/services';
@@ -190,7 +190,7 @@ export function AccountSection() {
 
       {/* Signature */}
       <View style={styles.subsection}>
-        <SectionHeader icon={Pencil_Stroke2_Corner0_Rounded} title={t('ui.settings.account.signature')} />
+        <SectionHeader icon={RiEditLine} title={t('ui.settings.account.signature')} />
         <TextInput
           value={signature}
           onChangeText={(v) => setField('signature', v)}
@@ -205,7 +205,7 @@ export function AccountSection() {
 
       {/* Vacation auto-reply */}
       <View style={styles.subsection}>
-        <SectionHeader icon={PaperPlane_Stroke2_Corner0_Rounded} title={t('ui.settings.account.autoReply')} />
+        <SectionHeader icon={RiSendPlaneLine} title={t('ui.settings.account.autoReply')} />
         <Pressable
           onPress={() => setField('autoReplyEnabled', !autoReplyEnabled)}
           accessibilityRole="switch"
@@ -253,7 +253,7 @@ export function AccountSection() {
 
       {/* Forwarding */}
       <View style={styles.subsection}>
-        <SectionHeader icon={ArrowOutOfBox_Stroke2_Corner0_Rounded} title={t('ui.settings.account.forwarding')} />
+        <SectionHeader icon={RiUpload2Line} title={t('ui.settings.account.forwarding')} />
         <TextInput
           value={autoForwardTo}
           onChangeText={(v) => setField('autoForwardTo', v)}
@@ -298,7 +298,7 @@ export function AccountSection() {
 
       {/* Danger zone */}
       <View style={styles.subsection}>
-        <SectionHeader icon={ArrowBoxLeft_Stroke2_Corner0_Rounded} title={t('ui.settings.account.actions')} />
+        <SectionHeader icon={RiLogoutBoxRLine} title={t('ui.settings.account.actions')} />
         <SettingsListGroup>
           {/* No chevron: this opens a confirmation dialog, it does not navigate. */}
           <SettingsListItem

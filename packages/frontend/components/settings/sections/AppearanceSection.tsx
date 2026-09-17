@@ -18,8 +18,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '@oxy.so/bloom/typography';
 import { useTheme } from '@oxy.so/bloom/theme';
 import {
-  Moon_Stroke2_Corner0_Rounded,
-  ColorPalette_Stroke2_Corner0_Rounded,
+  RiMoonLine,
+  RiPaletteLine,
 } from '@oxy.so/bloom/icons';
 
 import { useColors } from '@/constants/theme';
@@ -117,7 +117,7 @@ export function AppearanceSection() {
   return (
     <View style={styles.root}>
       <View style={styles.subsection}>
-        <SectionHeader icon={Moon_Stroke2_Corner0_Rounded} title={t('ui.settings.appearance.theme')} />
+        <SectionHeader icon={RiMoonLine} title={t('ui.settings.appearance.theme')} />
         <View style={styles.modeRow}>
           {MODE_OPTIONS.map((opt) => {
             const isActive = themePreference === opt.value;
@@ -159,7 +159,7 @@ export function AppearanceSection() {
       </View>
 
       <View style={styles.subsection}>
-        <SectionHeader icon={ColorPalette_Stroke2_Corner0_Rounded} title={t('ui.settings.appearance.accentColor')} />
+        <SectionHeader icon={RiPaletteLine} title={t('ui.settings.appearance.accentColor')} />
         <ColorPresetPicker />
       </View>
     </View>

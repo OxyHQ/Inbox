@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { ArrowOutOfBox_Stroke2_Corner0_Rounded } from '@oxy.so/bloom/icons';
+import { RiUpload2Line } from '@oxy.so/bloom/icons';
 import { useColors } from '@/constants/theme';
 import { useOutboundMessages } from '@/hooks/queries/useOutboundMessages';
 import { useCancelOutboundMessage, useRetryOutboundMessage } from '@/hooks/mutations/useOutboundMutations';
@@ -25,7 +25,7 @@ export function OutboundQueueSection() {
 
   return (
     <View style={styles.subsection}>
-      <SectionHeader icon={ArrowOutOfBox_Stroke2_Corner0_Rounded} title="Delivery queue" />
+      <SectionHeader icon={RiUpload2Line} title="Delivery queue" />
       <Text style={[styles.description, { color: colors.secondaryText }]}>
         Messages are retried safely in the background. You can inspect a failure or stop a queued delivery.
       </Text>

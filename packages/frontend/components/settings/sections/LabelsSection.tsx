@@ -21,12 +21,12 @@ import { useTheme } from '@oxy.so/bloom/theme';
 import { Admonition } from '@oxy.so/bloom/admonition';
 import { Dialog, useDialogControl, toast } from '@oxy.so/bloom';
 import {
-  Pin_Stroke2_Corner0_Rounded,
-  Pencil_Stroke2_Corner0_Rounded,
-  Trash_Stroke2_Corner0_Rounded,
-  PlusSmall_Stroke2_Corner0_Rounded,
-  CircleCheck_Stroke2_Corner0_Rounded,
-  ColorPalette_Stroke2_Corner0_Rounded,
+  RiPushpinLine,
+  RiEditLine,
+  RiDeleteBin6Line,
+  RiAddLine,
+  RiCheckboxCircleLine,
+  RiPaletteLine,
 } from '@oxy.so/bloom/icons';
 
 import { useColors } from '@/constants/theme';
@@ -130,7 +130,7 @@ export function LabelsSection() {
     >
       {/* Existing labels */}
       <View style={styles.subsection}>
-        <SectionHeader icon={Pin_Stroke2_Corner0_Rounded} title={t('ui.settings.labels.your')} />
+        <SectionHeader icon={RiPushpinLine} title={t('ui.settings.labels.your')} />
         {labels.length === 0 ? (
           <Admonition type="info">
             {t('ui.settings.labels.empty')}
@@ -169,7 +169,7 @@ export function LabelsSection() {
                         accessibilityRole="button"
                         accessibilityLabel={t('ui.settings.labels.saveName')}
                       >
-                        <CircleCheck_Stroke2_Corner0_Rounded
+                        <RiCheckboxCircleLine
                           size="md"
                           style={{ color: theme.colors.primary }}
                         />
@@ -197,7 +197,7 @@ export function LabelsSection() {
                             accessibilityRole="button"
                             accessibilityLabel={t('ui.settings.labels.rename', { name: label.name })}
                           >
-                            <Pencil_Stroke2_Corner0_Rounded
+                            <RiEditLine
                               size="sm"
                               style={{ color: colors.icon }}
                             />
@@ -211,7 +211,7 @@ export function LabelsSection() {
                             accessibilityRole="button"
                             accessibilityLabel={t('ui.settings.labels.delete', { name: label.name })}
                           >
-                            <Trash_Stroke2_Corner0_Rounded
+                            <RiDeleteBin6Line
                               size="sm"
                               style={{ color: colors.error }}
                             />
@@ -229,7 +229,7 @@ export function LabelsSection() {
 
       {/* Create label */}
       <View style={styles.subsection}>
-        <SectionHeader icon={ColorPalette_Stroke2_Corner0_Rounded} title={t('ui.settings.labels.create')} />
+        <SectionHeader icon={RiPaletteLine} title={t('ui.settings.labels.create')} />
         <View style={styles.swatchRow}>
           {LABEL_COLORS.map((c) => {
             const isActive = newLabelColor === c;
@@ -259,7 +259,7 @@ export function LabelsSection() {
         <Button
           onPress={handleCreate}
           disabled={!newLabelName.trim() || createLabel.isPending}
-          icon={<PlusSmall_Stroke2_Corner0_Rounded size="sm" style={{ color: '#FFFFFF' }} />}
+          icon={<RiAddLine size="sm" style={{ color: '#FFFFFF' }} />}
           iconPosition="left"
         >
           {createLabel.isPending ? t('ui.settings.labels.creating') : t('ui.settings.labels.add')}

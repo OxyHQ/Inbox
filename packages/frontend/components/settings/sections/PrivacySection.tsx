@@ -10,10 +10,10 @@ import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Admonition } from '@oxy.so/bloom/admonition';
 import {
-  ChainLink_Stroke2_Corner0_Rounded,
-  CircleBanSign_Stroke2_Corner0_Rounded,
-  EyeSlash_Stroke2_Corner0_Rounded,
-  Verified_Stroke2_Corner2_Rounded,
+  RiLinkM,
+  RiForbidLine,
+  RiEyeOffLine,
+  RiVerifiedBadgeLine,
 } from '@oxy.so/bloom/icons';
 import { Switch } from '@oxy.so/bloom/switch';
 import { Text } from '@oxy.so/bloom/typography';
@@ -59,7 +59,7 @@ export function PrivacySection() {
       </Admonition>
 
       <View style={styles.subsection}>
-        <SectionHeader icon={EyeSlash_Stroke2_Corner0_Rounded} title={t('ui.settings.privacy.tracking')} />
+        <SectionHeader icon={RiEyeOffLine} title={t('ui.settings.privacy.tracking')} />
         <View style={styles.toggleGroup}>
           <DisabledToggle
             title={t('ui.settings.privacy.blockImages')}
@@ -77,7 +77,7 @@ export function PrivacySection() {
       </View>
 
       <View style={styles.subsection}>
-        <SectionHeader icon={Verified_Stroke2_Corner2_Rounded} title={t('ui.settings.privacy.trust')} />
+        <SectionHeader icon={RiVerifiedBadgeLine} title={t('ui.settings.privacy.trust')} />
         <View style={styles.toggleGroup}>
           <DisabledToggle
             title={t('ui.settings.privacy.verification')}
@@ -90,7 +90,7 @@ export function PrivacySection() {
             accessibilityLabel={t('ui.settings.privacy.blockList')}
             accessibilityState={{ disabled: true }}
           >
-            <CircleBanSign_Stroke2_Corner0_Rounded
+            <RiForbidLine
               size="md"
               style={{ color: colors.icon, opacity: 0.6 }}
             />
@@ -107,7 +107,7 @@ export function PrivacySection() {
       </View>
 
       <View style={styles.subsection}>
-        <SectionHeader icon={ChainLink_Stroke2_Corner0_Rounded} title={t('ui.settings.privacy.why')} />
+        <SectionHeader icon={RiLinkM} title={t('ui.settings.privacy.why')} />
         <Text style={[styles.body, { color: colors.secondaryText }]}>
           {t('ui.settings.privacy.whyDescription')}
         </Text>

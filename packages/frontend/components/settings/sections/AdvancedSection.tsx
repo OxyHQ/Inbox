@@ -29,17 +29,17 @@ import { useTheme } from '@oxy.so/bloom/theme';
 import { Admonition } from '@oxy.so/bloom/admonition';
 import { Dialog, useDialogControl, toast } from '@oxy.so/bloom';
 import {
-  Filter_Stroke2_Corner0_Rounded,
-  PageText_Stroke2_Corner0_Rounded,
-  ArrowOutOfBox_Stroke2_Corner0_Rounded,
-  Trash_Stroke2_Corner0_Rounded,
-  Pencil_Stroke2_Corner0_Rounded,
-  PlusSmall_Stroke2_Corner0_Rounded,
-  Loader_Stroke2_Corner0_Rounded,
-  CircleCheck_Stroke2_Corner0_Rounded,
-  Group3_Stroke2_Corner0_Rounded,
-  ChevronTop_Stroke2_Corner0_Rounded,
-  ChevronBottom_Stroke2_Corner0_Rounded,
+  RiFilterLine,
+  RiFileTextLine,
+  RiUpload2Line,
+  RiDeleteBin6Line,
+  RiEditLine,
+  RiAddLine,
+  RiLoader4Line,
+  RiCheckboxCircleLine,
+  RiGroupLine,
+  RiArrowUpSLine,
+  RiArrowDownSLine,
 } from '@oxy.so/bloom/icons';
 
 import { useColors } from '@/constants/theme';
@@ -385,7 +385,7 @@ export function AdvancedSection() {
     >
       {/* Filters & rules */}
       <View style={styles.subsection}>
-        <SectionHeader icon={Filter_Stroke2_Corner0_Rounded} title={t('ui.settings.advanced.filters')} />
+        <SectionHeader icon={RiFilterLine} title={t('ui.settings.advanced.filters')} />
         {filters.length === 0 ? (
           <Admonition type="info">
             {t('ui.settings.advanced.noFilters')}
@@ -421,7 +421,7 @@ export function AdvancedSection() {
                   accessibilityRole="button"
                   accessibilityLabel={`Delete ${f.name}`}
                 >
-                  <Trash_Stroke2_Corner0_Rounded size="sm" style={{ color: colors.error }} />
+                  <RiDeleteBin6Line size="sm" style={{ color: colors.error }} />
                 </Pressable>
               </View>
             ))}
@@ -462,7 +462,7 @@ export function AdvancedSection() {
           <Button
             onPress={handleCreateFilter}
             disabled={!filterValid || createFilter.isPending}
-            icon={<PlusSmall_Stroke2_Corner0_Rounded size="sm" style={{ color: '#FFFFFF' }} />}
+            icon={<RiAddLine size="sm" style={{ color: '#FFFFFF' }} />}
             iconPosition="left"
           >
             {createFilter.isPending ? t('ui.settings.advanced.creating') : t('ui.settings.advanced.addFilter')}
@@ -472,7 +472,7 @@ export function AdvancedSection() {
 
       {/* Templates */}
       <View style={styles.subsection}>
-        <SectionHeader icon={PageText_Stroke2_Corner0_Rounded} title={t('ui.settings.advanced.templates')} />
+        <SectionHeader icon={RiFileTextLine} title={t('ui.settings.advanced.templates')} />
         {templates.length === 0 ? null : (
           <View style={[styles.itemList, { borderColor: colors.border }]}>
             {templates.map((t, idx) => (
@@ -498,7 +498,7 @@ export function AdvancedSection() {
                   accessibilityRole="button"
                   accessibilityLabel={`Edit ${t.name}`}
                 >
-                  <Pencil_Stroke2_Corner0_Rounded size="sm" style={{ color: colors.icon }} />
+                  <RiEditLine size="sm" style={{ color: colors.icon }} />
                 </Pressable>
                 <Pressable
                   onPress={() => {
@@ -509,7 +509,7 @@ export function AdvancedSection() {
                   accessibilityRole="button"
                   accessibilityLabel={`Delete ${t.name}`}
                 >
-                  <Trash_Stroke2_Corner0_Rounded size="sm" style={{ color: colors.error }} />
+                  <RiDeleteBin6Line size="sm" style={{ color: colors.error }} />
                 </Pressable>
               </View>
             ))}
@@ -550,9 +550,9 @@ export function AdvancedSection() {
               disabled={!templateName.trim() || !templateBody.trim() || templateSubmitting}
               icon={
                 editingTemplateId ? (
-                  <CircleCheck_Stroke2_Corner0_Rounded size="sm" style={{ color: '#FFFFFF' }} />
+                  <RiCheckboxCircleLine size="sm" style={{ color: '#FFFFFF' }} />
                 ) : (
-                  <PlusSmall_Stroke2_Corner0_Rounded size="sm" style={{ color: '#FFFFFF' }} />
+                  <RiAddLine size="sm" style={{ color: '#FFFFFF' }} />
                 )
               }
               iconPosition="left"
@@ -577,7 +577,7 @@ export function AdvancedSection() {
       {/* Bundles */}
       {sortedBundles.length > 0 ? (
         <View style={styles.subsection}>
-          <SectionHeader icon={Group3_Stroke2_Corner0_Rounded} title={t('ui.settings.advanced.bundles')} />
+          <SectionHeader icon={RiGroupLine} title={t('ui.settings.advanced.bundles')} />
           <View style={[styles.itemList, { borderColor: colors.border }]}>
             {sortedBundles.map((b, idx) => (
               <View
@@ -600,7 +600,7 @@ export function AdvancedSection() {
                   accessibilityRole="button"
                   accessibilityLabel={t('ui.settings.advanced.moveUp', { name: b.name })}
                 >
-                  <ChevronTop_Stroke2_Corner0_Rounded size="sm" style={{ color: colors.icon }} />
+                  <RiArrowUpSLine size="sm" style={{ color: colors.icon }} />
                 </Pressable>
                 <Pressable
                   onPress={() => reorderBundle.mutate({ bundleId: b._id, direction: 'down' })}
@@ -609,7 +609,7 @@ export function AdvancedSection() {
                   accessibilityRole="button"
                   accessibilityLabel={t('ui.settings.advanced.moveDown', { name: b.name })}
                 >
-                  <ChevronBottom_Stroke2_Corner0_Rounded size="sm" style={{ color: colors.icon }} />
+                  <RiArrowDownSLine size="sm" style={{ color: colors.icon }} />
                 </Pressable>
                 <Switch
                   value={b.enabled}
@@ -627,7 +627,7 @@ export function AdvancedSection() {
       {/* Import */}
       {Platform.OS === 'web' ? (
         <View style={styles.subsection}>
-          <SectionHeader icon={ArrowOutOfBox_Stroke2_Corner0_Rounded} title={t('ui.settings.advanced.import')} />
+          <SectionHeader icon={RiUpload2Line} title={t('ui.settings.advanced.import')} />
           <Text style={[styles.body, { color: colors.secondaryText }]}>
             {t('ui.settings.advanced.importDescription')}
           </Text>
@@ -636,9 +636,9 @@ export function AdvancedSection() {
             disabled={importing}
             icon={
               importing ? (
-                <Loader_Stroke2_Corner0_Rounded size="sm" style={{ color: '#FFFFFF' }} />
+                <RiLoader4Line size="sm" style={{ color: '#FFFFFF' }} />
               ) : (
-                <ArrowOutOfBox_Stroke2_Corner0_Rounded size="sm" style={{ color: '#FFFFFF' }} />
+                <RiUpload2Line size="sm" style={{ color: '#FFFFFF' }} />
               )
             }
             iconPosition="left"

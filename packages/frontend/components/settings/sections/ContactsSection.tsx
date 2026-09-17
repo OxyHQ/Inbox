@@ -22,12 +22,12 @@ import { useTheme } from '@oxy.so/bloom/theme';
 import { Admonition } from '@oxy.so/bloom/admonition';
 import { Dialog, useDialogControl, toast } from '@oxy.so/bloom';
 import {
-  UserCircle_Stroke2_Corner0_Rounded,
-  MagnifyingGlass_Stroke2_Corner0_Rounded,
-  Pencil_Stroke2_Corner0_Rounded,
-  Trash_Stroke2_Corner0_Rounded,
-  PlusSmall_Stroke2_Corner0_Rounded,
-  CircleCheck_Stroke2_Corner0_Rounded,
+  RiAccountCircleLine,
+  RiSearchLine,
+  RiEditLine,
+  RiDeleteBin6Line,
+  RiAddLine,
+  RiCheckboxCircleLine,
 } from '@oxy.so/bloom/icons';
 
 import { useColors } from '@/constants/theme';
@@ -143,9 +143,9 @@ export function ContactsSection() {
     >
       {/* Search + list */}
       <View style={styles.subsection}>
-        <SectionHeader icon={UserCircle_Stroke2_Corner0_Rounded} title={t('ui.settings.contacts.your')} />
+        <SectionHeader icon={RiAccountCircleLine} title={t('ui.settings.contacts.your')} />
         <View style={[styles.searchRow, { borderColor: colors.border, backgroundColor: theme.colors.background }]}>
-          <MagnifyingGlass_Stroke2_Corner0_Rounded size="sm" style={{ color: colors.secondaryText }} />
+          <RiSearchLine size="sm" style={{ color: colors.secondaryText }} />
           <TextInput
             value={search}
             onChangeText={setSearch}
@@ -187,7 +187,7 @@ export function ContactsSection() {
                   accessibilityRole="button"
                   accessibilityLabel={t('ui.settings.contacts.edit', { name: c.name })}
                 >
-                  <Pencil_Stroke2_Corner0_Rounded size="sm" style={{ color: colors.icon }} />
+                  <RiEditLine size="sm" style={{ color: colors.icon }} />
                 </Pressable>
                 <Pressable
                   onPress={() => {
@@ -198,7 +198,7 @@ export function ContactsSection() {
                   accessibilityRole="button"
                   accessibilityLabel={t('ui.settings.contacts.delete', { name: c.name })}
                 >
-                  <Trash_Stroke2_Corner0_Rounded size="sm" style={{ color: colors.error }} />
+                  <RiDeleteBin6Line size="sm" style={{ color: colors.error }} />
                 </Pressable>
               </View>
             ))}
@@ -209,7 +209,7 @@ export function ContactsSection() {
       {/* Create / edit form */}
       <View style={styles.subsection}>
         <SectionHeader
-          icon={editingId ? Pencil_Stroke2_Corner0_Rounded : PlusSmall_Stroke2_Corner0_Rounded}
+          icon={editingId ? RiEditLine : RiAddLine}
           title={editingId ? t('ui.settings.contacts.editContact') : t('ui.settings.contacts.addContact')}
         />
         <TextInput
@@ -256,9 +256,9 @@ export function ContactsSection() {
             disabled={!formValid || submitting}
             icon={
               editingId ? (
-                <CircleCheck_Stroke2_Corner0_Rounded size="sm" style={{ color: '#FFFFFF' }} />
+                <RiCheckboxCircleLine size="sm" style={{ color: '#FFFFFF' }} />
               ) : (
-                <PlusSmall_Stroke2_Corner0_Rounded size="sm" style={{ color: '#FFFFFF' }} />
+                <RiAddLine size="sm" style={{ color: '#FFFFFF' }} />
               )
             }
             iconPosition="left"

@@ -22,7 +22,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOxy } from '@oxy.so/services';
 import { H3 } from '@oxy.so/bloom/typography';
-import { Lock_Stroke2_Corner0_Rounded } from '@oxy.so/bloom/icons';
+import { RiLockLine } from '@oxy.so/bloom/icons';
 import { useMinimizeOnScroll } from '@oxy.so/bloom/tab-bar';
 
 import { useColors } from '@/constants/theme';
@@ -128,7 +128,7 @@ export function SettingsLanding() {
                   description={t(section.descriptionKey)}
                   trailing={
                     isLocked ? (
-                      <Lock_Stroke2_Corner0_Rounded
+                      <RiLockLine
                         size="sm"
                         style={{ color: colors.icon, opacity: 0.6 }}
                       />

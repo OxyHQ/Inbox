@@ -4,7 +4,7 @@
  * Persists via `useInboxPrefs` (local-device). The features that surface these
  * flags consume them directly and skip their work when disabled: `HomeScreen`
  * gates the daily brief (and disables `useDailyBrief`), `SmartReplyChips`
- * renders nothing when Smart Reply is off, and `ImportanceBadge` hides itself
+ * renders nothing when Smart RiChat4Line is off, and `ImportanceBadge` hides itself
  * when categorization is off.
  */
 
@@ -14,9 +14,9 @@ import { Switch } from '@oxy.so/bloom/switch';
 import { Text } from '@oxy.so/bloom/typography';
 import { Admonition } from '@oxy.so/bloom/admonition';
 import {
-  Sparkle_Stroke2_Corner0_Rounded,
-  Bot_Stroke,
-  Reply,
+  RiSparklingLine,
+  RiRobot2Line,
+  RiChat4Line,
 } from '@oxy.so/bloom/icons';
 
 import { useColors } from '@/constants/theme';
@@ -58,7 +58,7 @@ export function AISection() {
   return (
     <View style={styles.root}>
       <View style={styles.subsection}>
-        <SectionHeader icon={Sparkle_Stroke2_Corner0_Rounded} title={t('ui.settings.ai.dailyBrief')} />
+        <SectionHeader icon={RiSparklingLine} title={t('ui.settings.ai.dailyBrief')} />
         <View style={styles.toggleGroup}>
           <InlineToggle
             title={t('ui.settings.ai.recap')}
@@ -70,7 +70,7 @@ export function AISection() {
       </View>
 
       <View style={styles.subsection}>
-        <SectionHeader icon={Reply} title={t('ui.settings.ai.smartReply')} />
+        <SectionHeader icon={RiChat4Line} title={t('ui.settings.ai.smartReply')} />
         <View style={styles.toggleGroup}>
           <InlineToggle
             title={t('ui.settings.ai.suggestions')}
@@ -82,7 +82,7 @@ export function AISection() {
       </View>
 
       <View style={styles.subsection}>
-        <SectionHeader icon={Bot_Stroke} title={t('ui.settings.ai.priority')} />
+        <SectionHeader icon={RiRobot2Line} title={t('ui.settings.ai.priority')} />
         <View style={styles.toggleGroup}>
           <InlineToggle
             title={t('ui.settings.ai.priorityTitle')}

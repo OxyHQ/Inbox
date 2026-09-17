@@ -15,8 +15,8 @@ import { Switch } from '@oxy.so/bloom/switch';
 import { Text } from '@oxy.so/bloom/typography';
 import { Admonition } from '@oxy.so/bloom/admonition';
 import {
-  Bell_Stroke2_Corner0_Rounded,
-  SpeakerVolumeFull_Stroke2_Corner0_Rounded,
+  RiNotification3Line,
+  RiVolumeUpLine,
 } from '@oxy.so/bloom/icons';
 
 import { useColors } from '@/constants/theme';
@@ -58,7 +58,7 @@ export function NotificationsSection() {
   return (
     <View style={styles.root}>
       <View style={styles.subsection}>
-        <SectionHeader icon={Bell_Stroke2_Corner0_Rounded} title={t('ui.settings.notifications.alerts')} />
+        <SectionHeader icon={RiNotification3Line} title={t('ui.settings.notifications.alerts')} />
         <View style={styles.toggleGroup}>
           <InlineToggle
             title={t('ui.settings.notifications.push')}
@@ -76,7 +76,7 @@ export function NotificationsSection() {
       </View>
 
       <View style={styles.subsection}>
-        <SectionHeader icon={SpeakerVolumeFull_Stroke2_Corner0_Rounded} title={t('ui.settings.notifications.sound')} />
+        <SectionHeader icon={RiVolumeUpLine} title={t('ui.settings.notifications.sound')} />
         <View style={styles.toggleGroup}>
           <InlineToggle
             title={t('ui.settings.notifications.playSound')}

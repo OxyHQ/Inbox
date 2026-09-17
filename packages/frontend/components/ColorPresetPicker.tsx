@@ -10,7 +10,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { APP_COLOR_PRESETS, COLOR_PRESET_REGISTRY, FREE_COLOR_NAMES } from '@oxy.so/bloom/theme';
 import type { AppColorName } from '@oxy.so/bloom/theme';
-import { Check_Stroke2_Corner0_Rounded } from '@oxy.so/bloom/icons';
+import { RiCheckLine } from '@oxy.so/bloom/icons';
 
 import { useThemeContext } from '@/contexts/theme-context';
 import { useColors } from '@/constants/theme';
@@ -75,7 +75,7 @@ export function ColorPresetPicker() {
                 ]}
               >
                 {isActive ? (
-                  <Check_Stroke2_Corner0_Rounded
+                  <RiCheckLine
                     size="sm"
                     style={{ color: '#FFFFFF' }}
                   />

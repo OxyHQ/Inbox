@@ -16,5 +16,11 @@ export function useMailboxes() {
       return await api.listMailboxes();
     },
     enabled: !!api && !!userId,
+    // Unread badges had no refresh of their own at all: they moved on mount, on
+    // a focus-if-stale, or when something explicitly invalidated them. With the
+    // socket dead that meant a badge could sit wrong indefinitely while the
+    // message list beside it was already right.
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: true,
   });
 }

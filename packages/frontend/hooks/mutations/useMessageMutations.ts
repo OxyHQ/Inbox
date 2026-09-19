@@ -241,7 +241,18 @@ export function useSendMessageWithUndo() {
   const sendWithUndo = useCallback(
     async (
       params: Parameters<NonNullable<typeof api>['sendMessage']>[0],
-      options?: { onSuccess?: () => void; onError?: (err: unknown) => void },
+      options?: {
+        /** The message LEFT. Safe to discard the local recovery snapshot. */
+        onSuccess?: () => void;
+        /**
+         * The server accepted the message but has not delivered it yet. The
+         * composer may close — the draft is on the server — but the local
+         * crash-recovery snapshot MUST survive, because "queued" includes the
+         * case where delivery never happens.
+         */
+        onQueued?: () => void;
+        onError?: (err: unknown) => void;
+      },
     ) => {
       if (!api) {
         options?.onError?.(new Error('Email API not initialized'));
@@ -283,15 +294,29 @@ export function useSendMessageWithUndo() {
 
         try {
           const result = await api.sendMessage(request);
-          if (result.queued) {
-            toast.info(result.message);
-            recordInboxMetric('composer_send_queued');
-          } else {
-            toast.success(result.message);
-            recordInboxMetric('composer_send_succeeded');
-          }
           queryClient.invalidateQueries({ queryKey: emailKeys.messages.root });
           queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
+
+          if (result.queued) {
+            // `queued` is NOT `sent`. It means the relay refused the message
+            // for a reason the server judged transient and parked it in the
+            // durable outbox; it may still never leave. Treating it as success
+            // is how a total outbound outage looked like a working inbox — an
+            // info toast, the composer closing, and the recovery snapshot
+            // deleted. Surface it as an outstanding delivery and keep the
+            // snapshot.
+            queryClient.invalidateQueries({ queryKey: emailKeys.outbox });
+            toast.warning(result.message, {
+              duration: 10000,
+              description: 'It has not been delivered yet. Track it in Settings → Advanced → Delivery queue.',
+            } as Record<string, unknown>);
+            recordInboxMetric('composer_send_queued', { queued: true });
+            options?.onQueued?.();
+            return;
+          }
+
+          toast.success(result.message);
+          recordInboxMetric('composer_send_succeeded');
           options?.onSuccess?.();
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : 'Failed to send message.';

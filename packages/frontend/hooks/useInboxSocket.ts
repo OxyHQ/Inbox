@@ -1,21 +1,38 @@
 /**
- * Real-time inbox socket.
+ * Real-time inbox events.
  *
- * Connects ONCE at the authenticated layout level (see `app/_layout.tsx`) and
- * fans `email:new` / `email:unread_count` events from the API into the existing
- * react-query caches so new mail appears instantly in the open list and the
- * mailbox unread badges update without a follow-up HTTP fetch.
+ * Subscribes to the API's `email:*` events and folds them into the existing
+ * react-query caches, so new mail appears in the open list and the mailbox
+ * badges update without a follow-up HTTP fetch.
  *
- * Follows the same strict-whitelist pattern as `useSessionSocket` in
- * `@oxy.so/services` — unknown events log a dev warning and are otherwise
- * a no-op. Never add an `else` branch that triggers side effects.
+ * ## Why this does not open a socket
+ *
+ * It used to. `io(baseURL, …)` here was a SECOND authenticated Socket.IO
+ * connection alongside the one `SessionClient` already maintains in
+ * `@oxy.so/core`, and it was gated on `activeSessionId` being non-null:
+ *
+ *     if (!userId || !activeSessionId || !canUsePrivateApi || !baseURL) return;
+ *
+ * `activeSessionIdOf` returns null whenever the device-session state has not
+ * loaded or the bound account carries no `sessionId` row on this device —
+ * independently of holding a valid bearer. Nothing else in this app requires
+ * it; `app/_layout.tsx` even writes `activeSessionId ?? user?.id ?? null`
+ * precisely because it knows the value can be absent while signed in. So on the
+ * web the socket was frequently never created at all, silently: the only
+ * diagnostics were `__DEV__` console warnings, and `recordInboxMetric` reported
+ * to a `CustomEvent` nobody listens to. New mail then waited for the 60 s poll
+ * or a reload.
+ *
+ * `useOxyEvent` rides the SDK's own connection, which is already authenticated,
+ * already reconnects, already re-binds its listeners when the socket is
+ * recreated, and is gated on exactly the right thing. One connection per
+ * client, and no gate of our own to get wrong.
  */
 
-import { useEffect, useRef } from 'react';
-import io, { type Socket } from 'socket.io-client';
+import { useCallback } from 'react';
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { toast } from '@oxy.so/bloom';
-import { useOxy } from '@oxy.so/services';
+import { useOxy, useOxyEvent } from '@oxy.so/services';
 
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
@@ -24,11 +41,14 @@ import type { Mailbox, Message, Pagination } from '@/services/emailApi';
 import { recordInboxMetric } from '@/utils/inboxTelemetry';
 
 /**
- * Server → client socket event payload contracts. Mirror exactly the
- * `EmailNewEvent` / `EmailUnreadCountEvent` interfaces in
- * `packages/api/src/types/socketEvents.ts` — both sides MUST stay in sync.
+ * Server → client payload contracts. These mirror
+ * `packages/api/src/types/socketEvents.ts` exactly — both sides MUST change
+ * together.
  */
 export interface EmailNewEvent {
+  /** The stored row's primary key. Stable, and what dedupe compares. */
+  id: string;
+  /** The RFC 5322 `Message-Id` header. NOT the row id; see below. */
   messageId: string;
   mailboxId: string;
   folder: string;
@@ -44,7 +64,13 @@ export interface EmailUnreadCountEvent {
   unread: number;
 }
 
-type InboxSocketEventType = 'email:new' | 'email:unread_count';
+export type EmailChangedReason = 'flags' | 'labels' | 'moved' | 'deleted' | 'sent';
+
+export interface EmailChangedEvent {
+  id: string;
+  mailboxIds: string[];
+  reason: EmailChangedReason;
+}
 
 interface MessagesPage {
   data: Message[];
@@ -54,17 +80,20 @@ interface MessagesPage {
 type MessagesInfinite = InfiniteData<MessagesPage>;
 
 /**
- * Build a Message-shaped placeholder from an `EmailNewEvent` payload so the
- * optimistic prepend renders correctly until the reconciling refetch lands.
+ * Build a Message-shaped placeholder from an `EmailNewEvent` so the optimistic
+ * prepend renders correctly until the reconciling refetch lands.
  *
  * The placeholder MUST satisfy `Message` (zod-inferred) at the type level —
- * every required field gets a safe default. `_id` is namespaced so it never
- * collides with a persisted message id; dedupe of the eventual row happens on
- * the `messageId` (MIME `Message-Id`) field, which IS stable.
+ * every required field gets a safe default. `_id` carries the REAL row id, so
+ * the placeholder and the persisted row are the same identity and the dedupe
+ * below can actually match. The previous version namespaced it
+ * (`optimistic:${…}`) and deduped on `messageId`, which the server was filling
+ * with the row id — so a real row's `<…@oxy.so>` header never matched and every
+ * new mail rendered twice.
  */
 function buildOptimisticMessage(event: EmailNewEvent, userId: string): Message {
   return {
-    _id: `optimistic:${event.messageId}`,
+    _id: event.id,
     userId,
     mailboxId: event.mailboxId,
     messageId: event.messageId,
@@ -91,57 +120,49 @@ function buildOptimisticMessage(event: EmailNewEvent, userId: string): Message {
   };
 }
 
-/**
- * Prepend the optimistic message to every cached `['messages', mailboxId, …]`
- * page list whose mailbox matches. Skips if a row with the same
- * `messageId` is already present (race with a concurrent manual refetch).
- */
+/** Every cached `['messages', mailboxId, …, userId]` list for this mailbox. */
+function messagesInMailbox(mailboxId: string, userId: string) {
+  return {
+    // The key shape is ['messages', mailboxId, starred, label, userId]. Matching
+    // by predicate lands the write in every active variant. `email:new` carries
+    // only the mailbox id, so starred/label cohorts reconcile via the
+    // invalidate rather than the optimistic prepend.
+    predicate: (q: { queryKey: readonly unknown[] }) => {
+      const key = q.queryKey;
+      return (
+        Array.isArray(key) &&
+        key[0] === 'messages' &&
+        key[1] === mailboxId &&
+        key[4] === userId
+      );
+    },
+  };
+}
+
 function prependToMessageCache(
   queryClient: ReturnType<typeof useQueryClient>,
-  userId: string,
   mailboxId: string,
+  userId: string,
   optimistic: Message,
 ) {
   queryClient.setQueriesData<MessagesInfinite>(
-    {
-      // The query key shape is ['messages', mailboxId, starred, label, userId]. We
-      // match by predicate so the prepend lands in every active variant
-      // (including starred + label views the message also belongs to,
-      // though `email:new` only carries the mailbox id, so we match on
-      // mailbox + userId — starred/label cohorts will refresh via the
-      // reconciliation invalidate below).
-      predicate: (q) => {
-        const key = q.queryKey;
-        return (
-          Array.isArray(key) &&
-          key[0] === 'messages' &&
-          key[1] === mailboxId &&
-          key[4] === userId
-        );
-      },
-    },
+    messagesInMailbox(mailboxId, userId),
     (old) => {
       if (!old || old.pages.length === 0) return old;
       const alreadyPresent = old.pages.some((page) =>
-        page.data.some((m) => m.messageId === optimistic.messageId),
+        page.data.some((m) => m._id === optimistic._id),
       );
       if (alreadyPresent) return old;
       const [firstPage, ...rest] = old.pages;
       return {
         ...old,
-        pages: [
-          { ...firstPage, data: [optimistic, ...firstPage.data] },
-          ...rest,
-        ],
+        pages: [{ ...firstPage, data: [optimistic, ...firstPage.data] }, ...rest],
       };
     },
   );
 }
 
-/**
- * Update the mailbox unread count in the `['mailboxes', userId]` cache so the
- * sidebar badge re-renders without a network round-trip.
- */
+/** Set a mailbox's unread badge from the server's authoritative count. */
 function updateMailboxUnread(
   queryClient: ReturnType<typeof useQueryClient>,
   userId: string,
@@ -161,232 +182,128 @@ function updateMailboxUnread(
   });
 }
 
-interface UseInboxSocketOptions {
-  /** Override the socket URL. Defaults to the same baseURL the inbox API uses. */
-  baseURL: string;
-}
+const isEmailNewEvent = (value: unknown): value is EmailNewEvent => {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record<string, unknown>;
+  const from = v.from as Record<string, unknown> | undefined;
+  return (
+    typeof v.id === 'string' &&
+    typeof v.messageId === 'string' &&
+    typeof v.mailboxId === 'string' &&
+    typeof v.folder === 'string' &&
+    typeof v.subject === 'string' &&
+    typeof v.snippet === 'string' &&
+    typeof v.receivedAt === 'string' &&
+    typeof from === 'object' &&
+    from !== null &&
+    typeof from.address === 'string'
+  );
+};
+
+const isEmailUnreadCountEvent = (value: unknown): value is EmailUnreadCountEvent => {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.mailboxId === 'string' && typeof v.unread === 'number';
+};
+
+const isEmailChangedEvent = (value: unknown): value is EmailChangedEvent => {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.id === 'string' &&
+    Array.isArray(v.mailboxIds) &&
+    v.mailboxIds.every((id) => typeof id === 'string') &&
+    typeof v.reason === 'string'
+  );
+};
 
 /**
- * Subscribe to inbox realtime events. The hook is a no-op until a user is
- * signed in (`useOxy().user`), and tears the socket down on sign-out / user
- * switch — react-query caches survive, so reconciling fetches happen the
- * moment a new session is restored.
- *
- * Single legitimate `useEffect`: opening + closing an external connection.
+ * Subscribe to inbox realtime events. A no-op until a user is signed in; the
+ * SDK's socket owns its own lifecycle, so there is nothing here to tear down.
  */
-export function useInboxSocket({ baseURL }: UseInboxSocketOptions) {
-  const { activeSessionId, canUsePrivateApi, user, oxyServices } = useOxy();
+export function useInboxSocket() {
+  const { user } = useOxy();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const viewMode = useEmailStore((s) => s.viewMode);
-
   const userId = user?.id ?? null;
-  const socketRef = useRef<Socket | null>(null);
 
-  // Keep latest values in refs so the socket subscription doesn't tear down
-  // and re-create on every render. The handlers always read fresh values.
-  const queryClientRef = useRef(queryClient);
-  const viewModeRef = useRef(viewMode);
-  const tokenGetterRef = useRef(() => oxyServices.getAccessToken());
-  const toastTitleRef = useRef(t);
-
-  useEffect(() => {
-    queryClientRef.current = queryClient;
-    viewModeRef.current = viewMode;
-    tokenGetterRef.current = () => oxyServices.getAccessToken();
-    toastTitleRef.current = t;
-  }, [queryClient, viewMode, oxyServices, t]);
-
-  useEffect(() => {
-    if (!userId || !activeSessionId || !canUsePrivateApi || !baseURL) {
-      const existing = socketRef.current;
-      if (existing) {
-        existing.disconnect();
-        socketRef.current = null;
+  const onEmailNew = useCallback(
+    (payload: unknown) => {
+      if (!userId) return;
+      if (!isEmailNewEvent(payload)) {
+        recordInboxMetric('realtime_malformed_event');
+        return;
       }
-      return;
-    }
 
-    const socket = io(baseURL, {
-      transports: ['websocket'],
-      reconnection: true,
-      reconnectionAttempts: Infinity,
-      reconnectionDelay: 500,
-      reconnectionDelayMax: 10_000,
-      randomizationFactor: 0.25,
-      timeout: 10_000,
-      auth: (cb) => {
-        const token = tokenGetterRef.current();
-        cb({ token: token ?? '' });
-      },
-    });
-    socketRef.current = socket;
+      // 1. Optimistic prepend — instant, no round-trip.
+      prependToMessageCache(queryClient, payload.mailboxId, userId, buildOptimisticMessage(payload, userId));
 
-    const handleConnect = () => {
-      recordInboxMetric('realtime_connected');
-      // Reconcile anything received while the socket was disconnected. The
-      // message queries retain their declared polling policy in useMessages;
-      // this uses only the public QueryClient API.
-      void queryClientRef.current.invalidateQueries({
-        queryKey: emailKeys.messages.root,
+      // 2. Bump the badge by one; the `email:unread_count` the server emits
+      //    alongside reconciles the exact number a moment later.
+      queryClient.setQueryData<Mailbox[] | undefined>(emailKeys.mailboxes.list(userId), (old) => {
+        if (!old) return old;
+        let mutated = false;
+        const next = old.map((mb) => {
+          if (mb._id !== payload.mailboxId) return mb;
+          mutated = true;
+          return { ...mb, unseenMessages: mb.unseenMessages + 1 };
+        });
+        return mutated ? next : old;
       });
-      void queryClientRef.current.invalidateQueries({
-        queryKey: emailKeys.mailboxes.root,
-      });
-      void queryClientRef.current.invalidateQueries({
-        queryKey: emailKeys.reminders.root,
-      });
-      void queryClientRef.current.invalidateQueries({
-        queryKey: emailKeys.searchRoot,
-      });
-    };
 
-    const handleConnectError = (error: Error) => {
-      recordInboxMetric('realtime_connect_error');
-      if (__DEV__) {
-        console.warn('[useInboxSocket] Realtime connection failed; Socket.IO will retry:', error.message);
+      // 3. Reconcile: replace the placeholder with the real, fully-typed row.
+      void queryClient.invalidateQueries(messagesInMailbox(payload.mailboxId, userId));
+
+      // 4. Toast only when the user is looking somewhere else. When they are
+      //    already on the folder it landed in, the new row IS the notification.
+      const isViewingTargetMailbox =
+        viewMode?.type === 'mailbox' && viewMode.mailbox._id === payload.mailboxId;
+      if (!isViewingTargetMailbox) {
+        toast.info(t('inbox.toast.newEmail', { sender: payload.from.name ?? payload.from.address }));
       }
-    };
 
-    socket.on('connect', handleConnect);
-    socket.on('connect_error', handleConnectError);
+      recordInboxMetric('realtime_email_new');
+    },
+    [queryClient, t, userId, viewMode],
+  );
 
-    const isEmailNewEvent = (value: unknown): value is EmailNewEvent => {
-      if (typeof value !== 'object' || value === null) return false;
-      const v = value as Record<string, unknown>;
-      const from = v.from as Record<string, unknown> | undefined;
-      return (
-        typeof v.messageId === 'string' &&
-        typeof v.mailboxId === 'string' &&
-        typeof v.folder === 'string' &&
-        typeof v.subject === 'string' &&
-        typeof v.snippet === 'string' &&
-        typeof v.receivedAt === 'string' &&
-        typeof from === 'object' &&
-        from !== null &&
-        typeof from.address === 'string'
-      );
-    };
-
-    const isEmailUnreadCountEvent = (value: unknown): value is EmailUnreadCountEvent => {
-      if (typeof value !== 'object' || value === null) return false;
-      const v = value as Record<string, unknown>;
-      return typeof v.mailboxId === 'string' && typeof v.unread === 'number';
-    };
-
-    const handleEvent = (eventType: InboxSocketEventType, payload: unknown) => {
-      if (socketRef.current !== socket) return;
-      switch (eventType) {
-        case 'email:new': {
-          if (!isEmailNewEvent(payload)) {
-            if (__DEV__) {
-              console.warn('[useInboxSocket] Malformed email:new payload:', payload);
-            }
-            return;
-          }
-          const event = payload;
-          const optimistic = buildOptimisticMessage(event, userId);
-
-          // 1. Optimistic prepend — instant UI update, no round-trip.
-          prependToMessageCache(queryClientRef.current, userId, event.mailboxId, optimistic);
-
-          // 2. Bump the unread badge optimistically by 1; the authoritative
-          //    `email:unread_count` event (emitted alongside by the server)
-          //    will reconcile the exact number.
-          queryClientRef.current.setQueryData<Mailbox[] | undefined>(emailKeys.mailboxes.list(userId), (old) => {
-            if (!old) return old;
-            let mutated = false;
-            const next = old.map((mb) => {
-              if (mb._id !== event.mailboxId) return mb;
-              mutated = true;
-              return { ...mb, unseenMessages: mb.unseenMessages + 1 };
-            });
-            return mutated ? next : old;
-          });
-
-          // 3. Reconciliation safety net — refetch the affected list so the
-          //    optimistic placeholder is replaced by the real, fully-typed
-          //    Message (with real `_id`, full `to`, `threadCount`, etc.).
-          queryClientRef.current.invalidateQueries({
-            predicate: (q) => {
-              const key = q.queryKey;
-              return (
-                Array.isArray(key) &&
-                key[0] === 'messages' &&
-                key[1] === event.mailboxId &&
-                key[4] === userId
-              );
-            },
-          });
-
-          // 4. Discreet toast when the user is viewing a different mailbox
-          //    or a non-mailbox view (starred / label). NEVER toast when
-          //    they're already looking at the folder the mail landed in —
-          //    the new row appearing at the top is signal enough.
-          const currentView = viewModeRef.current;
-          const isViewingTargetMailbox =
-            currentView?.type === 'mailbox' && currentView.mailbox._id === event.mailboxId;
-          if (!isViewingTargetMailbox) {
-            const sender = event.from.name ?? event.from.address;
-            toast.info(toastTitleRef.current('inbox.toast.newEmail', { sender }));
-          }
-          break;
-        }
-        case 'email:unread_count': {
-          if (!isEmailUnreadCountEvent(payload)) {
-            if (__DEV__) {
-              console.warn('[useInboxSocket] Malformed email:unread_count payload:', payload);
-            }
-            return;
-          }
-          updateMailboxUnread(queryClientRef.current, userId, payload.mailboxId, payload.unread);
-          break;
-        }
+  const onUnreadCount = useCallback(
+    (payload: unknown) => {
+      if (!userId) return;
+      if (!isEmailUnreadCountEvent(payload)) {
+        recordInboxMetric('realtime_malformed_event');
+        return;
       }
-    };
+      updateMailboxUnread(queryClient, userId, payload.mailboxId, payload.unread);
+    },
+    [queryClient, userId],
+  );
 
-    const handleEmailNew = (payload: EmailNewEvent) => {
-      handleEvent('email:new', payload);
-    };
-
-    const handleEmailUnreadCount = (payload: EmailUnreadCountEvent) => {
-      handleEvent('email:unread_count', payload);
-    };
-
-    const handleUnknown = (eventName: string) => {
-      // Strict whitelist diagnostic: unknown events MUST NOT trigger side
-      // effects. Dev-only warning, otherwise silent. Mirrors the
-      // `useSessionSocket` pattern documented in CLAUDE.md.
-      //
-      // Scoped to the `email:` namespace on purpose. The `user:<id>` room is
-      // shared with every other domain that pushes to this user — session,
-      // civic, socket.io's own lifecycle events — and none of those are this
-      // hook's business. Warning about them turns a real diagnostic ("a new
-      // email event exists that we don't handle") into noise.
-      if (
-        __DEV__ &&
-        eventName.startsWith('email:') &&
-        eventName !== 'email:new' &&
-        eventName !== 'email:unread_count'
-      ) {
-        console.warn('[useInboxSocket] Unhandled email event:', eventName);
+  /**
+   * A message this client already holds changed somewhere else — another
+   * device, or a server-side filter. The event carries no body on purpose:
+   * invalidate and re-read through the ordinary authorised path.
+   */
+  const onEmailChanged = useCallback(
+    (payload: unknown) => {
+      if (!userId) return;
+      if (!isEmailChangedEvent(payload)) {
+        recordInboxMetric('realtime_malformed_event');
+        return;
       }
-    };
+      for (const mailboxId of payload.mailboxIds) {
+        void queryClient.invalidateQueries(messagesInMailbox(mailboxId, userId));
+      }
+      // A move or a delete changes which threads exist, and `sent` adds a row
+      // to a mailbox the user may not be viewing.
+      void queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
+      recordInboxMetric('realtime_email_changed');
+    },
+    [queryClient, userId],
+  );
 
-    socket.on('email:new', handleEmailNew);
-    socket.on('email:unread_count', handleEmailUnreadCount);
-    socket.onAny(handleUnknown);
-
-    return () => {
-      socket.off('connect', handleConnect);
-      socket.off('connect_error', handleConnectError);
-      socket.off('email:new', handleEmailNew);
-      socket.off('email:unread_count', handleEmailUnreadCount);
-      socket.offAny(handleUnknown);
-      socket.disconnect();
-      socketRef.current = null;
-    };
-    // The socket is keyed only on the values that should force a reconnect
-    // (user identity, server URL). Everything else flows via refs.
-  }, [activeSessionId, baseURL, canUsePrivateApi, queryClient, userId]);
+  useOxyEvent('email:new', onEmailNew);
+  useOxyEvent('email:unread_count', onUnreadCount);
+  useOxyEvent('email:changed', onEmailChanged);
 }

@@ -472,6 +472,13 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
           void clearComposeRecovery(recoveryKey);
           closeCompose();
         },
+        // Accepted but NOT delivered. Close the composer — the server holds the
+        // message and the delivery queue tracks it — but keep the local
+        // crash-recovery snapshot, because `queued` includes the case where
+        // delivery never happens and the text would otherwise be gone.
+        onQueued: () => {
+          closeCompose();
+        },
         onError: () => {
           sentRef.current = false;
         },

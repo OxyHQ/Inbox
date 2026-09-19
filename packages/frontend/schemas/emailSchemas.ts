@@ -285,6 +285,17 @@ export const EmailOutboxSchema = z.object({
   messageId: z.string(),
   status: z.enum(['pending', 'processing', 'sent', 'failed', 'cancelled']),
   attempts: z.number().int().min(0),
+  /**
+   * The retry budget, and whether it is spent. `status: 'failed'` alone does
+   * NOT mean the message is dead — a row waiting for its next attempt carries
+   * it too. `terminal` is the difference between "still trying" and "this will
+   * never leave unless you retry it", which is the only distinction a user can
+   * act on.
+   *
+   * Optional so an older API that does not send them still parses.
+   */
+  maxAttempts: z.number().int().min(1).optional(),
+  terminal: z.boolean().optional(),
   nextAttemptAt: z.string(),
   lastError: z.string().nullable(),
   sentAt: z.string().nullable(),

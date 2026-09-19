@@ -159,7 +159,7 @@ function RootEffects() {
   const { t } = useTranslation();
   const { canUsePrivateApi } = useOxy();
 
-  useInboxSocket({ baseURL: API_URL });
+  useInboxSocket();
   usePushRegistration();
   useEmailPushNotifications(canUsePrivateApi);
   useForegroundNotificationHandler();

@@ -7,11 +7,26 @@ import { useCancelOutboundMessage, useRetryOutboundMessage } from '@/hooks/mutat
 import { SectionHeader } from '@/components/settings/SectionHeader';
 import type { EmailOutbox } from '@/services/emailApi';
 
-function statusLabel(item: EmailOutbox): string {
+export function statusLabel(item: EmailOutbox): string {
   if (item.status === 'processing') return 'Sending…';
   if (item.status === 'pending') return 'Waiting to send';
-  if (item.status === 'failed') return `Failed after ${item.attempts} attempt${item.attempts === 1 ? '' : 's'}`;
+  if (item.status === 'failed') {
+    const attempts = `${item.attempts} attempt${item.attempts === 1 ? '' : 's'}`;
+    // A spent retry budget is not "failed, will try again" — nothing will
+    // happen to this message until somebody retries it by hand.
+    return item.terminal ? `Not delivered after ${attempts}` : `Retrying after ${attempts}`;
+  }
   return 'Cancelled';
+}
+
+/** Messages that still owe the user a delivery, by the queue's own reckoning. */
+export function outstandingOutbound(messages: EmailOutbox[]): EmailOutbox[] {
+  return messages.filter((item) => item.status !== 'sent' && item.status !== 'cancelled');
+}
+
+/** Of those, the ones that will not move again on their own. */
+export function stuckOutbound(messages: EmailOutbox[]): EmailOutbox[] {
+  return outstandingOutbound(messages).filter((item) => item.terminal === true);
 }
 
 export function OutboundQueueSection() {
@@ -33,11 +48,13 @@ export function OutboundQueueSection() {
         {pending.map((item, index) => (
           <View key={item.id} style={[styles.row, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
             <View style={styles.main}>
-              <Text style={[styles.status, { color: item.status === 'failed' ? colors.error : colors.text }]}>
+              <Text style={[styles.status, { color: item.terminal ? colors.error : colors.text }]}>
                 {statusLabel(item)}
               </Text>
               <Text style={[styles.detail, { color: colors.secondaryText }]} numberOfLines={1}>
-                Next attempt: {new Date(item.nextAttemptAt).toLocaleString()}
+                {item.terminal
+                  ? 'No further attempts will be made automatically.'
+                  : `Next attempt: ${new Date(item.nextAttemptAt).toLocaleString()}`}
               </Text>
               {item.lastError ? (
                 <Text style={[styles.error, { color: colors.error }]} numberOfLines={2}>{item.lastError}</Text>

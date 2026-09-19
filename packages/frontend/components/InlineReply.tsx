@@ -177,11 +177,21 @@ export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps
         subject: initialSubject,
         text: isWeb ? stripHtml(fullBody) : fullBody,
         html: isWeb ? fullBody : undefined,
-        inReplyTo: mode !== 'forward' ? message._id : undefined,
+        // The RFC 5322 `Message-Id`, NOT the database row id. The backend puts
+        // this straight into the outgoing `In-Reply-To` header and matches it
+        // with `findOwnMessageByRfcId`, so a row id here broke threading in the
+        // recipient's client and left the original unmarked as answered.
+        inReplyTo: mode !== 'forward' ? message.messageId : undefined,
         references: mode !== 'forward' && message.references ? [...message.references, message.messageId] : undefined,
       },
       {
         onSuccess: () => {
+          onSent?.();
+          onClose();
+        },
+        // Accepted but not delivered: close the composer (the server holds it)
+        // without claiming it was sent.
+        onQueued: () => {
           onSent?.();
           onClose();
         },

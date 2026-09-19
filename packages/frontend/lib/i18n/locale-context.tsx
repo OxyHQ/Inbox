@@ -7,7 +7,7 @@ import React, {
 } from 'react';
 import { I18nManager } from 'react-native';
 import { useOxy, useUpdateProfile } from '@oxy.so/services';
-import { getBaseLanguage, isRTLLocale, normalizeLocale } from '@oxy.so/core';
+import { coerceToSupportedLocale, isRTLLocale } from '@oxy.so/core';
 import {
   DEFAULT_LOCALE,
   SUPPORTED_LOCALES,
@@ -20,25 +20,15 @@ I18nManager.allowRTL(true);
 
 /**
  * Coerce a canonical BCP-47 locale from the SDK down to a locale this app
- * actually ships a dictionary for. An exact catalog match wins; otherwise the
- * closest supported locale sharing the same base language (`es-MX` -> `es-ES`);
- * otherwise the app default.
+ * actually ships a dictionary for. Delegates to `@oxy.so/core`'s
+ * `coerceToSupportedLocale` (exact catalog match, else the closest supported
+ * locale sharing the same base language — `es-MX` -> `es-ES` — else the app
+ * default) rather than re-deriving that same algorithm locally; every Oxy app
+ * used to hand-roll this, which is why it moved into the SDK
+ * (see ADR 0022, `@oxy.so/services`' `OxyProvider.language`).
  */
 function coerceLocale(value: string | null | undefined): Locale {
-  if (value) {
-    const canonical = normalizeLocale(value);
-    if (canonical && SUPPORTED_LOCALES.includes(canonical as Locale)) {
-      return canonical as Locale;
-    }
-    const base = getBaseLanguage(value);
-    if (base) {
-      const byBase = SUPPORTED_LOCALES.find(
-        (locale) => getBaseLanguage(locale) === base,
-      );
-      if (byBase) return byBase;
-    }
-  }
-  return DEFAULT_LOCALE;
+  return coerceToSupportedLocale(value, SUPPORTED_LOCALES, DEFAULT_LOCALE) as Locale;
 }
 
 interface LocaleContextValue {

@@ -72,3 +72,6 @@ included. The three declared peers, the measured census and the
   Fix the preset upstream; never copy config back into the app.
 - **Theming** is Bloom tokens + NativeWind classNames. Never hardcode brand
   colours, never redefine `--bloom-*`.
+- **Realtime** rides the SDK's socket via `useOxyEvent`. Never open a second
+  `io()`: the one this app had was gated on `activeSessionId` and so silently
+  never connected. `docs/realtime-and-outbound.md`.

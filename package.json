@@ -20,7 +20,7 @@
   "overrides": {
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "@oxy.so/bloom": "^4.2.0",
+    "@oxy.so/bloom": "^4.3.0",
     "@oxy.so/services": "^4.0.0",
     "@radix-ui/react-slot": "1.2.3",
     "lightningcss": "1.30.1",

@@ -1,3 +1,6 @@
+import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
+import { Button } from '@oxy.so/bloom/button';
+import { TextFieldInput } from '@oxy.so/bloom/text-field';
 /**
  * AI Compose Toolbar component.
  *
@@ -16,9 +19,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   Platform,
-  Modal,
-  TextInput,
-  Pressable,
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
@@ -52,8 +52,8 @@ export function AiComposeToolbar({ body, onBodyChange, onSubjectSuggested }: AiC
   const { streamDraft, polish, changeTone, adjustLength, suggestSubject, isLoading } = useAiCompose();
   const mountedRef = useRef(false);
 
-  const [showDraftModal, setShowDraftModal] = useState(false);
-  const [showToneMenu, setShowToneMenu] = useState(false);
+  const draftControl = useDialogControl();
+  const toneControl = useDialogControl();
   const [draftPrompt, setDraftPrompt] = useState('');
   const [selectedTone, setSelectedTone] = useState<ComposeTone>('professional');
 
@@ -68,14 +68,14 @@ export function AiComposeToolbar({ body, onBodyChange, onSubjectSuggested }: AiC
 
   // Handler for "Draft for me" button
   const handleDraft = useCallback(() => {
-    setShowDraftModal(true);
+    draftControl.open();
     setDraftPrompt('');
-  }, []);
+  }, [draftControl]);
 
   // Execute draft generation
   const executeDraft = useCallback(async () => {
     if (!draftPrompt.trim()) return;
-    setShowDraftModal(false);
+    draftControl.close();
 
     try {
       // Use streaming for typewriter effect
@@ -91,7 +91,7 @@ export function AiComposeToolbar({ body, onBodyChange, onSubjectSuggested }: AiC
         onBodyChange(body);
       }
     }
-  }, [body, draftPrompt, selectedTone, streamDraft, onBodyChange]);
+  }, [body, draftPrompt, selectedTone, streamDraft, onBodyChange, draftControl]);
 
   // Handler for "Polish" button
   const handlePolish = useCallback(async () => {
@@ -119,7 +119,7 @@ export function AiComposeToolbar({ body, onBodyChange, onSubjectSuggested }: AiC
 
   // Handler for tone change
   const handleToneChange = useCallback(async (tone: ComposeTone) => {
-    setShowToneMenu(false);
+    toneControl.close();
     setSelectedTone(tone);
     if (!hasBody) return;
     try {
@@ -129,7 +129,7 @@ export function AiComposeToolbar({ body, onBodyChange, onSubjectSuggested }: AiC
       if (error instanceof Error && error.name === 'AbortError') return;
       // Error handled by hook
     }
-  }, [body, hasBody, changeTone, onBodyChange]);
+  }, [body, hasBody, changeTone, onBodyChange, toneControl]);
 
   // Handler for subject suggestion
   const handleSuggestSubject = useCallback(async () => {
@@ -150,7 +150,7 @@ export function AiComposeToolbar({ body, onBodyChange, onSubjectSuggested }: AiC
       <View style={styles.toolbar}>
         {/* Draft button */}
         <TouchableOpacity
-          style={[styles.button, styles.primaryButton, { backgroundColor: colors.primary + '15' }]}
+          style={[styles.button, styles.primaryButton, { backgroundColor: colors.primaryContainer }]}
           onPress={handleDraft}
           disabled={isLoading}
           activeOpacity={0.7}
@@ -196,7 +196,7 @@ export function AiComposeToolbar({ body, onBodyChange, onSubjectSuggested }: AiC
         {/* Tone dropdown */}
         <TouchableOpacity
           style={[styles.button, { borderColor: colors.border }]}
-          onPress={() => setShowToneMenu(true)}
+          onPress={() => toneControl.open()}
           disabled={isLoading}
           activeOpacity={0.7}
         >
@@ -228,148 +228,20 @@ export function AiComposeToolbar({ body, onBodyChange, onSubjectSuggested }: AiC
         </TouchableOpacity>
       )}
 
-      {/* Draft prompt modal */}
-      <Modal
-        visible={showDraftModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowDraftModal(false)}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setShowDraftModal(false)}
-        >
-          <Pressable
-            style={[styles.modalContent, { backgroundColor: colors.surface }]}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <View style={styles.modalHeader}>
-              {Platform.OS === 'web' ? (
-                <HugeiconsIcon icon={AiBeautifyIcon as unknown as IconSvgElement} size={20} color={colors.primary} />
-              ) : (
-                <MaterialCommunityIcons name="creation" size={20} color={colors.primary} />
-              )}
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Draft with AI</Text>
-            </View>
-
-            <Text style={[styles.modalSubtitle, { color: colors.secondaryText }]}>
-              Describe what you want to say, and AI will draft it for you.
-            </Text>
-
-            <TextInput
-              style={[
-                styles.promptInput,
-                { color: colors.text, borderColor: colors.border, backgroundColor: colors.background },
-              ]}
-              value={draftPrompt}
-              onChangeText={setDraftPrompt}
-              placeholder="e.g., Decline the meeting politely, suggest next week instead"
-              placeholderTextColor={colors.searchPlaceholder}
-              multiline
-              autoFocus
-            />
-
-            <View style={styles.toneSelector}>
-              <Text style={[styles.toneLabel, { color: colors.secondaryText }]}>Tone:</Text>
-              <View style={styles.toneOptions}>
-                {TONE_OPTIONS.map((tone) => (
-                  <TouchableOpacity
-                    key={tone.value}
-                    style={[
-                      styles.toneOption,
-                      { borderColor: colors.border },
-                      selectedTone === tone.value && { backgroundColor: colors.primary + '15', borderColor: colors.primary },
-                    ]}
-                    onPress={() => setSelectedTone(tone.value)}
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      style={[
-                        styles.toneOptionText,
-                        { color: selectedTone === tone.value ? colors.primary : colors.text },
-                      ]}
-                    >
-                      {tone.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.modalButton, { borderColor: colors.border }]}
-                onPress={() => setShowDraftModal(false)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.modalButtonText, { color: colors.text }]}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.modalButton,
-                  styles.modalButtonPrimary,
-                  { backgroundColor: colors.primary },
-                  !draftPrompt.trim() && { opacity: 0.5 },
-                ]}
-                onPress={executeDraft}
-                disabled={!draftPrompt.trim() || isLoading}
-                activeOpacity={0.7}
-              >
-                {isLoading ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>Draft</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {/* Tone menu modal */}
-      <Modal
-        visible={showToneMenu}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowToneMenu(false)}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setShowToneMenu(false)}
-        >
-          <Pressable
-            style={[styles.toneMenuContent, { backgroundColor: colors.surface }]}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <Text style={[styles.toneMenuTitle, { color: colors.text }]}>Change tone to...</Text>
-            {TONE_OPTIONS.map((tone) => (
-              <TouchableOpacity
-                key={tone.value}
-                style={[styles.toneMenuItem, selectedTone === tone.value && { backgroundColor: colors.primary + '10' }]}
-                onPress={() => handleToneChange(tone.value)}
-                activeOpacity={0.7}
-              >
-                <MaterialCommunityIcons
-                  name={tone.icon}
-                  size={20}
-                  color={selectedTone === tone.value ? colors.primary : colors.icon}
-                />
-                <Text
-                  style={[
-                    styles.toneMenuItemText,
-                    { color: selectedTone === tone.value ? colors.primary : colors.text },
-                  ]}
-                >
-                  {tone.label}
-                </Text>
-                {selectedTone === tone.value && (
-                  <MaterialCommunityIcons name="check" size={18} color={colors.primary} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <Dialog control={draftControl} title="Draft with AI" description="Describe what you want to say, and AI will draft it for you.">
+        <View style={{ gap: 16 }}>
+          <TextFieldInput value={draftPrompt} onChangeText={setDraftPrompt} label="Draft instructions" placeholder="e.g., Decline the meeting politely, suggest next week instead" multiline autoFocus />
+          <View style={styles.toneOptions}>
+            {TONE_OPTIONS.map(tone => <Button key={tone.value} appearance="subtle" pressed={selectedTone === tone.value} onPress={() => setSelectedTone(tone.value)}>{tone.label}</Button>)}
+          </View>
+          <Button onPress={executeDraft} disabled={!draftPrompt.trim() || isLoading} loading={isLoading}>Draft</Button>
+        </View>
+      </Dialog>
+      <Dialog control={toneControl} title="Change tone to...">
+        <View style={{ gap: 8 }}>
+          {TONE_OPTIONS.map(tone => <Button key={tone.value} appearance="subtle" pressed={selectedTone === tone.value} onPress={() => handleToneChange(tone.value)}>{tone.label}</Button>)}
+        </View>
+      </Dialog>
     </View>
   );
 }
@@ -420,116 +292,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
   },
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    width: '100%',
-    maxWidth: 400,
-    borderRadius: 16,
-    padding: 20,
-    ...Platform.select({
-      web: { boxShadow: '0 4px 20px rgba(0,0,0,0.15)' },
-      default: { elevation: 8 },
-    }),
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    marginBottom: 16,
-  },
-  promptInput: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 15,
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
-  toneSelector: {
-    marginTop: 16,
-  },
-  toneLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-    marginBottom: 8,
-  },
   toneOptions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  toneOption: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
-  toneOptionText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-    marginTop: 20,
-  },
-  modalButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    minWidth: 80,
-    alignItems: 'center',
-  },
-  modalButtonPrimary: {
-    borderWidth: 0,
-  },
-  modalButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  // Tone menu styles
-  toneMenuContent: {
-    width: '100%',
-    maxWidth: 280,
-    borderRadius: 12,
-    paddingVertical: 8,
-    ...Platform.select({
-      web: { boxShadow: '0 4px 20px rgba(0,0,0,0.15)' },
-      default: { elevation: 8 },
-    }),
-  },
-  toneMenuTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  toneMenuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  toneMenuItemText: {
-    fontSize: 15,
-    flex: 1,
-  },
+
 });

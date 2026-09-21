@@ -1,3 +1,4 @@
+import { Button } from '@oxy.so/bloom/button';
 /**
  * Bottom sheet for creating a reminder.
  * Shows a text input and time picker with presets.
@@ -205,7 +206,7 @@ export function CreateReminderSheet({
                 style={[
                   styles.presetButton,
                   { borderColor: isSelected ? colors.primary : colors.border },
-                  isSelected && { backgroundColor: colors.primary + '15' },
+                  isSelected && { backgroundColor: colors.primaryContainer },
                 ]}
                 onPress={() => handleTimeChange(preset.date)}
                 activeOpacity={0.7}
@@ -236,19 +237,7 @@ export function CreateReminderSheet({
           })}
         </View>
 
-        <TouchableOpacity
-          style={[
-            styles.createButton,
-            { backgroundColor: canSubmit ? colors.primary : colors.border },
-          ]}
-          onPress={handleSubmit}
-          disabled={!canSubmit}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.createButtonText, { color: canSubmit ? '#fff' : colors.secondaryText }]}>
-            {isEdit ? 'Save changes' : 'Create reminder'}
-          </Text>
-        </TouchableOpacity>
+        <Button onPress={handleSubmit} disabled={!canSubmit}>{isEdit ? 'Save changes' : 'Create reminder'}</Button>
       </View>
     </BottomSheet>
   );
@@ -302,14 +291,5 @@ const styles = StyleSheet.create({
   },
   presetTime: {
     fontSize: 12,
-  },
-  createButton: {
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  createButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
   },
 });

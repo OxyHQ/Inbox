@@ -115,7 +115,7 @@ export function SmartReplyChips({ message, onSelectReply }: SmartReplyChipsProps
           replies.map((reply, index) => (
             <Chip
               key={index}
-              variant="outlined"
+              variant="subtle"
               color="primary"
               onPress={() => onSelectReply(reply)}
             >

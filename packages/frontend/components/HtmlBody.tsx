@@ -91,12 +91,12 @@ export function isUserInitiatedNativeNavigation(request: {
  * `background: white` and don't honour `color-scheme`, but correct
  * rendering for the rich-HTML newsletters that actually matter.
  */
-function wrapHtml(html: string, isDark: boolean): string {
-  const bgColor = isDark ? '#000000' : '#ffffff';
-  const textColor = isDark ? '#e8eaed' : '#202124';
-  const linkColor = isDark ? '#8ab4f8' : '#1a73e8';
-  const quoteBorderColor = isDark ? '#5f6368' : '#dadce0';
-  const quoteTextColor = isDark ? '#9aa0a6' : '#5f6368';
+function wrapHtml(html: string, isDark: boolean, colors: ReturnType<typeof useTheme>['colors']): string {
+  const bgColor = colors.background;
+  const textColor = colors.text;
+  const linkColor = colors.primarySubtleForeground;
+  const quoteBorderColor = colors.border;
+  const quoteTextColor = colors.textSecondary;
 
   // Strip active content (scripts, forms, event handlers, dangerous URL schemes)
   // BEFORE proxying so untrusted email markup is display-only in both the web
@@ -145,10 +145,10 @@ function wrapHtml(html: string, isDark: boolean): string {
 function HtmlBodyWeb({ html }: HtmlBodyProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [height, setHeight] = useState<number | null>(null);
-  const { mode } = useTheme();
+  const { mode, colors } = useTheme();
   const isDark = mode === 'dark';
 
-  const wrappedHtml = useMemo(() => wrapHtml(html, isDark), [html, isDark]);
+  const wrappedHtml = useMemo(() => wrapHtml(html, isDark, colors), [html, isDark, colors]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -231,13 +231,13 @@ if (Platform.OS !== 'web') {
   const { WebView } = require('react-native-webview');
 
   HtmlBodyNative = function HtmlBodyNativeComponent({ html }: HtmlBodyProps) {
-    const { mode } = useTheme();
+    const { mode, colors } = useTheme();
     const isDark = mode === 'dark';
 
     // JavaScript is disabled in the WebView (see props below), so the email body
     // is rendered statically. No height-measuring script is injected; the WebView
     // owns its own scroll instead of growing to fit.
-    const wrappedHtml = useMemo(() => wrapHtml(html, isDark), [html, isDark]);
+    const wrappedHtml = useMemo(() => wrapHtml(html, isDark, colors), [html, isDark, colors]);
 
     // Open user-clicked safe links in the system browser instead of navigating the WebView.
     const handleNavigation = useCallback(

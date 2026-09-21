@@ -1,3 +1,8 @@
+import { buildComposeDraftPayload, createDraftSaveQueue, parseComposeRecipients, type ComposeDraftSnapshot, type ComposeDraftSaveState } from '@/utils/composeDraft';
+import { stripHtml } from '@/utils/stripHtml';
+import { PageHeader } from '@oxy.so/bloom/page-header';
+import { Button, IconButton } from '@oxy.so/bloom/button';
+import { RiCloseLine, RiAttachment2, RiSaveLine, RiSendPlaneLine, RiArrowDownSLine, RiTimeLine } from '@oxy.so/bloom/icons';
 /**
  * Reusable compose / reply / forward form.
  *
@@ -19,12 +24,7 @@ import { Dialog, useDialogControl, toast } from '@oxy.so/bloom';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import {
-  Cancel01Icon,
-  FloppyDiskIcon,
-  MailSend01Icon,
   ArrowDown01Icon,
-  Attachment01Icon,
-  Clock01Icon,
 } from '@hugeicons/core-free-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOxy } from '@oxy.so/services';
@@ -37,18 +37,16 @@ import { useEmailStore } from '@/hooks/useEmail';
 import { useSendMessageWithUndo, useSendMessage, useSaveDraft } from '@/hooks/mutations/useMessageMutations';
 import { useContactSuggestions } from '@/hooks/queries/useContactSuggestions';
 import { AiComposeToolbar } from '@/components/AiComposeToolbar';
-import { RichTextEditor, stripHtml, type RichTextEditorHandle } from '@/components/RichTextEditor';
+import { RichTextEditor, type RichTextEditorHandle } from '@/components/RichTextEditor';
 import { ScheduleSendSheet } from '@/components/ScheduleSendSheet';
 import { TemplatePicker } from '@/components/TemplatePicker';
 import type { ContactSuggestion, EmailTemplate } from '@/services/emailApi';
-import { isValidRecipientEmail, parseRecipientList } from '@/schemas/emailSchemas';
 import { useTranslation } from '@/lib/i18n';
 import {
   clearComposeRecovery,
   composeRecoveryStorageKey,
   loadComposeRecovery,
   saveComposeRecovery,
-  type ComposeRecoverySnapshot,
 } from '@/utils/composeRecovery';
 
 /**
@@ -82,67 +80,6 @@ interface ComposeFormProps {
   cc?: string;
   subject?: string;
   body?: string;
-}
-
-export type ComposeDraftSaveState = 'idle' | 'saving' | 'saved' | 'error';
-
-export type ComposeDraftSnapshot = ComposeRecoverySnapshot;
-
-export interface ParsedComposeRecipients {
-  addresses: { address: string }[];
-  invalid: string[];
-}
-
-export interface DraftSaveQueue {
-  enqueue: (save: () => Promise<boolean>) => Promise<boolean>;
-}
-
-export function createDraftSaveQueue(): DraftSaveQueue {
-  let queue: Promise<boolean> = Promise.resolve(false);
-
-  return {
-    enqueue(save) {
-      const queuedSave = queue.then(save, save);
-      queue = queuedSave.then(
-        () => false,
-        () => false,
-      );
-      return queuedSave;
-    },
-  };
-}
-
-export function parseComposeRecipients(input: string): ParsedComposeRecipients {
-  const entries = input
-    .split(',')
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-  const invalid = entries.filter((entry) => !isValidRecipientEmail(entry));
-
-  return {
-    addresses: parseRecipientList(input),
-    invalid,
-  };
-}
-
-export function buildComposeDraftPayload(
-  snapshot: ComposeDraftSnapshot,
-  existingDraftId?: string,
-  web = isWeb,
-) {
-  return {
-    to: snapshot.to.trim() ? parseComposeRecipients(snapshot.to).addresses : undefined,
-    cc: snapshot.cc.trim() ? parseComposeRecipients(snapshot.cc).addresses : undefined,
-    bcc: snapshot.bcc.trim() ? parseComposeRecipients(snapshot.bcc).addresses : undefined,
-    subject: snapshot.subject || undefined,
-    text: web ? stripHtml(snapshot.body) || undefined : snapshot.body || undefined,
-    html: web ? snapshot.body || undefined : undefined,
-    inReplyTo: snapshot.replyTo,
-    ...(snapshot.attachments && snapshot.attachments.length > 0
-      ? { attachments: snapshot.attachments.map(({ fileId }) => ({ fileId })) }
-      : {}),
-    existingDraftId,
-  };
 }
 
 function isDraftConflict(error: unknown): boolean {
@@ -286,7 +223,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         if (mountedRef.current) setDraftSaveState('saving');
         try {
           const draft = await saveDraftAsync({
-            ...buildComposeDraftPayload(snapshot, draftIdRef.current ?? undefined),
+            ...buildComposeDraftPayload(snapshot, draftIdRef.current ?? undefined, isWeb),
             ...(draftIdRef.current && draftRevisionRef.current
               ? { expectedRevision: draftRevisionRef.current }
               : {}),
@@ -606,112 +543,23 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
       ]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        {mode === 'standalone' && (
-          <TouchableOpacity onPress={handleClose} style={styles.iconButton}>
-            {Platform.OS === 'web' ? (
-              <HugeiconsIcon icon={Cancel01Icon as unknown as IconSvgElement} size={24} color={colors.icon} />
-            ) : (
-              <MaterialCommunityIcons name="close" size={24} color={colors.icon} />
-            )}
-          </TouchableOpacity>
-        )}
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          {replyTo ? t('compose.titleReply') : forward ? t('compose.titleForward') : t('compose.titleCompose')}
-        </Text>
-        {draftStatusLabel && (
-          <Text
-            accessibilityLiveRegion="polite"
-            style={[styles.draftStatus, { color: visibleDraftSaveState === 'error' ? colors.error : colors.secondaryText }]}
-          >
-            {draftStatusLabel}
-          </Text>
-        )}
-        <View style={styles.headerSpacer} />
-          <TouchableOpacity accessibilityLabel={t('compose.dropZone')} accessibilityRole="button" onPress={handleAttachFile} style={styles.iconButton}>
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={Attachment01Icon as unknown as IconSvgElement} size={22} color={colors.icon} />
-          ) : (
-            <MaterialCommunityIcons name="paperclip" size={22} color={colors.icon} />
-          )}
-        </TouchableOpacity>
-        <TemplatePicker onSelect={handleTemplateSelect} />
-        <TouchableOpacity accessibilityLabel={t('compose.actions.saveDraft')} accessibilityRole="button" onPress={handleSaveDraft} style={styles.iconButton}>
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={FloppyDiskIcon as unknown as IconSvgElement} size={22} color={colors.icon} />
-          ) : (
-            <MaterialCommunityIcons name="content-save-outline" size={22} color={colors.icon} />
-          )}
-        </TouchableOpacity>
-        <View style={[styles.sendGroup, { backgroundColor: colors.primary, opacity: sending ? 0.5 : 1 }]}>
-          <TouchableOpacity
-            accessibilityLabel={t('compose.actions.send')}
-            accessibilityRole="button"
-            onPress={handleSend}
-            style={styles.sendGroupPrimary}
-            disabled={sending}
-            activeOpacity={0.7}
-          >
-            {Platform.OS === 'web' ? (
-              <HugeiconsIcon icon={MailSend01Icon as unknown as IconSvgElement} size={20} color={colors.background} />
-            ) : (
-              <MaterialCommunityIcons name="send" size={20} color={colors.background} />
-            )}
-            <Text style={[styles.sendGroupLabel, { color: colors.background }]}>
-              {sending ? t('common.loading') : t('compose.actions.send')}
-            </Text>
-          </TouchableOpacity>
-          <View style={[styles.sendGroupDivider, { backgroundColor: colors.background }]} />
-          <TouchableOpacity
-            accessibilityLabel={t('compose.actions.moreSendOptions')}
-            accessibilityRole="button"
-            onPress={() => sendMenuControl.open()}
-            style={styles.sendGroupChevron}
-            disabled={sending}
-            activeOpacity={0.7}
-          >
-            {Platform.OS === 'web' ? (
-              <HugeiconsIcon icon={ArrowDown01Icon as unknown as IconSvgElement} size={16} color={colors.background} />
-            ) : (
-              <MaterialCommunityIcons name="chevron-down" size={18} color={colors.background} />
-            )}
-          </TouchableOpacity>
+      <PageHeader
+        title={replyTo ? t('compose.titleReply') : forward ? t('compose.titleForward') : t('compose.titleCompose')}
+        subtitle={draftStatusLabel ? <Text accessibilityLiveRegion="polite" style={{ color: visibleDraftSaveState === 'error' ? colors.error : colors.secondaryText }}>{draftStatusLabel}</Text> : undefined}
+        leading={mode === 'standalone' ? <IconButton accessibilityLabel={t('common.close')} onPress={handleClose} icon={<RiCloseLine />} /> : undefined}
+        actions={<View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <IconButton accessibilityLabel={t('compose.dropZone')} onPress={handleAttachFile} icon={<RiAttachment2 />} />
+          <TemplatePicker onSelect={handleTemplateSelect} />
+          <IconButton accessibilityLabel={t('compose.actions.saveDraft')} onPress={handleSaveDraft} icon={<RiSaveLine />} />
+          <IconButton appearance="solid" accessibilityLabel={t('compose.actions.send')} onPress={handleSend} disabled={sending} loading={sending} icon={<RiSendPlaneLine />} />
+          <IconButton accessibilityLabel={t('compose.actions.moreSendOptions')} onPress={() => sendMenuControl.open()} disabled={sending} icon={<RiArrowDownSLine />} />
+        </View>}
+      />
+      <Dialog control={sendMenuControl} label={t('compose.actions.sendOptions')}>
+        <View style={{ gap: 8 }}>
+          <Button appearance="subtle" leading={<RiSendPlaneLine />} onPress={() => { sendMenuControl.close(); handleSend(); }}>{t('compose.actions.sendNow')}</Button>
+          <Button appearance="subtle" leading={<RiTimeLine />} onPress={() => { sendMenuControl.close(); setShowScheduleSheet(true); }}>{t('compose.actions.scheduleSend')}</Button>
         </View>
-      </View>
-
-      {/* Send-options menu */}
-      <Dialog control={sendMenuControl} label={t('compose.actions.sendOptions')} style={{ padding: 0 }}>
-        <TouchableOpacity
-          style={styles.sendMenuItem}
-          onPress={() => {
-            sendMenuControl.close();
-            handleSend();
-          }}
-          activeOpacity={0.6}
-        >
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={MailSend01Icon as unknown as IconSvgElement} size={18} color={colors.icon} />
-          ) : (
-            <MaterialCommunityIcons name="send" size={18} color={colors.icon} />
-          )}
-          <Text style={[styles.sendMenuItemText, { color: colors.text }]}>{t('compose.actions.sendNow')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.sendMenuItem}
-          onPress={() => {
-            sendMenuControl.close();
-            setShowScheduleSheet(true);
-          }}
-          activeOpacity={0.6}
-        >
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={Clock01Icon as unknown as IconSvgElement} size={18} color={colors.icon} />
-          ) : (
-            <MaterialCommunityIcons name="clock-outline" size={18} color={colors.icon} />
-          )}
-          <Text style={[styles.sendMenuItemText, { color: colors.text }]}>{t('compose.actions.scheduleSend')}</Text>
-        </TouchableOpacity>
       </Dialog>
 
       <ScrollView
@@ -925,74 +773,6 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-    paddingVertical: 4,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '500',
-    flex: 0,
-    marginLeft: 4,
-  },
-  draftStatus: {
-    fontSize: 12,
-    marginLeft: 4,
-  },
-  headerSpacer: {
-    flex: 1,
-  },
-  iconButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 22,
-  },
-  sendGroup: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    height: 40,
-    borderRadius: 20,
-    overflow: 'hidden',
-    marginHorizontal: 4,
-  },
-  sendGroupPrimary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    gap: 6,
-  },
-  sendGroupLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  sendGroupDivider: {
-    width: StyleSheet.hairlineWidth,
-    opacity: 0.4,
-    marginVertical: 8,
-  },
-  sendGroupChevron: {
-    width: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sendMenuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
-  },
-  sendMenuItemText: {
-    fontSize: 15,
-    fontWeight: '500',
   },
   form: {
     flex: 1,

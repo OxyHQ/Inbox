@@ -39,13 +39,15 @@ interface SwipeableRowProps {
 function ActionPane({
   config,
   backgroundColor,
+  foregroundColor,
 }: {
   config: SwipeActionConfig;
   backgroundColor: string;
+  foregroundColor: string;
 }) {
   return (
     <View style={[styles.action, { backgroundColor }]}>
-      <MaterialCommunityIcons name={config.icon} size={24} color="#FFFFFF" />
+      <MaterialCommunityIcons name={config.icon} size={24} color={foregroundColor} />
     </View>
   );
 }
@@ -84,12 +86,12 @@ export function SwipeableRow({
       ref={swipeableRef}
       renderLeftActions={
         leftConfig
-          ? () => <ActionPane config={leftConfig} backgroundColor={colors[leftConfig.colorKey]} />
+          ? () => <ActionPane config={leftConfig} backgroundColor={colors[leftConfig.colorKey]} foregroundColor={colors[`${leftConfig.colorKey}Foreground`]} />
           : undefined
       }
       renderRightActions={
         rightConfig
-          ? () => <ActionPane config={rightConfig} backgroundColor={colors[rightConfig.colorKey]} />
+          ? () => <ActionPane config={rightConfig} backgroundColor={colors[rightConfig.colorKey]} foregroundColor={colors[`${rightConfig.colorKey}Foreground`]} />
           : undefined
       }
       onSwipeableOpen={handleOpen}

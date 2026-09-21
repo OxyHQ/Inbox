@@ -1,23 +1,9 @@
-/**
- * Template picker dropdown for inserting canned responses
- * into compose forms and inline replies.
- */
-
-import React, { useCallback } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-  ScrollView,
-} from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
-import { NoteEditIcon } from '@hugeicons/core-free-icons';
-import { Dialog, useDialogControl } from '@oxy.so/bloom';
-
-import { useColors } from '@/constants/theme';
+import { useCallback } from 'react';
+import { ScrollView } from 'react-native';
+import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
+import { IconButton } from '@oxy.so/bloom/button';
+import { RiDraftLine } from '@oxy.so/bloom/icons';
+import { SettingsListItem } from '@oxy.so/bloom/settings-list';
 import { useTemplates } from '@/hooks/queries/useTemplates';
 import type { EmailTemplate } from '@/services/emailApi';
 
@@ -26,7 +12,6 @@ interface TemplatePickerProps {
 }
 
 export function TemplatePicker({ onSelect }: TemplatePickerProps) {
-  const colors = useColors();
   const { data: templates = [] } = useTemplates();
   const control = useDialogControl();
 
@@ -41,86 +26,13 @@ export function TemplatePicker({ onSelect }: TemplatePickerProps) {
   if (templates.length === 0) return null;
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity
-        onPress={() => control.open()}
-        style={styles.button}
-        hitSlop={4}
-      >
-        {Platform.OS === 'web' ? (
-          <HugeiconsIcon
-            icon={NoteEditIcon as unknown as IconSvgElement}
-            size={20}
-            color={colors.icon}
-          />
-        ) : (
-          <MaterialCommunityIcons
-            name="file-document-edit-outline"
-            size={20}
-            color={colors.icon}
-          />
-        )}
-      </TouchableOpacity>
-
-      <Dialog control={control} label="Insert Template" style={{ padding: 0 }}>
-        <Text style={[styles.dropdownTitle, { color: colors.secondaryText }]}>
-          Insert Template
-        </Text>
-        <ScrollView style={styles.dropdownScroll} bounces={false}>
-          {templates.map((tpl) => (
-            <TouchableOpacity
-              key={tpl._id}
-              style={[styles.dropdownItem, { borderBottomColor: colors.border }]}
-              onPress={() => handleSelect(tpl)}
-            >
-              <Text style={[styles.itemName, { color: colors.text }]} numberOfLines={1}>
-                {tpl.name}
-              </Text>
-              <Text style={[styles.itemPreview, { color: colors.secondaryText }]} numberOfLines={1}>
-                {tpl.body.replace(/\n/g, ' ').slice(0, 60)}
-              </Text>
-            </TouchableOpacity>
-          ))}
+    <>
+      <IconButton onPress={() => control.open()} accessibilityLabel="Insert template" icon={<RiDraftLine />} />
+      <Dialog control={control} title="Insert template">
+        <ScrollView style={{ maxHeight: 360 }}>
+          {templates.map(template => <SettingsListItem key={template._id} title={template.name} description={template.body.replace(/\n/g, ' ').slice(0, 60)} onPress={() => handleSelect(template)} />)}
         </ScrollView>
       </Dialog>
-    </View>
+    </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'relative',
-  },
-  button: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 18,
-  },
-  dropdownTitle: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    paddingBottom: 6,
-  },
-  dropdownScroll: {
-    maxHeight: 200,
-  },
-  dropdownItem: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 2,
-  },
-  itemName: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  itemPreview: {
-    fontSize: 12,
-  },
-});

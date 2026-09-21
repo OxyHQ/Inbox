@@ -17,7 +17,6 @@ import Animated, {
   cancelAnimation,
   Easing,
 } from 'react-native-reanimated';
-import { useTheme } from '@oxy.so/bloom/theme';
 import { useColors } from '@/constants/theme';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -117,11 +116,9 @@ const DEFAULT_EXPRESSION: AliaExpression = 'Idle A';
 const MORPH_CONFIG = { duration: 600, easing: Easing.bezier(0.4, 0, 0.2, 1) };
 
 export function AliaFace({ expression = DEFAULT_EXPRESSION, size = 120 }: AliaFaceProps) {
-  const { mode } = useTheme();
   const colors = useColors();
-  const isDark = mode === 'dark';
 
-  const strokeColor = isDark ? '#ffffff' : '#000000';
+  const strokeColor = colors.text;
   const circleBg = colors.background;
   const circleBorder = colors.border;
 

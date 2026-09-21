@@ -1,54 +1,38 @@
-/**
- * Labels subscreen — create, rename, recolor, delete custom labels.
- *
- * Alia-style layout: a grid of existing labels rendered as visual chips
- * (color dot + name + inline edit/delete actions), and a create-block at
- * the bottom that combines name input + color swatch picker + add button.
- */
-
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { View } from 'react-native';
 import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
-import { Button } from '@oxy.so/bloom/button';
-import { Text } from '@oxy.so/bloom/typography';
-import { useTheme } from '@oxy.so/bloom/theme';
-import { Admonition } from '@oxy.so/bloom/admonition';
-import { Dialog, useDialogControl, toast } from '@oxy.so/bloom';
-import {
-  RiPushpinLine,
-  RiEditLine,
-  RiDeleteBin6Line,
-  RiAddLine,
-  RiCheckboxCircleLine,
-  RiPaletteLine,
-} from '@oxy.so/bloom/icons';
-
-import { useColors } from '@/constants/theme';
+  SettingsProfilePage,
+  SettingsValueField,
+} from '@oxy.so/bloom/settings-modal';
+import { Button, IconButton } from '@oxy.so/bloom/button';
+import { TextFieldInput } from '@oxy.so/bloom/text-field';
+import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
+import { toast } from '@oxy.so/bloom/toast';
+import { RiEditLine, RiDeleteBin6Line } from '@oxy.so/bloom/icons';
 import { useTranslation } from '@/lib/i18n';
-import { SectionHeader } from '@/components/settings/SectionHeader';
+import { SettingsPreferenceSelect } from '../SettingsPreferenceSelect';
 import {
   useLabels,
   useCreateLabel,
   useUpdateLabel,
   useDeleteLabel,
 } from '@/hooks/queries/useLabels';
-
 const LABEL_COLORS = [
-  '#4285f4', '#ea4335', '#fbbc04', '#34a853', '#ff6d01',
-  '#46bdc6', '#7b1fa2', '#c2185b', '#795548', '#607d8b',
+  '#4285f4',
+  '#ea4335',
+  '#fbbc04',
+  '#34a853',
+  '#ff6d01',
+  '#46bdc6',
+  '#7b1fa2',
+  '#c2185b',
+  '#795548',
+  '#607d8b',
 ] as const;
 
 const DEFAULT_NEW_COLOR = LABEL_COLORS[0];
 
 export function LabelsSection() {
-  const colors = useColors();
-  const theme = useTheme();
   const { t } = useTranslation();
   const { data: labels = [] } = useLabels();
   const createLabel = useCreateLabel();
@@ -61,7 +45,10 @@ export function LabelsSection() {
   const [editingLabelName, setEditingLabelName] = useState('');
 
   const deleteConfirm = useDialogControl();
-  const [labelPendingDelete, setLabelPendingDelete] = useState<{ id: string; name: string } | null>(null);
+  const [labelPendingDelete, setLabelPendingDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const handleCreate = useCallback(() => {
     const name = newLabelName.trim();
@@ -75,7 +62,10 @@ export function LabelsSection() {
           toast.success(t('common.success'));
         },
         onError: (err: unknown) => {
-          const message = err instanceof Error ? err.message : t('ui.mutations.labelCreateFailed');
+          const message =
+            err instanceof Error
+              ? err.message
+              : t('ui.mutations.labelCreateFailed');
           toast.error(message);
         },
       },
@@ -94,7 +84,10 @@ export function LabelsSection() {
             setEditingLabelName('');
           },
           onError: (err: unknown) => {
-            const message = err instanceof Error ? err.message : t('ui.mutations.labelUpdateFailed');
+            const message =
+              err instanceof Error
+                ? err.message
+                : t('ui.mutations.labelUpdateFailed');
             toast.error(message);
           },
         },
@@ -111,242 +104,162 @@ export function LabelsSection() {
         setLabelPendingDelete(null);
       },
       onError: (err: unknown) => {
-        const message = err instanceof Error ? err.message : t('ui.mutations.labelDeleteFailed');
+        const message =
+          err instanceof Error
+            ? err.message
+            : t('ui.mutations.labelDeleteFailed');
         toast.error(message);
       },
     });
   }, [labelPendingDelete, deleteLabel, t]);
 
-  const inputStyle = {
-    color: colors.text,
-    backgroundColor: theme.colors.background,
-    borderColor: colors.border,
-  };
-
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.root}
-    >
-      {/* Existing labels */}
-      <View style={styles.subsection}>
-        <SectionHeader icon={RiPushpinLine} title={t('ui.settings.labels.your')} />
-        {labels.length === 0 ? (
-          <Admonition type="info">
-            {t('ui.settings.labels.empty')}
-          </Admonition>
-        ) : (
-          <View style={[styles.labelList, { borderColor: colors.border }]}>
-            {labels.map((label, idx) => {
-              const isEditing = editingLabelId === label._id;
-              return (
+    <>
+      <SettingsProfilePage
+        sections={[
+          {
+            key: 'labels',
+            label: t('ui.settings.labels.your'),
+            description: labels.length
+              ? undefined
+              : t('ui.settings.labels.empty'),
+            rows: labels.map((label) => ({
+              key: label._id,
+              label: label.name,
+              control: label.system ? (
+                <SettingsValueField muted>
+                  {t('ui.settings.labels.builtIn')}
+                </SettingsValueField>
+              ) : (
                 <View
-                  key={label._id}
-                  style={[
-                    styles.labelRow,
-                    idx > 0 && {
-                      borderTopWidth: StyleSheet.hairlineWidth,
-                      borderTopColor: colors.border,
-                    },
-                  ]}
+                  style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}
                 >
-                  <View style={[styles.labelDot, { backgroundColor: label.color }]} />
-                  {isEditing ? (
+                  {editingLabelId === label._id ? (
                     <>
-                      <TextInput
+                      <TextFieldInput
+                        size="sm"
+                        label={t('ui.settings.labels.labelName')}
                         value={editingLabelName}
                         onChangeText={setEditingLabelName}
-                        autoFocus
                         onSubmitEditing={() => handleUpdateName(label._id)}
-                        returnKeyType="done"
-                        placeholder={t('ui.settings.labels.labelName')}
-                        placeholderTextColor={colors.secondaryText}
-                        style={[styles.labelEditInput, inputStyle]}
                       />
-                      <Pressable
+                      <Button
+                        size="sm"
                         onPress={() => handleUpdateName(label._id)}
-                        style={styles.iconBtn}
-                        accessibilityRole="button"
-                        accessibilityLabel={t('ui.settings.labels.saveName')}
+                        disabled={updateLabel.isPending}
                       >
-                        <RiCheckboxCircleLine
-                          size="md"
-                          style={{ color: theme.colors.primary }}
-                        />
-                      </Pressable>
+                        {t('ui.settings.labels.saveName')}
+                      </Button>
                     </>
                   ) : (
-                    <>
-                      <Text style={[styles.labelName, { color: colors.text }]} numberOfLines={1}>
-                        {label.name}
-                      </Text>
-                      {/* System labels ship with the product: no rename, no
-                          delete, and the server rejects both anyway. */}
-                      {label.system ? (
-                        <Text style={[styles.systemTag, { color: colors.secondaryText }]}>
-                          {t('ui.settings.labels.builtIn')}
-                        </Text>
-                      ) : (
-                        <>
-                          <Pressable
-                            onPress={() => {
-                              setEditingLabelId(label._id);
-                              setEditingLabelName(label.name);
-                            }}
-                            style={styles.iconBtn}
-                            accessibilityRole="button"
-                            accessibilityLabel={t('ui.settings.labels.rename', { name: label.name })}
-                          >
-                            <RiEditLine
-                              size="sm"
-                              style={{ color: colors.icon }}
-                            />
-                          </Pressable>
-                          <Pressable
-                            onPress={() => {
-                              setLabelPendingDelete({ id: label._id, name: label.name });
-                              deleteConfirm.open();
-                            }}
-                            style={styles.iconBtn}
-                            accessibilityRole="button"
-                            accessibilityLabel={t('ui.settings.labels.delete', { name: label.name })}
-                          >
-                            <RiDeleteBin6Line
-                              size="sm"
-                              style={{ color: colors.error }}
-                            />
-                          </Pressable>
-                        </>
-                      )}
-                    </>
+                    <IconButton
+                      accessibilityLabel={t('ui.settings.labels.rename', {
+                        name: label.name,
+                      })}
+                      icon={<RiEditLine />}
+                      onPress={() => {
+                        setEditingLabelId(label._id);
+                        setEditingLabelName(label.name);
+                      }}
+                    />
                   )}
+                  <IconButton
+                    accessibilityLabel={t('ui.settings.labels.delete', {
+                      name: label.name,
+                    })}
+                    icon={<RiDeleteBin6Line />}
+                    onPress={() => {
+                      setLabelPendingDelete({
+                        id: label._id,
+                        name: label.name,
+                      });
+                      deleteConfirm.open();
+                    }}
+                  />
                 </View>
-              );
-            })}
-          </View>
-        )}
-      </View>
-
-      {/* Create label */}
-      <View style={styles.subsection}>
-        <SectionHeader icon={RiPaletteLine} title={t('ui.settings.labels.create')} />
-        <View style={styles.swatchRow}>
-          {LABEL_COLORS.map((c) => {
-            const isActive = newLabelColor === c;
-            return (
-              <Pressable
-                key={c}
-                onPress={() => setNewLabelColor(c)}
-                accessibilityRole="button"
-                accessibilityLabel={t('ui.settings.labels.pick', { color: c })}
-                style={[
-                  styles.swatch,
-                  { backgroundColor: c, borderColor: isActive ? colors.text : 'transparent' },
-                ]}
-              />
-            );
-          })}
-        </View>
-        <TextInput
-          value={newLabelName}
-          onChangeText={setNewLabelName}
-          placeholder={t('ui.settings.labels.newName')}
-          placeholderTextColor={colors.secondaryText}
-          onSubmitEditing={handleCreate}
-          returnKeyType="done"
-          style={[styles.createInput, inputStyle]}
-        />
-        <Button
-          onPress={handleCreate}
-          disabled={!newLabelName.trim() || createLabel.isPending}
-          icon={<RiAddLine size="sm" style={{ color: '#FFFFFF' }} />}
-          iconPosition="left"
-        >
-          {createLabel.isPending ? t('ui.settings.labels.creating') : t('ui.settings.labels.add')}
-        </Button>
-      </View>
-
+              ),
+            })),
+          },
+          {
+            key: 'create',
+            label: t('ui.settings.labels.create'),
+            rows: [
+              {
+                key: 'name',
+                label: t('ui.settings.labels.labelName'),
+                control: (
+                  <TextFieldInput
+                    size="sm"
+                    label={t('ui.settings.labels.newName')}
+                    value={newLabelName}
+                    onChangeText={setNewLabelName}
+                    onSubmitEditing={handleCreate}
+                  />
+                ),
+              },
+              {
+                key: 'color',
+                label: 'Color',
+                control: (
+                  <SettingsPreferenceSelect
+                    label="Label color"
+                    value={newLabelColor}
+                    onChange={setNewLabelColor}
+                    items={LABEL_COLORS.map((value, index) => ({
+                      value,
+                      label: [
+                        'Blue',
+                        'Red',
+                        'Yellow',
+                        'Green',
+                        'Orange',
+                        'Cyan',
+                        'Purple',
+                        'Pink',
+                        'Brown',
+                        'Gray',
+                      ][index],
+                    }))}
+                  />
+                ),
+              },
+              {
+                key: 'add',
+                label: t('ui.settings.labels.add'),
+                control: (
+                  <Button
+                    size="sm"
+                    onPress={handleCreate}
+                    disabled={!newLabelName.trim() || createLabel.isPending}
+                    loading={createLabel.isPending}
+                  >
+                    {t('ui.settings.labels.add')}
+                  </Button>
+                ),
+              },
+            ],
+          },
+        ]}
+      />
       <Dialog
         control={deleteConfirm}
         title={t('ui.settings.labels.deleteTitle')}
         description={
           labelPendingDelete
-            ? t('ui.settings.labels.deleteDescription', { name: labelPendingDelete.name })
+            ? t('ui.settings.labels.deleteDescription', {
+                name: labelPendingDelete.name,
+              })
             : ''
         }
         actions={[
-          { label: t('common.delete'), color: 'destructive', onPress: handleDelete },
+          {
+            label: t('common.delete'),
+            color: 'destructive',
+            onPress: handleDelete,
+          },
           { label: t('common.cancel'), color: 'cancel' },
         ]}
       />
-    </KeyboardAvoidingView>
+    </>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    gap: 28,
-  },
-  subsection: {
-    gap: 12,
-  },
-  labelList: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 12,
-  },
-  labelDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-  },
-  systemTag: {
-    fontSize: 12,
-  },
-  labelName: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  labelEditInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    fontSize: 14,
-  },
-  iconBtn: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  swatchRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  swatch: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 2,
-  },
-  createInput: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-  },
-});

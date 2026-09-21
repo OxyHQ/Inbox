@@ -149,7 +149,7 @@ export function ThreadSummary({ messageId, messages, minMessages = 4 }: ThreadSu
             <MaterialCommunityIcons name="robot-outline" size={18} color={colors.primary} />
           )}
           <Text style={[styles.headerTitle, { color: colors.text }]}>Thread Summary</Text>
-          <View style={[styles.badge, { backgroundColor: colors.primary + '20' }]}>
+          <View style={[styles.badge, { backgroundColor: colors.primaryContainer }]}>
             <Text style={[styles.badgeText, { color: colors.primary }]}>
               {t('threadSummary.messages', { count: messages.length })}
             </Text>

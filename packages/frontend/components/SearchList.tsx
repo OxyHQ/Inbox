@@ -17,7 +17,6 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSearchFocus } from '@/contexts/search-focus-context';
-import { useFloatingHeader } from '@/hooks/useFloatingHeader';
 import { useTabBarClearance } from '@/hooks/useTabBarClearance';
 import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from '@/lib/i18n';
@@ -86,7 +85,6 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   const [filterHasAttachment, setFilterHasAttachment] = useState(false);
   // Measured height of the floating header stack, reused as the list's top
   // padding so the first result starts just below it.
-  const { headerHeight, onHeaderLayout, floatingHeaderStyle } = useFloatingHeader();
   const [editingFilter, setEditingFilter] = useState<string | null>(null);
   const [filterInput, setFilterInput] = useState('');
   const [nlInterpretation, setNlInterpretation] = useState('');
@@ -508,11 +506,8 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Same scroll treatment as the inbox: the header (and the filter chips
-          under it) float over the results, which scroll behind the header's
-          gradient. The measured height becomes the list's top padding. */}
-      <View style={floatingHeaderStyle} onLayout={onHeaderLayout}
-      >
+      {/* Header and filters stay in flow above the virtualized results. */}
+      <View>
       <SearchHeader
         ref={setInputRef}
         onLeftIcon={handleBack}
@@ -536,7 +531,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           style={[
             styles.filterChip,
             { borderColor: colors.border },
-            filterFrom ? { backgroundColor: colors.primary + '15', borderColor: colors.primary } : undefined,
+            filterFrom ? { backgroundColor: colors.primaryContainer, borderColor: colors.primary } : undefined,
           ]}
         >
           <TouchableOpacity
@@ -567,7 +562,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           style={[
             styles.filterChip,
             { borderColor: colors.border },
-            filterHasAttachment ? { backgroundColor: colors.primary + '15', borderColor: colors.primary } : undefined,
+            filterHasAttachment ? { backgroundColor: colors.primaryContainer, borderColor: colors.primary } : undefined,
           ]}
           onPress={() => handleFilterChipPress('attachment')}
           accessibilityLabel={t('search.filters.hasAttachment')}
@@ -689,7 +684,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           contentContainerStyle={{
             ...(results.length === 0 ? styles.emptyListContent : null),
             ...styles.listContent,
-            paddingTop: headerHeight,
+            paddingTop: 0,
             paddingBottom: tabBarClearance,
           }}
           showsVerticalScrollIndicator={false}

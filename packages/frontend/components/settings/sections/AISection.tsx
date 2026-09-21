@@ -1,133 +1,64 @@
-/**
- * AI features subscreen — opt-in toggles for AI conveniences.
- *
- * Persists via `useInboxPrefs` (local-device). The features that surface these
- * flags consume them directly and skip their work when disabled: `HomeScreen`
- * gates the daily brief (and disables `useDailyBrief`), `SmartReplyChips`
- * renders nothing when Smart RiChat4Line is off, and `ImportanceBadge` hides itself
- * when categorization is off.
- */
-
-import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { Switch } from '@oxy.so/bloom/switch';
-import { Text } from '@oxy.so/bloom/typography';
-import { Admonition } from '@oxy.so/bloom/admonition';
 import {
-  RiSparklingLine,
-  RiRobot2Line,
-  RiChat4Line,
-} from '@oxy.so/bloom/icons';
-
-import { useColors } from '@/constants/theme';
-import { useTranslation } from '@/lib/i18n';
-import { SectionHeader } from '@/components/settings/SectionHeader';
+  SettingsCard,
+  SettingsRow,
+  SettingsSection,
+} from '@oxy.so/bloom/settings-modal';
+import { Admonition } from '@oxy.so/bloom/admonition';
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
-
-interface InlineToggleProps {
-  title: string;
-  description: string;
-  value: boolean;
-  onChange: (value: boolean) => void;
-}
-
-function InlineToggle({ title, description, value, onChange }: InlineToggleProps) {
-  const colors = useColors();
-  return (
-    <Pressable
-      onPress={() => onChange(!value)}
-      accessibilityRole="switch"
-      accessibilityState={{ checked: value }}
-      style={styles.inlineToggle}
-    >
-      <View style={styles.inlineToggleText}>
-        <Text style={[styles.inlineToggleTitle, { color: colors.text }]}>{title}</Text>
-        <Text style={[styles.inlineToggleSub, { color: colors.secondaryText }]}>
-          {description}
-        </Text>
-      </View>
-      <Switch value={value} onValueChange={onChange} />
-    </Pressable>
-  );
-}
-
+import { useTranslation } from '@/lib/i18n';
 export function AISection() {
-  const { t } = useTranslation();
   const { prefs, setPref } = useInboxPrefs();
-
+  const { t } = useTranslation();
   return (
-    <View style={styles.root}>
-      <View style={styles.subsection}>
-        <SectionHeader icon={RiSparklingLine} title={t('ui.settings.ai.dailyBrief')} />
-        <View style={styles.toggleGroup}>
-          <InlineToggle
-            title={t('ui.settings.ai.recap')}
+    <View style={{ gap: 24 }}>
+      <SettingsSection label={t('ui.settings.ai.dailyBrief')}>
+        <SettingsCard>
+          <SettingsRow
+            key="aiBrief"
+            label={t('ui.settings.ai.recap')}
             description={t('ui.settings.ai.recapDescription')}
-            value={prefs.aiBrief}
-            onChange={(v) => setPref('aiBrief', v)}
-          />
-        </View>
-      </View>
-
-      <View style={styles.subsection}>
-        <SectionHeader icon={RiChat4Line} title={t('ui.settings.ai.smartReply')} />
-        <View style={styles.toggleGroup}>
-          <InlineToggle
-            title={t('ui.settings.ai.suggestions')}
+          >
+            <Switch
+              accessibilityLabel={t('ui.settings.ai.recap')}
+              value={prefs.aiBrief}
+              onValueChange={(v) => setPref('aiBrief', v)}
+            />
+          </SettingsRow>
+        </SettingsCard>
+      </SettingsSection>
+      <SettingsSection label={t('ui.settings.ai.smartReply')}>
+        <SettingsCard>
+          <SettingsRow
+            key="aiSmartReply"
+            label={t('ui.settings.ai.suggestions')}
             description={t('ui.settings.ai.suggestionsDescription')}
-            value={prefs.aiSmartReply}
-            onChange={(v) => setPref('aiSmartReply', v)}
-          />
-        </View>
-      </View>
-
-      <View style={styles.subsection}>
-        <SectionHeader icon={RiRobot2Line} title={t('ui.settings.ai.priority')} />
-        <View style={styles.toggleGroup}>
-          <InlineToggle
-            title={t('ui.settings.ai.priorityTitle')}
+          >
+            <Switch
+              accessibilityLabel={t('ui.settings.ai.suggestions')}
+              value={prefs.aiSmartReply}
+              onValueChange={(v) => setPref('aiSmartReply', v)}
+            />
+          </SettingsRow>
+        </SettingsCard>
+      </SettingsSection>
+      <SettingsSection label={t('ui.settings.ai.priority')}>
+        <SettingsCard>
+          <SettingsRow
+            key="aiCategorization"
+            label={t('ui.settings.ai.priorityTitle')}
             description={t('ui.settings.ai.priorityDescription')}
-            value={prefs.aiCategorization}
-            onChange={(v) => setPref('aiCategorization', v)}
-          />
-        </View>
-      </View>
-
-      <Admonition type="tip">
-        {t('ui.settings.ai.tip')}
-      </Admonition>
+          >
+            <Switch
+              accessibilityLabel={t('ui.settings.ai.priorityTitle')}
+              value={prefs.aiCategorization}
+              onValueChange={(v) => setPref('aiCategorization', v)}
+            />
+          </SettingsRow>
+        </SettingsCard>
+      </SettingsSection>
+      <Admonition type="tip">{t('ui.settings.ai.tip')}</Admonition>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    gap: 28,
-  },
-  subsection: {
-    gap: 12,
-  },
-  toggleGroup: {
-    gap: 4,
-  },
-  inlineToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 8,
-  },
-  inlineToggleText: {
-    flex: 1,
-    gap: 2,
-  },
-  inlineToggleTitle: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  inlineToggleSub: {
-    fontSize: 13,
-    lineHeight: 17,
-  },
-});

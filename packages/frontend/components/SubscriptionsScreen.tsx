@@ -1,3 +1,4 @@
+import { PageHeader } from '@oxy.so/bloom/page-header';
 /**
  * Subscriptions management screen.
  *
@@ -9,7 +10,6 @@ import React, { useMemo, useCallback, useState, useRef } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
   Platform,
   useWindowDimensions,
@@ -18,22 +18,18 @@ import {
 } from 'react-native';
 import { FlashList, type FlashListProps, type FlashListRef } from '@shopify/flash-list';
 import Animated, { type AnimatedProps } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useMinimizeOnScroll } from '@oxy.so/bloom/tab-bar';
 
-import { useFloatingHeader } from '@/hooks/useFloatingHeader';
 import { SubscriptionStacks } from '@/components/SubscriptionStacks';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import {
-  ArrowLeft01Icon,
   News01Icon,
 } from '@hugeicons/core-free-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTabBarClearance } from '@/hooks/useTabBarClearance';
 import { useGoBack } from '@/hooks/useGoBack';
 import { useColors } from '@/constants/theme';
-import { fadeOut } from '@/utils/fadeOut';
 import { useSubscriptions } from '@/hooks/queries/useSubscriptions';
 import { useUnsubscribe } from '@/hooks/mutations/useUnsubscribe';
 import { SubscriptionRow } from '@/components/SubscriptionRow';
@@ -109,7 +105,6 @@ export function SubscriptionsScreen() {
    * Tapping a pile scrolls the list to that sender — the pile is a jump target,
    * matching the header's "Scroll to <sender>" affordance.
    */
-  const { headerHeight, onHeaderLayout, floatingHeaderStyle } = useFloatingHeader();
   const listRef = useRef<FlashListRef<Subscription>>(null);
   const handleSelectSubscription = useCallback(
     (subscriptionId: string) => {
@@ -195,48 +190,8 @@ export function SubscriptionsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* The header floats over the list, exactly like the inbox: the
-          content scrolls behind a gradient that fades out downwards, and the
-          measured height becomes the list's top padding. Before this the header
-          was a solid bar with a border that pushed the list down — a second,
-          unrelated scroll treatment in the same app. */}
-      <View style={floatingHeaderStyle} onLayout={onHeaderLayout}
-      >
-      <LinearGradient
-        colors={[colors.background, fadeOut(colors.background)]}
-        style={[
-          styles.header,
-          {
-            paddingLeft: 16 + insets.left,
-            paddingRight: 16 + insets.right,
-          },
-          !isDesktop && { paddingTop: insets.top },
-        ]}
-      >
-        {!isDesktop && (
-          <TouchableOpacity
-            onPress={handleBack}
-            style={styles.iconButton}
-          >
-            {Platform.OS === 'web' ? (
-              <HugeiconsIcon
-                icon={ArrowLeft01Icon as unknown as IconSvgElement}
-                size={24}
-                color={colors.icon}
-              />
-            ) : (
-              <MaterialCommunityIcons
-                name="arrow-left"
-                size={24}
-                color={colors.icon}
-              />
-            )}
-          </TouchableOpacity>
-        )}
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Subscriptions
-        </Text>
-      </LinearGradient>
+      <View style={{ paddingTop: isDesktop ? 0 : insets.top }}>
+        <PageHeader title="Subscriptions" onBack={isDesktop ? undefined : handleBack} />
       </View>
 
       {isLoading ? (
@@ -253,7 +208,7 @@ export function SubscriptionsScreen() {
             <>
               <SubscriptionStacks subscriptions={subscriptions} onSelect={handleSelectSubscription} />
               {/* Scrolls with the list rather than sitting in a fixed band:
-                  only the floating header stays put, same as the inbox. */}
+                  only the header stays put, same as the inbox. */}
               {subscriptions.length > 0 && (
                 <View style={styles.subtitle}>
                   <Text style={[styles.subtitleText, { color: colors.secondaryText }]}>
@@ -278,7 +233,7 @@ export function SubscriptionsScreen() {
           }
           contentContainerStyle={{
             ...(subscriptions.length === 0 ? styles.emptyListContent : null),
-            paddingTop: headerHeight,
+            paddingTop: 0,
             paddingBottom: tabBarClearance,
           }}
         />
@@ -290,26 +245,6 @@ export function SubscriptionsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  // `paddingLeft` / `paddingRight` are applied inline so they can include
-  // landscape `insets.left` / `insets.right` for notch protection.
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingBottom: 24,
-    gap: 8,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-  },
-  iconButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 20,
   },
   subtitle: {
     paddingHorizontal: 16,

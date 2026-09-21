@@ -1,43 +1,19 @@
-/**
- * Account subscreen — identity, signature, vacation, forwarding, sign out.
- *
- * Layout follows the Alia settings pattern: a `View` with generous `gap`
- * spacing, each subsection introduced by a small icon + uppercase eyebrow
- * label. No row-spam — the controls are visual blocks the user reads top
- * to bottom.
- */
-
-import React, { useCallback, useState } from 'react';
+import { Textarea } from '@oxy.so/bloom/textarea';
+import { useCallback, useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
-import { Avatar } from '@oxy.so/bloom/avatar';
+  SettingsProfilePage,
+  SettingsTextField,
+  SettingsValueField,
+} from '@oxy.so/bloom/settings-modal';
 import { Button } from '@oxy.so/bloom/button';
 import { Switch } from '@oxy.so/bloom/switch';
-import { SettingsListGroup, SettingsListItem } from '@oxy.so/bloom/settings-list';
-import { Text } from '@oxy.so/bloom/typography';
-import { useTheme } from '@oxy.so/bloom/theme';
-import { Dialog, useDialogControl, toast } from '@oxy.so/bloom';
-import {
-  RiEditLine,
-  RiLogoutBoxRLine,
-  RiUpload2Line,
-  RiSendPlaneLine,
-} from '@oxy.so/bloom/icons';
+import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
+import { toast } from '@oxy.so/bloom/toast';
 import { getNormalizedUserHandle } from '@oxy.so/core';
 import { useOxy } from '@oxy.so/services';
-
-import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';
 import { useSettings, useUpdateSettings } from '@/hooks/queries/useSettings';
 import type { EmailSettings } from '@/services/emailApi';
-import { SectionHeader } from '@/components/settings/SectionHeader';
-
 type SettingsDraft = {
   signature: string;
   autoReplyEnabled: boolean;
@@ -72,8 +48,12 @@ function draftsEqual(a: SettingsDraft, b: SettingsDraft): boolean {
 /** React-docs derived-state pattern: re-sync the draft only when the server
  *  snapshot changes AND the user has no pending edits. No useEffect. */
 function useDirtySettings(settingsData: EmailSettings | undefined) {
-  const [serverSnapshot, setServerSnapshot] = useState<EmailSettings | undefined>(settingsData);
-  const [draft, setDraft] = useState<SettingsDraft>(() => toDraft(settingsData));
+  const [serverSnapshot, setServerSnapshot] = useState<
+    EmailSettings | undefined
+  >(settingsData);
+  const [draft, setDraft] = useState<SettingsDraft>(() =>
+    toDraft(settingsData),
+  );
 
   if (settingsData !== serverSnapshot) {
     const isClean = draftsEqual(draft, toDraft(serverSnapshot));
@@ -96,9 +76,7 @@ function useDirtySettings(settingsData: EmailSettings | undefined) {
 }
 
 export function AccountSection() {
-  const colors = useColors();
   const { t } = useTranslation();
-  const theme = useTheme();
   const { user, logout } = useOxy();
   const { data: settingsData } = useSettings();
   const updateSettings = useUpdateSettings();
@@ -130,7 +108,8 @@ export function AccountSection() {
       {
         onSuccess: () => toast.success(t('ui.settings.account.updated')),
         onError: (err: unknown) => {
-          const message = err instanceof Error ? err.message : 'Failed to save settings.';
+          const message =
+            err instanceof Error ? err.message : 'Failed to save settings.';
           toast.error(message);
         },
       },
@@ -148,7 +127,8 @@ export function AccountSection() {
 
   const signOutDialog = useDialogControl();
 
-  const fullName = user?.name?.displayName ?? getNormalizedUserHandle(user) ?? 'Account';
+  const fullName =
+    user?.name?.displayName ?? getNormalizedUserHandle(user) ?? 'Account';
 
   const emailAddress = user?.email || (user ? `${user.username}@oxy.so` : '');
 
@@ -157,249 +137,196 @@ export function AccountSection() {
       await logout();
       toast.success(t('ui.settings.account.signedOut'));
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to sign out.';
+      const message =
+        err instanceof Error ? err.message : 'Failed to sign out.';
       toast.error(message);
     }
   }, [logout, t]);
 
-  const inputStyle = {
-    color: colors.text,
-    backgroundColor: theme.colors.background,
-    borderColor: colors.border,
-  };
-
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.root}
-    >
-      {/* Profile hero */}
-      <View style={styles.hero}>
-        <Avatar source={user?.avatar} variant="thumb" name={fullName} size={64} />
-        <View style={styles.heroText}>
-          <Text style={[styles.heroName, { color: colors.text }]} numberOfLines={1}>
-            {fullName}
-          </Text>
-          {!!emailAddress && (
-            <Text style={[styles.heroEmail, { color: colors.secondaryText }]} numberOfLines={1}>
-              {emailAddress}
-            </Text>
-          )}
-        </View>
-      </View>
-
-      {/* Signature */}
-      <View style={styles.subsection}>
-        <SectionHeader icon={RiEditLine} title={t('ui.settings.account.signature')} />
-        <TextInput
-          value={signature}
-          onChangeText={(v) => setField('signature', v)}
-          placeholder={t('ui.settings.account.signaturePlaceholder')}
-          placeholderTextColor={colors.secondaryText}
-          multiline
-          numberOfLines={4}
-          textAlignVertical="top"
-          style={[styles.textArea, inputStyle]}
-        />
-      </View>
-
-      {/* Vacation auto-reply */}
-      <View style={styles.subsection}>
-        <SectionHeader icon={RiSendPlaneLine} title={t('ui.settings.account.autoReply')} />
-        <Pressable
-          onPress={() => setField('autoReplyEnabled', !autoReplyEnabled)}
-          accessibilityRole="switch"
-          accessibilityState={{ checked: autoReplyEnabled }}
-          style={styles.inlineSwitch}
-        >
-          <View style={styles.inlineSwitchText}>
-            <Text style={[styles.inlineSwitchTitle, { color: colors.text }]}>
-              Vacation responder
-            </Text>
-            <Text style={[styles.inlineSwitchSub, { color: colors.secondaryText }]}>
-              {autoReplyEnabled
-                ? 'Replies are sent automatically.'
-                : 'Off — incoming mail flows normally.'}
-            </Text>
-          </View>
-          <Switch
-            value={autoReplyEnabled}
-            onValueChange={(v) => setField('autoReplyEnabled', v)}
-          />
-        </Pressable>
-
-        {autoReplyEnabled ? (
-          <View style={styles.indentedBlock}>
-            <TextInput
-              value={autoReplySubject}
-              onChangeText={(v) => setField('autoReplySubject', v)}
-              placeholder={t('ui.settings.account.subjectPlaceholder')}
-              placeholderTextColor={colors.secondaryText}
-              style={[styles.input, inputStyle]}
-            />
-            <TextInput
-              value={autoReplyBody}
-              onChangeText={(v) => setField('autoReplyBody', v)}
-              placeholder={t('ui.settings.account.messagePlaceholder')}
-              placeholderTextColor={colors.secondaryText}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-              style={[styles.textArea, inputStyle]}
-            />
-          </View>
-        ) : null}
-      </View>
-
-      {/* Forwarding */}
-      <View style={styles.subsection}>
-        <SectionHeader icon={RiUpload2Line} title={t('ui.settings.account.forwarding')} />
-        <TextInput
-          value={autoForwardTo}
-          onChangeText={(v) => setField('autoForwardTo', v)}
-          placeholder={t('ui.settings.account.forwardingPlaceholder')}
-          placeholderTextColor={colors.secondaryText}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          style={[styles.input, inputStyle]}
-        />
-        {autoForwardTo.trim().length > 0 ? (
-          <Pressable
-            onPress={() => setField('autoForwardKeepCopy', !autoForwardKeepCopy)}
-            accessibilityRole="switch"
-            accessibilityState={{ checked: autoForwardKeepCopy }}
-            style={styles.inlineSwitch}
-          >
-            <View style={styles.inlineSwitchText}>
-              <Text style={[styles.inlineSwitchTitle, { color: colors.text }]}>
-                Keep a copy in Inbox
-              </Text>
-              <Text style={[styles.inlineSwitchSub, { color: colors.secondaryText }]}>
-                Recommended so you retain a record of forwarded mail.
-              </Text>
-            </View>
-            <Switch
-              value={autoForwardKeepCopy}
-              onValueChange={(v) => setField('autoForwardKeepCopy', v)}
-            />
-          </Pressable>
-        ) : null}
-      </View>
-
-      {/* Save bar */}
-      {dirty ? (
-        <View style={styles.saveBar}>
-          <Button onPress={handleSave} disabled={saving} style={styles.saveButton}>
-            {saving ? 'Saving…' : 'Save changes'}
-          </Button>
-        </View>
-      ) : null}
-
-      {/* Danger zone */}
-      <View style={styles.subsection}>
-        <SectionHeader icon={RiLogoutBoxRLine} title={t('ui.settings.account.actions')} />
-        <SettingsListGroup>
-          {/* No chevron: this opens a confirmation dialog, it does not navigate. */}
-          <SettingsListItem
-            title="Sign out"
-            description={t('ui.settings.account.signOutDevice')}
-            showChevron={false}
-            onPress={() => signOutDialog.open()}
-          />
-        </SettingsListGroup>
-      </View>
-
+    <>
+      <SettingsProfilePage
+        sections={[
+          {
+            key: 'identity',
+            rows: [
+              {
+                key: 'name',
+                label: fullName,
+                control: (
+                  <SettingsValueField>{emailAddress}</SettingsValueField>
+                ),
+              },
+            ],
+          },
+          {
+            key: 'signature',
+            label: t('ui.settings.account.signature'),
+            rows: [
+              {
+                key: 'signature',
+                label: t('ui.settings.account.signature'),
+                control: (
+                  <Textarea
+                    accessibilityLabel={t('ui.settings.account.signature')}
+                    value={signature}
+                    onChangeText={(v) => setField('signature', v)}
+                    placeholder={t('ui.settings.account.signaturePlaceholder')}
+                    rows={4}
+                    style={{ width: 202, maxWidth: '100%', flexGrow: 1 }}
+                  />
+                ),
+              },
+            ],
+          },
+          {
+            key: 'vacation',
+            label: t('ui.settings.account.autoReply'),
+            rows: [
+              {
+                key: 'enabled',
+                label: 'Vacation responder',
+                description: autoReplyEnabled
+                  ? 'Replies are sent automatically.'
+                  : 'Off — incoming mail flows normally.',
+                control: (
+                  <Switch
+                    accessibilityLabel="Vacation responder"
+                    value={autoReplyEnabled}
+                    onValueChange={(v) => setField('autoReplyEnabled', v)}
+                  />
+                ),
+              },
+              ...(autoReplyEnabled
+                ? [
+                    {
+                      key: 'subject',
+                      label: t('ui.settings.account.subjectPlaceholder'),
+                      control: (
+                        <SettingsTextField
+                          label={t('ui.settings.account.subjectPlaceholder')}
+                          value={autoReplySubject}
+                          onCommit={(v) => setField('autoReplySubject', v)}
+                          showSavedToast={false}
+                        />
+                      ),
+                    },
+                    {
+                      key: 'body',
+                      label: t('ui.settings.account.messagePlaceholder'),
+                      control: (
+                        <Textarea
+                          accessibilityLabel={t(
+                            'ui.settings.account.messagePlaceholder',
+                          )}
+                          value={autoReplyBody}
+                          onChangeText={(v) => setField('autoReplyBody', v)}
+                          rows={4}
+                          style={{ width: 202, maxWidth: '100%', flexGrow: 1 }}
+                        />
+                      ),
+                    },
+                  ]
+                : []),
+            ],
+          },
+          {
+            key: 'forwarding',
+            label: t('ui.settings.account.forwarding'),
+            rows: [
+              {
+                key: 'address',
+                label: t('ui.settings.account.forwarding'),
+                control: (
+                  <SettingsTextField
+                    label={t('ui.settings.account.forwarding')}
+                    value={autoForwardTo}
+                    onCommit={(v) => setField('autoForwardTo', v)}
+                    placeholder={t('ui.settings.account.forwardingPlaceholder')}
+                    keyboardType="email-address"
+                    showSavedToast={false}
+                  />
+                ),
+              },
+              ...(autoForwardTo.trim()
+                ? [
+                    {
+                      key: 'keep-copy',
+                      label: 'Keep a copy in Inbox',
+                      description:
+                        'Recommended so you retain a record of forwarded mail.',
+                      control: (
+                        <Switch
+                          accessibilityLabel="Keep a copy in Inbox"
+                          value={autoForwardKeepCopy}
+                          onValueChange={(v) =>
+                            setField('autoForwardKeepCopy', v)
+                          }
+                        />
+                      ),
+                    },
+                  ]
+                : []),
+            ],
+          },
+          ...(dirty
+            ? [
+                {
+                  key: 'save',
+                  rows: [
+                    {
+                      key: 'save',
+                      label: 'Save changes',
+                      control: (
+                        <Button
+                          size="sm"
+                          onPress={handleSave}
+                          disabled={saving}
+                          loading={saving}
+                        >
+                          Save changes
+                        </Button>
+                      ),
+                    },
+                  ],
+                },
+              ]
+            : []),
+          {
+            key: 'actions',
+            label: t('ui.settings.account.actions'),
+            rows: [
+              {
+                key: 'signout',
+                label: 'Sign out',
+                description: t('ui.settings.account.signOutDevice'),
+                control: (
+                  <Button
+                    size="sm"
+                    appearance="subtle"
+                    onPress={() => signOutDialog.open()}
+                  >
+                    Sign out
+                  </Button>
+                ),
+              },
+            ],
+          },
+        ]}
+      />
       <Dialog
         control={signOutDialog}
         title={t('ui.settings.account.signOutTitle')}
         description={t('ui.settings.account.signOutDescription')}
         actions={[
-          { label: t('ui.settings.account.signOut'), color: 'destructive', onPress: handleSignOut },
+          {
+            label: t('ui.settings.account.signOut'),
+            color: 'destructive',
+            onPress: handleSignOut,
+          },
           { label: t('common.cancel'), color: 'cancel' },
         ]}
       />
-
-    </KeyboardAvoidingView>
+    </>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    gap: 24,
-  },
-  hero: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    paddingBottom: 4,
-  },
-  heroText: {
-    flex: 1,
-    gap: 2,
-  },
-  heroName: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  heroEmail: {
-    fontSize: 14,
-  },
-  subsection: {
-    gap: 10,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-  },
-  textArea: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    minHeight: 96,
-  },
-  inlineSwitch: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 4,
-  },
-  inlineSwitchText: {
-    flex: 1,
-    gap: 2,
-  },
-  inlineSwitchTitle: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  inlineSwitchSub: {
-    fontSize: 13,
-    lineHeight: 17,
-  },
-  indentedBlock: {
-    gap: 10,
-  },
-  saveBar: {
-    paddingTop: 4,
-  },
-  saveButton: {
-    width: '100%',
-  },
-});

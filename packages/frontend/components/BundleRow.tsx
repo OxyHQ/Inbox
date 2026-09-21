@@ -1,3 +1,4 @@
+import { Badge } from '@oxy.so/bloom/badge';
 /**
  * Collapsible bundle row for the inbox list.
  *
@@ -39,7 +40,7 @@ export function BundleRow({ bundle, messages, unreadCount, isExpanded, onToggle 
       onPress={onToggle}
       activeOpacity={0.7}
     >
-      <View style={[styles.iconCircle, { backgroundColor: bundle.color + '20' }]}>
+      <View style={[styles.iconCircle, { backgroundColor: colors.surfaceVariant }]}>
         <MaterialCommunityIcons
           name={(bundle.icon || 'folder-outline') as MaterialCommunityIconName}
           size={20}
@@ -52,9 +53,7 @@ export function BundleRow({ bundle, messages, unreadCount, isExpanded, onToggle 
             {bundle.name}
           </Text>
           {unreadCount > 0 && (
-            <View style={[styles.badge, { backgroundColor: bundle.color }]}>
-              <Text style={styles.badgeText}>{unreadCount}</Text>
-            </View>
+            <Badge color="primary" variant="subtle" content={unreadCount} size="small" />
           )}
           <Text style={[styles.count, { color: colors.secondaryText }]}>
             {messages.length}
@@ -106,18 +105,6 @@ const styles = StyleSheet.create({
   },
   nameUnread: {
     fontWeight: '700',
-  },
-  badge: {
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 10,
-    minWidth: 20,
-    alignItems: 'center',
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#fff',
   },
   count: {
     fontSize: 12,

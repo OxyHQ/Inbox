@@ -1,3 +1,4 @@
+import { useTheme } from '@oxy.so/bloom/theme';
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -12,6 +13,7 @@ interface PurchaseCardProps {
 
 export function PurchaseCard({ data }: PurchaseCardProps) {
   const colors = useColors();
+  const { colors: tokens } = useTheme();
 
   const formattedAmount = data.amount != null
     ? new Intl.NumberFormat(undefined, {
@@ -21,11 +23,11 @@ export function PurchaseCard({ data }: PurchaseCardProps) {
     : null;
 
   return (
-    <Card variant="outlined">
+    <Card variant="filled">
       <CardHeader>
-        <View style={[styles.header, { backgroundColor: '#34A85320' }]}>
-          <MaterialCommunityIcons name="shopping-outline" size={18} color="#34A853" />
-          <Text style={[styles.headerText, { color: '#34A853' }]}>Purchase</Text>
+        <View style={[styles.header, { backgroundColor: tokens.successSubtle }]}>
+          <MaterialCommunityIcons name="shopping-outline" size={18} color={tokens.successSubtleForeground} />
+          <Text style={[styles.headerText, { color: tokens.successSubtleForeground }]}>Purchase</Text>
         </View>
       </CardHeader>
       <CardBody>

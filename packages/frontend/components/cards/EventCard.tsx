@@ -151,11 +151,11 @@ export function EventCard({ data }: EventCardProps) {
   }, [data]);
 
   return (
-    <Card variant="outlined">
+    <Card variant="filled">
       <CardHeader>
-        <View style={[styles.header, { backgroundColor: theme.colors.backgroundSecondary }]}>
-          <MaterialCommunityIcons name="calendar" size={18} color={colors.error} />
-          <Text style={[styles.headerText, { color: colors.error }]}>{t('cards.event.header')}</Text>
+        <View style={[styles.header, { backgroundColor: theme.colors.errorSubtle }]}>
+          <MaterialCommunityIcons name="calendar" size={18} color={theme.colors.errorSubtleForeground} />
+          <Text style={[styles.headerText, { color: theme.colors.errorSubtleForeground }]}>{t('cards.event.header')}</Text>
         </View>
       </CardHeader>
       <CardBody>

@@ -1,3 +1,4 @@
+import { useTheme } from '@oxy.so/bloom/theme';
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -12,6 +13,7 @@ interface BillCardProps {
 
 export function BillCard({ data }: BillCardProps) {
   const colors = useColors();
+  const { colors: tokens } = useTheme();
 
   const formattedAmount = data.amount != null
     ? new Intl.NumberFormat(undefined, {
@@ -31,11 +33,11 @@ export function BillCard({ data }: BillCardProps) {
   const isOverdue = data.dueDate ? new Date(data.dueDate) < new Date() : false;
 
   return (
-    <Card variant="outlined">
+    <Card variant="filled">
       <CardHeader>
-        <View style={[styles.header, { backgroundColor: '#F9AB0020' }]}>
-          <MaterialCommunityIcons name="receipt" size={18} color="#F9AB00" />
-          <Text style={[styles.headerText, { color: '#F9AB00' }]}>Bill</Text>
+        <View style={[styles.header, { backgroundColor: tokens.warningSubtle }]}>
+          <MaterialCommunityIcons name="receipt" size={18} color={tokens.warningSubtleForeground} />
+          <Text style={[styles.headerText, { color: tokens.warningSubtleForeground }]}>Bill</Text>
         </View>
       </CardHeader>
       <CardBody>

@@ -1,269 +1,116 @@
-/**
- * Appearance subscreen — visual theme controls.
- *
- * Layout follows the Alia settings pattern: a `View` with generous `gap`
- * spacing, each subsection introduced by a small uppercase eyebrow label
- * and rendered as a self-contained visual block — not a stack of identical
- * rounded list rows.
- *
- * Subsections:
- *  1. Theme mode (Light / System / Dark) — three preview cards showing a
- *     miniature of the inbox UI in each mode, like Alia's general settings.
- *  2. Accent color picker — the existing `ColorPresetPicker` component
- *     (keeps a single canonical home for the color picker).
- */
-
-import React, { useCallback } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { Text } from '@oxy.so/bloom/typography';
-import { useTheme } from '@oxy.so/bloom/theme';
+import { SettingsGeneralPage } from '@oxy.so/bloom/settings-modal';
 import {
-  RiMoonLine,
-  RiPaletteLine,
-} from '@oxy.so/bloom/icons';
-
-import { useColors } from '@/constants/theme';
-import { useTranslation } from '@/lib/i18n';
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectIcon,
+  SelectContent,
+  SelectItem,
+  SelectItemIndicator,
+  SelectItemText,
+} from '@oxy.so/bloom/select';
+import { COLOR_PRESET_REGISTRY, FREE_COLOR_NAMES } from '@oxy.so/bloom/theme';
 import { useThemeContext } from '@/contexts/theme-context';
-import { ColorPresetPicker } from '@/components/ColorPresetPicker';
-import { SectionHeader } from '@/components/settings/SectionHeader';
+import { useTranslation } from '@/lib/i18n';
 
-type ThemeMode = 'light' | 'dark' | 'system';
-
-/**
- * Miniature preview of the inbox in a specific theme mode. Renders a slim
- * sidebar + a stack of message rows so the user can preview the impact of
- * their choice without leaving the settings page.
- */
-function InboxMiniature({ variant }: { variant: 'light' | 'dark' }) {
-  const palette = variant === 'light'
-    ? { bg: '#FFFFFF', sidebar: '#F2F2F2', primary: '#1d9bf0', muted: '#D8D8D8', border: '#E5E5E5' }
-    : { bg: '#0E0E10', sidebar: '#161618', primary: '#8AB4F8', muted: '#3A3A3D', border: '#2A2A2D' };
-
-  return (
-    <View style={[styles.mini, { backgroundColor: palette.bg, borderColor: palette.border }]}>
-      {/* Sidebar */}
-      <View style={[styles.miniSidebar, { backgroundColor: palette.sidebar }]}>
-        <View style={[styles.miniSidebarPill, { backgroundColor: palette.primary }]} />
-        <View style={[styles.miniSidebarLine, { backgroundColor: palette.muted, width: '70%' }]} />
-        <View style={[styles.miniSidebarLine, { backgroundColor: palette.muted, width: '55%' }]} />
-        <View style={[styles.miniSidebarLine, { backgroundColor: palette.muted, width: '65%' }]} />
-        <View style={[styles.miniSidebarLine, { backgroundColor: palette.muted, width: '40%' }]} />
-      </View>
-      {/* Message list */}
-      <View style={styles.miniBody}>
-        {[0.85, 0.65, 0.78, 0.55, 0.7].map((w, i) => (
-          <View key={i} style={styles.miniRow}>
-            <View style={[styles.miniAvatar, { backgroundColor: palette.muted }]} />
-            <View style={styles.miniRowText}>
-              <View style={[styles.miniRowTitle, { backgroundColor: palette.muted, width: `${w * 100}%` }]} />
-              <View style={[styles.miniRowSubtitle, { backgroundColor: palette.muted, width: `${w * 70}%` }]} />
-            </View>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-}
-
-interface ModeOption {
-  value: ThemeMode;
-  labelKey: string;
-  render: () => React.ReactNode;
-}
-
-function makeModeOptions(): ModeOption[] {
-  return [
-    {
-      value: 'light',
-      labelKey: 'ui.settings.appearance.light',
-      render: () => <InboxMiniature variant="light" />,
-    },
-    {
-      value: 'system',
-      labelKey: 'ui.settings.appearance.system',
-      render: () => (
-        <View style={styles.miniSystem}>
-          <View style={styles.miniSystemHalf}>
-            <InboxMiniature variant="light" />
-          </View>
-          <View style={[styles.miniSystemHalf, styles.miniSystemHalfRight]}>
-            <InboxMiniature variant="dark" />
-          </View>
-        </View>
-      ),
-    },
-    {
-      value: 'dark',
-      labelKey: 'ui.settings.appearance.dark',
-      render: () => <InboxMiniature variant="dark" />,
-    },
-  ];
-}
-
-const MODE_OPTIONS = makeModeOptions();
-
+/** The same General page and compact Select composition used by Bloom's settings template. */
 export function AppearanceSection() {
-  const colors = useColors();
   const { t } = useTranslation();
-  const theme = useTheme();
-  const { themePreference, setThemePreference } = useThemeContext();
-
-  const handleChange = useCallback(
-    (value: ThemeMode) => setThemePreference(value),
-    [setThemePreference],
+  const { themePreference, setThemePreference, colorPreset, setColorPreset } =
+    useThemeContext();
+  const modes = (['light', 'system', 'dark'] as const).map((value) => ({
+    value,
+    label: t(`ui.settings.appearance.${value}`),
+  }));
+  const presets = COLOR_PRESET_REGISTRY.filter((preset) =>
+    FREE_COLOR_NAMES.includes(preset.name),
   );
-
   return (
-    <View style={styles.root}>
-      <View style={styles.subsection}>
-        <SectionHeader icon={RiMoonLine} title={t('ui.settings.appearance.theme')} />
-        <View style={styles.modeRow}>
-          {MODE_OPTIONS.map((opt) => {
-            const isActive = themePreference === opt.value;
-            return (
-              <Pressable
-                key={opt.value}
-                onPress={() => handleChange(opt.value)}
-                accessibilityRole="button"
-                accessibilityLabel={t('ui.settings.appearance.useTheme', { theme: t(opt.labelKey) })}
-                accessibilityState={{ selected: isActive }}
-                style={({ pressed }) => [
-                  styles.modeCard,
-                  {
-                    borderColor: isActive ? theme.colors.primary : colors.border,
-                    borderWidth: isActive ? 2 : 1,
-                    padding: isActive ? 6 : 7,
-                  },
-                  pressed && { opacity: 0.85 },
-                ]}
-              >
-                <View style={styles.miniWrapper}>{opt.render()}</View>
-                <Text
-                  style={[
-                    styles.modeLabel,
-                    { color: isActive ? theme.colors.primary : colors.text },
-                    isActive && styles.modeLabelActive,
-                  ]}
-                  numberOfLines={1}
+    <SettingsGeneralPage
+      sections={[
+        {
+          key: 'appearance',
+          label: t('ui.settings.appearance.theme'),
+          rows: [
+            {
+              key: 'mode',
+              label: t('ui.settings.appearance.theme'),
+              description: t('ui.settings.appearance.systemHint'),
+              control: (
+                <Select
+                  value={themePreference}
+                  onValueChange={(value) => {
+                    const mode = modes.find((item) => item.value === value);
+                    if (mode) setThemePreference(mode.value);
+                  }}
                 >
-                  {t(opt.labelKey)}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-        <Text style={[styles.footnote, { color: colors.secondaryText }]}>
-          {t('ui.settings.appearance.systemHint')}
-        </Text>
-      </View>
-
-      <View style={styles.subsection}>
-        <SectionHeader icon={RiPaletteLine} title={t('ui.settings.appearance.accentColor')} />
-        <ColorPresetPicker />
-      </View>
-    </View>
+                  <SelectTrigger
+                    label={t('ui.settings.appearance.theme')}
+                    className="h-8 gap-1 px-2 py-1.5"
+                  >
+                    <SelectValue>
+                      {() =>
+                        modes.find((mode) => mode.value === themePreference)
+                          ?.label
+                      }
+                    </SelectValue>
+                    <SelectIcon />
+                  </SelectTrigger>
+                  <SelectContent
+                    label={t('ui.settings.appearance.theme')}
+                    items={modes}
+                    valueExtractor={(item) => item.value}
+                    renderItem={(item) => (
+                      <SelectItem value={item.value} label={item.label}>
+                        <SelectItemIndicator />
+                        <SelectItemText>{item.label}</SelectItemText>
+                      </SelectItem>
+                    )}
+                  />
+                </Select>
+              ),
+            },
+            {
+              key: 'color',
+              label: t('ui.settings.appearance.accentColor'),
+              control: (
+                <Select
+                  value={colorPreset}
+                  onValueChange={(value) => {
+                    const preset = presets.find((item) => item.name === value);
+                    if (preset) setColorPreset(preset.name);
+                  }}
+                >
+                  <SelectTrigger
+                    label={t('ui.settings.appearance.accentColor')}
+                    className="h-8 gap-1 px-2 py-1.5"
+                  >
+                    <SelectValue>
+                      {() =>
+                        COLOR_PRESET_REGISTRY.find(
+                          (preset) => preset.name === colorPreset,
+                        )?.displayName
+                      }
+                    </SelectValue>
+                    <SelectIcon />
+                  </SelectTrigger>
+                  <SelectContent
+                    label={t('ui.settings.appearance.accentColor')}
+                    items={presets}
+                    valueExtractor={(item) => item.name}
+                    renderItem={(item) => (
+                      <SelectItem value={item.name} label={item.displayName}>
+                        <SelectItemIndicator />
+                        <SelectItemText>{item.displayName}</SelectItemText>
+                      </SelectItem>
+                    )}
+                  />
+                </Select>
+              ),
+            },
+          ],
+        },
+      ]}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    gap: 28,
-  },
-  subsection: {
-    gap: 12,
-  },
-  modeRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  modeCard: {
-    flex: 1,
-    borderRadius: 14,
-    backgroundColor: 'transparent',
-    gap: 8,
-  },
-  miniWrapper: {
-    aspectRatio: 5 / 3,
-    overflow: 'hidden',
-    borderRadius: 8,
-  },
-  modeLabel: {
-    fontSize: 13,
-    textAlign: 'center',
-  },
-  modeLabelActive: {
-    fontWeight: '600',
-  },
-  footnote: {
-    fontSize: 12,
-    paddingHorizontal: 2,
-  },
-
-  // ── Inbox miniature ────────────────────────────────────────────
-  mini: {
-    flex: 1,
-    flexDirection: 'row',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 6,
-    overflow: 'hidden',
-  },
-  miniSidebar: {
-    width: '28%',
-    padding: 4,
-    gap: 3,
-    justifyContent: 'flex-start',
-  },
-  miniSidebarPill: {
-    height: 6,
-    borderRadius: 2,
-    width: '85%',
-  },
-  miniSidebarLine: {
-    height: 2,
-    borderRadius: 1,
-    opacity: 0.6,
-  },
-  miniBody: {
-    flex: 1,
-    padding: 4,
-    gap: 4,
-  },
-  miniRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  miniAvatar: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    opacity: 0.7,
-  },
-  miniRowText: {
-    flex: 1,
-    gap: 2,
-  },
-  miniRowTitle: {
-    height: 2.5,
-    borderRadius: 1,
-  },
-  miniRowSubtitle: {
-    height: 2,
-    borderRadius: 1,
-    opacity: 0.6,
-  },
-  miniSystem: {
-    flex: 1,
-    flexDirection: 'row',
-  },
-  miniSystemHalf: {
-    flex: 1,
-    overflow: 'hidden',
-  },
-  miniSystemHalfRight: {
-    marginLeft: -StyleSheet.hairlineWidth,
-  },
-});

@@ -1,30 +1,13 @@
-/**
- * About subscreen — app metadata + legal/support links.
- *
- * Three blocks: an identity hero, a list of in-app-style link rows, and a
- * credits/copyright footer. The link rows route through `Linking.openURL`
- * so they open the system browser (Safari/Chrome) on every platform.
- */
-
-import React, { useCallback } from 'react';
-import { Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Linking, Platform } from 'react-native';
+import { useCallback } from 'react';
 import Constants from 'expo-constants';
-import { Text } from '@oxy.so/bloom/typography';
-import { useTheme } from '@oxy.so/bloom/theme';
-import { toast } from '@oxy.so/bloom';
 import {
-  RiInformationLine,
-  RiFileTextLine,
-  RiShieldLine,
-  RiQuestionLine,
-  RiHeartLine,
-  RiExternalLinkLine,
-} from '@oxy.so/bloom/icons';
-
-import { useColors } from '@/constants/theme';
+  SettingsGeneralPage,
+  SettingsValueField,
+} from '@oxy.so/bloom/settings-modal';
+import { Button } from '@oxy.so/bloom/button';
+import { toast } from '@oxy.so/bloom/toast';
 import { useTranslation } from '@/lib/i18n';
-import { SectionHeader } from '@/components/settings/SectionHeader';
-
 const LINKS = {
   terms: 'https://oxy.so/terms',
   privacy: 'https://oxy.so/privacy',
@@ -43,168 +26,72 @@ function getPlatformLabel(): string {
   return Platform.OS;
 }
 
-interface LinkRowProps {
-  icon: React.ComponentType<{ size?: 'sm' | 'md'; style?: { color?: string } }>;
-  title: string;
-  description?: string;
-  onPress: () => void;
-}
-
-function LinkRow({ icon: Icon, title, description, onPress }: LinkRowProps) {
-  const colors = useColors();
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="link"
-      accessibilityLabel={title}
-      style={({ pressed }) => [styles.linkRow, pressed && { opacity: 0.7 }]}
-    >
-      <Icon size="md" style={{ color: colors.icon }} />
-      <View style={styles.linkText}>
-        <Text style={[styles.linkTitle, { color: colors.text }]} numberOfLines={1}>
-          {title}
-        </Text>
-        {description ? (
-          <Text style={[styles.linkSubtitle, { color: colors.secondaryText }]} numberOfLines={1}>
-            {description}
-          </Text>
-        ) : null}
-      </View>
-      <RiExternalLinkLine
-        size="sm"
-        style={{ color: colors.icon, opacity: 0.6 }}
-      />
-    </Pressable>
-  );
-}
-
 export function AboutSection() {
-  const colors = useColors();
-  const theme = useTheme();
   const { t } = useTranslation();
-
-  const openLink = useCallback(async (url: string) => {
-    try {
-      const can = await Linking.canOpenURL(url);
-      if (!can) {
-        toast.error(t('ui.settings.about.linkUnavailable'));
-        return;
+  const openLink = useCallback(
+    async (url: string) => {
+      try {
+        const can = await Linking.canOpenURL(url);
+        if (!can) {
+          toast.error(t('ui.settings.about.linkUnavailable'));
+          return;
+        }
+        await Linking.openURL(url);
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : t('ui.settings.about.linkFailed');
+        toast.error(message);
       }
-      await Linking.openURL(url);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : t('ui.settings.about.linkFailed');
-      toast.error(message);
-    }
-  }, [t]);
+    },
+    [t],
+  );
 
   return (
-    <View style={styles.root}>
-      <View style={[styles.identityCard, { backgroundColor: theme.colors.backgroundSecondary }]}>
-        <Text style={[styles.identityTitle, { color: colors.text }]}>
-          Inbox by Oxy
-        </Text>
-        <Text style={[styles.identitySub, { color: colors.secondaryText }]}>
-          {t('ui.settings.about.version', { version: getAppVersion(), platform: getPlatformLabel() })}
-        </Text>
-      </View>
-
-      <View style={styles.subsection}>
-        <SectionHeader icon={RiInformationLine} title={t('ui.settings.about.legal')} />
-        <View style={[styles.linkList, { borderColor: colors.border }]}>
-          <LinkRow
-            icon={RiFileTextLine}
-            title={t('ui.settings.about.terms')}
-            onPress={() => openLink(LINKS.terms)}
-          />
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
-          <LinkRow
-            icon={RiShieldLine}
-            title={t('ui.settings.about.privacy')}
-            onPress={() => openLink(LINKS.privacy)}
-          />
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
-          <LinkRow
-            icon={RiQuestionLine}
-            title={t('ui.settings.about.help')}
-            onPress={() => openLink(LINKS.help)}
-          />
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
-          <LinkRow
-            icon={RiInformationLine}
-            title={t('ui.settings.about.status')}
-            onPress={() => openLink(LINKS.status)}
-          />
-        </View>
-      </View>
-
-      <View style={styles.creditsRow}>
-        <RiHeartLine size="sm" style={{ color: colors.secondaryText }} />
-        <Text style={[styles.credits, { color: colors.secondaryText }]}>
-          {t('ui.settings.about.madeBy', { year: new Date().getFullYear() })}
-        </Text>
-      </View>
-    </View>
+    <SettingsGeneralPage
+      sections={[
+        {
+          key: 'app',
+          label: 'Inbox by Oxy',
+          rows: [
+            {
+              key: 'version',
+              label: t('ui.settings.about.version', {
+                version: getAppVersion(),
+                platform: getPlatformLabel(),
+              }),
+              control: (
+                <SettingsValueField>{getAppVersion()}</SettingsValueField>
+              ),
+            },
+          ],
+        },
+        {
+          key: 'legal',
+          label: t('ui.settings.about.legal'),
+          rows: (Object.keys(LINKS) as (keyof typeof LINKS)[]).map((key) => ({
+            key,
+            label: t(`ui.settings.about.${key}`),
+            control: (
+              <Button
+                size="sm"
+                appearance="subtle"
+                onPress={() => openLink(LINKS[key])}
+              >
+                {t(`ui.settings.about.${key}`)}
+              </Button>
+            ),
+          })),
+        },
+        {
+          key: 'credits',
+          description: t('ui.settings.about.madeBy', {
+            year: new Date().getFullYear(),
+          }),
+          rows: [],
+        },
+      ]}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    gap: 24,
-  },
-  identityCard: {
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    gap: 4,
-  },
-  identityTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  identitySub: {
-    fontSize: 13,
-  },
-  subsection: {
-    gap: 12,
-  },
-  linkList: {
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: 'hidden',
-  },
-  linkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  linkText: {
-    flex: 1,
-    gap: 2,
-  },
-  linkTitle: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  linkSubtitle: {
-    fontSize: 13,
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    marginLeft: 46,
-    opacity: 0.5,
-  },
-  creditsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingTop: 8,
-  },
-  credits: {
-    fontSize: 12,
-  },
-});

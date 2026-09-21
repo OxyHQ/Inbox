@@ -1,3 +1,6 @@
+import { stripHtml } from '@/utils/stripHtml';
+import { Button, IconButton } from '@oxy.so/bloom/button';
+import { RiSendPlaneLine, RiDeleteBinLine } from '@oxy.so/bloom/icons';
 /**
  * Gmail-like inline reply component.
  *
@@ -24,7 +27,7 @@ import { useEmailStore } from '@/hooks/useEmail';
 import { useSendMessageWithUndo } from '@/hooks/mutations/useMessageMutations';
 import { Avatar } from '@/components/Avatar';
 import { SmartReplyChips } from '@/components/SmartReplyChips';
-import { RichTextEditor, stripHtml, type RichTextEditorHandle } from '@/components/RichTextEditor';
+import { RichTextEditor, type RichTextEditorHandle } from '@/components/RichTextEditor';
 import { TemplatePicker } from '@/components/TemplatePicker';
 import { useTranslation } from '@/lib/i18n';
 import type { Message, EmailAddress, EmailTemplate } from '@/services/emailApi';
@@ -329,22 +332,13 @@ export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps
 
       {/* Footer with send button */}
       <View style={[styles.footer, { borderTopColor: colors.border }]}>
-        <TouchableOpacity
-          onPress={handleSend}
-          style={[styles.sendButton, { backgroundColor: colors.primary, opacity: sending ? 0.6 : 1 }]}
-          disabled={sending}
-        >
-          <Text style={styles.sendButtonText}>{t('inlineReply.send')}</Text>
-          <MaterialCommunityIcons name="send" size={16} color="#FFFFFF" />
-        </TouchableOpacity>
+        <Button onPress={handleSend} loading={sending} disabled={sending} trailing={<RiSendPlaneLine />}>{t('inlineReply.send')}</Button>
 
         <View style={styles.footerActions}>
           <TemplatePicker onSelect={handleTemplateSelect} />
         </View>
 
-        <TouchableOpacity onPress={onClose} style={styles.footerAction}>
-          <MaterialCommunityIcons name="delete-outline" size={20} color={colors.icon} />
-        </TouchableOpacity>
+        <IconButton onPress={onClose} accessibilityLabel={t('common.delete')} icon={<RiDeleteBinLine />} />
       </View>
     </View>
   );
@@ -428,19 +422,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
     gap: 4,
-  },
-  sendButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  sendButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
   },
   footerActions: {
     flex: 1,

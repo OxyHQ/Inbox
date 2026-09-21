@@ -7,7 +7,7 @@ import React, { type ComponentProps } from 'react';
 import { View, StyleSheet } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Text } from '@oxy.so/bloom/typography';
-import { useColors } from '@/constants/theme';
+import { useTheme, resolveAccentColors, type AccentTone } from '@oxy.so/bloom/theme';
 import type { MessageCard } from '@/services/emailApi';
 
 type MaterialCommunityIconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -16,12 +16,12 @@ interface CardPreviewProps {
   card: MessageCard;
 }
 
-const CARD_CONFIG: Record<string, { icon: MaterialCommunityIconName; color: string }> = {
-  trip: { icon: 'airplane', color: '#1A73E8' },
-  purchase: { icon: 'shopping-outline', color: '#34A853' },
-  event: { icon: 'calendar', color: '#EA4335' },
-  bill: { icon: 'receipt', color: '#F9AB00' },
-  package: { icon: 'package-variant', color: '#9334E6' },
+const CARD_CONFIG: Record<string, { icon: MaterialCommunityIconName; tone: AccentTone }> = {
+  trip: { icon: 'airplane', tone: 'info' },
+  purchase: { icon: 'shopping-outline', tone: 'success' },
+  event: { icon: 'calendar', tone: 'error' },
+  bill: { icon: 'receipt', tone: 'warning' },
+  package: { icon: 'package-variant', tone: 'tertiary' },
 };
 
 function getSummary(card: MessageCard): string {
@@ -78,16 +78,17 @@ function getSummary(card: MessageCard): string {
 }
 
 export function CardPreview({ card }: CardPreviewProps) {
-  const colors = useColors();
-  const config = CARD_CONFIG[card.type] || { icon: 'card-outline', color: colors.secondaryText };
+  const { colors } = useTheme();
+  const config = CARD_CONFIG[card.type] || { icon: 'card-outline', tone: 'default' as const };
+  const palette = resolveAccentColors(colors, config.tone, 'subtle');
   const summary = getSummary(card);
 
   if (!summary) return null;
 
   return (
-    <View style={[styles.container, { backgroundColor: config.color + '10', borderColor: config.color + '30' }]}>
-      <MaterialCommunityIcons name={config.icon} size={14} color={config.color} />
-      <Text style={[styles.text, { color: config.color }]} numberOfLines={1}>
+    <View style={[styles.container, { backgroundColor: palette.background, borderColor: palette.border }]}>
+      <MaterialCommunityIcons name={config.icon} size={14} color={palette.foreground} />
+      <Text style={[styles.text, { color: palette.foreground }]} numberOfLines={1}>
         {summary}
       </Text>
     </View>

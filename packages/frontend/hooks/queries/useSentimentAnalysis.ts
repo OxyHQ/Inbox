@@ -21,7 +21,6 @@ export interface SentimentResult {
   confidence: number; // 0-1
   label: string;
   icon: MaterialCommunityIconName;
-  color: string;
 }
 
 // Pattern-based sentiment detection (fast, no AI)
@@ -92,7 +91,6 @@ function detectSentiment(message: Message): SentimentResult | null {
       confidence: Math.min(urgencyScore / 3, 1),
       label: 'Urgent',
       icon: 'alert-circle',
-      color: '#E53935', // Red
     };
   }
 
@@ -102,7 +100,6 @@ function detectSentiment(message: Message): SentimentResult | null {
       confidence: Math.min(frustrationScore / 3, 1),
       label: 'Needs attention',
       icon: 'alert',
-      color: '#FF9800', // Orange
     };
   }
 
@@ -112,7 +109,6 @@ function detectSentiment(message: Message): SentimentResult | null {
       confidence: Math.min(positiveScore / 3, 1),
       label: 'Positive',
       icon: 'emoticon-happy-outline',
-      color: '#4CAF50', // Green
     };
   }
 
@@ -123,7 +119,6 @@ function detectSentiment(message: Message): SentimentResult | null {
       confidence: Math.min(formalScore / 3, 1),
       label: 'Formal',
       icon: 'tie',
-      color: '#607D8B', // Gray-blue
     };
   }
 
@@ -134,7 +129,6 @@ function detectSentiment(message: Message): SentimentResult | null {
       confidence: Math.min(requestScore / 5, 1),
       label: 'Action requested',
       icon: 'hand-pointing-right',
-      color: '#2196F3', // Blue
     };
   }
 

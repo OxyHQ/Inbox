@@ -1,3 +1,4 @@
+import { useTheme } from '@oxy.so/bloom/theme';
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -12,6 +13,7 @@ interface TripCardProps {
 
 export function TripCard({ data }: TripCardProps) {
   const colors = useColors();
+  const { colors: tokens } = useTheme();
 
   const departureTime = data.departureTime
     ? new Date(data.departureTime).toLocaleString(undefined, {
@@ -31,11 +33,11 @@ export function TripCard({ data }: TripCardProps) {
     : null;
 
   return (
-    <Card variant="outlined">
+    <Card variant="filled">
       <CardHeader>
-        <View style={[styles.header, { backgroundColor: '#1A73E820' }]}>
-          <MaterialCommunityIcons name="airplane" size={18} color="#1A73E8" />
-          <Text style={[styles.headerText, { color: '#1A73E8' }]}>Trip</Text>
+        <View style={[styles.header, { backgroundColor: tokens.infoSubtle }]}>
+          <MaterialCommunityIcons name="airplane" size={18} color={tokens.infoSubtleForeground} />
+          <Text style={[styles.headerText, { color: tokens.infoSubtleForeground }]}>Trip</Text>
         </View>
       </CardHeader>
       <CardBody>

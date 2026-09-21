@@ -1,65 +1,20 @@
-jest.mock('@oxy.so/bloom', () => ({
-  Dialog: () => null,
-  toast: { error: jest.fn(), success: jest.fn() },
-  useDialogControl: () => ({ open: jest.fn(), close: jest.fn() }),
-}));
-jest.mock('react-native', () => ({
-  KeyboardAvoidingView: () => null,
-  Platform: { OS: 'ios' },
-  ScrollView: () => null,
-  StyleSheet: { create: (styles: object) => styles, hairlineWidth: 1 },
-  Text: () => null,
-  TextInput: () => null,
-  TouchableOpacity: () => null,
-  View: () => null,
-}));
-jest.mock('@oxy.so/services', () => ({ useOxy: jest.fn() }));
-jest.mock('react-native-safe-area-context', () => ({
-  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
-}));
-jest.mock('@/constants/theme', () => ({
-  useColors: () => ({
-    background: '#fff',
-    border: '#ddd',
-    error: '#f00',
-    icon: '#000',
-    primary: '#00f',
-    searchPlaceholder: '#888',
-    secondaryText: '#666',
-    surface: '#eee',
-    surfaceVariant: '#eee',
-    text: '#000',
-  }),
-}));
-jest.mock('@/hooks/useGoBack', () => ({ useGoBack: () => jest.fn() }));
-jest.mock('@/hooks/useEmail', () => ({ useEmailStore: jest.fn() }));
-jest.mock('@/hooks/mutations/useMessageMutations', () => ({
-  useSaveDraft: jest.fn(),
-  useSendMessage: jest.fn(),
-  useSendMessageWithUndo: jest.fn(),
-}));
-jest.mock('@/hooks/queries/useContactSuggestions', () => ({ useContactSuggestions: jest.fn() }));
-jest.mock('@/components/AiComposeToolbar', () => ({ AiComposeToolbar: () => null }));
-jest.mock('@/components/RichTextEditor', () => ({
-  RichTextEditor: () => null,
-  stripHtml: (value: string) => value,
-}));
-jest.mock('@/components/ScheduleSendSheet', () => ({ ScheduleSendSheet: () => null }));
-jest.mock('@/components/TemplatePicker', () => ({ TemplatePicker: () => null }));
-jest.mock('@/lib/i18n', () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
-}));
-
 import {
   buildComposeDraftPayload,
   createDraftSaveQueue,
   parseComposeRecipients,
-} from '@/components/ComposeForm';
+} from '@/utils/composeDraft';
 
 describe('compose helpers', () => {
   it('keeps valid recipients and reports every invalid entry', () => {
-    expect(parseComposeRecipients('alice@example.com, not-an-email, bob@example.org')).toEqual({
-      addresses: [{ address: 'alice@example.com' }, { address: 'bob@example.org' }],
+    expect(
+      parseComposeRecipients(
+        'alice@example.com, not-an-email, bob@example.org',
+      ),
+    ).toEqual({
+      addresses: [
+        { address: 'alice@example.com' },
+        { address: 'bob@example.org' },
+      ],
       invalid: ['not-an-email'],
     });
   });
@@ -89,6 +44,21 @@ describe('compose helpers', () => {
       existingDraftId: 'draft-1',
     });
   });
+  it('keeps HTML and derives plain text for web drafts without importing the editor', () => {
+    const payload = buildComposeDraftPayload(
+      {
+        to: '',
+        cc: '',
+        bcc: '',
+        subject: 'Hello',
+        body: '<p>Hello <strong>there</strong></p>',
+      },
+      undefined,
+      true,
+    );
+    expect(payload.html).toBe('<p>Hello <strong>there</strong></p>');
+    expect(payload.text).toBe('Hello there');
+  });
 });
 
 describe('draft save queue', () => {
@@ -96,9 +66,10 @@ describe('draft save queue', () => {
     const queue = createDraftSaveQueue();
     let resolveFirst: ((value: boolean) => void) | undefined;
     const firstSave = jest.fn(
-      () => new Promise<boolean>((resolve) => {
-        resolveFirst = resolve;
-      }),
+      () =>
+        new Promise<boolean>((resolve) => {
+          resolveFirst = resolve;
+        }),
     );
     const secondSave = jest.fn(async () => true);
 

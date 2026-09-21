@@ -51,8 +51,8 @@ export function Avatar({
   }, [name, colors.avatarColors]);
 
   const placeholderIcon = useMemo(
-    () => <Text style={[styles.initial, { fontSize: size * 0.42 }]}>{initial}</Text>,
-    [initial, size],
+    () => <Text style={[styles.initial, { fontSize: size * 0.42, color: colors.avatarForegrounds[hashCode(name) % colors.avatarForegrounds.length] }]}>{initial}</Text>,
+    [initial, size, name, colors.avatarForegrounds],
   );
 
   if (showCheckbox) {
@@ -70,9 +70,9 @@ export function Avatar({
           ]}
         >
           {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={Tick02Icon as unknown as IconSvgElement} size={size * 0.5} color="#FFFFFF" strokeWidth={3} />
+            <HugeiconsIcon icon={Tick02Icon as unknown as IconSvgElement} size={size * 0.5} color={colors.primaryForeground} strokeWidth={3} />
           ) : (
-            <MaterialCommunityIcons name="check" size={size * 0.5} color="#FFFFFF" />
+            <MaterialCommunityIcons name="check" size={size * 0.5} color={colors.primaryForeground} />
           )}
         </View>
       );
@@ -119,7 +119,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   initial: {
-    color: '#FFFFFF',
     fontWeight: '600',
   },
 });

@@ -1,5 +1,7 @@
+import { Button } from '@oxy.so/bloom/button';
+import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import React, { useState, useCallback } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useColors } from '@/constants/theme';
 import { useSavedSearches } from '@/hooks/queries/useSavedSearches';
@@ -58,27 +60,8 @@ export function SavedSearchBar({ query, filters, enabled, onApply }: SavedSearch
       ) : null}
       {enabled ? (
         <View style={styles.saveRow}>
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            placeholder="Name this search"
-            placeholderTextColor={colors.secondaryText}
-            accessibilityLabel="Saved search name"
-            style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
-            maxLength={100}
-            returnKeyType="done"
-            onSubmitEditing={handleSave}
-          />
-          <Pressable
-            onPress={handleSave}
-            disabled={!name.trim() || createSavedSearch.isPending}
-            accessibilityRole="button"
-            accessibilityLabel="Save search"
-            style={[styles.saveButton, { backgroundColor: colors.primary }, (!name.trim() || createSavedSearch.isPending) && styles.disabled]}
-          >
-            <MaterialCommunityIcons name="bookmark-plus-outline" size={16} color="#fff" />
-            <Text style={styles.saveButtonText}>Save</Text>
-          </Pressable>
+          <View style={{ flex: 1 }}><TextFieldInput value={name} onChangeText={setName} label="Saved search name" placeholder="Name this search" maxLength={100} returnKeyType="done" onSubmitEditing={handleSave} /></View>
+          <Button onPress={handleSave} disabled={!name.trim() || createSavedSearch.isPending} loading={createSavedSearch.isPending}>Save</Button>
         </View>
       ) : null}
     </View>
@@ -93,8 +76,4 @@ const styles = StyleSheet.create({
   savedChipAction: { paddingVertical: 5, paddingRight: 5 },
   savedChipText: { fontSize: 12, maxWidth: 170 },
   saveRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  input: { flex: 1, minHeight: 36, borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, fontSize: 13 },
-  saveButton: { minHeight: 36, borderRadius: 8, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', gap: 5 },
-  saveButtonText: { color: '#fff', fontSize: 13, fontWeight: '600' },
-  disabled: { opacity: 0.45 },
 });

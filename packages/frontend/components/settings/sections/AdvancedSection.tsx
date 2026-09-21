@@ -1,50 +1,22 @@
-/**
- * Advanced subscreen — filters, templates, bundles, import.
- *
- * Power-user features that don't fit the standard mail/account/notification
- * buckets. Layout follows the Alia subsection pattern (small eyebrow header
- * + visual content block) rather than the iOS row-spam look.
- *
- * Subsections:
- *  1. Filters & rules — list with enable toggle + delete; a simple inline
- *     create form (field + condition + value + action).
- *  2. Templates — saved snippet bodies with inline edit + delete + create.
- *  3. Bundles — enable/disable + reorder auto-grouping bundles.
- *  4. Import — .eml file picker (web only).
- */
-
-import React, { useCallback, useMemo, useState } from 'react';
+import { Textarea } from '@oxy.so/bloom/textarea';
+import { useCallback, useMemo, useState } from 'react';
+import { Platform, View } from 'react-native';
 import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
-import { Button } from '@oxy.so/bloom/button';
+  SettingsProfilePage,
+  SettingsTextField,
+} from '@oxy.so/bloom/settings-modal';
+import { Button, IconButton } from '@oxy.so/bloom/button';
 import { Switch } from '@oxy.so/bloom/switch';
-import { Text } from '@oxy.so/bloom/typography';
-import { useTheme } from '@oxy.so/bloom/theme';
-import { Admonition } from '@oxy.so/bloom/admonition';
-import { Dialog, useDialogControl, toast } from '@oxy.so/bloom';
+import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
+import { toast } from '@oxy.so/bloom/toast';
 import {
-  RiFilterLine,
-  RiFileTextLine,
-  RiUpload2Line,
   RiDeleteBin6Line,
   RiEditLine,
-  RiAddLine,
-  RiLoader4Line,
-  RiCheckboxCircleLine,
-  RiGroupLine,
   RiArrowUpSLine,
   RiArrowDownSLine,
 } from '@oxy.so/bloom/icons';
-
-import { useColors } from '@/constants/theme';
+import { SettingsPreferenceSelect } from '../SettingsPreferenceSelect';
 import { useTranslation } from '@/lib/i18n';
-import { SectionHeader } from '@/components/settings/SectionHeader';
 import { useFilters } from '@/hooks/queries/useFilters';
 import {
   useCreateFilter,
@@ -58,12 +30,16 @@ import {
   useDeleteTemplate,
 } from '@/hooks/mutations/useTemplateMutations';
 import { useBundles } from '@/hooks/queries/useBundles';
-import { useUpdateBundle, useReorderBundle } from '@/hooks/mutations/useBundleMutations';
+import {
+  useUpdateBundle,
+  useReorderBundle,
+} from '@/hooks/mutations/useBundleMutations';
 import { useEmailStore } from '@/hooks/useEmail';
-import type { EmailFilterCondition, EmailFilterAction } from '@/services/emailApi';
+import type {
+  EmailFilterCondition,
+  EmailFilterAction,
+} from '@/services/emailApi';
 import { OutboundQueueSection } from '@/components/settings/OutboundQueueSection';
-
-// ─── Filter form option maps ─────────────────────────────────────────
 
 type FilterField = EmailFilterCondition['field'];
 type FilterOperator = EmailFilterCondition['operator'];
@@ -103,49 +79,7 @@ function operatorsForField(field: FilterField) {
   return TEXT_OPERATORS;
 }
 
-interface ChipGroupProps<T extends string> {
-  options: { value: T; label: string }[];
-  value: T;
-  onChange: (value: T) => void;
-}
-
-function ChipGroup<T extends string>({ options, value, onChange }: ChipGroupProps<T>) {
-  const colors = useColors();
-  const theme = useTheme();
-  return (
-    <View style={styles.chipRow}>
-      {options.map((opt) => {
-        const active = opt.value === value;
-        return (
-          <Pressable
-            key={opt.value}
-            onPress={() => onChange(opt.value)}
-            accessibilityRole="button"
-            accessibilityState={{ selected: active }}
-            style={[
-              styles.chip,
-              {
-                backgroundColor: active ? theme.colors.primary : theme.colors.background,
-                borderColor: active ? theme.colors.primary : colors.border,
-              },
-            ]}
-          >
-            <Text
-              style={[styles.chipText, { color: active ? '#FFFFFF' : colors.text }]}
-              numberOfLines={1}
-            >
-              {opt.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
 export function AdvancedSection() {
-  const colors = useColors();
-  const theme = useTheme();
   const { t } = useTranslation();
 
   const { data: filters = [] } = useFilters();
@@ -169,25 +103,37 @@ export function AdvancedSection() {
 
   const api = useEmailStore((s) => s._api);
   const [importing, setImporting] = useState(false);
-  const [importResult, setImportResult] = useState<{ imported: number; total: number } | null>(null);
+  const [importResult, setImportResult] = useState<{
+    imported: number;
+    total: number;
+  } | null>(null);
 
   // ─── Filter create form state ──────────────────────────────────────
   const [filterName, setFilterName] = useState('');
   const [filterField, setFilterField] = useState<FilterField>('from');
-  const [filterOperator, setFilterOperator] = useState<FilterOperator>('contains');
+  const [filterOperator, setFilterOperator] =
+    useState<FilterOperator>('contains');
   const [filterValue, setFilterValue] = useState('');
   const [filterAction, setFilterAction] = useState<FilterActionType>('archive');
 
   // ─── Template create / edit state ──────────────────────────────────
-  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(
+    null,
+  );
   const [templateName, setTemplateName] = useState('');
   const [templateSubject, setTemplateSubject] = useState('');
   const [templateBody, setTemplateBody] = useState('');
 
   const filterDelete = useDialogControl();
   const templateDelete = useDialogControl();
-  const [filterPendingDelete, setFilterPendingDelete] = useState<{ id: string; name: string } | null>(null);
-  const [templatePendingDelete, setTemplatePendingDelete] = useState<{ id: string; name: string } | null>(null);
+  const [filterPendingDelete, setFilterPendingDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [templatePendingDelete, setTemplatePendingDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const handleFieldChange = useCallback((field: FilterField) => {
     setFilterField(field);
@@ -206,7 +152,11 @@ export function AdvancedSection() {
     const condition: EmailFilterCondition =
       filterField === 'has-attachment'
         ? { field: 'has-attachment', operator: 'equals', value: 'true' }
-        : { field: filterField, operator: filterOperator, value: filterValue.trim() };
+        : {
+            field: filterField,
+            operator: filterOperator,
+            value: filterValue.trim(),
+          };
     const action: EmailFilterAction = { type: filterAction };
     createFilter.mutate(
       {
@@ -226,12 +176,21 @@ export function AdvancedSection() {
           toast.success('Filter created.');
         },
         onError: (err: unknown) => {
-          const message = err instanceof Error ? err.message : 'Failed to create filter.';
+          const message =
+            err instanceof Error ? err.message : 'Failed to create filter.';
           toast.error(message);
         },
       },
     );
-  }, [filterValid, filterField, filterOperator, filterValue, filterAction, filterName, createFilter]);
+  }, [
+    filterValid,
+    filterField,
+    filterOperator,
+    filterValue,
+    filterAction,
+    filterName,
+    createFilter,
+  ]);
 
   const handleToggleFilter = useCallback(
     (filterId: string, enabled: boolean) => {
@@ -239,7 +198,8 @@ export function AdvancedSection() {
         { filterId, enabled },
         {
           onError: (err: unknown) => {
-            const message = err instanceof Error ? err.message : 'Failed to update filter.';
+            const message =
+              err instanceof Error ? err.message : 'Failed to update filter.';
             toast.error(message);
           },
         },
@@ -256,7 +216,8 @@ export function AdvancedSection() {
         setFilterPendingDelete(null);
       },
       onError: (err: unknown) => {
-        const message = err instanceof Error ? err.message : 'Failed to delete filter.';
+        const message =
+          err instanceof Error ? err.message : 'Failed to delete filter.';
         toast.error(message);
       },
     });
@@ -294,7 +255,8 @@ export function AdvancedSection() {
             toast.success('Template updated.');
           },
           onError: (err: unknown) => {
-            const message = err instanceof Error ? err.message : 'Failed to update template.';
+            const message =
+              err instanceof Error ? err.message : 'Failed to update template.';
             toast.error(message);
           },
         },
@@ -310,12 +272,21 @@ export function AdvancedSection() {
           toast.success('Template created.');
         },
         onError: (err: unknown) => {
-          const message = err instanceof Error ? err.message : 'Failed to create template.';
+          const message =
+            err instanceof Error ? err.message : 'Failed to create template.';
           toast.error(message);
         },
       },
     );
-  }, [templateName, templateBody, templateSubject, editingTemplateId, updateTemplate, createTemplate, resetTemplateForm]);
+  }, [
+    templateName,
+    templateBody,
+    templateSubject,
+    editingTemplateId,
+    updateTemplate,
+    createTemplate,
+    resetTemplateForm,
+  ]);
 
   const handleDeleteTemplate = useCallback(() => {
     if (!templatePendingDelete) return;
@@ -326,11 +297,17 @@ export function AdvancedSection() {
         setTemplatePendingDelete(null);
       },
       onError: (err: unknown) => {
-        const message = err instanceof Error ? err.message : 'Failed to delete template.';
+        const message =
+          err instanceof Error ? err.message : 'Failed to delete template.';
         toast.error(message);
       },
     });
-  }, [templatePendingDelete, deleteTemplate, editingTemplateId, resetTemplateForm]);
+  }, [
+    templatePendingDelete,
+    deleteTemplate,
+    editingTemplateId,
+    resetTemplateForm,
+  ]);
 
   const handleImportFiles = useCallback(async () => {
     if (!api || Platform.OS !== 'web') return;
@@ -346,7 +323,9 @@ export function AdvancedSection() {
       try {
         const result = await api.importMessages(files);
         setImportResult(result);
-        toast.success(`Imported ${result.imported} of ${result.total} email(s).`);
+        toast.success(
+          `Imported ${result.imported} of ${result.total} email(s).`,
+        );
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Import failed.';
         toast.error(message);
@@ -357,304 +336,372 @@ export function AdvancedSection() {
     input.click();
   }, [api]);
 
-  const inputStyle = {
-    color: colors.text,
-    backgroundColor: theme.colors.background,
-    borderColor: colors.border,
-  };
-
-  const templateSubmitting = editingTemplateId ? updateTemplate.isPending : createTemplate.isPending;
+  const templateSubmitting = editingTemplateId
+    ? updateTemplate.isPending
+    : createTemplate.isPending;
   const showValueInput = filterField !== 'has-attachment';
   const fieldOptions = useMemo(
-    () => FIELD_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) })),
+    () =>
+      FIELD_OPTIONS.map((option) => ({
+        value: option.value,
+        label: t(option.labelKey),
+      })),
     [t],
   );
   const operatorOptions = useMemo(
-    () => operatorsForField(filterField).map((option) => ({ value: option.value, label: t(option.labelKey) })),
+    () =>
+      operatorsForField(filterField).map((option) => ({
+        value: option.value,
+        label: t(option.labelKey),
+      })),
     [filterField, t],
   );
   const actionOptions = useMemo(
-    () => ACTION_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) })),
+    () =>
+      ACTION_OPTIONS.map((option) => ({
+        value: option.value,
+        label: t(option.labelKey),
+      })),
     [t],
   );
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.root}
-    >
-      {/* Filters & rules */}
-      <View style={styles.subsection}>
-        <SectionHeader icon={RiFilterLine} title={t('ui.settings.advanced.filters')} />
-        {filters.length === 0 ? (
-          <Admonition type="info">
-            {t('ui.settings.advanced.noFilters')}
-          </Admonition>
-        ) : (
-          <View style={[styles.itemList, { borderColor: colors.border }]}>
-            {filters.map((f, idx) => (
-              <View
-                key={f._id}
-                style={[
-                  styles.itemRow,
-                  idx > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-                ]}
-              >
-                <View style={styles.itemMain}>
-                  <Text style={[styles.itemTitle, { color: colors.text }]} numberOfLines={1}>
-                    {f.name}
-                  </Text>
-                  <Text style={[styles.itemSub, { color: colors.secondaryText }]} numberOfLines={1}>
-                    {`${f.conditions.length} condition${f.conditions.length === 1 ? '' : 's'} · ${f.actions.length} action${f.actions.length === 1 ? '' : 's'}`}
-                  </Text>
+    <>
+      <SettingsProfilePage
+        sections={[
+          {
+            key: 'filters',
+            label: t('ui.settings.advanced.filters'),
+            description: filters.length
+              ? undefined
+              : t('ui.settings.advanced.noFilters'),
+            rows: filters.map((filter) => ({
+              key: filter._id,
+              label: filter.name,
+              description: `${filter.conditions.length} conditions · ${filter.actions.length} actions`,
+              control: (
+                <View
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                >
+                  <Switch
+                    accessibilityLabel={filter.name}
+                    value={filter.enabled}
+                    onValueChange={(v) => handleToggleFilter(filter._id, v)}
+                  />
+                  <IconButton
+                    accessibilityLabel={`Delete ${filter.name}`}
+                    icon={<RiDeleteBin6Line />}
+                    onPress={() => {
+                      setFilterPendingDelete({
+                        id: filter._id,
+                        name: filter.name,
+                      });
+                      filterDelete.open();
+                    }}
+                  />
                 </View>
-                <Switch
-                  value={f.enabled}
-                  onValueChange={(v) => handleToggleFilter(f._id, v)}
-                />
-                <Pressable
-                  onPress={() => {
-                    setFilterPendingDelete({ id: f._id, name: f.name });
-                    filterDelete.open();
-                  }}
-                  style={styles.iconBtn}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Delete ${f.name}`}
-                >
-                  <RiDeleteBin6Line size="sm" style={{ color: colors.error }} />
-                </Pressable>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Create filter */}
-        <View style={styles.createBlock}>
-          <TextInput
-            value={filterName}
-            onChangeText={setFilterName}
-            placeholder={t('ui.settings.advanced.filterName')}
-            placeholderTextColor={colors.secondaryText}
-            style={[styles.input, inputStyle]}
-          />
-          <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>{t('ui.settings.advanced.whenMessage')}&apos;</Text>
-          <ChipGroup options={fieldOptions} value={filterField} onChange={handleFieldChange} />
-          {showValueInput ? (
-            <>
-              <ChipGroup
-                options={operatorOptions}
-                value={filterOperator}
-                onChange={setFilterOperator}
-              />
-              <TextInput
-                value={filterValue}
-                onChangeText={setFilterValue}
-                placeholder={filterField === 'size' ? t('ui.settings.advanced.sizeBytes') : t('ui.settings.advanced.value')}
-                placeholderTextColor={colors.secondaryText}
-                keyboardType={filterField === 'size' ? 'numeric' : 'default'}
-                autoCapitalize="none"
-                style={[styles.input, inputStyle]}
-              />
-            </>
-          ) : null}
-          <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>{t('ui.settings.advanced.then')}</Text>
-          <ChipGroup options={actionOptions} value={filterAction} onChange={setFilterAction} />
-          <Button
-            onPress={handleCreateFilter}
-            disabled={!filterValid || createFilter.isPending}
-            icon={<RiAddLine size="sm" style={{ color: '#FFFFFF' }} />}
-            iconPosition="left"
-          >
-            {createFilter.isPending ? t('ui.settings.advanced.creating') : t('ui.settings.advanced.addFilter')}
-          </Button>
-        </View>
-      </View>
-
-      {/* Templates */}
-      <View style={styles.subsection}>
-        <SectionHeader icon={RiFileTextLine} title={t('ui.settings.advanced.templates')} />
-        {templates.length === 0 ? null : (
-          <View style={[styles.itemList, { borderColor: colors.border }]}>
-            {templates.map((t, idx) => (
-              <View
-                key={t._id}
-                style={[
-                  styles.itemRow,
-                  idx > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-                  editingTemplateId === t._id && { backgroundColor: theme.colors.background },
-                ]}
-              >
-                <View style={styles.itemMain}>
-                  <Text style={[styles.itemTitle, { color: colors.text }]} numberOfLines={1}>
-                    {t.name}
-                  </Text>
-                  <Text style={[styles.itemSub, { color: colors.secondaryText }]} numberOfLines={1}>
-                    {t.subject ? `${t.subject} — ` : ''}{t.body.replace(/\n/g, ' ').slice(0, 60)}
-                  </Text>
+              ),
+            })),
+          },
+          {
+            key: 'new-filter',
+            label: t('ui.settings.advanced.addFilter'),
+            rows: [
+              {
+                key: 'name',
+                label: t('ui.settings.advanced.filterName'),
+                control: (
+                  <SettingsTextField
+                    label={t('ui.settings.advanced.filterName')}
+                    value={filterName}
+                    onCommit={setFilterName}
+                    showSavedToast={false}
+                  />
+                ),
+              },
+              {
+                key: 'field',
+                label: t('ui.settings.advanced.whenMessage'),
+                control: (
+                  <SettingsPreferenceSelect
+                    label={t('ui.settings.advanced.whenMessage')}
+                    value={filterField}
+                    onChange={handleFieldChange}
+                    items={fieldOptions}
+                  />
+                ),
+              },
+              ...(showValueInput
+                ? [
+                    {
+                      key: 'operator',
+                      label: 'Condition',
+                      control: (
+                        <SettingsPreferenceSelect
+                          label="Condition"
+                          value={filterOperator}
+                          onChange={setFilterOperator}
+                          items={operatorOptions}
+                        />
+                      ),
+                    },
+                    {
+                      key: 'value',
+                      label: t('ui.settings.advanced.value'),
+                      control: (
+                        <SettingsTextField
+                          label={t('ui.settings.advanced.value')}
+                          value={filterValue}
+                          onCommit={setFilterValue}
+                          keyboardType={
+                            filterField === 'size' ? 'numeric' : 'default'
+                          }
+                          showSavedToast={false}
+                        />
+                      ),
+                    },
+                  ]
+                : []),
+              {
+                key: 'action',
+                label: t('ui.settings.advanced.then'),
+                control: (
+                  <SettingsPreferenceSelect
+                    label={t('ui.settings.advanced.then')}
+                    value={filterAction}
+                    onChange={setFilterAction}
+                    items={actionOptions}
+                  />
+                ),
+              },
+              {
+                key: 'create',
+                label: t('ui.settings.advanced.addFilter'),
+                control: (
+                  <Button
+                    size="sm"
+                    onPress={handleCreateFilter}
+                    disabled={!filterValid || createFilter.isPending}
+                    loading={createFilter.isPending}
+                  >
+                    {t('ui.settings.advanced.addFilter')}
+                  </Button>
+                ),
+              },
+            ],
+          },
+          {
+            key: 'templates',
+            label: t('ui.settings.advanced.templates'),
+            rows: templates.map((template) => ({
+              key: template._id,
+              label: template.name,
+              description: `${template.subject ? `${template.subject} — ` : ''}${template.body.replace(/\n/g, ' ').slice(0, 60)}`,
+              control: (
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <IconButton
+                    accessibilityLabel={`Edit ${template.name}`}
+                    icon={<RiEditLine />}
+                    onPress={() =>
+                      handleEditTemplate(
+                        template._id,
+                        template.name,
+                        template.subject,
+                        template.body,
+                      )
+                    }
+                  />
+                  <IconButton
+                    accessibilityLabel={`Delete ${template.name}`}
+                    icon={<RiDeleteBin6Line />}
+                    onPress={() => {
+                      setTemplatePendingDelete({
+                        id: template._id,
+                        name: template.name,
+                      });
+                      templateDelete.open();
+                    }}
+                  />
                 </View>
-                <Pressable
-                  onPress={() => handleEditTemplate(t._id, t.name, t.subject, t.body)}
-                  style={styles.iconBtn}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Edit ${t.name}`}
-                >
-                  <RiEditLine size="sm" style={{ color: colors.icon }} />
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    setTemplatePendingDelete({ id: t._id, name: t.name });
-                    templateDelete.open();
-                  }}
-                  style={styles.iconBtn}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Delete ${t.name}`}
-                >
-                  <RiDeleteBin6Line size="sm" style={{ color: colors.error }} />
-                </Pressable>
-              </View>
-            ))}
-          </View>
-        )}
-
-        <View style={styles.createBlock}>
-          {editingTemplateId ? (
-            <Text style={[styles.fieldLabel, { color: theme.colors.primary }]}>{t('ui.settings.advanced.editingTemplate')}</Text>
-          ) : null}
-          <TextInput
-            value={templateName}
-            onChangeText={setTemplateName}
-            placeholder={t('ui.settings.advanced.templateName')}
-            placeholderTextColor={colors.secondaryText}
-            style={[styles.input, inputStyle]}
-          />
-          <TextInput
-            value={templateSubject}
-            onChangeText={setTemplateSubject}
-            placeholder={t('ui.settings.advanced.subjectOptional')}
-            placeholderTextColor={colors.secondaryText}
-            style={[styles.input, inputStyle]}
-          />
-          <TextInput
-            value={templateBody}
-            onChangeText={setTemplateBody}
-            placeholder={t('ui.settings.advanced.templateBody')}
-            placeholderTextColor={colors.secondaryText}
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-            style={[styles.textArea, inputStyle]}
-          />
-          <View style={styles.buttonRow}>
-            <Button
-              onPress={handleSubmitTemplate}
-              disabled={!templateName.trim() || !templateBody.trim() || templateSubmitting}
-              icon={
-                editingTemplateId ? (
-                  <RiCheckboxCircleLine size="sm" style={{ color: '#FFFFFF' }} />
-                ) : (
-                  <RiAddLine size="sm" style={{ color: '#FFFFFF' }} />
-                )
-              }
-              iconPosition="left"
-            >
-              {templateSubmitting
-                ? editingTemplateId
-                  ? t('ui.settings.contacts.saving')
-                  : t('ui.settings.advanced.creating')
-                : editingTemplateId
-                  ? t('ui.settings.advanced.saveChanges')
-                  : t('ui.settings.advanced.addTemplate')}
-            </Button>
-            {editingTemplateId ? (
-              <Button variant="text" onPress={resetTemplateForm}>
-                {t('common.cancel')}
-              </Button>
-            ) : null}
-          </View>
-        </View>
-      </View>
-
-      {/* Bundles */}
-      {sortedBundles.length > 0 ? (
-        <View style={styles.subsection}>
-          <SectionHeader icon={RiGroupLine} title={t('ui.settings.advanced.bundles')} />
-          <View style={[styles.itemList, { borderColor: colors.border }]}>
-            {sortedBundles.map((b, idx) => (
-              <View
-                key={b._id}
-                style={[
-                  styles.itemRow,
-                  idx > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-                ]}
-              >
-                <View style={[styles.bundleDot, { backgroundColor: b.color }]} />
-                <View style={styles.itemMain}>
-                  <Text style={[styles.itemTitle, { color: colors.text }]} numberOfLines={1}>
-                    {b.name}
-                  </Text>
-                </View>
-                <Pressable
-                  onPress={() => reorderBundle.mutate({ bundleId: b._id, direction: 'up' })}
-                  disabled={idx === 0}
-                  style={[styles.iconBtn, idx === 0 && styles.iconBtnDisabled]}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('ui.settings.advanced.moveUp', { name: b.name })}
-                >
-                  <RiArrowUpSLine size="sm" style={{ color: colors.icon }} />
-                </Pressable>
-                <Pressable
-                  onPress={() => reorderBundle.mutate({ bundleId: b._id, direction: 'down' })}
-                  disabled={idx === sortedBundles.length - 1}
-                  style={[styles.iconBtn, idx === sortedBundles.length - 1 && styles.iconBtnDisabled]}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('ui.settings.advanced.moveDown', { name: b.name })}
-                >
-                  <RiArrowDownSLine size="sm" style={{ color: colors.icon }} />
-                </Pressable>
-                <Switch
-                  value={b.enabled}
-                  onValueChange={(v) => updateBundle.mutate({ bundleId: b._id, enabled: v })}
-                />
-              </View>
-            ))}
-          </View>
-          <Text style={[styles.footnote, { color: colors.secondaryText }]}>
-            {t('ui.settings.advanced.bundleHint')}
-          </Text>
-        </View>
-      ) : null}
-
-      {/* Import */}
-      {Platform.OS === 'web' ? (
-        <View style={styles.subsection}>
-          <SectionHeader icon={RiUpload2Line} title={t('ui.settings.advanced.import')} />
-          <Text style={[styles.body, { color: colors.secondaryText }]}>
-            {t('ui.settings.advanced.importDescription')}
-          </Text>
-          <Button
-            onPress={handleImportFiles}
-            disabled={importing}
-            icon={
-              importing ? (
-                <RiLoader4Line size="sm" style={{ color: '#FFFFFF' }} />
-              ) : (
-                <RiUpload2Line size="sm" style={{ color: '#FFFFFF' }} />
-              )
-            }
-            iconPosition="left"
-          >
-            {importing ? t('ui.settings.advanced.importing') : t('ui.settings.advanced.importButton')}
-          </Button>
-          {importResult ? (
-            <Admonition type="tip">
-              {`Imported ${importResult.imported} of ${importResult.total} email${importResult.total === 1 ? '' : 's'}.`}
-            </Admonition>
-          ) : null}
-        </View>
-      ) : null}
-
+              ),
+            })),
+          },
+          {
+            key: 'template-form',
+            label: t(
+              editingTemplateId
+                ? 'ui.settings.advanced.editingTemplate'
+                : 'ui.settings.advanced.addTemplate',
+            ),
+            rows: [
+              {
+                key: 'name',
+                label: t('ui.settings.advanced.templateName'),
+                control: (
+                  <SettingsTextField
+                    label={t('ui.settings.advanced.templateName')}
+                    value={templateName}
+                    onCommit={setTemplateName}
+                    showSavedToast={false}
+                  />
+                ),
+              },
+              {
+                key: 'subject',
+                label: t('ui.settings.advanced.subjectOptional'),
+                control: (
+                  <SettingsTextField
+                    label={t('ui.settings.advanced.subjectOptional')}
+                    value={templateSubject}
+                    onCommit={setTemplateSubject}
+                    showSavedToast={false}
+                  />
+                ),
+              },
+              {
+                key: 'body',
+                label: t('ui.settings.advanced.templateBody'),
+                control: (
+                  <Textarea
+                    accessibilityLabel={t('ui.settings.advanced.templateBody')}
+                    value={templateBody}
+                    onChangeText={setTemplateBody}
+                    rows={4}
+                    style={{ width: 202, maxWidth: '100%', flexGrow: 1 }}
+                  />
+                ),
+              },
+              {
+                key: 'save',
+                label: t(
+                  editingTemplateId
+                    ? 'ui.settings.advanced.saveChanges'
+                    : 'ui.settings.advanced.addTemplate',
+                ),
+                control: (
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <Button
+                      size="sm"
+                      onPress={handleSubmitTemplate}
+                      disabled={
+                        !templateName.trim() ||
+                        !templateBody.trim() ||
+                        templateSubmitting
+                      }
+                      loading={templateSubmitting}
+                    >
+                      {t(
+                        editingTemplateId
+                          ? 'ui.settings.advanced.saveChanges'
+                          : 'ui.settings.advanced.addTemplate',
+                      )}
+                    </Button>
+                    {editingTemplateId ? (
+                      <Button
+                        size="sm"
+                        appearance="subtle"
+                        onPress={resetTemplateForm}
+                      >
+                        {t('common.cancel')}
+                      </Button>
+                    ) : null}
+                  </View>
+                ),
+              },
+            ],
+          },
+          ...(sortedBundles.length
+            ? [
+                {
+                  key: 'bundles',
+                  label: t('ui.settings.advanced.bundles'),
+                  description: t('ui.settings.advanced.bundleHint'),
+                  rows: sortedBundles.map((bundle, index) => ({
+                    key: bundle._id,
+                    label: bundle.name,
+                    control: (
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 8,
+                        }}
+                      >
+                        <IconButton
+                          accessibilityLabel={t('ui.settings.advanced.moveUp', {
+                            name: bundle.name,
+                          })}
+                          icon={<RiArrowUpSLine />}
+                          disabled={index === 0}
+                          onPress={() =>
+                            reorderBundle.mutate({
+                              bundleId: bundle._id,
+                              direction: 'up',
+                            })
+                          }
+                        />
+                        <IconButton
+                          accessibilityLabel={t(
+                            'ui.settings.advanced.moveDown',
+                            {
+                              name: bundle.name,
+                            },
+                          )}
+                          icon={<RiArrowDownSLine />}
+                          disabled={index === sortedBundles.length - 1}
+                          onPress={() =>
+                            reorderBundle.mutate({
+                              bundleId: bundle._id,
+                              direction: 'down',
+                            })
+                          }
+                        />
+                        <Switch
+                          accessibilityLabel={bundle.name}
+                          value={bundle.enabled}
+                          onValueChange={(v) =>
+                            updateBundle.mutate({
+                              bundleId: bundle._id,
+                              enabled: v,
+                            })
+                          }
+                        />
+                      </View>
+                    ),
+                  })),
+                },
+              ]
+            : []),
+          ...(Platform.OS === 'web'
+            ? [
+                {
+                  key: 'import',
+                  label: t('ui.settings.advanced.import'),
+                  description: importResult
+                    ? `Imported ${importResult.imported} of ${importResult.total} emails.`
+                    : t('ui.settings.advanced.importDescription'),
+                  rows: [
+                    {
+                      key: 'import',
+                      label: t('ui.settings.advanced.importButton'),
+                      control: (
+                        <Button
+                          size="sm"
+                          onPress={handleImportFiles}
+                          disabled={importing}
+                          loading={importing}
+                        >
+                          {t('ui.settings.advanced.importButton')}
+                        </Button>
+                      ),
+                    },
+                  ],
+                },
+              ]
+            : []),
+        ]}
+      />
       <OutboundQueueSection />
-
       <Dialog
         control={filterDelete}
         title="Delete filter?"
@@ -664,7 +711,11 @@ export function AdvancedSection() {
             : ''
         }
         actions={[
-          { label: 'Delete', color: 'destructive', onPress: handleDeleteFilter },
+          {
+            label: 'Delete',
+            color: 'destructive',
+            onPress: handleDeleteFilter,
+          },
           { label: 'Cancel', color: 'cancel' },
         ]}
       />
@@ -678,109 +729,14 @@ export function AdvancedSection() {
             : ''
         }
         actions={[
-          { label: 'Delete', color: 'destructive', onPress: handleDeleteTemplate },
+          {
+            label: 'Delete',
+            color: 'destructive',
+            onPress: handleDeleteTemplate,
+          },
           { label: 'Cancel', color: 'cancel' },
         ]}
       />
-    </KeyboardAvoidingView>
+    </>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    gap: 28,
-  },
-  subsection: {
-    gap: 10,
-  },
-  itemList: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 12,
-  },
-  itemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 12,
-  },
-  itemMain: {
-    flex: 1,
-    gap: 2,
-  },
-  itemTitle: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  itemSub: {
-    fontSize: 13,
-  },
-  iconBtn: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconBtnDisabled: {
-    opacity: 0.35,
-  },
-  bundleDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  createBlock: {
-    gap: 10,
-    paddingTop: 6,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'center',
-  },
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    paddingHorizontal: 2,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-  },
-  chipText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-  },
-  textArea: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    minHeight: 96,
-  },
-  footnote: {
-    fontSize: 12,
-    paddingHorizontal: 2,
-  },
-  body: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-});

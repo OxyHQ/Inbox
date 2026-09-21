@@ -1,3 +1,4 @@
+import { useAppShell } from '@oxy.so/bloom/app-shell';
 /**
  * Inbox message list with search bar, FAB compose, and pull-to-refresh.
  * Used by the (inbox) layout on desktop (always visible) and by the index route on mobile.
@@ -8,19 +9,16 @@ import {
   View,
   Text,
   StyleSheet,
-  Platform,
   RefreshControl,
 } from 'react-native';
 import { FlashList, type FlashListProps } from '@shopify/flash-list';
 import Animated, { type AnimatedProps } from 'react-native-reanimated';
 import { Loading } from '@oxy.so/bloom/loading';
-import { Fab } from '@oxy.so/bloom/fab';
-import { useRouter, useNavigation } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useOxy, OxySignInButton } from '@oxy.so/services';
 import { toast } from '@oxy.so/bloom';
 import { useMinimizeOnScroll } from '@oxy.so/bloom/tab-bar';
 
-import { useFloatingHeader } from '@/hooks/useFloatingHeader';
 import { useColors } from '@/constants/theme';
 import { SPACING, CONTENT_MAX_WIDTH } from '@/constants/layout';
 import { SPECIAL_USE } from '@/constants/mailbox';
@@ -50,7 +48,6 @@ import { BundleRow } from '@/components/BundleRow';
 import { ReminderRow } from '@/components/ReminderRow';
 import { CreateReminderSheet } from '@/components/CreateReminderSheet';
 import { EmptyIllustration } from '@/components/EmptyIllustration';
-import { DrawOutlineIcon } from '@/components/icons/MailActionIcons';
 import { AliaChatSheet, type AliaChatSheetRef } from '@alia.onl/sdk';
 import { VoiceSession } from '@alia.onl/sdk/voice';
 import { useBatchSentimentAnalysis } from '@/hooks/queries/useSentimentAnalysis';
@@ -132,16 +129,13 @@ interface InboxListProps {
   replaceNavigation?: boolean;
 }
 
-interface DrawerNavigation {
-  openDrawer?: () => void;
-  dispatch?: (action: unknown) => void;
-}
+
 
 const TRIAGE_LIMIT = 3;
 
 export function InboxList({ replaceNavigation }: InboxListProps) {
   const router = useRouter();
-  const navigation = useNavigation<DrawerNavigation>();
+  const { openDrawer, drawerAvailable } = useAppShell();
   const minimizeTabBarOnScroll = useMinimizeOnScroll();
   const colors = useColors();
   const { t } = useTranslation();
@@ -228,7 +222,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const bulkMove = useBulkMoveMessages();
   const { data: bundles = [] } = useBundles();
 
-  const { headerHeight, onHeaderLayout, floatingHeaderStyle } = useFloatingHeader();
   const [snoozeTargetId, setSnoozeTargetId] = useState<string | null>(null);
   const [createReminderVisible, setCreateReminderVisible] = useState(false);
   const [editReminderTarget, setEditReminderTarget] = useState<Reminder | null>(null);
@@ -522,23 +515,8 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     [router, replaceNavigation, messageActions],
   );
 
-  const handleOpenDrawer = useCallback(() => {
-    // Synthesize the DrawerActions.openDrawer payload inline — expo-router v56
-    // rejects direct `@react-navigation/*` imports.
-    if (navigation.openDrawer) {
-      navigation.openDrawer();
-      return;
-    }
-    navigation.dispatch?.({ type: 'OPEN_DRAWER' });
-  }, [navigation]);
+  const handleOpenDrawer = openDrawer;
 
-  const handleCompose = useCallback(() => {
-    if (replaceNavigation) {
-      router.replace('/compose');
-    } else {
-      router.push('/compose');
-    }
-  }, [router, replaceNavigation]);
 
   const handleAskAlia = useCallback(() => {
     aliaChatRef.current?.present();
@@ -830,13 +808,11 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
           onMarkRead={handleBulkMarkRead}
         />
       ) : (
-        // Floats above the list so rows scroll behind its gradient. Its
-        // measured height becomes the list's top padding, so the first row
-        // still starts below it instead of under it.
-        <View style={floatingHeaderStyle} onLayout={onHeaderLayout}
-        >
+        // The shared header stays in flow above the virtualized message list.
+        <View>
           <SearchHeader
             onLeftIcon={handleOpenDrawer}
+            hideLeftIcon={!drawerAvailable}
             leftIcon="menu"
             placeholder={t('inbox.searchInMailbox', { mailbox: mailboxTitle.toLowerCase() })}
             onPress={handleSearch}
@@ -882,23 +858,11 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
             contentContainerStyle={{
               ...(listItems.length === 0 ? styles.emptyListContent : null),
               ...styles.listContent,
-              paddingTop: headerHeight,
+              paddingTop: 0,
             }}
             showsVerticalScrollIndicator={false}
           />
         </View>
-      )}
-
-      {isAuthenticated && !isSelectionMode && (
-        <Fab
-          accessibilityLabel={t('inbox.composeFab')}
-          icon={<DrawOutlineIcon />}
-          label={Platform.OS === 'web' ? t('inbox.composeFabLabel') : undefined}
-          minimizeBehavior="collapse"
-          placement="bottom-right"
-          variant="tertiary"
-          onPress={handleCompose}
-        />
       )}
 
       {/* Alia remains available from the inline header action. */}

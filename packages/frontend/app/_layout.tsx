@@ -63,9 +63,11 @@ function ThemedRoot() {
 
 function RootLayoutContent() {
   const navTheme = useNavigationTheme();
+  const { colors, mode } = useTheme();
 
   return (
     <KeyboardProvider>
+      <Head><meta name="theme-color" content={colors.background} /></Head>
       <OxyProvider baseURL={API_URL} clientId={OXY_CLIENT_ID} authRedirectUri={OXY_AUTH_REDIRECT_URI} queryClient={queryClient}>
         <InboxCacheRestoreGate>
           <BloomImageResolver>
@@ -75,7 +77,7 @@ function RootLayoutContent() {
                   <ConnectionStatusToasts />
                   <RootEffects />
                   <GatedNavigator />
-                  <StatusBar style="auto" />
+                  <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
                 </ThemeProvider>
                 <PortalOutlet />
               </PortalProvider>

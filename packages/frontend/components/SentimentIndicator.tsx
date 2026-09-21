@@ -1,3 +1,4 @@
+import { useTheme, resolveAccentColors } from '@oxy.so/bloom/theme';
 /**
  * Sentiment Indicator component.
  *
@@ -29,7 +30,9 @@ export function SentimentIndicator({
   size = 'small',
   showLabel = false,
 }: SentimentIndicatorProps) {
+  const { colors } = useTheme();
   if (!sentiment) return null;
+  const palette = resolveAccentColors(colors, { urgent: 'error', frustrated: 'warning', positive: 'success', formal: 'default', neutral: 'default', request: 'info' }[sentiment.type] as 'error' | 'warning' | 'success' | 'default' | 'info', 'subtle');
 
   const iconSize = size === 'small' ? 12 : 16;
   const fontSize = size === 'small' ? 10 : 12;
@@ -44,7 +47,7 @@ export function SentimentIndicator({
             <HugeiconsIcon
               icon={Alert01Icon as unknown as IconSvgElement}
               size={iconSize}
-              color={sentiment.color}
+              color={palette.foreground}
             />
           );
         case 'positive':
@@ -52,7 +55,7 @@ export function SentimentIndicator({
             <HugeiconsIcon
               icon={ThumbsUpIcon as unknown as IconSvgElement}
               size={iconSize}
-              color={sentiment.color}
+              color={palette.foreground}
             />
           );
         case 'request':
@@ -60,7 +63,7 @@ export function SentimentIndicator({
             <HugeiconsIcon
               icon={SentIcon as unknown as IconSvgElement}
               size={iconSize}
-              color={sentiment.color}
+              color={palette.foreground}
             />
           );
         default:
@@ -68,7 +71,7 @@ export function SentimentIndicator({
             <MaterialCommunityIcons
               name={sentiment.icon}
               size={iconSize}
-              color={sentiment.color}
+              color={palette.foreground}
             />
           );
       }
@@ -78,7 +81,7 @@ export function SentimentIndicator({
       <MaterialCommunityIcons
         name={sentiment.icon}
         size={iconSize}
-        color={sentiment.color}
+        color={palette.foreground}
       />
     );
   };
@@ -86,7 +89,7 @@ export function SentimentIndicator({
   if (!showLabel) {
     // Just the icon for compact display
     return (
-      <View style={[styles.iconOnly, { backgroundColor: sentiment.color + '15' }]}>
+      <View accessibilityRole="image" accessibilityLabel={sentiment.label} style={[styles.iconOnly, { backgroundColor: palette.background }]}>
         {renderIcon()}
       </View>
     );
@@ -98,11 +101,11 @@ export function SentimentIndicator({
       style={[
         styles.badge,
         size === 'medium' && styles.badgeMedium,
-        { backgroundColor: sentiment.color + '15' },
+        { backgroundColor: palette.background },
       ]}
     >
       {renderIcon()}
-      <Text style={[styles.label, { color: sentiment.color, fontSize }]}>
+      <Text style={[styles.label, { color: palette.foreground, fontSize }]}>
         {sentiment.label}
       </Text>
     </View>

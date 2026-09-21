@@ -36,18 +36,6 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="format-detection" content="telephone=no" />
 
-        {/* Theme color (light + dark) */}
-        <meta
-          name="theme-color"
-          content="#f3f3f7"
-          media="(prefers-color-scheme: light)"
-        />
-        <meta
-          name="theme-color"
-          content="#0c0e11"
-          media="(prefers-color-scheme: dark)"
-        />
-
         {/* Open Graph */}
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content={SITE_NAME} />

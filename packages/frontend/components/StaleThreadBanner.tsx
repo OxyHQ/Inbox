@@ -1,3 +1,6 @@
+import { Button, IconButton } from '@oxy.so/bloom/button';
+import { RiCornerUpLeftLine, RiCloseLine } from '@oxy.so/bloom/icons';
+import { useTheme } from '@oxy.so/bloom/theme';
 /**
  * Stale Thread Banner component.
  *
@@ -6,10 +9,10 @@
  */
 
 import React, { useState } from 'react';
-import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
-import { Clock01Icon, Cancel01Icon, MailReply01Icon } from '@hugeicons/core-free-icons';
+import { Clock01Icon } from '@hugeicons/core-free-icons';
 import { Text } from '@oxy.so/bloom/typography';
 
 import { useColors } from '@/constants/theme';
@@ -23,6 +26,7 @@ interface StaleThreadBannerProps {
 
 export function StaleThreadBanner({ staleInfo, onReply, onDismiss }: StaleThreadBannerProps) {
   const colors = useColors();
+  const { colors: tokens } = useTheme();
   const [dismissed, setDismissed] = useState(false);
 
   if (!staleInfo || dismissed) return null;
@@ -34,14 +38,14 @@ export function StaleThreadBanner({ staleInfo, onReply, onDismiss }: StaleThread
 
   // Different colors based on how stale
   const isVeryStale = staleInfo.daysSinceReceived >= 7;
-  const bannerColor = isVeryStale ? '#E53935' : '#FF9800'; // Red for very stale, orange for stale
-  const bgColor = bannerColor + '10';
-  const borderColor = bannerColor + '30';
+  const bannerColor = isVeryStale ? tokens.errorSubtleForeground : tokens.warningSubtleForeground;
+  const bgColor = isVeryStale ? tokens.errorSubtle : tokens.warningSubtle;
+  const borderColor = 'transparent';
 
   return (
     <View style={[styles.container, { backgroundColor: bgColor, borderColor }]}>
       <View style={styles.content}>
-        <View style={[styles.iconContainer, { backgroundColor: bannerColor + '20' }]}>
+        <View style={[styles.iconContainer, { backgroundColor: bgColor }]}>
           {Platform.OS === 'web' ? (
             <HugeiconsIcon
               icon={Clock01Icon as unknown as IconSvgElement}
@@ -64,38 +68,9 @@ export function StaleThreadBanner({ staleInfo, onReply, onDismiss }: StaleThread
 
       <View style={styles.actions}>
         {onReply && (
-          <TouchableOpacity
-            style={[styles.replyButton, { backgroundColor: bannerColor }]}
-            onPress={onReply}
-            activeOpacity={0.8}
-          >
-            {Platform.OS === 'web' ? (
-              <HugeiconsIcon
-                icon={MailReply01Icon as unknown as IconSvgElement}
-                size={14}
-                color="#FFFFFF"
-              />
-            ) : (
-              <MaterialCommunityIcons name="reply" size={14} color="#FFFFFF" />
-            )}
-            <Text style={styles.replyButtonText}>Reply</Text>
-          </TouchableOpacity>
+          <Button appearance="subtle" leading={<RiCornerUpLeftLine />} onPress={onReply}>Reply</Button>
         )}
-        <TouchableOpacity
-          style={styles.dismissButton}
-          onPress={handleDismiss}
-          hitSlop={8}
-        >
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon
-              icon={Cancel01Icon as unknown as IconSvgElement}
-              size={16}
-              color={colors.icon}
-            />
-          ) : (
-            <MaterialCommunityIcons name="close" size={16} color={colors.icon} />
-          )}
-        </TouchableOpacity>
+        <IconButton accessibilityLabel="Dismiss reply reminder" icon={<RiCloseLine />} onPress={handleDismiss} />
       </View>
     </View>
   );
@@ -140,25 +115,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },
-  replyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  replyButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  dismissButton: {
-    width: 28,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 14,
   },
 });

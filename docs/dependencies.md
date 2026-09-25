@@ -38,8 +38,8 @@ together or neither does.
 
 ## Updates
 
-Dependabot checks weekly and groups `@oxy.so/*` releases into one reviewable
-pull request. Because this is a Bun workspace, every accepted manifest change
+Dependabot checks weekly and proposes every update (majors included) as ONE
+grouped pull request per ecosystem. Because this is a Bun workspace, every accepted manifest change
 must be followed by `bun install` and include the resulting `bun.lock` change.
 
 `bun run doctor:oxy` is read-only. It fails CI when direct Oxy dependencies are

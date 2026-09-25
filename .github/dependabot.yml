@@ -2,7 +2,8 @@ version: 2
 
 updates:
   - package-ecosystem: "npm"
-    directory: "/"
+    directories:
+      - "/"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -10,14 +11,11 @@ updates:
       timezone: "Europe/Bucharest"
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    # One group for EVERY update, majors included: one PR per week.
     groups:
-      oxy-platform:
+      all:
         patterns:
-          - "@oxy.so/*"
-      minor-and-patch:
-        update-types:
-          - "minor"
-          - "patch"
+          - "*"
     ignore:
       - dependency-name: "expo"
       - dependency-name: "expo-*"
@@ -42,13 +40,14 @@ updates:
       - dependency-name: "tailwindcss"
 
   - package-ecosystem: "github-actions"
-    directory: "/"
+    directories:
+      - "/"
     schedule:
       interval: "weekly"
       day: "monday"
       time: "06:00"
       timezone: "Europe/Bucharest"
     groups:
-      github-actions:
+      all:
         patterns:
           - "*"

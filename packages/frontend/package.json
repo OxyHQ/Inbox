@@ -15,7 +15,7 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "@alia.onl/sdk": "^7.2.8",
+    "@alia.onl/sdk": "^10.0.0",
     "@clarity.surf/sdk": "^0.3.0",
     "@expo/metro-runtime": "~57.0.8",
     "@expo/vector-icons": "^15.1.1",
@@ -73,13 +73,13 @@
     "expo-secure-store": "~57.0.1",
     "expo-sensors": "~57.0.2",
     "expo-sharing": "~57.0.5",
+    "expo-speech-recognition": "~57.1.0",
     "expo-splash-screen": "~57.0.2",
     "expo-status-bar": "~57.0.1",
     "expo-symbols": "~57.0.1",
     "expo-system-ui": "~57.0.1",
     "expo-web-browser": "~57.0.1",
     "jszip": "^3.10.1",
-    "livekit-client": "^2.21.0",
     "lottie-react-native": "~7.3.8",
     "lucide-react-native": "^0.577.0",
     "nativewind": "5.0.0-preview.3",

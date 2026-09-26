@@ -167,8 +167,9 @@ describe('Inbox point-inference API client', () => {
     expect(headers.csp?.connectSrc).toEqual(expect.arrayContaining([
       'https://api.alia.onl',
       'wss://api.alia.onl',
-      'wss://livekit.oxy.so',
     ]));
+    // Voice runs on the device since @alia.onl/sdk 8: no LiveKit room to reach.
+    expect(headers.csp?.connectSrc).not.toContain('wss://livekit.oxy.so');
   });
 
   it('fails closed on malformed non-streaming data', async () => {

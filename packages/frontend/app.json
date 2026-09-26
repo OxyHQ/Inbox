@@ -54,6 +54,13 @@
       "expo-sharing",
       "expo-web-browser",
       "expo-audio",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow Inbox to hear what you dictate and say to Alia.",
+          "speechRecognitionPermission": "Allow Inbox to turn your speech into text."
+        }
+      ],
       "expo-status-bar"
     ],
     "experiments": {

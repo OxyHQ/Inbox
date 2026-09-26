@@ -2,7 +2,7 @@
  * Email API client
  *
  * Wraps the Oxy email REST API for use in the Inbox app.
- * Uses OxyServices.httpService for automatic auth and CSRF handling.
+ * Uses OxyServices.http for automatic auth and CSRF handling.
  * All responses validated with zod schemas at runtime.
  */
 
@@ -55,7 +55,7 @@ import type {
 
 export * from '@/schemas/emailSchemas';
 
-type HttpService = OxyServices['httpService'];
+type HttpService = OxyServices['http'];
 
 // ─── Response Helpers ──────────────────────────────────────────────
 

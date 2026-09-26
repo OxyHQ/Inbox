@@ -23,7 +23,7 @@ import {
 } from '@oxy.so/contracts';
 import type { z } from 'zod';
 
-type HttpService = OxyServices['httpService'];
+type HttpService = OxyServices['http'];
 
 const COMPOSE_PATH = '/email/ai/compose';
 const DAILY_BRIEF_PATH = '/email/ai/daily-brief';

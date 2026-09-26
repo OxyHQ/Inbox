@@ -2,7 +2,7 @@
  * Push-notification token registration.
  *
  * Wires the `pushNotifications` inbox preference to the SDK's push registry
- * (`oxyServices.registerPushToken` / `unregisterPushToken` from `@oxy.so/core`).
+ * (`oxyServices.notifications.registerPushToken` / `unregisterPushToken` from `@oxy.so/core`).
  * The registry is the ONE implementation for the whole ecosystem — an app-local
  * copy is how this app ended up registering raw APNs/FCM device tokens that the
  * server, which delivers through Expo, could never push to.
@@ -53,10 +53,10 @@ export function usePushRegistration(): void {
       // it can only succeed while that session is live. After a sign-out there
       // is nothing left to authorise it — the row is then retired with the
       // device session, or pruned when a delivery to it first fails.
-      if (!oxyServices.getAccessToken()) {
+      if (!oxyServices.session.accessToken) {
         return;
       }
-      void oxyServices.unregisterPushToken(expoPushToken).catch((error: unknown) => {
+      void oxyServices.notifications.unregisterPushToken(expoPushToken).catch((error: unknown) => {
         logger.warn('[inbox] could not retire the push token', LOG_CONTEXT, error);
       });
     };
@@ -64,7 +64,7 @@ export function usePushRegistration(): void {
     void (async () => {
       try {
         const outcome = await registerInboxPushToken(
-          oxyServices,
+          oxyServices.notifications,
           {
             name: t('notifications.push.channel.name'),
             description: t('notifications.push.channel.description'),

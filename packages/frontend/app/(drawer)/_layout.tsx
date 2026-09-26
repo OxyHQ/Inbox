@@ -26,7 +26,7 @@ export default function DrawerLayout() {
   useEffect(() => {
     if (hasApi) return;
     if (!isAuthenticated) return;
-    _initApi(oxyServices.httpService);
+    _initApi(oxyServices.http);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, hasApi]);
 

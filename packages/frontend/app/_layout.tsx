@@ -149,7 +149,7 @@ function ScopedInboxPrefsProvider({ children }: { children: ReactNode }) {
 function BloomImageResolver({ children }: { children: ReactNode }) {
   const { oxyServices } = useOxy();
   const resolve = useCallback<ImageResolver>(
-    (id, variant) => oxyServices.getFileDownloadUrl(id, variant),
+    (id, variant) => oxyServices.assets.publicUrl(id, variant),
     [oxyServices],
   );
   return <ImageResolverProvider value={resolve}>{children}</ImageResolverProvider>;

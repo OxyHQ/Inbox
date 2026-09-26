@@ -35,7 +35,7 @@ export function useThreadSummary(
   const query = useQuery({
     queryKey: aiKeys.threadSummary(messageId),
     queryFn: async (): Promise<ThreadSummaryResult> => {
-      const result = await runInboxThreadSummary(oxyServices.httpService, messageId);
+      const result = await runInboxThreadSummary(oxyServices.http, messageId);
       return {
         summary: result.summary,
         keyPoints: result.keyPoints,

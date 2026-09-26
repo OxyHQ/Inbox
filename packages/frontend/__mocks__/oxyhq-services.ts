@@ -18,9 +18,11 @@ import type { PushTokenPlatform } from '@oxy.so/core';
 
 /** The `@oxy.so/core` push surface, plus the bearer probe teardown consults. */
 export interface MockOxyServices {
-  registerPushToken: jest.Mock;
-  unregisterPushToken: jest.Mock;
-  getAccessToken: jest.Mock;
+  notifications: {
+    registerPushToken: jest.Mock;
+    unregisterPushToken: jest.Mock;
+  };
+  session: { accessToken: string | null };
 }
 
 interface MockSessionClient {
@@ -39,9 +41,11 @@ interface MockOxyState {
 
 export function makeMockOxyServices(): MockOxyServices {
   return {
-    registerPushToken: jest.fn(async () => undefined),
-    unregisterPushToken: jest.fn(async () => undefined),
-    getAccessToken: jest.fn(() => 'access-token'),
+    notifications: {
+      registerPushToken: jest.fn(async () => undefined),
+      unregisterPushToken: jest.fn(async () => undefined),
+    },
+    session: { accessToken: 'access-token' },
   };
 }
 

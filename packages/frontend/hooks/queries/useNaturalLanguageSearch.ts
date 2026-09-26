@@ -49,7 +49,7 @@ export function useNaturalLanguageSearch() {
       }
 
       try {
-        return await runInboxNaturalSearch(oxyServices.httpService, naturalLanguage);
+        return await runInboxNaturalSearch(oxyServices.http, naturalLanguage);
       } catch (error: unknown) {
         if (error instanceof Error && error.name === 'AbortError') throw error;
         return {

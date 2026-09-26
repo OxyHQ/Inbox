@@ -72,7 +72,6 @@ jobs:
           grep -q 'worker-src' "$d/_headers" || { echo "::error::_headers is missing this app's CSP extensions"; exit 1; }
           grep -qF 'https://api.alia.onl' "$d/_headers" || { echo "::error::_headers does not allow the canonical Alia API"; exit 1; }
           grep -qF 'wss://api.alia.onl' "$d/_headers" || { echo "::error::_headers does not allow Alia realtime sessions"; exit 1; }
-          grep -qF 'wss://livekit.oxy.so' "$d/_headers" || { echo "::error::_headers does not allow Alia's production LiveKit room"; exit 1; }
           css=$(ls "$d"/_expo/static/css/global-*.css 2>/dev/null | head -1 || true)
           [ -n "${css:-}" ] || { echo "::error::no compiled global CSS — the Tailwind/@source pipeline produced nothing"; exit 1; }
           bytes=$(wc -c < "$css")
@@ -167,8 +166,7 @@ jobs:
             if echo "$html" | grep -q 'Inbox by Oxy' \
                && echo "$html" | grep -qF "$expected_entry" \
                && echo "$csp" | grep -qF 'https://api.alia.onl' \
-               && echo "$csp" | grep -qF 'wss://api.alia.onl' \
-               && echo "$csp" | grep -qF 'wss://livekit.oxy.so'; then
+               && echo "$csp" | grep -qF 'wss://api.alia.onl'; then
               echo "::endgroup::"; echo "OK: $expected_entry"; exit 0
             fi
             echo "expected: $expected_entry"

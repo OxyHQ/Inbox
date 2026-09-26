@@ -50,7 +50,7 @@ export function useAiCompose(): UseAiComposeReturn {
   const mutation = useMutation<string, Error, ComposeOperation>({
     mutationKey: aiKeys.compose,
     mutationFn: async (operation) => {
-      const http = oxyServices.httpService;
+      const http = oxyServices.http;
       switch (operation.kind) {
         case 'draft':
           return (await runInboxCompose(http, {

@@ -20,7 +20,7 @@ export function useSmartReplies(message: Message | null | undefined): SmartRepli
     queryKey: aiKeys.smartReplies(message?._id),
     queryFn: async () => {
       if (!message) throw new Error('A message is required for smart replies.');
-      const result = await runInboxSmartReplies(oxyServices.httpService, message._id);
+      const result = await runInboxSmartReplies(oxyServices.http, message._id);
       return result.replies;
     },
     // Suggestions are always explicit opt-in via refetch. The backend owns the

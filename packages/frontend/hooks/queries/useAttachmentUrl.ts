@@ -13,7 +13,7 @@ export function useAttachmentUrl(fileId: string, enabled = true, variant?: strin
 
   const { data: url = null, isLoading } = useQuery({
     queryKey: emailKeys.attachmentUrl(fileId, variant),
-    queryFn: () => oxyServices.getFileDownloadUrlAsync(fileId, variant),
+    queryFn: () => oxyServices.assets.url(fileId, variant),
     enabled: enabled && !!fileId,
     staleTime: 45 * 60 * 1000,
   });

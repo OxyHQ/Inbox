@@ -96,7 +96,7 @@ export function useDailyBrief(options: UseDailyBriefOptions = {}) {
 
       try {
         for await (const delta of streamInboxDailyBrief(
-          oxyServices.httpService,
+          oxyServices.http,
           { startAt, endAt },
           controller.signal,
         )) {

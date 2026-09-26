@@ -276,7 +276,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
   const handleAttachment = useCallback(async (fileId: string, filename: string) => {
     try {
-      const url = await oxyServices.getFileDownloadUrlAsync(fileId);
+      const url = await oxyServices.assets.url(fileId);
       if (Platform.OS === 'web') {
         window.open(url, '_blank', 'noopener,noreferrer');
       } else {
@@ -295,7 +295,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
       }
     } catch (error: unknown) {
       try {
-        const url = await oxyServices.getFileDownloadUrlAsync(fileId);
+        const url = await oxyServices.assets.url(fileId);
         await Linking.openURL(url);
       } catch (err: unknown) {
         const message = err instanceof Error

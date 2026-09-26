@@ -2,6 +2,6 @@
   "csp": {
     "workerSrc": ["'self'"],
     "imgSrc": ["blob:", "https:"],
-    "connectSrc": ["https://api.alia.onl", "wss://api.alia.onl", "wss://livekit.oxy.so"]
+    "connectSrc": ["https://api.alia.onl", "wss://api.alia.onl"]
   }
 }

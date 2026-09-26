@@ -48,7 +48,7 @@ export function useCidResolver(
         await Promise.all(
           inlineAtts.map(async (att) => {
             try {
-              cidMap[att.contentId] = await oxyServices.getFileDownloadUrlAsync(att.fileId);
+              cidMap[att.contentId] = await oxyServices.assets.url(att.fileId);
             } catch { /* skip failed attachments */ }
           }),
         );

@@ -25,7 +25,7 @@
     "@lottiefiles/dotlottie-react-native": "^0.12.1",
     "@oxy.so/app-preset": "^2.0.3",
     "@oxy.so/bloom": "^4.28.0",
-    "@oxy.so/contracts": "^2.0.0",
+    "@oxy.so/contracts": "^2.1.0",
     "@oxy.so/core": "^1.16.0",
     "@oxy.so/services": "^6.0.0",
     "@oxy.so/telemetry": "^1.1.1",

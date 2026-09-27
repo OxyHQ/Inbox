@@ -24,7 +24,9 @@ export const AttachmentSchema = z.object({
   name: z.string(),
   contentType: z.string(),
   size: z.number(),
-  contentId: z.string().optional(),
+  // The API sends `null` for a part with no Content-ID (an AMP body, any plain
+  // attachment). Rejecting null here dropped the WHOLE message from every list.
+  contentId: z.string().nullable().optional(),
   isInline: z.boolean().optional(),
 });
 
@@ -236,8 +238,8 @@ export const ContactSchema = z.object({
   userId: z.string(),
   name: z.string(),
   email: z.string(),
-  company: z.string().optional(),
-  notes: z.string().optional(),
+  company: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
   starred: z.boolean(),
   autoCollected: z.boolean(),
   lastContactedAt: z.string().nullable().optional(),

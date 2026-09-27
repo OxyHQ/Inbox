@@ -34,6 +34,7 @@ import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';
 import { SectionHeader } from '@/components/settings/SectionHeader';
 import { useContacts } from '@/hooks/queries/useContacts';
+import type { Contact } from '@/schemas/emailSchemas';
 import {
   useCreateContact,
   useUpdateContact,
@@ -73,7 +74,7 @@ export function ContactsSection() {
   }, []);
 
   const startEdit = useCallback(
-    (contact: { _id: string; name: string; email: string; company?: string; notes?: string; starred: boolean }) => {
+    (contact: Pick<Contact, '_id' | 'name' | 'email' | 'company' | 'notes' | 'starred'>) => {
       setEditingId(contact._id);
       setName(contact.name);
       setEmail(contact.email);

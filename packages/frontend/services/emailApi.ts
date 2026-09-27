@@ -29,6 +29,7 @@ import {
   EmailOutboxSchema,
   SavedEmailSearchSchema,
 } from '@/schemas/emailSchemas';
+import { recordInboxMetric } from '@/utils/inboxTelemetry';
 import type {
   EmailAddress,
   Message,
@@ -90,16 +91,33 @@ export interface EmailSendOptions {
   idempotencyKey?: string;
 }
 
-/** Parse an array of messages, skipping any that fail validation. */
-function parseMessages(items: unknown): Message[] {
+/**
+ * Parse an array of messages.
+ *
+ * A row that fails the schema is a CONTRACT bug between this client and the
+ * API, never a "stale cache item": the Ramp verification mails vanished from
+ * the inbox because an attachment's `contentId: null` failed here and the row
+ * was skipped without a word. So a failure is always reported, loudly and in
+ * production, with the fields that failed — never the message content.
+ */
+function parseMessages(items: unknown, source: string): Message[] {
   if (!Array.isArray(items)) return [];
   return items.reduce<Message[]>((acc, item) => {
     const result = MessageSchema.safeParse(item);
     if (result.success) {
       acc.push(result.data);
+      return acc;
     }
-    // Invalid messages are silently skipped — the response shape is validated
-    // server-side; any failures here are usually stale-cache items.
+    const id =
+      typeof item === 'object' && item !== null && typeof (item as { _id?: unknown })._id === 'string'
+        ? (item as { _id: string })._id
+        : null;
+    console.error('[inbox] message failed schema validation', {
+      source,
+      id,
+      issues: result.error.issues.map((issue) => ({ path: issue.path.join('.'), message: issue.message })),
+    });
+    recordInboxMetric('message_parse_failed');
     return acc;
   }, []);
 }
@@ -148,7 +166,7 @@ export function createEmailApi(http: HttpService) {
 
       const res = (await http.get('/email/messages', { params })) as PaginatedResult<unknown>;
       return {
-        data: parseMessages(res.data),
+        data: parseMessages(res.data, 'list'),
         pagination: PaginationSchema.parse(res.pagination),
       };
     },
@@ -160,7 +178,7 @@ export function createEmailApi(http: HttpService) {
 
     async getThread(messageId: string): Promise<Message[]> {
       const res = await http.get(`/email/messages/${messageId}/thread`);
-      return parseMessages(res);
+      return parseMessages(res, 'thread');
     },
 
     async updateFlags(messageId: string, flags: Partial<MessageFlags>): Promise<Message> {
@@ -322,7 +340,7 @@ export function createEmailApi(http: HttpService) {
 
       const res = (await http.get('/email/search', { params })) as PaginatedResult<unknown>;
       return {
-        data: parseMessages(res.data),
+        data: parseMessages(res.data, 'search'),
         pagination: PaginationSchema.parse(res.pagination),
       };
     },
@@ -433,10 +451,10 @@ export function createEmailApi(http: HttpService) {
         pagination: Pagination;
       };
       return {
-        primary: parseMessages(res.data.primary),
+        primary: parseMessages(res.data.primary, 'bundles.primary'),
         bundles: res.data.bundles.map((b) => ({
           bundle: BundleSchema.parse(b.bundle),
-          messages: parseMessages(b.messages),
+          messages: parseMessages(b.messages, 'bundles.bundle'),
           unreadCount: b.unreadCount,
         })),
         pagination: PaginationSchema.parse(res.pagination),

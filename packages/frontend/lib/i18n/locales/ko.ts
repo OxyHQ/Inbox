@@ -138,6 +138,11 @@ const ko: LocaleDict = {
 
 
   inbox: {
+    unreadable: {
+      section: "표시할 수 없음",
+      title: "이 메시지를 표시할 수 없습니다",
+      open: "열기",
+    },
     title: '받은편지함',
     starredTitle: '별표',
     searchInMailbox: '{{mailbox}}에서 검색',
@@ -273,6 +278,8 @@ const ko: LocaleDict = {
   },
 
   compose: {
+    replyParentError: "답장할 메시지를 불러오지 못했습니다. 대화가 끊기지 않도록 이 답장은 아직 보낼 수 없습니다.",
+    queuedNotice: "이 메시지는 이미 전송 대기열에 있습니다. 다시 보내도 중복되지 않습니다.",
     titleCompose: '작성',
     titleReply: '답장',
     titleForward: '전달',

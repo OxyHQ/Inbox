@@ -10,6 +10,7 @@ import { View, TouchableOpacity, StyleSheet, Platform, useWindowDimensions } fro
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Slot, Stack, useRouter, usePathname } from 'expo-router';
 import { useDialogControl } from '@oxy.so/bloom';
+import { useOxy } from '@oxy.so/services';
 import { ContentPanel } from '@oxy.so/bloom/content-panel';
 
 import { useColors } from '@/constants/theme';
@@ -22,12 +23,14 @@ import { useEmailStore } from '@/hooks/useEmail';
 import { useMessages } from '@/hooks/queries/useMessages';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
 import { useToggleStar, useToggleRead, useArchiveMessage, useDeleteMessage } from '@/hooks/mutations/useMessageMutations';
+import { buildReplyRecipients, joinAddresses, type ReplyMode } from '@/utils/replyRecipients';
 
 export default function InboxLayout() {
   const { width } = useWindowDimensions();
   const router = useRouter();
   const pathname = usePathname();
   const colors = useColors();
+  const { user } = useOxy();
   const isDesktop = Platform.OS === 'web' && width >= 900;
   /**
    * Every child of this group is either a mailbox list (`/`, `/sent`,
@@ -77,42 +80,32 @@ export default function InboxLayout() {
     }
   }, [router, isDesktop]);
 
-  const handleReply = useCallback(() => {
-    if (selectedMessageId && currentMessage) {
-      if (isDesktop) {
-        router.replace({
-          pathname: '/compose',
-          params: {
-            replyTo: currentMessage._id,
-            to: currentMessage.from.address,
-            subject: currentMessage.subject.startsWith('Re:')
-              ? currentMessage.subject
-              : `Re: ${currentMessage.subject}`,
-          },
-        });
-      }
-    }
-  }, [selectedMessageId, currentMessage, router, isDesktop]);
+  const openReply = useCallback(
+    (mode: ReplyMode) => {
+      if (!selectedMessageId || !currentMessage || !isDesktop) return;
+      const { to, cc } = buildReplyRecipients(currentMessage, mode, {
+        username: user?.username,
+        email: user?.email,
+      });
+      router.replace({
+        pathname: '/compose',
+        params: {
+          // The parent's ROW id — the composer loads the parent by it to build
+          // the RFC threading headers. It is never sent as `In-Reply-To`.
+          replyTo: currentMessage._id,
+          to: joinAddresses(to),
+          ...(cc.length > 0 ? { cc: joinAddresses(cc) } : {}),
+          subject: currentMessage.subject.startsWith('Re:')
+            ? currentMessage.subject
+            : `Re: ${currentMessage.subject}`,
+        },
+      });
+    },
+    [selectedMessageId, currentMessage, router, isDesktop, user?.username, user?.email],
+  );
 
-  const handleReplyAll = useCallback(() => {
-    if (selectedMessageId && currentMessage) {
-      const allTo = [currentMessage.from, ...(currentMessage.to || [])];
-      const allCc = currentMessage.cc || [];
-      if (isDesktop) {
-        router.replace({
-          pathname: '/compose',
-          params: {
-            replyTo: currentMessage._id,
-            to: allTo.map((a) => a.address).join(','),
-            cc: allCc.map((a) => a.address).join(','),
-            subject: currentMessage.subject.startsWith('Re:')
-              ? currentMessage.subject
-              : `Re: ${currentMessage.subject}`,
-          },
-        });
-      }
-    }
-  }, [selectedMessageId, currentMessage, router, isDesktop]);
+  const handleReply = useCallback(() => openReply('reply'), [openReply]);
+  const handleReplyAll = useCallback(() => openReply('reply-all'), [openReply]);
 
   const handleForward = useCallback(() => {
     if (selectedMessageId && currentMessage) {

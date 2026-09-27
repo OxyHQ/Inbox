@@ -37,7 +37,8 @@ import { useOxy, useOxyEvent } from '@oxy.so/services';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import { useTranslation } from '@/lib/i18n';
-import type { Mailbox, Message, Pagination } from '@/services/emailApi';
+import type { Mailbox, Message } from '@/services/emailApi';
+import type { MessagesPage } from '@/utils/messageCache';
 import { recordInboxMetric } from '@/utils/inboxTelemetry';
 
 /**
@@ -70,11 +71,6 @@ export interface EmailChangedEvent {
   id: string;
   mailboxIds: string[];
   reason: EmailChangedReason;
-}
-
-interface MessagesPage {
-  data: Message[];
-  pagination: Pagination;
 }
 
 type MessagesInfinite = InfiniteData<MessagesPage>;

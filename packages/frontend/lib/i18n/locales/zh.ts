@@ -136,6 +136,11 @@ const zh: LocaleDict = {
 
 
   inbox: {
+    unreadable: {
+      section: "无法显示",
+      title: "无法显示此邮件",
+      open: "打开",
+    },
     title: '收件箱',
     starredTitle: '星标',
     searchInMailbox: '在 {{mailbox}} 中搜索',
@@ -271,6 +276,8 @@ const zh: LocaleDict = {
   },
 
   compose: {
+    replyParentError: "无法加载你要回复的邮件，因此暂时无法发送此回复，否则会打断会话。",
+    queuedNotice: "此邮件已在发送队列中。再次发送不会产生重复邮件。",
     titleCompose: '撰写',
     titleReply: '回复',
     titleForward: '转发',

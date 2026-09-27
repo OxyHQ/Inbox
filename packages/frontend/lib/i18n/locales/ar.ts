@@ -139,6 +139,11 @@ const ar: LocaleDict = {
 
 
   inbox: {
+    unreadable: {
+      section: "تعذّر العرض",
+      title: "تعذّر عرض هذه الرسالة",
+      open: "فتح",
+    },
     title: 'البريد الوارد',
     starredTitle: 'المميّزة',
     searchInMailbox: 'البحث في {{mailbox}}',
@@ -274,6 +279,8 @@ const ar: LocaleDict = {
   },
 
   compose: {
+    replyParentError: "تعذّر تحميل الرسالة التي تردّ عليها، لذا لا يمكن إرسال هذا الرد بعد دون فصله عن المحادثة.",
+    queuedNotice: "هذه الرسالة موجودة بالفعل في قائمة انتظار الإرسال. إعادة إرسالها لن تُنشئ نسخة مكررة.",
     titleCompose: 'كتابة',
     titleReply: 'رد',
     titleForward: 'إعادة توجيه',

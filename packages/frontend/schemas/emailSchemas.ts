@@ -8,6 +8,12 @@
  *
  * `services/emailApi.ts` re-exports everything here, so existing
  * `@/services/emailApi` imports keep working unchanged.
+ *
+ * The RESPONSE schemas below (message, attachment, contact, filter, ...) mirror
+ * the API's DTOs by hand, which is how `contentId: null` drifted and hid mail.
+ * They are due to become re-exports of the shared `@oxy.so/contracts` email
+ * schemas, which the API is typed against; until that ships, any change to an
+ * API DTO must be mirrored here, nullability included.
  */
 
 import { z } from 'zod';
@@ -107,6 +113,7 @@ export const MessageSchema = z.object({
   messageId: z.string(),
   threadId: z.string().optional(),
   from: EmailAddressSchema,
+  replyTo: EmailAddressSchema.nullable().optional(),
   to: z.array(EmailAddressSchema).default([]),
   cc: z.array(EmailAddressSchema).optional(),
   bcc: z.array(EmailAddressSchema).optional(),
@@ -363,6 +370,21 @@ export type CardData = z.infer<typeof CardDataSchema>;
 export type MessageCard = z.infer<typeof MessageCardSchema>;
 export type Highlight = z.infer<typeof HighlightSchema>;
 export type Message = z.infer<typeof MessageSchema>;
+
+/**
+ * A list row the API returned that does not satisfy `MessageSchema`.
+ *
+ * Deliberately NOT a `Message`: nothing that acts on a message (flags, reply,
+ * thread grouping) can receive one by accident. The list renders it as a
+ * degraded row so a message never silently disappears.
+ */
+export interface UnreadableMessage {
+  kind: 'unreadable';
+  _id: string | null;
+  from: string | null;
+  subject: string | null;
+  receivedAt: string | null;
+}
 export type Mailbox = z.infer<typeof MailboxSchema>;
 export type Label = z.infer<typeof LabelSchema>;
 export type Pagination = z.infer<typeof PaginationSchema>;

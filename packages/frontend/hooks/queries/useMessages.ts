@@ -2,14 +2,9 @@ import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query';
 import { useOxy } from '@oxy.so/services';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
-import type { Message, Pagination } from '@/services/emailApi';
+import type { MessagesPage } from '@/utils/messageCache';
 
 const PAGE_SIZE = 50;
-
-interface MessagesPage {
-  data: Message[];
-  pagination: Pagination;
-}
 
 export function getNextMessagesPageParam(lastPage: MessagesPage): string | number | undefined {
   if (!lastPage.pagination.hasMore || lastPage.pagination.limit <= 0) return undefined;

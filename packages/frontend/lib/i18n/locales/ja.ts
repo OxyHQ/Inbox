@@ -138,6 +138,11 @@ const ja: LocaleDict = {
 
 
   inbox: {
+    unreadable: {
+      section: "表示できません",
+      title: "このメッセージを表示できませんでした",
+      open: "開く",
+    },
     title: '受信箱',
     starredTitle: 'スター付き',
     searchInMailbox: '{{mailbox}} を検索',
@@ -273,6 +278,8 @@ const ja: LocaleDict = {
   },
 
   compose: {
+    replyParentError: "返信先のメッセージを読み込めませんでした。会話が分断されるため、この返信はまだ送信できません。",
+    queuedNotice: "このメッセージは既に送信キューにあります。もう一度送信しても重複しません。",
     titleCompose: '作成',
     titleReply: '返信',
     titleForward: '転送',

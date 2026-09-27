@@ -3,6 +3,9 @@ jest.mock('@oxy.so/bloom', () => ({
   toast: { error: jest.fn(), success: jest.fn() },
   useDialogControl: () => ({ open: jest.fn(), close: jest.fn() }),
 }));
+jest.mock('@oxy.so/bloom/admonition', () => ({ Admonition: () => null }));
+jest.mock('@/hooks/useReplyParent', () => ({ useReplyParent: jest.fn() }));
+jest.mock('@/components/ReplyParentNotice', () => ({ ReplyParentNotice: () => null }));
 jest.mock('react-native', () => ({
   KeyboardAvoidingView: () => null,
   Platform: { OS: 'ios' },
@@ -64,20 +67,21 @@ describe('compose helpers', () => {
     });
   });
 
+  const snapshot = {
+    to: 'alice@example.com',
+    cc: '',
+    bcc: 'bob@example.org',
+    subject: 'Hello',
+    body: 'Message body',
+    replyTo: 'message-1',
+  };
+
   it('builds a native draft payload without creating empty recipient arrays', () => {
     expect(
-      buildComposeDraftPayload(
-        {
-          to: 'alice@example.com',
-          cc: '',
-          bcc: 'bob@example.org',
-          subject: 'Hello',
-          body: 'Message body',
-          replyTo: 'message-1',
-        },
-        'draft-1',
-        false,
-      ),
+      buildComposeDraftPayload(snapshot, 'draft-1', false, {
+        inReplyTo: '<parent@example.com>',
+        references: ['<root@example.com>', '<parent@example.com>'],
+      }),
     ).toEqual({
       to: [{ address: 'alice@example.com' }],
       cc: undefined,
@@ -85,9 +89,16 @@ describe('compose helpers', () => {
       subject: 'Hello',
       text: 'Message body',
       html: undefined,
-      inReplyTo: 'message-1',
+      inReplyTo: '<parent@example.com>',
+      references: ['<root@example.com>', '<parent@example.com>'],
       existingDraftId: 'draft-1',
     });
+  });
+
+  it('never sends the parent ROW id as In-Reply-To', () => {
+    const payload = buildComposeDraftPayload(snapshot, undefined, false);
+    expect(payload).not.toHaveProperty('inReplyTo');
+    expect(JSON.stringify(payload)).not.toContain('message-1');
   });
 });
 

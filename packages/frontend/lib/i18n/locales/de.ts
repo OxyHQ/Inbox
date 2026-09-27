@@ -139,6 +139,11 @@ const de: LocaleDict = {
 
 
   inbox: {
+    unreadable: {
+      section: "Nicht darstellbar",
+      title: "Diese Nachricht konnte nicht angezeigt werden",
+      open: "Öffnen",
+    },
     title: 'Posteingang',
     starredTitle: 'Markiert',
     searchInMailbox: 'In {{mailbox}} suchen',
@@ -274,6 +279,8 @@ const de: LocaleDict = {
   },
 
   compose: {
+    replyParentError: "Die Nachricht, auf die du antwortest, konnte nicht geladen werden. Die Antwort kann noch nicht gesendet werden, ohne die Unterhaltung zu trennen.",
+    queuedNotice: "Diese Nachricht ist bereits in der Sendewarteschlange. Erneutes Senden erzeugt kein Duplikat.",
     titleCompose: 'Verfassen',
     titleReply: 'Antworten',
     titleForward: 'Weiterleiten',

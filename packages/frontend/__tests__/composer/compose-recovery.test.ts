@@ -40,6 +40,22 @@ describe('compose recovery', () => {
     expect(window.localStorage.getItem(key)).not.toContain('Cookie');
   });
 
+  it('keeps the session send key and the queued mark, so a re-send is the same message', async () => {
+    await saveComposeRecovery(key, {
+      to: 'support@amazon.com',
+      cc: '',
+      bcc: '',
+      subject: 'Re: case',
+      body: 'body',
+      replyTo: 'row-1',
+      idempotencyKey: 'inbox-send-session-1',
+      queued: true,
+    });
+    const stored = await loadComposeRecovery(key);
+    expect(stored?.snapshot.idempotencyKey).toBe('inbox-send-session-1');
+    expect(stored?.snapshot.queued).toBe(true);
+  });
+
   it('rejects malformed records and clears valid records', async () => {
     window.localStorage.setItem(key, JSON.stringify({ snapshot: { body: 42 }, savedAt: Date.now() }));
     await expect(loadComposeRecovery(key)).resolves.toBeNull();

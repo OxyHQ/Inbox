@@ -139,6 +139,11 @@ const pt: LocaleDict = {
 
 
   inbox: {
+    unreadable: {
+      section: "Não foi possível mostrar",
+      title: "Não foi possível mostrar esta mensagem",
+      open: "Abrir",
+    },
     title: 'Caixa de entrada',
     starredTitle: 'Com estrela',
     searchInMailbox: 'Pesquisar em {{mailbox}}',
@@ -274,6 +279,8 @@ const pt: LocaleDict = {
   },
 
   compose: {
+    replyParentError: "Não foi possível carregar a mensagem a que respondes, por isso esta resposta ainda não pode ser enviada sem partir a conversa.",
+    queuedNotice: "Esta mensagem já está na fila de envio. Enviá-la de novo não cria um duplicado.",
     titleCompose: 'Escrever',
     titleReply: 'Responder',
     titleForward: 'Reencaminhar',

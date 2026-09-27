@@ -59,7 +59,8 @@ import { useReminders } from '@/hooks/queries/useReminders';
 import { useCreateReminder, useUpdateReminder, useDeleteReminder } from '@/hooks/mutations/useReminderMutations';
 import { useNeedsResponse, type NeedsResponseReason } from '@/hooks/queries/useNeedsResponse';
 import { useFollowUp } from '@/hooks/queries/useFollowUp';
-import type { Message, Bundle, Reminder } from '@/services/emailApi';
+import type { Message, Bundle, Reminder, UnreadableMessage } from '@/services/emailApi';
+import { UnreadableMessageRow } from '@/components/UnreadableMessageRow';
 
 type ListItem =
   | { type: 'header'; title: string; key: string; count?: number }
@@ -67,7 +68,8 @@ type ListItem =
   | { type: 'triage-message'; data: Message; category: TriageCategory; reason: TriageReason }
   | { type: 'message'; data: Message }
   | { type: 'bundle'; bundle: Bundle; messages: Message[]; unreadCount: number }
-  | { type: 'reminder'; data: Reminder };
+  | { type: 'reminder'; data: Reminder }
+  | { type: 'unreadable'; data: UnreadableMessage; key: string };
 
 type TriageCategory = 'needs-response' | 'follow-up';
 type TriageReason = NeedsResponseReason | 'awaiting-reply';
@@ -240,6 +242,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const deleteReminderMutation = useDeleteReminder();
 
   const messages = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
+  const unreadable = useMemo(() => data?.pages.flatMap((p) => p.unreadable ?? []) ?? [], [data]);
 
   // Thread grouping is a post-process over the fetched list (single query, no
   // duplicate list): collapse to one row per conversation when the pref is on.
@@ -327,8 +330,29 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   );
 
   const listItems = useMemo<ListItem[]>(() => {
-    if (displayMessages.length === 0 && reminders.length === 0 && triageItems.length === 0) return [];
+    if (
+      displayMessages.length === 0 &&
+      reminders.length === 0 &&
+      triageItems.length === 0 &&
+      unreadable.length === 0
+    ) {
+      return [];
+    }
     const items: ListItem[] = [];
+
+    // Rows the API sent that this client could not read. First, so a message
+    // that failed to render is noticed rather than silently missing.
+    if (unreadable.length > 0) {
+      items.push({
+        type: 'header',
+        title: t('inbox.unreadable.section'),
+        key: 'header-Unreadable',
+        count: unreadable.length,
+      });
+      unreadable.forEach((row, index) => {
+        items.push({ type: 'unreadable', data: row, key: `unreadable-${row._id ?? index}` });
+      });
+    }
 
     // Due/active reminders at the top (only in inbox view)
     if (isInboxView && reminders.length > 0) {
@@ -415,7 +439,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     }
 
     return items;
-  }, [bundles, displayMessages, expandedBundles, isInboxView, isSnoozedView, reminders, showBundles, t, triageItems, triageMessageIds]);
+  }, [bundles, displayMessages, expandedBundles, isInboxView, isSnoozedView, reminders, showBundles, t, triageItems, triageMessageIds, unreadable]);
 
   // Clear selection when view changes
   useEffect(() => {
@@ -520,6 +544,19 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       }
     },
     [router, replaceNavigation, messageActions],
+  );
+
+  // Not `handleMessagePress`: that primes caches from a parsed `Message`, which
+  // an unreadable row by definition is not.
+  const handleOpenUnreadable = useCallback(
+    (messageId: string) => {
+      if (replaceNavigation) {
+        router.replace(`/conversation/${messageId}`);
+      } else {
+        router.push(`/conversation/${messageId}`);
+      }
+    },
+    [router, replaceNavigation],
   );
 
   const handleOpenDrawer = useCallback(() => {
@@ -749,6 +786,13 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
         );
       }
       if (item.type === 'triage-message') return renderTriageMessage(item);
+      if (item.type === 'unreadable') {
+        return (
+          <View style={styles.messageItem}>
+            <UnreadableMessageRow message={item.data} onOpen={handleOpenUnreadable} />
+          </View>
+        );
+      }
       if (item.type === 'bundle') {
         return (
           <BundleRow
@@ -777,7 +821,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     // `renderMessageRow` — so the copy had to be kept in sync manually, and
     // every row kept whichever callbacks it closed over when the copy last
     // happened to change.
-    [colors.primary, colors.secondaryText, expandedBundles, handleDeleteReminder, handleReminderPress, handleToggleReminderComplete, renderMessageRow, renderTriageMessage, toggleBundle],
+    [colors.primary, colors.secondaryText, expandedBundles, handleDeleteReminder, handleOpenUnreadable, handleReminderPress, handleToggleReminderComplete, renderMessageRow, renderTriageMessage, toggleBundle],
   );
 
   const getItemType = useCallback((item: ListItem) => item.type, []);
@@ -788,6 +832,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     if (item.type === 'triage-message') return `triage-${item.category}-${item.data._id}`;
     if (item.type === 'bundle') return `bundle-${item.bundle._id}`;
     if (item.type === 'reminder') return `reminder-${item.data._id}`;
+    if (item.type === 'unreadable') return item.key;
     return item.data._id;
   }, []);
 

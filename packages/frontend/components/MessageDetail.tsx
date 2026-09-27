@@ -69,6 +69,9 @@ import { CardRenderer } from '@/components/cards/CardRenderer';
 import type { EmailAddress } from '@/services/emailApi';
 import { useCidResolver } from '@/hooks/useCidResolver';
 import { safeDownloadFilename } from '@/utils/downloadFilename';
+import { emlFilename, saveEmlFile } from '@/utils/saveEml';
+import { buildThreadEntries } from '@/utils/threadEntries';
+import { UnreadableThreadEntry } from '@/components/UnreadableThreadEntry';
 
 function formatFullDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -129,7 +132,10 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const { t } = useTranslation();
 
   const { data: currentMessage, isLoading, isError, refetch } = useMessage(messageId);
-  const { data: threadMessages = [] } = useThread(messageId);
+  const { data: threadData, refetch: refetchThread } = useThread(messageId);
+  const threadMessages = useMemo(() => threadData?.messages ?? [], [threadData]);
+  const threadUnreadable = useMemo(() => threadData?.unreadable ?? [], [threadData]);
+  const emailApi = useEmailStore((s) => s._api);
   const { data: mailboxes = [] } = useMailboxes();
   const { data: labels = [] } = useLabels();
   const currentMailbox = useEmailStore((s) => s.currentMailbox);
@@ -267,6 +273,27 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );
   }, [threadMessages, currentMessage]);
+
+  // Every row of the conversation, the unreadable ones in their place.
+  const threadEntries = useMemo(
+    () => buildThreadEntries(sortedThread, threadUnreadable),
+    [sortedThread, threadUnreadable],
+  );
+
+  /** The server's raw source of a message this client could not read. */
+  const handleOpenRaw = useCallback(
+    async (rawMessageId: string) => {
+      if (!emailApi) return;
+      const row = threadUnreadable.find((entry) => entry._id === rawMessageId);
+      try {
+        const { content } = await emailApi.exportMessage(rawMessageId);
+        await saveEmlFile(content, emlFilename(row?.subject), t);
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : t('message.toast.downloadFailed'));
+      }
+    },
+    [emailApi, t, threadUnreadable],
+  );
 
   // Detect stale threads that need a response
   const staleInfo = useStaleThread(sortedThread, userEmail);
@@ -441,40 +468,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
     const emlContent = `${headers}\r\n${mimeBody}`;
 
-    const safeSubject = subject.replace(/[^a-zA-Z0-9_\- ]/g, '_').slice(0, 60).trim();
-    const filename = `${safeDownloadFilename(safeSubject || 'message')}.eml`;
-
-    if (Platform.OS === 'web') {
-      const blob = new Blob([emlContent], { type: 'message/rfc822' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } else {
-      (async () => {
-        try {
-          const documentDirectory = FileSystem.documentDirectory;
-          if (!documentDirectory) {
-            toast.error(t('message.toast.fileSystemUnavailable'));
-            return;
-          }
-          const fileUri = `${documentDirectory}${filename}`;
-          await FileSystem.writeAsStringAsync(fileUri, emlContent, { encoding: FileSystem.EncodingType.UTF8 });
-          if (await Sharing.isAvailableAsync()) {
-            await Sharing.shareAsync(fileUri, { mimeType: 'message/rfc822', dialogTitle: t('message.toast.saveEmailDialog') });
-          } else {
-            toast.error(t('message.toast.sharingUnavailable'));
-          }
-        } catch (err: unknown) {
-          const message = err instanceof Error ? err.message : t('message.toast.downloadFailed');
-          toast.error(message);
-        }
-      })();
-    }
+    void saveEmlFile(emlContent, emlFilename(subject), t);
   }, [currentMessage, moreMenuControl, t]);
 
   // Label data for assigned labels (backend stores label names, not IDs)
@@ -786,10 +780,10 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           )}
 
           {/* Thread count indicator */}
-          {sortedThread.length > 1 && (
+          {threadEntries.length > 1 && (
             <View style={[styles.threadCount, { backgroundColor: colors.surfaceVariant }]}>
               <Text style={[styles.threadCountText, { color: colors.secondaryText }]}>
-                {t(sortedThread.length === 1 ? 'ui.message.conversationMessages_one' : 'ui.message.conversationMessages_other', { count: sortedThread.length })}
+                {t(threadEntries.length === 1 ? 'ui.message.conversationMessages_one' : 'ui.message.conversationMessages_other', { count: threadEntries.length })}
               </Text>
             </View>
           )}
@@ -847,10 +841,21 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         />
 
         {/* Thread messages */}
-        {sortedThread.map((msg, index) => {
+        {threadEntries.map((entry, index) => {
+          if (entry.kind === 'unreadable') {
+            return (
+              <UnreadableThreadEntry
+                key={entry.key}
+                row={entry.row}
+                onRetry={() => void refetchThread()}
+                onOpenRaw={(id) => void handleOpenRaw(id)}
+              />
+            );
+          }
+          const msg = entry.message;
           const isExpanded = expandedMessages.has(msg._id);
           const msgSenderName = msg.from.name || msg.from.address.split('@')[0];
-          const isLast = index === sortedThread.length - 1;
+          const isLast = index === threadEntries.length - 1;
 
           if (!isExpanded) {
             // Collapsed thread message

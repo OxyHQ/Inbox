@@ -143,6 +143,8 @@ const fr: LocaleDict = {
       section: "Affichage impossible",
       title: "Ce message n'a pas pu être affiché",
       open: "Ouvrir",
+      retry: "Réessayer",
+      openRaw: "Ouvrir l'original",
     },
     title: 'Boîte',
     starredTitle: 'Favoris',

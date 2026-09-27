@@ -89,6 +89,23 @@ export interface EmailSearchOptions {
   cursor?: string;
 }
 
+/**
+ * A read that returns several messages. `unreadable` holds the rows the API
+ * sent that fail the schema — reported, and shown degraded by the UI, never
+ * silently dropped.
+ */
+export interface ThreadData {
+  messages: Message[];
+  unreadable: UnreadableMessage[];
+}
+
+export interface BundledMessages {
+  primary: Message[];
+  primaryUnreadable: UnreadableMessage[];
+  bundles: { bundle: Bundle; messages: Message[]; unreadable: UnreadableMessage[]; unreadCount: number }[];
+  pagination: Pagination;
+}
+
 export interface EmailSendOptions {
   idempotencyKey?: string;
 }
@@ -163,11 +180,6 @@ function parseMessageStrict(item: unknown, source: string): Message {
   throw result.error;
 }
 
-/** For reads whose UI has no place for an unreadable row; still reported. */
-function parseMessages(items: unknown, source: string): Message[] {
-  return parseMessageList(items, source).messages;
-}
-
 /** Long enough for a synchronous SMTP relay; see `sendMessage`. */
 const SEND_TIMEOUT_MS = 60_000;
 
@@ -227,9 +239,9 @@ export function createEmailApi(http: HttpService) {
       return parseMessageStrict(res, 'detail');
     },
 
-    async getThread(messageId: string): Promise<Message[]> {
+    async getThread(messageId: string): Promise<ThreadData> {
       const res = await http.get(`/email/messages/${messageId}/thread`);
-      return parseMessages(res, 'thread');
+      return parseMessageList(res, 'thread');
     },
 
     async updateFlags(messageId: string, flags: Partial<MessageFlags>): Promise<Message> {
@@ -375,7 +387,7 @@ export function createEmailApi(http: HttpService) {
 
     async search(
       options: EmailSearchOptions = {},
-    ): Promise<{ data: Message[]; pagination: Pagination }> {
+    ): Promise<{ data: Message[]; unreadable: UnreadableMessage[]; pagination: Pagination }> {
       const params: Record<string, string> = {};
       const readStateOperator =
         options.unread === undefined ? undefined : options.unread ? 'is:unread' : 'is:read';
@@ -395,8 +407,10 @@ export function createEmailApi(http: HttpService) {
       if (options.cursor !== undefined) params.cursor = options.cursor;
 
       const res = (await http.get('/email/search', { params })) as PaginatedResult<unknown>;
+      const { messages, unreadable } = parseMessageList(res.data, 'search');
       return {
-        data: parseMessages(res.data, 'search'),
+        data: messages,
+        unreadable,
         pagination: PaginationSchema.parse(res.pagination),
       };
     },
@@ -489,11 +503,7 @@ export function createEmailApi(http: HttpService) {
 
     async listBundledMessages(
       options: { mailboxId?: string; limit?: number; offset?: number } = {},
-    ): Promise<{
-      primary: Message[];
-      bundles: { bundle: Bundle; messages: Message[]; unreadCount: number }[];
-      pagination: Pagination;
-    }> {
+    ): Promise<BundledMessages> {
       const params: Record<string, string> = {};
       if (options.mailboxId) params.mailbox = options.mailboxId;
       if (options.limit !== undefined) params.limit = String(options.limit);
@@ -501,18 +511,21 @@ export function createEmailApi(http: HttpService) {
 
       const res = await http.get('/email/messages/bundled', { params }) as {
         data: {
-          primary: Message[];
-          bundles: { bundle: Bundle; messages: Message[]; unreadCount: number }[];
+          primary: unknown[];
+          bundles: { bundle: unknown; messages: unknown[]; unreadCount: number }[];
         };
         pagination: Pagination;
       };
+      const primary = parseMessageList(res.data.primary, 'bundles.primary');
       return {
-        primary: parseMessages(res.data.primary, 'bundles.primary'),
-        bundles: res.data.bundles.map((b) => ({
-          bundle: BundleSchema.parse(b.bundle),
-          messages: parseMessages(b.messages, 'bundles.bundle'),
-          unreadCount: b.unreadCount,
-        })),
+        primary: primary.messages,
+        primaryUnreadable: primary.unreadable,
+        bundles: res.data.bundles.map((b) => {
+          const { messages, unreadable } = parseMessageList(b.messages, 'bundles.bundle');
+          // `unreadCount` is the server's count over the raw rows, so a row
+          // this client cannot read is still counted there.
+          return { bundle: BundleSchema.parse(b.bundle), messages, unreadable, unreadCount: b.unreadCount };
+        }),
         pagination: PaginationSchema.parse(res.pagination),
       };
     },

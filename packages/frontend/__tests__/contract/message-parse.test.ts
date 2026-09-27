@@ -39,7 +39,8 @@ describe('message list parsing', () => {
 
   it('keeps it in a thread read too', async () => {
     const thread = await apiReturning([ampMail]).getThread(ampMail._id);
-    expect(thread).toHaveLength(1);
+    expect(thread.messages).toHaveLength(1);
+    expect(thread.unreadable).toEqual([]);
   });
 
   it('reports a row that breaks the contract and returns it as unreadable', async () => {

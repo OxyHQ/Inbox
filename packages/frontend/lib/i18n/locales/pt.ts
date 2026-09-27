@@ -143,6 +143,8 @@ const pt: LocaleDict = {
       section: "Não foi possível mostrar",
       title: "Não foi possível mostrar esta mensagem",
       open: "Abrir",
+      retry: "Tentar novamente",
+      openRaw: "Abrir original",
     },
     title: 'Caixa de entrada',
     starredTitle: 'Com estrela',

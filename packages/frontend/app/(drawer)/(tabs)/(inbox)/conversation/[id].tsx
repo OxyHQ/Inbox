@@ -22,7 +22,7 @@ export default function ConversationScreen() {
   const { t } = useTranslation();
 
   const { data: thread } = useThread(id);
-  const subject = thread?.[0]?.subject;
+  const subject = thread?.messages[0]?.subject;
   const pageTitle = subject
     ? `${subject} ${t('app.titleSuffix')}`
     : `${t('tabs.inbox')} ${t('app.titleSuffix')}`;

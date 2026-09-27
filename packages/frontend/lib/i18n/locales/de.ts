@@ -143,6 +143,8 @@ const de: LocaleDict = {
       section: "Nicht darstellbar",
       title: "Diese Nachricht konnte nicht angezeigt werden",
       open: "Öffnen",
+      retry: "Erneut versuchen",
+      openRaw: "Original öffnen",
     },
     title: 'Posteingang',
     starredTitle: 'Markiert',

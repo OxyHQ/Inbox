@@ -23,11 +23,13 @@ import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from '@/lib/i18n';
 
 import { useColors } from '@/constants/theme';
-import { CONTENT_MAX_WIDTH } from '@/constants/layout';
+import { CONTENT_MAX_WIDTH, SPACING } from '@/constants/layout';
 import { useInboxDisplayPrefs } from '@/hooks/useInboxDisplayPrefs';
 import { SPECIAL_USE } from '@/constants/mailbox';
-import type { Message, SavedEmailSearchFilters } from '@/services/emailApi';
+import type { SavedEmailSearchFilters } from '@/services/emailApi';
 import { MessageRow } from '@/components/MessageRow';
+import { UnreadableMessageRow } from '@/components/UnreadableMessageRow';
+import { buildSearchItems, collectUnreadable, type SearchItem } from '@/utils/searchItems';
 import { SearchHeader } from '@/components/SearchHeader';
 import { SavedSearchBar } from '@/components/SavedSearchBar';
 import { EmptyIllustration } from '@/components/EmptyIllustration';
@@ -172,6 +174,8 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   // The API still needs a server-side threadId for authoritative cross-page
   // grouping when a result set is incomplete.
   const results = useMemo(() => collapseThreads(messages), [messages]);
+  const unreadable = useMemo(() => collectUnreadable(searchData?.pages ?? []), [searchData]);
+  const items = useMemo(() => buildSearchItems(results, unreadable), [results, unreadable]);
   const total = searchData?.pages[0]?.pagination.total ?? 0;
   const hasSearched = Boolean(
     submittedQuery.trim() ||
@@ -398,16 +402,21 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: Message }) => (
-      <MessageRow
-        message={item}
-        onSelect={handleMessagePress}
-        isSelected={item._id === selectedMessageId}
-        density={density}
-        showAvatars={showAvatars}
-        showPreviews={showPreviews}
-      />
-    ),
+    ({ item }: { item: SearchItem }) =>
+      item.kind === 'unreadable' ? (
+        <View style={styles.unreadableItem}>
+          <UnreadableMessageRow message={item.row} onOpen={handleMessagePress} />
+        </View>
+      ) : (
+        <MessageRow
+          message={item.message}
+          onSelect={handleMessagePress}
+          isSelected={item.message._id === selectedMessageId}
+          density={density}
+          showAvatars={showAvatars}
+          showPreviews={showPreviews}
+        />
+      ),
     [handleMessagePress, selectedMessageId, density, showAvatars, showPreviews],
   );
 
@@ -490,7 +499,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         </View>
       );
     }
-    if (searchFailed && results.length > 0) {
+    if (searchFailed && items.length > 0) {
       return (
         <View style={styles.footerError}>
           <Text style={[styles.footerErrorText, { color: colors.secondaryText }]}>{t('common.error')}</Text>
@@ -501,7 +510,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       );
     }
     return null;
-  }, [colors, handleRetry, isFetchingNextPage, results.length, searchFailed, t]);
+  }, [colors, handleRetry, isFetchingNextPage, items.length, searchFailed, t]);
 
   const visibleInterpretation = nlInterpretation ||
     (hasSearched && !nlParsing ? t('search.nl.searching', { filters: filterInterpretation }) : '');
@@ -661,7 +670,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       )}
 
       {/* Result count */}
-      {hasSearched && !searching && results.length > 0 && (
+      {hasSearched && !searching && items.length > 0 && (
         <View style={styles.resultCount}>
           <Text style={[styles.resultCountText, { color: colors.secondaryText }]}>
             {t('search.results', { count: total })}
@@ -676,9 +685,9 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         </View>
       ) : (
         <Animated.FlatList
-          data={results}
+          data={items}
           renderItem={renderItem}
-          keyExtractor={(item) => item._id}
+          keyExtractor={(item) => item.key}
           extraData={listExtraData}
           ListEmptyComponent={renderEmpty}
           ListFooterComponent={renderFooter}
@@ -687,7 +696,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           onScroll={minimizeTabBarOnScroll}
           scrollEventThrottle={16}
           contentContainerStyle={{
-            ...(results.length === 0 ? styles.emptyListContent : null),
+            ...(items.length === 0 ? styles.emptyListContent : null),
             ...styles.listContent,
             paddingTop: headerHeight,
             paddingBottom: tabBarClearance,
@@ -705,6 +714,10 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  unreadableItem: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
   },
   listContent: {
     width: '100%',

@@ -14,7 +14,7 @@
 
 import type { InfiniteData, QueryClient, QueryKey } from '@tanstack/react-query';
 import { emailKeys } from '@/hooks/queries/queryKeys';
-import type { Mailbox, Message, Pagination, UnreadableMessage } from '@/services/emailApi';
+import type { Mailbox, Message, Pagination, ThreadData, UnreadableMessage } from '@/services/emailApi';
 
 /** One page of a `['messages', ...]` infinite list. */
 export interface MessagesPage {
@@ -57,6 +57,16 @@ export function removeMessageFromPages(
       data: page.data.filter((m) => m._id !== messageId),
     })),
   };
+}
+
+/** Update one message of a cached thread; its unreadable rows are untouched. */
+export function updateThreadMessage(
+  old: ThreadData | undefined,
+  messageId: string,
+  updater: (msg: Message) => Message,
+): ThreadData | undefined {
+  if (!old) return old;
+  return { ...old, messages: old.messages.map((m) => (m._id === messageId ? updater(m) : m)) };
 }
 
 /** Flatten all messages from an infinite query into a single array. */
@@ -115,8 +125,8 @@ export function patchMessageFlags(
   queryClient.setQueryData<Message | null>(emailKeys.message.detail(messageId, userId), (old) =>
     old ? { ...old, flags: { ...old.flags, ...flags } } : old,
   );
-  queryClient.setQueriesData<Message[]>({ queryKey: emailKeys.thread.root }, (old) =>
-    old?.map((m) => (m._id === messageId ? { ...m, flags: { ...m.flags, ...flags } } : m)),
+  queryClient.setQueriesData<ThreadData>({ queryKey: emailKeys.thread.root }, (old) =>
+    updateThreadMessage(old, messageId, (m) => ({ ...m, flags: { ...m.flags, ...flags } })),
   );
 }
 
@@ -176,8 +186,8 @@ export function mergeServerMessage(
       updateMessageInPages(old, messageId, (message) => mergeMessageUpdate(message, updated)),
     );
   }
-  queryClient.setQueriesData<Message[]>({ queryKey: emailKeys.thread.root }, (old) =>
-    old?.map((m) => (m._id === messageId ? mergeMessageUpdate(m, updated) : m)),
+  queryClient.setQueriesData<ThreadData>({ queryKey: emailKeys.thread.root }, (old) =>
+    updateThreadMessage(old, messageId, (m) => mergeMessageUpdate(m, updated)),
   );
 }
 
@@ -188,7 +198,7 @@ export interface MessageSnapshot {
   userId: string | null;
   prevMessages: [QueryKey, MessagesInfinite | undefined][];
   prevMessage: Message | null | undefined;
-  prevThreads: [QueryKey, Message[] | undefined][];
+  prevThreads: [QueryKey, ThreadData | undefined][];
   prevMailboxes: [QueryKey, Mailbox[] | undefined][];
 }
 
@@ -206,7 +216,7 @@ export function snapshotForRollback(
     userId,
     prevMessages: queryClient.getQueriesData<MessagesInfinite>({ queryKey: emailKeys.messages.root }),
     prevMessage: queryClient.getQueryData<Message | null>(emailKeys.message.detail(messageId, userId)),
-    prevThreads: queryClient.getQueriesData<Message[]>({ queryKey: emailKeys.thread.root }),
+    prevThreads: queryClient.getQueriesData<ThreadData>({ queryKey: emailKeys.thread.root }),
     prevMailboxes: queryClient.getQueriesData<Mailbox[]>({ queryKey: emailKeys.mailboxes.root }),
   };
 }

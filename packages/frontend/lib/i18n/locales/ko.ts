@@ -142,6 +142,8 @@ const ko: LocaleDict = {
       section: "표시할 수 없음",
       title: "이 메시지를 표시할 수 없습니다",
       open: "열기",
+      retry: "다시 시도",
+      openRaw: "원본 열기",
     },
     title: '받은편지함',
     starredTitle: '별표',

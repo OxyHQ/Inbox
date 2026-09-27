@@ -33,7 +33,7 @@ import {
   emailMessageFlagsSchema,
   emailMessageHighlightSchema,
   emailMessageSchema,
-  emailOutboxSchema,
+  emailMessageDeliverySchema,
 } from '@oxy.so/contracts';
 
 // ─── Schemas derived from the wire contract ────────────────────────
@@ -194,7 +194,19 @@ export const EmailTemplateSchema = z.object({
   updatedAt: z.string(),
 });
 
-export const EmailOutboxSchema = emailOutboxSchema;
+/**
+ * What `POST /email/messages` answers: the message is already filed in Sent,
+ * and its delivery follows in the background — `delivery` is where it stands
+ * at the moment of the answer (`sending`, normally). A scheduled send answers
+ * with `scheduledAt` instead and has no delivery yet.
+ */
+export const SendResultSchema = z.object({
+  id: z.string().optional(),
+  messageId: z.string(),
+  delivery: emailMessageDeliverySchema.nullable().optional(),
+  scheduledAt: z.string().optional(),
+  message: z.string(),
+});
 
 export const SavedEmailSearchFiltersSchema = z.object({
   q: z.string().optional(),
@@ -294,6 +306,8 @@ export type EmailFilter = z.infer<typeof EmailFilterSchema>;
 export type EmailFilterCondition = z.infer<typeof EmailFilterConditionSchema>;
 export type EmailFilterAction = z.infer<typeof EmailFilterActionSchema>;
 export type EmailTemplate = z.infer<typeof EmailTemplateSchema>;
-export type EmailOutbox = z.infer<typeof EmailOutboxSchema>;
+export type SendResult = z.infer<typeof SendResultSchema>;
+/** Where a message the user sent stands; absent on received mail. */
+export type MessageDelivery = NonNullable<Message['delivery']>;
 export type SavedEmailSearchFilters = z.infer<typeof SavedEmailSearchFiltersSchema>;
 export type SavedEmailSearch = z.infer<typeof SavedEmailSearchSchema>;

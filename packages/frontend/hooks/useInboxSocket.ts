@@ -33,6 +33,7 @@ import { useCallback } from 'react';
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { toast } from '@oxy.so/bloom';
 import { useOxy, useOxyEvent } from '@oxy.so/services';
+import { useRouter } from 'expo-router';
 
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
@@ -65,7 +66,11 @@ export interface EmailUnreadCountEvent {
   unread: number;
 }
 
-export type EmailChangedReason = 'flags' | 'labels' | 'moved' | 'deleted' | 'sent';
+/**
+ * `delivery`: a message the user sent moved between sending, retrying,
+ * delivered and not delivered. The event carries no state — re-read it.
+ */
+export type EmailChangedReason = 'flags' | 'labels' | 'moved' | 'deleted' | 'sent' | 'delivery';
 
 export interface EmailChangedEvent {
   id: string;
@@ -241,6 +246,8 @@ export function useInboxSocket() {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const viewMode = useEmailStore((s) => s.viewMode);
+  const api = useEmailStore((s) => s._api);
+  const router = useRouter();
   const userId = user?.id ?? null;
 
   const onEmailNew = useCallback(
@@ -300,6 +307,32 @@ export function useInboxSocket() {
    * device, or a server-side filter. The event carries no body on purpose:
    * invalidate and re-read through the ordinary authorised path.
    */
+  /**
+   * A sent message's delivery moved. Re-read it so every open view of it —
+   * the conversation, the detail, the Sent row — shows the new state, and when
+   * it did NOT go out, say so wherever the user is: a failed delivery is the
+   * one outcome of a send that must never be discovered by accident.
+   */
+  const onDeliveryChanged = useCallback(
+    async (messageId: string) => {
+      void queryClient.invalidateQueries({ queryKey: emailKeys.thread.root });
+      if (!api) return;
+      let message: Message;
+      try {
+        message = await api.getMessage(messageId);
+      } catch {
+        return;
+      }
+      queryClient.setQueryData(emailKeys.message.detail(messageId, userId), message);
+      if (message.delivery?.state === 'failed') {
+        toast.error(t('delivery.failedToast', { subject: message.subject || t('message.detail.noSubject') }), {
+          action: { label: t('delivery.view'), onClick: () => router.push(`/conversation/${messageId}`) },
+        } as Record<string, unknown>);
+      }
+    },
+    [api, queryClient, router, t, userId],
+  );
+
   const onEmailChanged = useCallback(
     (payload: unknown) => {
       if (!userId) return;
@@ -313,9 +346,12 @@ export function useInboxSocket() {
       // A move or a delete changes which threads exist, and `sent` adds a row
       // to a mailbox the user may not be viewing.
       void queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
+      if (payload.reason === 'delivery') {
+        void onDeliveryChanged(payload.id);
+      }
       recordInboxMetric('realtime_email_changed');
     },
-    [queryClient, userId],
+    [onDeliveryChanged, queryClient, userId],
   );
 
   useOxyEvent('email:new', onEmailNew);

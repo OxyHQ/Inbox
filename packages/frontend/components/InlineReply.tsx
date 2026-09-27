@@ -184,12 +184,6 @@ export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps
           onSent?.();
           onClose();
         },
-        // Accepted but not delivered: close the composer (the server holds it)
-        // without claiming it was sent.
-        onQueued: () => {
-          onSent?.();
-          onClose();
-        },
       },
     );
   }, [to, cc, bcc, body, quotedText, initialSubject, message, mode, sendWithUndo, onClose, onSent, parseAddresses, t, idempotencyKey]);

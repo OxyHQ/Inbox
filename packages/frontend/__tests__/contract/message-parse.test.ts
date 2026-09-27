@@ -82,13 +82,16 @@ describe('single message read', () => {
 });
 
 describe('sendMessage', () => {
-  it('always sends the Idempotency-Key and a timeout that outlasts a synchronous relay', async () => {
-    const post = jest.fn().mockResolvedValue({ messageId: '<a@oxy.so>', message: 'Message sent' });
+  it('always sends the Idempotency-Key, and may retry because of it', async () => {
+    const post = jest.fn().mockResolvedValue({ messageId: '<a@oxy.so>', message: 'Message accepted for delivery' });
     const api = createEmailApi({ post } as never);
     await api.sendMessage({ to: [{ address: 'a@b.co' }], subject: 'Hi', idempotencyKey: 'inbox-send-k' });
     const [, payload, config] = post.mock.calls[0];
     expect(payload).not.toHaveProperty('idempotencyKey');
     expect(config.headers).toEqual({ 'Idempotency-Key': 'inbox-send-k' });
-    expect(config.timeout).toBeGreaterThanOrEqual(30_000);
+    // The API answers before it talks to a relay, so no long timeout is needed;
+    // a retry is safe only because the key makes it the same message.
+    expect(config.retry).toBe(true);
+    expect(config).not.toHaveProperty('timeout');
   });
 });

@@ -40,7 +40,7 @@ describe('compose recovery', () => {
     expect(window.localStorage.getItem(key)).not.toContain('Cookie');
   });
 
-  it('keeps the session send key and the queued mark, so a re-send is the same message', async () => {
+  it('keeps the session send key, so a re-send is the same message', async () => {
     await saveComposeRecovery(key, {
       to: 'support@amazon.com',
       cc: '',
@@ -49,11 +49,9 @@ describe('compose recovery', () => {
       body: 'body',
       replyTo: 'row-1',
       idempotencyKey: 'inbox-send-session-1',
-      queued: true,
     });
     const stored = await loadComposeRecovery(key);
     expect(stored?.snapshot.idempotencyKey).toBe('inbox-send-session-1');
-    expect(stored?.snapshot.queued).toBe(true);
   });
 
   it('rejects malformed records and clears valid records', async () => {

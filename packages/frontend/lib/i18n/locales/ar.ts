@@ -282,7 +282,6 @@ const ar: LocaleDict = {
 
   compose: {
     replyParentError: "تعذّر تحميل الرسالة التي تردّ عليها، لذا لا يمكن إرسال هذا الرد بعد دون فصله عن المحادثة.",
-    queuedNotice: "هذه الرسالة موجودة بالفعل في قائمة انتظار الإرسال. إعادة إرسالها لن تُنشئ نسخة مكررة.",
     titleCompose: 'كتابة',
     titleReply: 'رد',
     titleForward: 'إعادة توجيه',
@@ -371,6 +370,33 @@ const ar: LocaleDict = {
     actionItems: 'بنود التنفيذ',
     due: 'الموعد: {{date}}',
     unavailable: 'تعذّر تلخيص هذه المحادثة الآن.',
+  },
+
+  delivery: {
+    sending: 'جارٍ الإرسال…',
+    retrying: 'إعادة المحاولة ({{count}})',
+    failed: 'لم يُسلَّم',
+    retry: 'إعادة المحاولة',
+    editAsNew: 'تعديل كرسالة جديدة',
+    retryStarted: 'جارٍ إرسالها مرة أخرى.',
+    retryError: 'تعذّرت إعادة محاولة هذه الرسالة.',
+    failedToast: 'لم يُسلَّم: {{subject}}',
+    view: 'عرض',
+    nextAttempt: 'المحاولة التالية في {{time}}',
+    cancelled: 'أُلغي الإرسال.',
+    bannerFailed_one: 'تعذّر إرسال رسالة واحدة',
+    bannerFailed_other: 'تعذّر إرسال {{count}} رسائل',
+    bannerSending_one: 'رسالة واحدة بانتظار الإرسال',
+    bannerSending_other: '{{count}} رسائل بانتظار الإرسال',
+    bannerFailedDetail: 'افتح المرسلة لمعرفة السبب، ثم أعد المحاولة أو عدّلها.',
+    bannerSendingDetail: 'ستُرسل تلقائيًا. افتح المرسلة للمتابعة.',
+    reason: {
+      relay_unavailable: 'لم يستجب خادم البريد. يواصل Oxy المحاولة تلقائيًا.',
+      relay_unconfigured: 'الإرسال غير مُعدّ على هذا الخادم. لن يُرسل شيء حتى يصلحه المسؤول.',
+      relay_auth: 'رفض خادم البريد تسجيل دخول Oxy. لن يُرسل شيء حتى يصلحه المسؤول.',
+      rejected: 'رفض خادم البريد هذه الرسالة.',
+      retries_exhausted: 'لم يستجب خادم البريد بعد عدة محاولات.',
+    },
   },
 
   staleThread: {

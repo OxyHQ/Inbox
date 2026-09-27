@@ -1,14 +1,14 @@
 /**
- * `useSendMessageWithUndo` — the five-second window, and the distinction that
- * hid a total outbound outage.
+ * `useSendMessageWithUndo` — the five-second window, and what a 202 means.
  *
- * `POST /email/messages` answers 202 in two very different situations. Either
- * the relay took the message, or the relay refused it for a reason the server
- * judged transient and parked it in the durable outbox. The second one is
- * `{ queued: true }`, and it used to be treated as success: an info toast, the
- * composer closing, and — the part that loses work — the local crash-recovery
- * snapshot deleted. With the relay misconfigured, every message in the system
- * took that branch and the app looked like it was working.
+ * `POST /email/messages` files the message in Sent and answers before it talks
+ * to any relay; delivery follows in the background and shows on the message.
+ * So an accepted send IS the success the composer waits for — the server holds
+ * the message, and a delivery that later fails is visible on it, with Retry.
+ *
+ * It used to be otherwise: the API relayed inside the request, a transient
+ * relay failure answered `{ queued: true }`, and treating that as success hid
+ * a total outbound outage. There is no such answer any more.
  */
 
 const toast = Object.assign(jest.fn(), {
@@ -66,66 +66,34 @@ async function elapseUndoWindow() {
   });
 }
 
-describe('delivered', () => {
-  it('reports success and lets the caller discard the recovery snapshot', async () => {
-    sendMessage.mockResolvedValue({ messageId: '<a@oxy.so>', queued: false, message: 'Message sent' });
+describe('accepted', () => {
+  it('reports success once the API has filed the message, and lets the caller discard the snapshot', async () => {
+    sendMessage.mockResolvedValue({
+      id: 'row-1',
+      messageId: '<a@oxy.so>',
+      delivery: { state: 'sending', attempts: 0, maxAttempts: 5, error: null, errorCode: null, nextAttemptAt: null, updatedAt: '2026-09-27T08:00:00.000Z' },
+      message: 'Message accepted for delivery',
+    });
     const onSuccess = jest.fn();
-    const onQueued = jest.fn();
 
     const { result } = renderHook(() => useSendMessageWithUndo());
     await act(async () => {
-      void result.current.sendWithUndo(recipients, { onSuccess, onQueued });
+      void result.current.sendWithUndo(recipients, { onSuccess });
     });
 
     expect(sendMessage).not.toHaveBeenCalled(); // still inside the undo window
     await elapseUndoWindow();
 
     expect(sendMessage).toHaveBeenCalledTimes(1);
-    expect(toast.success).toHaveBeenCalledWith('Message sent');
+    expect(toast.success).toHaveBeenCalledWith('Message accepted for delivery');
     expect(onSuccess).toHaveBeenCalledTimes(1);
-    expect(onQueued).not.toHaveBeenCalled();
     expect(recordInboxMetric).toHaveBeenCalledWith('composer_send_succeeded');
-  });
-});
-
-describe('queued', () => {
-  it('does NOT call onSuccess — the snapshot must survive', async () => {
-    sendMessage.mockResolvedValue({ messageId: '<a@oxy.so>', queued: true, message: 'Message queued for delivery' });
-    const onSuccess = jest.fn();
-    const onQueued = jest.fn();
-
-    const { result } = renderHook(() => useSendMessageWithUndo());
-    await act(async () => {
-      void result.current.sendWithUndo(recipients, { onSuccess, onQueued });
-    });
-    await elapseUndoWindow();
-
-    // The regression, stated directly: `queued` is not `sent`.
-    expect(onSuccess).not.toHaveBeenCalled();
-    expect(onQueued).toHaveBeenCalledTimes(1);
-  });
-
-  it('warns rather than reporting success, and says where to look', async () => {
-    sendMessage.mockResolvedValue({ messageId: '<a@oxy.so>', queued: true, message: 'Message queued for delivery' });
-
-    const { result } = renderHook(() => useSendMessageWithUndo());
-    await act(async () => {
-      void result.current.sendWithUndo(recipients);
-    });
-    await elapseUndoWindow();
-
-    expect(toast.success).not.toHaveBeenCalled();
-    expect(toast.warning).toHaveBeenCalledWith(
-      'Message queued for delivery',
-      expect.objectContaining({ description: expect.stringContaining('Delivery queue') }),
-    );
-    expect(recordInboxMetric).toHaveBeenCalledWith('composer_send_queued', { queued: true });
   });
 });
 
 describe('undo', () => {
   it('cancels within the window and never reaches the network', async () => {
-    sendMessage.mockResolvedValue({ messageId: '<a@oxy.so>', queued: false, message: 'Message sent' });
+    sendMessage.mockResolvedValue({ messageId: '<a@oxy.so>', message: 'Message accepted for delivery' });
     const onSuccess = jest.fn();
 
     const { result } = renderHook(() => useSendMessageWithUndo());
@@ -172,7 +140,7 @@ describe('idempotency', () => {
    */
   it('sends the compose session key unchanged on every attempt', async () => {
     sendMessage.mockRejectedValueOnce(new Error('timeout'));
-    sendMessage.mockResolvedValueOnce({ messageId: '<a@oxy.so>', queued: false, message: 'Message sent' });
+    sendMessage.mockResolvedValueOnce({ messageId: '<a@oxy.so>', message: 'Message accepted for delivery' });
 
     const { result } = renderHook(() => useSendMessageWithUndo());
     await act(async () => {

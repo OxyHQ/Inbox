@@ -279,7 +279,6 @@ const zh: LocaleDict = {
 
   compose: {
     replyParentError: "无法加载你要回复的邮件，因此暂时无法发送此回复，否则会打断会话。",
-    queuedNotice: "此邮件已在发送队列中。再次发送不会产生重复邮件。",
     titleCompose: '撰写',
     titleReply: '回复',
     titleForward: '转发',
@@ -368,6 +367,33 @@ const zh: LocaleDict = {
     actionItems: '待办事项',
     due: '截止:{{date}}',
     unavailable: '当前无法总结此会话。',
+  },
+
+  delivery: {
+    sending: '正在发送…',
+    retrying: '正在重试（{{count}}）',
+    failed: '未送达',
+    retry: '重试',
+    editAsNew: '作为新邮件编辑',
+    retryStarted: '正在重新发送。',
+    retryError: '无法重试此邮件。',
+    failedToast: '未送达：{{subject}}',
+    view: '查看',
+    nextAttempt: '下次尝试：{{time}}',
+    cancelled: '发送已取消。',
+    bannerFailed_one: '{{count}} 封邮件无法发送',
+    bannerFailed_other: '{{count}} 封邮件无法发送',
+    bannerSending_one: '{{count}} 封邮件等待发送',
+    bannerSending_other: '{{count}} 封邮件等待发送',
+    bannerFailedDetail: '打开“已发送”查看原因，然后重试或编辑。',
+    bannerSendingDetail: '它们会自动发出。打开“已发送”查看进度。',
+    reason: {
+      relay_unavailable: '邮件服务器没有响应。Oxy 会自动继续尝试。',
+      relay_unconfigured: '此服务器未配置发送。在管理员修复之前无法发出任何邮件。',
+      relay_auth: '邮件服务器拒绝了 Oxy 的登录。在管理员修复之前无法发出任何邮件。',
+      rejected: '邮件服务器拒绝了此邮件。',
+      retries_exhausted: '多次尝试后邮件服务器仍未响应。',
+    },
   },
 
   staleThread: {

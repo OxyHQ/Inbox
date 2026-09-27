@@ -62,7 +62,6 @@ import { useUpdateBundle, useReorderBundle } from '@/hooks/mutations/useBundleMu
 import { useEmailStore } from '@/hooks/useEmail';
 import { EMAIL_FILTER_CONDITION_FIELDS, EMAIL_FILTER_CONDITION_OPERATORS } from '@oxy.so/contracts';
 import type { EmailFilterCondition, EmailFilterAction } from '@/services/emailApi';
-import { OutboundQueueSection } from '@/components/settings/OutboundQueueSection';
 
 // ─── Filter form option maps ─────────────────────────────────────────
 
@@ -669,7 +668,6 @@ export function AdvancedSection() {
         </View>
       ) : null}
 
-      <OutboundQueueSection />
 
       <Dialog
         control={filterDelete}

@@ -45,6 +45,8 @@ import { SentimentIndicator } from './SentimentIndicator';
 import type { SentimentResult } from '@/hooks/queries/useSentimentAnalysis';
 import { CardPreview } from './cards/CardPreview';
 import { useColors } from '@/constants/theme';
+import { DeliveryBadge } from '@/components/DeliveryStatus';
+import { isOutstanding } from '@/utils/delivery';
 import { useTranslation } from '@/lib/i18n';
 import { SPACING, RADIUS, TIMESTAMP_WIDTH } from '@/constants/layout';
 import { DENSITY_STYLES } from '@/constants/densityStyles';
@@ -359,6 +361,10 @@ function MessageRowInner({
                 {formatSnoozeTime(message.snoozedUntil)}
               </Text>
             </View>
+          ) : isOutstanding(message.delivery) ? (
+            // A sent message that has not left yet says so where its date
+            // would be — the one place a glance at Sent always lands.
+            <DeliveryBadge delivery={message.delivery} />
           ) : (
             <Text style={[styles.date, { color: colors.secondaryText }]} numberOfLines={1}>
               {dateStr}

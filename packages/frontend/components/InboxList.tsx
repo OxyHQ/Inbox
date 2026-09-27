@@ -28,7 +28,7 @@ import { useEmailStore } from '@/hooks/useEmail';
 import { useTranslation, type TranslateFn } from '@/lib/i18n';
 import { useInboxPrefs, type SwipeAction } from '@/contexts/inbox-prefs-context';
 import { useInboxDisplayPrefs } from '@/hooks/useInboxDisplayPrefs';
-import { OutboundQueueBanner } from '@/components/OutboundQueueBanner';
+import { UndeliveredBanner } from '@/components/UndeliveredBanner';
 import { useMessageActions } from '@/hooks/useMessageActions';
 import { collapseThreads } from '@/utils/threadGrouping';
 import { useMessages } from '@/hooks/queries/useMessages';
@@ -902,7 +902,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
             getItemType={getItemType}
             ListHeaderComponent={
               <>
-                <OutboundQueueBanner />
+                <UndeliveredBanner />
                 <InboxGreeting
                   messages={displayMessages}
                   onAskAlia={isAuthenticated && !isSelectionMode ? handleAskAlia : undefined}

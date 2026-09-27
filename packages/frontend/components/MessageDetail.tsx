@@ -62,6 +62,8 @@ import { InlineReply } from '@/components/InlineReply';
 import { ThreadSummary } from '@/components/ThreadSummary';
 import { SentimentIndicator } from '@/components/SentimentIndicator';
 import { StaleThreadBanner } from '@/components/StaleThreadBanner';
+import { DeliveryBadge, DeliveryNotice } from '@/components/DeliveryStatus';
+import { isOutstanding } from '@/utils/delivery';
 import { useSentimentAnalysis } from '@/hooks/queries/useSentimentAnalysis';
 import { useStaleThread } from '@/hooks/queries/useStaleThread';
 import { SnoozeSheet } from '@/components/SnoozeSheet';
@@ -876,9 +878,13 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
                       <Text style={[styles.collapsedSenderName, { color: colors.text }]} numberOfLines={1}>
                         {msgSenderName}
                       </Text>
-                      <Text style={[styles.collapsedDate, { color: colors.secondaryText }]}>
-                        {formatShortDate(msg.date)}
-                      </Text>
+                      {isOutstanding(msg.delivery) ? (
+                        <DeliveryBadge delivery={msg.delivery} />
+                      ) : (
+                        <Text style={[styles.collapsedDate, { color: colors.secondaryText }]}>
+                          {formatShortDate(msg.date)}
+                        </Text>
+                      )}
                     </View>
                     <Text style={[styles.collapsedSnippet, { color: colors.secondaryText }]} numberOfLines={1}>
                       {getSnippet(msg.text)}
@@ -954,6 +960,9 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
                     </TouchableOpacity>
                   </View>
                 </View>
+
+                {/* A sent message that has not left: why, and what to do */}
+                <DeliveryNotice message={msg} />
 
                 {/* Attachments */}
                 {msg.attachments.length > 0 && (

@@ -52,24 +52,33 @@ that is a normal condition, not an exceptional one.
 
 ## Sending reported success for messages that never left
 
-`POST /email/messages` answers 202 in two very different situations: the relay
-took the message, or the relay refused it and the server parked it in the
-durable outbox. The second is `{ queued: true }`.
+`POST /email/messages` used to relay inside the request and answer 202 in two
+very different situations: the relay took the message, or it refused and the
+server parked it in an outbox (`{ queued: true }`). The second was treated as
+success, so a total outbound outage looked like a working inbox. And because
+the relay ran inside the request, a relay slower than the client's timeout made
+the client report a failure while the server was still sending, and the user
+pressed Send again.
 
-It used to be treated as success — an info toast, the composer closing, and
-`clearComposeRecovery()` deleting the local snapshot. With the relay
-misconfigured **every** message took that branch, so a total outbound outage
-looked like a working inbox.
+Since 2026-09-27 a send is **filed first and delivered afterwards**
+(OxyHQ/oxy `emailDelivery.service.ts`):
 
-`queued` now has its own callback. The composer still closes (the server holds
-the message) but the crash-recovery snapshot survives, and `OutboundQueueBanner`
-puts the delivery queue at the top of the inbox instead of leaving it three taps
-deep in Settings → Advanced, hidden when empty.
+- The API files the message in Sent with `delivery.state = 'sending'`, creates
+  its delivery job in the same transaction, and answers 202. It never waits on
+  SMTP, so the client needs no long timeout — and `retry` is safe because the
+  Idempotency-Key makes a repeat the same message.
+- Delivery runs on a queue right away; every outcome lands on the message:
+  `sent`, `retrying` (with `nextAttemptAt`), or `failed` with `errorCode` and
+  the relay's own words. Each change emits `email:changed` with reason
+  `delivery`.
+- The client shows it where the message is: a badge in place of the date on a
+  Sent row (`DeliveryBadge`), a notice with **Retry** and **Edit as new** on the
+  message (`DeliveryNotice`), `UndeliveredBanner` at the top of the inbox, and a
+  toast on any `failed` transition wherever the user is.
 
-The API distinguishes "will retry" from "will not": `terminal` on the outbox DTO
-is true once the retry budget is spent or the failure was permanent. A
-configuration error, a rejected credential and a 5xx refusal are all permanent
-and are never queued — the API answers **503** with something actionable.
+There is no separate "delivery queue" in the app any more — the Sent message
+IS the queue entry. Do not reintroduce `queued`; the server no longer sends it
+as anything but `false`, which exists only for clients older than this change.
 
 ## Where outbound actually goes
 

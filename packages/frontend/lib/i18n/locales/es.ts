@@ -285,7 +285,6 @@ const es: LocaleDict = {
 
   compose: {
     replyParentError: "No se pudo cargar el mensaje al que respondes, así que esta respuesta aún no se puede enviar sin romper la conversación.",
-    queuedNotice: "Este mensaje ya está en la cola de envío. Volver a enviarlo no creará un duplicado.",
     titleCompose: 'Redactar',
     titleReply: 'Responder',
     titleForward: 'Reenviar',
@@ -374,6 +373,33 @@ const es: LocaleDict = {
     actionItems: 'Acciones pendientes',
     due: 'Para: {{date}}',
     unavailable: 'No se pudo resumir esta conversación ahora.',
+  },
+
+  delivery: {
+    sending: 'Enviando…',
+    retrying: 'Reintentando ({{count}})',
+    failed: 'No entregado',
+    retry: 'Reintentar',
+    editAsNew: 'Editar como nuevo',
+    retryStarted: 'Volviendo a enviarlo.',
+    retryError: 'No se pudo reintentar este mensaje.',
+    failedToast: 'No entregado: {{subject}}',
+    view: 'Ver',
+    nextAttempt: 'Próximo intento a las {{time}}',
+    cancelled: 'Se canceló el envío.',
+    bannerFailed_one: '{{count}} mensaje no se pudo enviar',
+    bannerFailed_other: '{{count}} mensajes no se pudieron enviar',
+    bannerSending_one: '{{count}} mensaje pendiente de enviar',
+    bannerSending_other: '{{count}} mensajes pendientes de enviar',
+    bannerFailedDetail: 'Abre Enviados para ver por qué y reintentar o editarlo.',
+    bannerSendingDetail: 'Saldrán solos. Abre Enviados para seguirlos.',
+    reason: {
+      relay_unavailable: 'El servidor de correo no respondió. Oxy sigue intentándolo solo.',
+      relay_unconfigured: 'El envío no está configurado en este servidor. No saldrá nada hasta que un administrador lo arregle.',
+      relay_auth: 'El servidor de correo rechazó el acceso de Oxy. No saldrá nada hasta que un administrador lo arregle.',
+      rejected: 'El servidor de correo rechazó este mensaje.',
+      retries_exhausted: 'El servidor de correo no respondió tras varios intentos.',
+    },
   },
 
   staleThread: {

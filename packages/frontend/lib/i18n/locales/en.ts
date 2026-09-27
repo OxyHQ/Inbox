@@ -288,7 +288,6 @@ const en: LocaleDict = {
 
   compose: {
     replyParentError: "Couldn't load the message you're replying to, so this reply can't be sent yet without breaking the conversation.",
-    queuedNotice: "This message is already in the send queue. Sending it again will not send a duplicate.",
     titleCompose: 'Compose',
     titleReply: 'Reply',
     titleForward: 'Forward',
@@ -377,6 +376,33 @@ const en: LocaleDict = {
     actionItems: 'Action Items',
     due: 'Due: {{date}}',
     unavailable: 'Unable to summarize this thread right now.',
+  },
+
+  delivery: {
+    sending: 'Sending…',
+    retrying: 'Retrying ({{count}})',
+    failed: 'Not delivered',
+    retry: 'Retry',
+    editAsNew: 'Edit as new',
+    retryStarted: 'Sending it again.',
+    retryError: 'Couldn\'t retry this message.',
+    failedToast: 'Not delivered: {{subject}}',
+    view: 'View',
+    nextAttempt: 'Next attempt at {{time}}',
+    cancelled: 'Sending was cancelled.',
+    bannerFailed_one: '{{count}} message could not be sent',
+    bannerFailed_other: '{{count}} messages could not be sent',
+    bannerSending_one: '{{count}} message waiting to send',
+    bannerSending_other: '{{count}} messages waiting to send',
+    bannerFailedDetail: 'Open Sent to see why, then retry or edit it.',
+    bannerSendingDetail: 'They\'ll go out on their own. Open Sent to follow along.',
+    reason: {
+      relay_unavailable: 'The mail server didn\'t answer. Oxy keeps trying on its own.',
+      relay_unconfigured: 'Sending is not set up on this server. Nothing can go out until an administrator fixes it.',
+      relay_auth: 'The mail server rejected Oxy\'s sign-in. Nothing can go out until an administrator fixes it.',
+      rejected: 'The mail server refused this message.',
+      retries_exhausted: 'The mail server didn\'t answer after several tries.',
+    },
   },
 
   staleThread: {

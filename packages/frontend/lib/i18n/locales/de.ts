@@ -282,7 +282,6 @@ const de: LocaleDict = {
 
   compose: {
     replyParentError: "Die Nachricht, auf die du antwortest, konnte nicht geladen werden. Die Antwort kann noch nicht gesendet werden, ohne die Unterhaltung zu trennen.",
-    queuedNotice: "Diese Nachricht ist bereits in der Sendewarteschlange. Erneutes Senden erzeugt kein Duplikat.",
     titleCompose: 'Verfassen',
     titleReply: 'Antworten',
     titleForward: 'Weiterleiten',
@@ -371,6 +370,33 @@ const de: LocaleDict = {
     actionItems: 'Aufgaben',
     due: 'Fällig: {{date}}',
     unavailable: 'Diese Unterhaltung kann gerade nicht zusammengefasst werden.',
+  },
+
+  delivery: {
+    sending: 'Wird gesendet…',
+    retrying: 'Neuer Versuch ({{count}})',
+    failed: 'Nicht zugestellt',
+    retry: 'Erneut versuchen',
+    editAsNew: 'Als neu bearbeiten',
+    retryStarted: 'Wird erneut gesendet.',
+    retryError: 'Diese Nachricht konnte nicht erneut versucht werden.',
+    failedToast: 'Nicht zugestellt: {{subject}}',
+    view: 'Ansehen',
+    nextAttempt: 'Nächster Versuch um {{time}}',
+    cancelled: 'Der Versand wurde abgebrochen.',
+    bannerFailed_one: '{{count}} Nachricht konnte nicht gesendet werden',
+    bannerFailed_other: '{{count}} Nachrichten konnten nicht gesendet werden',
+    bannerSending_one: '{{count}} Nachricht wartet auf den Versand',
+    bannerSending_other: '{{count}} Nachrichten warten auf den Versand',
+    bannerFailedDetail: 'Öffne Gesendet, um den Grund zu sehen, und versuche es erneut oder bearbeite sie.',
+    bannerSendingDetail: 'Sie gehen von selbst raus. Öffne Gesendet, um sie zu verfolgen.',
+    reason: {
+      relay_unavailable: 'Der Mailserver hat nicht geantwortet. Oxy versucht es selbstständig weiter.',
+      relay_unconfigured: 'Der Versand ist auf diesem Server nicht eingerichtet. Nichts geht raus, bis ein Administrator das behebt.',
+      relay_auth: 'Der Mailserver hat die Anmeldung von Oxy abgelehnt. Nichts geht raus, bis ein Administrator das behebt.',
+      rejected: 'Der Mailserver hat diese Nachricht abgelehnt.',
+      retries_exhausted: 'Der Mailserver hat nach mehreren Versuchen nicht geantwortet.',
+    },
   },
 
   staleThread: {

@@ -282,7 +282,6 @@ const fr: LocaleDict = {
 
   compose: {
     replyParentError: "Impossible de charger le message auquel tu réponds : cette réponse ne peut pas encore être envoyée sans casser la conversation.",
-    queuedNotice: "Ce message est déjà dans la file d'envoi. Le renvoyer ne créera pas de doublon.",
     titleCompose: 'Rédiger',
     titleReply: 'Répondre',
     titleForward: 'Transférer',
@@ -371,6 +370,33 @@ const fr: LocaleDict = {
     actionItems: 'Actions à faire',
     due: 'Échéance : {{date}}',
     unavailable: 'Impossible de résumer cette conversation pour le moment.',
+  },
+
+  delivery: {
+    sending: 'Envoi…',
+    retrying: 'Nouvel essai ({{count}})',
+    failed: 'Non distribué',
+    retry: 'Réessayer',
+    editAsNew: 'Modifier comme nouveau',
+    retryStarted: 'Nouvel envoi en cours.',
+    retryError: 'Impossible de réessayer ce message.',
+    failedToast: 'Non distribué : {{subject}}',
+    view: 'Voir',
+    nextAttempt: 'Prochain essai à {{time}}',
+    cancelled: 'L\'envoi a été annulé.',
+    bannerFailed_one: '{{count}} message n\'a pas pu être envoyé',
+    bannerFailed_other: '{{count}} messages n\'ont pas pu être envoyés',
+    bannerSending_one: '{{count}} message en attente d’envoi',
+    bannerSending_other: '{{count}} messages en attente d’envoi',
+    bannerFailedDetail: 'Ouvrez Envoyés pour voir pourquoi, puis réessayez ou modifiez-le.',
+    bannerSendingDetail: 'Ils partiront tout seuls. Ouvrez Envoyés pour les suivre.',
+    reason: {
+      relay_unavailable: 'Le serveur de messagerie n\'a pas répondu. Oxy continue d\'essayer tout seul.',
+      relay_unconfigured: 'L\'envoi n\'est pas configuré sur ce serveur. Rien ne partira tant qu\'un administrateur ne l\'aura pas corrigé.',
+      relay_auth: 'Le serveur de messagerie a refusé la connexion d\'Oxy. Rien ne partira tant qu\'un administrateur ne l\'aura pas corrigé.',
+      rejected: 'Le serveur de messagerie a refusé ce message.',
+      retries_exhausted: 'Le serveur de messagerie n\'a pas répondu après plusieurs essais.',
+    },
   },
 
   staleThread: {

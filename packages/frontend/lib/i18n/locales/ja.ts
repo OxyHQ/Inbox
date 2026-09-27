@@ -281,7 +281,6 @@ const ja: LocaleDict = {
 
   compose: {
     replyParentError: "返信先のメッセージを読み込めませんでした。会話が分断されるため、この返信はまだ送信できません。",
-    queuedNotice: "このメッセージは既に送信キューにあります。もう一度送信しても重複しません。",
     titleCompose: '作成',
     titleReply: '返信',
     titleForward: '転送',
@@ -370,6 +369,33 @@ const ja: LocaleDict = {
     actionItems: 'アクション項目',
     due: '期限: {{date}}',
     unavailable: '現在このスレッドを要約できません。',
+  },
+
+  delivery: {
+    sending: '送信中…',
+    retrying: '再試行中（{{count}}）',
+    failed: '未配信',
+    retry: '再試行',
+    editAsNew: '新規として編集',
+    retryStarted: 'もう一度送信しています。',
+    retryError: 'このメッセージを再試行できませんでした。',
+    failedToast: '未配信: {{subject}}',
+    view: '表示',
+    nextAttempt: '次の試行: {{time}}',
+    cancelled: '送信はキャンセルされました。',
+    bannerFailed_one: '{{count}} 件のメッセージを送信できませんでした',
+    bannerFailed_other: '{{count}} 件のメッセージを送信できませんでした',
+    bannerSending_one: '{{count}} 件のメッセージが送信待ちです',
+    bannerSending_other: '{{count}} 件のメッセージが送信待ちです',
+    bannerFailedDetail: '送信済みを開いて理由を確認し、再試行または編集してください。',
+    bannerSendingDetail: '自動的に送信されます。送信済みで確認できます。',
+    reason: {
+      relay_unavailable: 'メールサーバーが応答しませんでした。Oxy が自動で再試行を続けます。',
+      relay_unconfigured: 'このサーバーでは送信が設定されていません。管理者が修正するまで送信できません。',
+      relay_auth: 'メールサーバーが Oxy のサインインを拒否しました。管理者が修正するまで送信できません。',
+      rejected: 'メールサーバーがこのメッセージを拒否しました。',
+      retries_exhausted: '何度試してもメールサーバーが応答しませんでした。',
+    },
   },
 
   staleThread: {

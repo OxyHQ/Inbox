@@ -282,7 +282,6 @@ const it: LocaleDict = {
 
   compose: {
     replyParentError: "Impossibile caricare il messaggio a cui rispondi: questa risposta non può ancora essere inviata senza spezzare la conversazione.",
-    queuedNotice: "Questo messaggio è già nella coda di invio. Inviarlo di nuovo non creerà un duplicato.",
     titleCompose: 'Scrivi',
     titleReply: 'Rispondi',
     titleForward: 'Inoltra',
@@ -371,6 +370,33 @@ const it: LocaleDict = {
     actionItems: 'Azioni da fare',
     due: 'Scadenza: {{date}}',
     unavailable: 'Impossibile riassumere questa conversazione ora.',
+  },
+
+  delivery: {
+    sending: 'Invio…',
+    retrying: 'Nuovo tentativo ({{count}})',
+    failed: 'Non consegnato',
+    retry: 'Riprova',
+    editAsNew: 'Modifica come nuovo',
+    retryStarted: 'Nuovo invio in corso.',
+    retryError: 'Impossibile riprovare questo messaggio.',
+    failedToast: 'Non consegnato: {{subject}}',
+    view: 'Vedi',
+    nextAttempt: 'Prossimo tentativo alle {{time}}',
+    cancelled: 'L\'invio è stato annullato.',
+    bannerFailed_one: '{{count}} messaggio non è stato inviato',
+    bannerFailed_other: '{{count}} messaggi non sono stati inviati',
+    bannerSending_one: '{{count}} messaggio in attesa di invio',
+    bannerSending_other: '{{count}} messaggi in attesa di invio',
+    bannerFailedDetail: 'Apri Inviati per vedere il motivo, poi riprova o modificalo.',
+    bannerSendingDetail: 'Partiranno da soli. Apri Inviati per seguirli.',
+    reason: {
+      relay_unavailable: 'Il server di posta non ha risposto. Oxy continua a riprovare da solo.',
+      relay_unconfigured: 'L\'invio non è configurato su questo server. Non partirà nulla finché un amministratore non lo sistema.',
+      relay_auth: 'Il server di posta ha rifiutato l\'accesso di Oxy. Non partirà nulla finché un amministratore non lo sistema.',
+      rejected: 'Il server di posta ha rifiutato questo messaggio.',
+      retries_exhausted: 'Il server di posta non ha risposto dopo diversi tentativi.',
+    },
   },
 
   staleThread: {

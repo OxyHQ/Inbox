@@ -74,18 +74,15 @@ export function wireContact(overrides: Record<string, unknown> = {}) {
   };
 }
 
-export function wireOutbox(overrides: Record<string, unknown> = {}) {
+/** A sent message's delivery, as the API attaches it. */
+export function wireDelivery(overrides: Record<string, unknown> = {}) {
   return {
-    id: 'outbox-1',
-    messageId: '<outbox-1@example.test>',
-    status: 'failed',
-    attempts: 2,
-    maxAttempts: 8,
-    terminal: false,
-    nextAttemptAt: at,
-    lastError: 'relay unavailable',
-    sentAt: null,
-    createdAt: at,
+    state: 'failed',
+    attempts: 1,
+    maxAttempts: 5,
+    error: '554 5.7.1 Message rejected',
+    errorCode: 'rejected',
+    nextAttemptAt: null,
     updatedAt: at,
     ...overrides,
   };

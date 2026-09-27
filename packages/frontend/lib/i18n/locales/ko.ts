@@ -281,7 +281,6 @@ const ko: LocaleDict = {
 
   compose: {
     replyParentError: "답장할 메시지를 불러오지 못했습니다. 대화가 끊기지 않도록 이 답장은 아직 보낼 수 없습니다.",
-    queuedNotice: "이 메시지는 이미 전송 대기열에 있습니다. 다시 보내도 중복되지 않습니다.",
     titleCompose: '작성',
     titleReply: '답장',
     titleForward: '전달',
@@ -370,6 +369,33 @@ const ko: LocaleDict = {
     actionItems: '실행 항목',
     due: '기한: {{date}}',
     unavailable: '지금은 이 대화를 요약할 수 없어요.',
+  },
+
+  delivery: {
+    sending: '보내는 중…',
+    retrying: '다시 시도 중 ({{count}})',
+    failed: '전달되지 않음',
+    retry: '다시 시도',
+    editAsNew: '새 메시지로 편집',
+    retryStarted: '다시 보내는 중입니다.',
+    retryError: '이 메시지를 다시 시도할 수 없습니다.',
+    failedToast: '전달되지 않음: {{subject}}',
+    view: '보기',
+    nextAttempt: '다음 시도: {{time}}',
+    cancelled: '발송이 취소되었습니다.',
+    bannerFailed_one: '메시지 {{count}}개를 보내지 못했습니다',
+    bannerFailed_other: '메시지 {{count}}개를 보내지 못했습니다',
+    bannerSending_one: '메시지 {{count}}개가 발송 대기 중입니다',
+    bannerSending_other: '메시지 {{count}}개가 발송 대기 중입니다',
+    bannerFailedDetail: '보낸편지함에서 이유를 확인하고 다시 시도하거나 편집하세요.',
+    bannerSendingDetail: '자동으로 발송됩니다. 보낸편지함에서 확인하세요.',
+    reason: {
+      relay_unavailable: '메일 서버가 응답하지 않았습니다. Oxy가 계속 자동으로 시도합니다.',
+      relay_unconfigured: '이 서버에 발송이 설정되어 있지 않습니다. 관리자가 해결할 때까지 아무것도 보낼 수 없습니다.',
+      relay_auth: '메일 서버가 Oxy의 로그인을 거부했습니다. 관리자가 해결할 때까지 아무것도 보낼 수 없습니다.',
+      rejected: '메일 서버가 이 메시지를 거부했습니다.',
+      retries_exhausted: '여러 번 시도했지만 메일 서버가 응답하지 않았습니다.',
+    },
   },
 
   staleThread: {

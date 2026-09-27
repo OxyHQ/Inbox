@@ -16,7 +16,6 @@ import {
   Platform,
 } from 'react-native';
 import { Dialog, useDialogControl, toast } from '@oxy.so/bloom';
-import { Admonition } from '@oxy.so/bloom/admonition';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import {
@@ -190,7 +189,6 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
   // One key per compose session (see utils/sendIdempotency.ts); replaced by the
   // recovered one when this composer resumes an earlier session.
   const [idempotencyKey, setIdempotencyKey] = useState(newSendIdempotencyKey);
-  const [alreadyQueued, setAlreadyQueued] = useState(false);
 
   const [to, setTo] = useState(initialTo || '');
   const [cc, setCc] = useState(initialCc || '');
@@ -226,7 +224,6 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
       if (cancelled) return;
       if (record && !hasServerDraft) {
         if (record.snapshot.idempotencyKey) setIdempotencyKey(record.snapshot.idempotencyKey);
-        setAlreadyQueued(record.snapshot.queued === true);
         setTo(record.snapshot.to);
         setCc(record.snapshot.cc);
         setBcc(record.snapshot.bcc);
@@ -289,9 +286,8 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
       attachments: attachments.map((attachment) => ({ fileId: attachment.fileId })),
       replyTo,
       idempotencyKey,
-      ...(alreadyQueued ? { queued: true } : {}),
     }),
-    [to, cc, bcc, subject, body, attachments, replyTo, idempotencyKey, alreadyQueued],
+    [to, cc, bcc, subject, body, attachments, replyTo, idempotencyKey],
   );
   const draftSnapshotKey = useMemo(() => JSON.stringify(draftSnapshot), [draftSnapshot]);
   const saveDraftAsync = saveDraftMutation.mutateAsync;
@@ -496,19 +492,10 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         idempotencyKey,
       },
       {
+        // Accepted: filed in Sent, delivered in the background, and the
+        // message itself shows how that goes. The server holds it now.
         onSuccess: () => {
           void clearComposeRecovery(recoveryKey);
-          closeCompose();
-        },
-        // Accepted but NOT delivered. Close the composer — the server holds the
-        // message and the delivery queue tracks it — but keep the local
-        // crash-recovery snapshot, because `queued` includes the case where
-        // delivery never happens and the text would otherwise be gone.
-        //
-        // The snapshot is marked queued and keeps the session key, so reopening
-        // it says so, and pressing Send again is the same message to the API.
-        onQueued: () => {
-          void saveComposeRecovery(recoveryKey, { ...draftSnapshot, queued: true });
           closeCompose();
         },
         onError: () => {
@@ -516,7 +503,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         },
       },
     );
-  }, [attachments, awaitingReplyHeaders, body, closeCompose, draftSnapshot, getValidatedRecipients, idempotencyKey, recoveryKey, replyHeaders, sendWithUndo, subject]);
+  }, [attachments, awaitingReplyHeaders, body, closeCompose, getValidatedRecipients, idempotencyKey, recoveryKey, replyHeaders, sendWithUndo, subject]);
 
   const handleSaveDraft = useCallback(() => {
     if (!hasContent) {
@@ -756,12 +743,6 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         keyboardShouldPersistTaps="handled"
       >
         <ReplyParentNotice state={replyParent} />
-
-        {alreadyQueued && (
-          <View style={fieldRowInset}>
-            <Admonition type="info">{t('compose.queuedNotice')}</Admonition>
-          </View>
-        )}
 
         {/* From */}
         <View style={[styles.fieldRow, fieldRowInset, { borderBottomColor: colors.border }]}>

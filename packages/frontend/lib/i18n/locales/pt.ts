@@ -282,7 +282,6 @@ const pt: LocaleDict = {
 
   compose: {
     replyParentError: "Não foi possível carregar a mensagem a que respondes, por isso esta resposta ainda não pode ser enviada sem partir a conversa.",
-    queuedNotice: "Esta mensagem já está na fila de envio. Enviá-la de novo não cria um duplicado.",
     titleCompose: 'Escrever',
     titleReply: 'Responder',
     titleForward: 'Reencaminhar',
@@ -371,6 +370,33 @@ const pt: LocaleDict = {
     actionItems: 'Ações pendentes',
     due: 'Prazo: {{date}}',
     unavailable: 'Não foi possível resumir esta conversa agora.',
+  },
+
+  delivery: {
+    sending: 'A enviar…',
+    retrying: 'A tentar de novo ({{count}})',
+    failed: 'Não entregue',
+    retry: 'Tentar de novo',
+    editAsNew: 'Editar como nova',
+    retryStarted: 'A enviar de novo.',
+    retryError: 'Não foi possível tentar de novo esta mensagem.',
+    failedToast: 'Não entregue: {{subject}}',
+    view: 'Ver',
+    nextAttempt: 'Próxima tentativa às {{time}}',
+    cancelled: 'O envio foi cancelado.',
+    bannerFailed_one: '{{count}} mensagem não pôde ser enviada',
+    bannerFailed_other: '{{count}} mensagens não puderam ser enviadas',
+    bannerSending_one: '{{count}} mensagem à espera de envio',
+    bannerSending_other: '{{count}} mensagens à espera de envio',
+    bannerFailedDetail: 'Abre Enviadas para ver porquê e tentar de novo ou editar.',
+    bannerSendingDetail: 'Vão sair sozinhas. Abre Enviadas para acompanhar.',
+    reason: {
+      relay_unavailable: 'O servidor de email não respondeu. O Oxy continua a tentar sozinho.',
+      relay_unconfigured: 'O envio não está configurado neste servidor. Nada sai até um administrador corrigir.',
+      relay_auth: 'O servidor de email recusou o acesso do Oxy. Nada sai até um administrador corrigir.',
+      rejected: 'O servidor de email recusou esta mensagem.',
+      retries_exhausted: 'O servidor de email não respondeu após várias tentativas.',
+    },
   },
 
   staleThread: {

@@ -282,6 +282,7 @@ const ca: LocaleDict = {
   },
 
   compose: {
+    replyParentError: "No s'ha pogut carregar el missatge al qual respons, així que aquesta resposta encara no es pot enviar sense trencar la conversa.",
     queuedNotice: "Aquest missatge ja és a la cua d'enviament. Tornar-lo a enviar no crearà un duplicat.",
     titleCompose: 'Redacta',
     titleReply: 'Respon',

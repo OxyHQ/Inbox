@@ -279,6 +279,7 @@ const pt: LocaleDict = {
   },
 
   compose: {
+    replyParentError: "Não foi possível carregar a mensagem a que respondes, por isso esta resposta ainda não pode ser enviada sem partir a conversa.",
     queuedNotice: "Esta mensagem já está na fila de envio. Enviá-la de novo não cria um duplicado.",
     titleCompose: 'Escrever',
     titleReply: 'Responder',

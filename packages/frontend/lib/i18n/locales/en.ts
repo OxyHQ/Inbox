@@ -285,6 +285,7 @@ const en: LocaleDict = {
   },
 
   compose: {
+    replyParentError: "Couldn't load the message you're replying to, so this reply can't be sent yet without breaking the conversation.",
     queuedNotice: "This message is already in the send queue. Sending it again will not send a duplicate.",
     titleCompose: 'Compose',
     titleReply: 'Reply',

@@ -279,6 +279,7 @@ const de: LocaleDict = {
   },
 
   compose: {
+    replyParentError: "Die Nachricht, auf die du antwortest, konnte nicht geladen werden. Die Antwort kann noch nicht gesendet werden, ohne die Unterhaltung zu trennen.",
     queuedNotice: "Diese Nachricht ist bereits in der Sendewarteschlange. Erneutes Senden erzeugt kein Duplikat.",
     titleCompose: 'Verfassen',
     titleReply: 'Antworten',

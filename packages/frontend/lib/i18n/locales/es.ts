@@ -282,6 +282,7 @@ const es: LocaleDict = {
   },
 
   compose: {
+    replyParentError: "No se pudo cargar el mensaje al que respondes, así que esta respuesta aún no se puede enviar sin romper la conversación.",
     queuedNotice: "Este mensaje ya está en la cola de envío. Volver a enviarlo no creará un duplicado.",
     titleCompose: 'Redactar',
     titleReply: 'Responder',

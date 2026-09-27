@@ -278,6 +278,7 @@ const ja: LocaleDict = {
   },
 
   compose: {
+    replyParentError: "返信先のメッセージを読み込めませんでした。会話が分断されるため、この返信はまだ送信できません。",
     queuedNotice: "このメッセージは既に送信キューにあります。もう一度送信しても重複しません。",
     titleCompose: '作成',
     titleReply: '返信',

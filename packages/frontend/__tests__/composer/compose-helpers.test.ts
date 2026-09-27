@@ -4,7 +4,8 @@ jest.mock('@oxy.so/bloom', () => ({
   useDialogControl: () => ({ open: jest.fn(), close: jest.fn() }),
 }));
 jest.mock('@oxy.so/bloom/admonition', () => ({ Admonition: () => null }));
-jest.mock('@/hooks/queries/useMessage', () => ({ useMessage: jest.fn() }));
+jest.mock('@/hooks/useReplyParent', () => ({ useReplyParent: jest.fn() }));
+jest.mock('@/components/ReplyParentNotice', () => ({ ReplyParentNotice: () => null }));
 jest.mock('react-native', () => ({
   KeyboardAvoidingView: () => null,
   Platform: { OS: 'ios' },

@@ -51,9 +51,10 @@ import {
   saveComposeRecovery,
   type ComposeRecoverySnapshot,
 } from '@/utils/composeRecovery';
-import { useMessage } from '@/hooks/queries/useMessage';
-import { buildReplyHeaders, type ReplyHeaders } from '@/utils/replyHeaders';
+import { useReplyParent } from '@/hooks/useReplyParent';
+import type { ReplyHeaders } from '@/utils/replyHeaders';
 import { newSendIdempotencyKey } from '@/utils/sendIdempotency';
+import { ReplyParentNotice } from '@/components/ReplyParentNotice';
 
 /**
  * Local composer representation of an attachment. Just enough to render the
@@ -180,13 +181,11 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
   const saveDraftMutation = useSaveDraft();
   const bodyRef = useRef<RichTextEditorHandle>(null);
 
-  // The parent is loaded by its row id only to read its RFC headers.
-  const parentQuery = useMessage(replyTo);
-  const replyHeaders = useMemo(
-    () => (parentQuery.data ? buildReplyHeaders(parentQuery.data) : undefined),
-    [parentQuery.data],
-  );
-  const replyHeadersPending = Boolean(replyTo) && parentQuery.isLoading;
+  // The parent is loaded by its row id only to read its RFC headers; until they
+  // are known, nothing that carries them (send, schedule, server draft) runs.
+  const replyParent = useReplyParent(replyTo);
+  const replyHeaders = replyParent.headers;
+  const awaitingReplyHeaders = replyParent.blocksSend;
 
   // One key per compose session (see utils/sendIdempotency.ts); replaced by the
   // recovered one when this composer resumes an earlier session.
@@ -277,7 +276,8 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
   const mountedRef = useRef(true);
 
   const fromAddress = user?.username ? `${user.username}@oxy.so` : '';
-  const sending = sendPending || sendMessageMutation.isPending || replyHeadersPending;
+  const sending = sendPending || sendMessageMutation.isPending;
+  const sendDisabled = sending || awaitingReplyHeaders;
   const hasContent = Boolean(to.trim() || subject.trim() || body.trim() || attachments.length > 0);
   const draftSnapshot = useMemo<ComposeDraftSnapshot>(
     () => ({
@@ -306,7 +306,9 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
   const saveDraftSnapshot = useCallback(
     (snapshot: ComposeDraftSnapshot, snapshotKey: string): Promise<boolean> => {
       const save = async (): Promise<boolean> => {
-        if (!api || sentRef.current) return false;
+        // A server draft of a reply without its threading headers would be sent
+        // unthreaded later. The local recovery snapshot still keeps the text.
+        if (!api || sentRef.current || awaitingReplyHeaders) return false;
         if (mountedRef.current) setDraftSaveState('saving');
         try {
           const draft = await saveDraftAsync({
@@ -341,7 +343,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
 
       return draftSaveQueue.enqueue(save);
     },
-    [api, draftSaveQueue, recoveryKey, replyHeaders, saveDraftAsync, t],
+    [api, awaitingReplyHeaders, draftSaveQueue, recoveryKey, replyHeaders, saveDraftAsync, t],
   );
 
   useEffect(() => {
@@ -476,6 +478,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
   }, []);
 
   const handleSend = useCallback(() => {
+    if (awaitingReplyHeaders) return;
     const recipients = getValidatedRecipients();
     if (!recipients) return;
 
@@ -513,7 +516,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         },
       },
     );
-  }, [attachments, body, closeCompose, draftSnapshot, getValidatedRecipients, idempotencyKey, recoveryKey, replyHeaders, sendWithUndo, subject]);
+  }, [attachments, awaitingReplyHeaders, body, closeCompose, draftSnapshot, getValidatedRecipients, idempotencyKey, recoveryKey, replyHeaders, sendWithUndo, subject]);
 
   const handleSaveDraft = useCallback(() => {
     if (!hasContent) {
@@ -589,6 +592,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
   const sendMenuControl = useDialogControl();
 
   const handleScheduleSend = useCallback((scheduledDate: Date) => {
+    if (awaitingReplyHeaders) return;
     const recipients = getValidatedRecipients();
     if (!recipients) return;
 
@@ -625,7 +629,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         },
       },
     );
-  }, [attachments, body, closeCompose, getValidatedRecipients, idempotencyKey, recoveryKey, replyHeaders, sendMessageMutation, subject, t]);
+  }, [attachments, awaitingReplyHeaders, body, closeCompose, getValidatedRecipients, idempotencyKey, recoveryKey, replyHeaders, sendMessageMutation, subject, t]);
 
   return (
     <KeyboardAvoidingView
@@ -674,13 +678,14 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
             <MaterialCommunityIcons name="content-save-outline" size={22} color={colors.icon} />
           )}
         </TouchableOpacity>
-        <View style={[styles.sendGroup, { backgroundColor: colors.primary, opacity: sending ? 0.5 : 1 }]}>
+        <View style={[styles.sendGroup, { backgroundColor: colors.primary, opacity: sendDisabled ? 0.5 : 1 }]}>
           <TouchableOpacity
             accessibilityLabel={t('compose.actions.send')}
             accessibilityRole="button"
             onPress={handleSend}
             style={styles.sendGroupPrimary}
-            disabled={sending}
+            disabled={sendDisabled}
+            accessibilityState={{ disabled: sendDisabled }}
             activeOpacity={0.7}
           >
             {Platform.OS === 'web' ? (
@@ -689,7 +694,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
               <MaterialCommunityIcons name="send" size={20} color={colors.background} />
             )}
             <Text style={[styles.sendGroupLabel, { color: colors.background }]}>
-              {sending ? t('common.loading') : t('compose.actions.send')}
+              {sending || replyParent.status === 'loading' ? t('common.loading') : t('compose.actions.send')}
             </Text>
           </TouchableOpacity>
           <View style={[styles.sendGroupDivider, { backgroundColor: colors.background }]} />
@@ -698,7 +703,8 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
             accessibilityRole="button"
             onPress={() => sendMenuControl.open()}
             style={styles.sendGroupChevron}
-            disabled={sending}
+            disabled={sendDisabled}
+            accessibilityState={{ disabled: sendDisabled }}
             activeOpacity={0.7}
           >
             {Platform.OS === 'web' ? (
@@ -749,6 +755,8 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         contentContainerStyle={{ paddingBottom: mode === 'standalone' ? tabBarClearance : 0 }}
         keyboardShouldPersistTaps="handled"
       >
+        <ReplyParentNotice state={replyParent} />
+
         {alreadyQueued && (
           <View style={fieldRowInset}>
             <Admonition type="info">{t('compose.queuedNotice')}</Admonition>

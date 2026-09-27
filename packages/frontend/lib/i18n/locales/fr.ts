@@ -279,6 +279,7 @@ const fr: LocaleDict = {
   },
 
   compose: {
+    replyParentError: "Impossible de charger le message auquel tu réponds : cette réponse ne peut pas encore être envoyée sans casser la conversation.",
     queuedNotice: "Ce message est déjà dans la file d'envoi. Le renvoyer ne créera pas de doublon.",
     titleCompose: 'Rédiger',
     titleReply: 'Répondre',

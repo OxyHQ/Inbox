@@ -276,6 +276,7 @@ const zh: LocaleDict = {
   },
 
   compose: {
+    replyParentError: "无法加载你要回复的邮件，因此暂时无法发送此回复，否则会打断会话。",
     queuedNotice: "此邮件已在发送队列中。再次发送不会产生重复邮件。",
     titleCompose: '撰写',
     titleReply: '回复',

@@ -279,6 +279,7 @@ const it: LocaleDict = {
   },
 
   compose: {
+    replyParentError: "Impossibile caricare il messaggio a cui rispondi: questa risposta non può ancora essere inviata senza spezzare la conversazione.",
     queuedNotice: "Questo messaggio è già nella coda di invio. Inviarlo di nuovo non creerà un duplicato.",
     titleCompose: 'Scrivi',
     titleReply: 'Rispondi',

@@ -143,6 +143,8 @@ const ar: LocaleDict = {
       section: "تعذّر العرض",
       title: "تعذّر عرض هذه الرسالة",
       open: "فتح",
+      retry: "إعادة المحاولة",
+      openRaw: "فتح المصدر الأصلي",
     },
     title: 'البريد الوارد',
     starredTitle: 'المميّزة',

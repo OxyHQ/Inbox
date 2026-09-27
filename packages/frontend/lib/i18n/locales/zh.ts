@@ -140,6 +140,8 @@ const zh: LocaleDict = {
       section: "无法显示",
       title: "无法显示此邮件",
       open: "打开",
+      retry: "重试",
+      openRaw: "打开原始邮件",
     },
     title: '收件箱',
     starredTitle: '星标',

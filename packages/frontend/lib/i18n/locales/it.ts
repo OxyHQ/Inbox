@@ -143,6 +143,8 @@ const it: LocaleDict = {
       section: "Impossibile visualizzare",
       title: "Impossibile visualizzare questo messaggio",
       open: "Apri",
+      retry: "Riprova",
+      openRaw: "Apri l'originale",
     },
     title: 'Posta',
     starredTitle: 'Speciali',

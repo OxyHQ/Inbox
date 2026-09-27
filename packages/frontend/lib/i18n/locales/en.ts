@@ -149,6 +149,8 @@ const en: LocaleDict = {
       section: "Couldn't display",
       title: "This message couldn't be displayed",
       open: "Open",
+      retry: "Retry",
+      openRaw: "Open original",
     },
     title: 'Inbox',
     starredTitle: 'Starred',

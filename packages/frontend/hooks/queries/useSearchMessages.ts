@@ -2,7 +2,7 @@ import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query';
 import { useOxy } from '@oxy.so/services';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
-import type { Message, Pagination } from '@/services/emailApi';
+import type { Message, Pagination, UnreadableMessage } from '@/services/emailApi';
 
 const SEARCH_PAGE_SIZE = 50;
 
@@ -22,6 +22,8 @@ export interface SearchOptions {
 
 export interface SearchPage {
   data: Message[];
+  /** Results the client could not read; the list shows them degraded. */
+  unreadable?: UnreadableMessage[];
   pagination: Pagination;
 }
 

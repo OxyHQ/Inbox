@@ -144,6 +144,8 @@ const ca: LocaleDict = {
       section: "No s'han pogut mostrar",
       title: "No s'ha pogut mostrar aquest missatge",
       open: "Obre",
+      retry: "Torna-ho a provar",
+      openRaw: "Obre l'original",
     },
     title: 'Safata',
     starredTitle: 'Destacats',

@@ -142,6 +142,8 @@ const ja: LocaleDict = {
       section: "表示できません",
       title: "このメッセージを表示できませんでした",
       open: "開く",
+      retry: "再試行",
+      openRaw: "元のメッセージを開く",
     },
     title: '受信箱',
     starredTitle: 'スター付き',

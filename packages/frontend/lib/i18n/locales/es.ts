@@ -144,6 +144,8 @@ const es: LocaleDict = {
       section: "No se pudieron mostrar",
       title: "No se pudo mostrar este mensaje",
       open: "Abrir",
+      retry: "Reintentar",
+      openRaw: "Abrir original",
     },
     title: 'Bandeja',
     starredTitle: 'Destacados',

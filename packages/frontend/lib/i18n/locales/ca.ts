@@ -140,6 +140,11 @@ const ca: LocaleDict = {
 
 
   inbox: {
+    unreadable: {
+      section: "No s'han pogut mostrar",
+      title: "No s'ha pogut mostrar aquest missatge",
+      open: "Obre",
+    },
     title: 'Safata',
     starredTitle: 'Destacats',
     searchInMailbox: 'Cerca a {{mailbox}}',
@@ -277,6 +282,7 @@ const ca: LocaleDict = {
   },
 
   compose: {
+    queuedNotice: "Aquest missatge ja és a la cua d'enviament. Tornar-lo a enviar no crearà un duplicat.",
     titleCompose: 'Redacta',
     titleReply: 'Respon',
     titleForward: 'Reenvia',

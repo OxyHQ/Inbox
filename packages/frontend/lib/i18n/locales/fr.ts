@@ -139,6 +139,11 @@ const fr: LocaleDict = {
 
 
   inbox: {
+    unreadable: {
+      section: "Affichage impossible",
+      title: "Ce message n'a pas pu être affiché",
+      open: "Ouvrir",
+    },
     title: 'Boîte',
     starredTitle: 'Favoris',
     searchInMailbox: 'Rechercher dans {{mailbox}}',
@@ -274,6 +279,7 @@ const fr: LocaleDict = {
   },
 
   compose: {
+    queuedNotice: "Ce message est déjà dans la file d'envoi. Le renvoyer ne créera pas de doublon.",
     titleCompose: 'Rédiger',
     titleReply: 'Répondre',
     titleForward: 'Transférer',

@@ -217,10 +217,9 @@ export function useSendMessage() {
   return useMutation({
     mutationFn: async (params: Parameters<NonNullable<typeof api>['sendMessage']>[0]) => {
       if (!api) throw new Error('Email API not initialized');
-      return api.sendMessage({
-        ...params,
-        idempotencyKey: params.idempotencyKey ?? `inbox-send-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`}`,
-      });
+      // The key travels in the mutation VARIABLES, so react-query's retry
+      // re-sends the same key rather than minting a second message.
+      return api.sendMessage(params);
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: emailKeys.messages.root });
@@ -259,11 +258,6 @@ export function useSendMessageWithUndo() {
         return;
       }
 
-      const request = {
-        ...params,
-        idempotencyKey: params.idempotencyKey ?? `inbox-send-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`}`,
-      };
-
       cancelledRef.current = false;
       setIsPending(true);
 
@@ -293,7 +287,7 @@ export function useSendMessageWithUndo() {
         }
 
         try {
-          const result = await api.sendMessage(request);
+          const result = await api.sendMessage(params);
           queryClient.invalidateQueries({ queryKey: emailKeys.messages.root });
           queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
 

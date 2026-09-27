@@ -16,6 +16,7 @@ import {
   Platform,
 } from 'react-native';
 import { Dialog, useDialogControl, toast } from '@oxy.so/bloom';
+import { Admonition } from '@oxy.so/bloom/admonition';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import {
@@ -50,6 +51,9 @@ import {
   saveComposeRecovery,
   type ComposeRecoverySnapshot,
 } from '@/utils/composeRecovery';
+import { useMessage } from '@/hooks/queries/useMessage';
+import { buildReplyHeaders, type ReplyHeaders } from '@/utils/replyHeaders';
+import { newSendIdempotencyKey } from '@/utils/sendIdempotency';
 
 /**
  * Local composer representation of an attachment. Just enough to render the
@@ -129,6 +133,7 @@ export function buildComposeDraftPayload(
   snapshot: ComposeDraftSnapshot,
   existingDraftId?: string,
   web = isWeb,
+  replyHeaders?: ReplyHeaders,
 ) {
   return {
     to: snapshot.to.trim() ? parseComposeRecipients(snapshot.to).addresses : undefined,
@@ -137,7 +142,9 @@ export function buildComposeDraftPayload(
     subject: snapshot.subject || undefined,
     text: web ? stripHtml(snapshot.body) || undefined : snapshot.body || undefined,
     html: web ? snapshot.body || undefined : undefined,
-    inReplyTo: snapshot.replyTo,
+    // RFC threading headers of the parent, never `snapshot.replyTo` — that is
+    // the parent's row id, and a row id in `In-Reply-To` detaches the reply.
+    ...(replyHeaders ?? {}),
     ...(snapshot.attachments && snapshot.attachments.length > 0
       ? { attachments: snapshot.attachments.map(({ fileId }) => ({ fileId })) }
       : {}),
@@ -173,6 +180,19 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
   const saveDraftMutation = useSaveDraft();
   const bodyRef = useRef<RichTextEditorHandle>(null);
 
+  // The parent is loaded by its row id only to read its RFC headers.
+  const parentQuery = useMessage(replyTo);
+  const replyHeaders = useMemo(
+    () => (parentQuery.data ? buildReplyHeaders(parentQuery.data) : undefined),
+    [parentQuery.data],
+  );
+  const replyHeadersPending = Boolean(replyTo) && parentQuery.isLoading;
+
+  // One key per compose session (see utils/sendIdempotency.ts); replaced by the
+  // recovered one when this composer resumes an earlier session.
+  const [idempotencyKey, setIdempotencyKey] = useState(newSendIdempotencyKey);
+  const [alreadyQueued, setAlreadyQueued] = useState(false);
+
   const [to, setTo] = useState(initialTo || '');
   const [cc, setCc] = useState(initialCc || '');
   const [bcc, setBcc] = useState('');
@@ -206,6 +226,8 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
     void loadComposeRecovery(recoveryKey).then((record) => {
       if (cancelled) return;
       if (record && !hasServerDraft) {
+        if (record.snapshot.idempotencyKey) setIdempotencyKey(record.snapshot.idempotencyKey);
+        setAlreadyQueued(record.snapshot.queued === true);
         setTo(record.snapshot.to);
         setCc(record.snapshot.cc);
         setBcc(record.snapshot.bcc);
@@ -255,7 +277,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
   const mountedRef = useRef(true);
 
   const fromAddress = user?.username ? `${user.username}@oxy.so` : '';
-  const sending = sendPending || sendMessageMutation.isPending;
+  const sending = sendPending || sendMessageMutation.isPending || replyHeadersPending;
   const hasContent = Boolean(to.trim() || subject.trim() || body.trim() || attachments.length > 0);
   const draftSnapshot = useMemo<ComposeDraftSnapshot>(
     () => ({
@@ -266,8 +288,10 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
       body,
       attachments: attachments.map((attachment) => ({ fileId: attachment.fileId })),
       replyTo,
+      idempotencyKey,
+      ...(alreadyQueued ? { queued: true } : {}),
     }),
-    [to, cc, bcc, subject, body, attachments, replyTo],
+    [to, cc, bcc, subject, body, attachments, replyTo, idempotencyKey, alreadyQueued],
   );
   const draftSnapshotKey = useMemo(() => JSON.stringify(draftSnapshot), [draftSnapshot]);
   const saveDraftAsync = saveDraftMutation.mutateAsync;
@@ -286,7 +310,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         if (mountedRef.current) setDraftSaveState('saving');
         try {
           const draft = await saveDraftAsync({
-            ...buildComposeDraftPayload(snapshot, draftIdRef.current ?? undefined),
+            ...buildComposeDraftPayload(snapshot, draftIdRef.current ?? undefined, isWeb, replyHeaders),
             ...(draftIdRef.current && draftRevisionRef.current
               ? { expectedRevision: draftRevisionRef.current }
               : {}),
@@ -317,7 +341,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
 
       return draftSaveQueue.enqueue(save);
     },
-    [api, draftSaveQueue, recoveryKey, saveDraftAsync, t],
+    [api, draftSaveQueue, recoveryKey, replyHeaders, saveDraftAsync, t],
   );
 
   useEffect(() => {
@@ -464,8 +488,9 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         subject,
         text: isWeb ? stripHtml(body) : body,
         html: isWeb ? body : undefined,
-        inReplyTo: replyTo,
+        ...(replyHeaders ?? {}),
         attachments: attachments.length > 0 ? attachments.map((a) => ({ fileId: a.fileId })) : undefined,
+        idempotencyKey,
       },
       {
         onSuccess: () => {
@@ -476,7 +501,11 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         // message and the delivery queue tracks it — but keep the local
         // crash-recovery snapshot, because `queued` includes the case where
         // delivery never happens and the text would otherwise be gone.
+        //
+        // The snapshot is marked queued and keeps the session key, so reopening
+        // it says so, and pressing Send again is the same message to the API.
         onQueued: () => {
+          void saveComposeRecovery(recoveryKey, { ...draftSnapshot, queued: true });
           closeCompose();
         },
         onError: () => {
@@ -484,7 +513,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         },
       },
     );
-  }, [attachments, body, closeCompose, getValidatedRecipients, recoveryKey, replyTo, sendWithUndo, subject]);
+  }, [attachments, body, closeCompose, draftSnapshot, getValidatedRecipients, idempotencyKey, recoveryKey, replyHeaders, sendWithUndo, subject]);
 
   const handleSaveDraft = useCallback(() => {
     if (!hasContent) {
@@ -572,9 +601,10 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         subject,
         text: isWeb ? stripHtml(body) : body,
         html: isWeb ? body : undefined,
-        inReplyTo: replyTo,
+        ...(replyHeaders ?? {}),
         attachments: attachments.length > 0 ? attachments.map((a) => ({ fileId: a.fileId })) : undefined,
         scheduledAt: scheduledDate.toISOString(),
+        idempotencyKey,
       },
       {
         onSuccess: () => {
@@ -595,7 +625,7 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         },
       },
     );
-  }, [attachments, body, closeCompose, getValidatedRecipients, recoveryKey, replyTo, sendMessageMutation, subject, t]);
+  }, [attachments, body, closeCompose, getValidatedRecipients, idempotencyKey, recoveryKey, replyHeaders, sendMessageMutation, subject, t]);
 
   return (
     <KeyboardAvoidingView
@@ -719,6 +749,12 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         contentContainerStyle={{ paddingBottom: mode === 'standalone' ? tabBarClearance : 0 }}
         keyboardShouldPersistTaps="handled"
       >
+        {alreadyQueued && (
+          <View style={fieldRowInset}>
+            <Admonition type="info">{t('compose.queuedNotice')}</Admonition>
+          </View>
+        )}
+
         {/* From */}
         <View style={[styles.fieldRow, fieldRowInset, { borderBottomColor: colors.border }]}>
           <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>{t('compose.fields.from')}</Text>

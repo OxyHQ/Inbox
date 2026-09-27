@@ -28,6 +28,9 @@ import { RichTextEditor, stripHtml, type RichTextEditorHandle } from '@/componen
 import { TemplatePicker } from '@/components/TemplatePicker';
 import { useTranslation } from '@/lib/i18n';
 import type { Message, EmailAddress, EmailTemplate } from '@/services/emailApi';
+import { buildReplyHeaders } from '@/utils/replyHeaders';
+import { buildReplyRecipients, joinAddresses } from '@/utils/replyRecipients';
+import { newSendIdempotencyKey } from '@/utils/sendIdempotency';
 
 const isWeb = Platform.OS === 'web';
 
@@ -67,22 +70,18 @@ export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps
   const { sendWithUndo, isPending: sendPending } = useSendMessageWithUndo();
   const bodyRef = useRef<RichTextEditorHandle>(null);
 
-  // Compute initial recipients based on mode
-  const initialTo = useMemo(() => {
-    if (mode === 'forward') return '';
-    if (mode === 'reply-all') {
-      const allTo = [message.from, ...(message.to || [])];
-      return allTo.map((a) => a.address).join(', ');
-    }
-    return message.from.address;
-  }, [mode, message]);
+  // One key for this reply, however many times Send is pressed or retried.
+  const [idempotencyKey] = useState(newSendIdempotencyKey);
 
-  const initialCc = useMemo(() => {
-    if (mode === 'reply-all' && message.cc) {
-      return message.cc.map((a) => a.address).join(', ');
-    }
-    return '';
-  }, [mode, message]);
+  const initialRecipients = useMemo(
+    () =>
+      mode === 'forward'
+        ? { to: [], cc: [] }
+        : buildReplyRecipients(message, mode, { username: user?.username, email: user?.email }),
+    [mode, message, user?.username, user?.email],
+  );
+  const initialTo = joinAddresses(initialRecipients.to);
+  const initialCc = joinAddresses(initialRecipients.cc);
 
   const initialSubject = useMemo(() => {
     if (mode === 'forward') {
@@ -177,12 +176,8 @@ export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps
         subject: initialSubject,
         text: isWeb ? stripHtml(fullBody) : fullBody,
         html: isWeb ? fullBody : undefined,
-        // The RFC 5322 `Message-Id`, NOT the database row id. The backend puts
-        // this straight into the outgoing `In-Reply-To` header and matches it
-        // with `findOwnMessageByRfcId`, so a row id here broke threading in the
-        // recipient's client and left the original unmarked as answered.
-        inReplyTo: mode !== 'forward' ? message.messageId : undefined,
-        references: mode !== 'forward' && message.references ? [...message.references, message.messageId] : undefined,
+        ...(mode !== 'forward' ? buildReplyHeaders(message) : {}),
+        idempotencyKey,
       },
       {
         onSuccess: () => {
@@ -197,7 +192,7 @@ export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps
         },
       },
     );
-  }, [to, cc, bcc, body, quotedText, initialSubject, message, mode, sendWithUndo, onClose, onSent, parseAddresses, t]);
+  }, [to, cc, bcc, body, quotedText, initialSubject, message, mode, sendWithUndo, onClose, onSent, parseAddresses, t, idempotencyKey]);
 
   const senderName = message.from.name || message.from.address.split('@')[0];
 

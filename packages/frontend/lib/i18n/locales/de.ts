@@ -139,6 +139,11 @@ const de: LocaleDict = {
 
 
   inbox: {
+    unreadable: {
+      section: "Nicht darstellbar",
+      title: "Diese Nachricht konnte nicht angezeigt werden",
+      open: "Öffnen",
+    },
     title: 'Posteingang',
     starredTitle: 'Markiert',
     searchInMailbox: 'In {{mailbox}} suchen',
@@ -274,6 +279,7 @@ const de: LocaleDict = {
   },
 
   compose: {
+    queuedNotice: "Diese Nachricht ist bereits in der Sendewarteschlange. Erneutes Senden erzeugt kein Duplikat.",
     titleCompose: 'Verfassen',
     titleReply: 'Antworten',
     titleForward: 'Weiterleiten',

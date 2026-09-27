@@ -33,6 +33,7 @@ import { recordInboxMetric } from '@/utils/inboxTelemetry';
 import type {
   EmailAddress,
   Message,
+  UnreadableMessage,
   Mailbox,
   Label,
   Pagination,
@@ -91,36 +92,83 @@ export interface EmailSendOptions {
   idempotencyKey?: string;
 }
 
+function readString(value: unknown, key: string): string | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const field = (value as Record<string, unknown>)[key];
+  return typeof field === 'string' ? field : null;
+}
+
+/**
+ * What can still be read from a row that failed the schema: enough to show the
+ * user that a message IS there and let them open it, never enough to mistake
+ * it for a `Message`.
+ */
+function toUnreadable(item: unknown): UnreadableMessage {
+  const from = typeof item === 'object' && item !== null ? (item as { from?: unknown }).from : undefined;
+  return {
+    kind: 'unreadable',
+    _id: readString(item, '_id'),
+    from: readString(from, 'name') || readString(from, 'address'),
+    subject: readString(item, 'subject'),
+    receivedAt: readString(item, 'receivedAt') ?? readString(item, 'date'),
+  };
+}
+
 /**
  * Parse an array of messages.
  *
  * A row that fails the schema is a CONTRACT bug between this client and the
  * API, never a "stale cache item": the Ramp verification mails vanished from
  * the inbox because an attachment's `contentId: null` failed here and the row
- * was skipped without a word. So a failure is always reported, loudly and in
- * production, with the fields that failed — never the message content.
+ * was skipped without a word. So a failure is reported, loudly and in
+ * production, with the fields that failed — never the message content — and
+ * the row comes back as an `UnreadableMessage` for the list to show.
  */
-function parseMessages(items: unknown, source: string): Message[] {
-  if (!Array.isArray(items)) return [];
-  return items.reduce<Message[]>((acc, item) => {
+function parseMessageList(items: unknown, source: string): { messages: Message[]; unreadable: UnreadableMessage[] } {
+  const messages: Message[] = [];
+  const unreadable: UnreadableMessage[] = [];
+  if (!Array.isArray(items)) return { messages, unreadable };
+  for (const item of items) {
     const result = MessageSchema.safeParse(item);
     if (result.success) {
-      acc.push(result.data);
-      return acc;
+      messages.push(result.data);
+      continue;
     }
-    const id =
-      typeof item === 'object' && item !== null && typeof (item as { _id?: unknown })._id === 'string'
-        ? (item as { _id: string })._id
-        : null;
+    const row = toUnreadable(item);
     console.error('[inbox] message failed schema validation', {
       source,
-      id,
+      id: row._id,
       issues: result.error.issues.map((issue) => ({ path: issue.path.join('.'), message: issue.message })),
     });
     recordInboxMetric('message_parse_failed');
-    return acc;
-  }, []);
+    unreadable.push(row);
+  }
+  return { messages, unreadable };
 }
+
+/**
+ * A single-message read. Throws — the detail screen shows its error state with
+ * a retry — but reports the failing fields exactly as a list row would.
+ */
+function parseMessageStrict(item: unknown, source: string): Message {
+  const result = MessageSchema.safeParse(item);
+  if (result.success) return result.data;
+  console.error('[inbox] message failed schema validation', {
+    source,
+    id: readString(item, '_id'),
+    issues: result.error.issues.map((issue) => ({ path: issue.path.join('.'), message: issue.message })),
+  });
+  recordInboxMetric('message_parse_failed');
+  throw result.error;
+}
+
+/** For reads whose UI has no place for an unreadable row; still reported. */
+function parseMessages(items: unknown, source: string): Message[] {
+  return parseMessageList(items, source).messages;
+}
+
+/** Long enough for a synchronous SMTP relay; see `sendMessage`. */
+const SEND_TIMEOUT_MS = 60_000;
 
 // ─── API Client ────────────────────────────────────────────────────
 
@@ -154,7 +202,7 @@ export function createEmailApi(http: HttpService) {
         cursor?: string;
         unseenOnly?: boolean;
       } = {},
-    ): Promise<{ data: Message[]; pagination: Pagination }> {
+    ): Promise<{ data: Message[]; unreadable: UnreadableMessage[]; pagination: Pagination }> {
       const params: Record<string, string> = {};
       if (options.mailboxId) params.mailbox = options.mailboxId;
       if (options.starred) params.starred = 'true';
@@ -165,15 +213,17 @@ export function createEmailApi(http: HttpService) {
       if (options.unseenOnly) params.unseen = 'true';
 
       const res = (await http.get('/email/messages', { params })) as PaginatedResult<unknown>;
+      const { messages, unreadable } = parseMessageList(res.data, 'list');
       return {
-        data: parseMessages(res.data, 'list'),
+        data: messages,
+        unreadable,
         pagination: PaginationSchema.parse(res.pagination),
       };
     },
 
     async getMessage(messageId: string): Promise<Message> {
       const res = await http.get(`/email/messages/${messageId}`);
-      return MessageSchema.parse(res);
+      return parseMessageStrict(res, 'detail');
     },
 
     async getThread(messageId: string): Promise<Message[]> {
@@ -263,14 +313,19 @@ export function createEmailApi(http: HttpService) {
       references?: string[];
       attachments?: { fileId: string; contentId?: string; isInline?: boolean }[];
       scheduledAt?: string;
-      idempotencyKey?: string;
+      /** Required: one per compose session, see `utils/sendIdempotency.ts`. */
+      idempotencyKey: string;
     }): Promise<{ messageId: string; queued?: boolean; scheduledAt?: string; message: string }> {
       const { idempotencyKey, ...payload } = message;
-      const res = await http.post(
-        '/email/messages',
-        payload,
-        idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey }, cache: false } : { cache: false },
-      );
+      const res = await http.post('/email/messages', payload, {
+        headers: { 'Idempotency-Key': idempotencyKey },
+        cache: false,
+        // The API relays synchronously; the SDK's 5 s default cut a slow relay
+        // off mid-send, the composer reopened, and the user sent it again.
+        timeout: SEND_TIMEOUT_MS,
+        // Safe only because the key makes a repeat the same message.
+        retry: true,
+      });
       return z.object({
         messageId: z.string(),
         queued: z.boolean().optional(),

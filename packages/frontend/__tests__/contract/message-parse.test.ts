@@ -66,17 +66,52 @@ describe('message list parsing', () => {
     expect(thread).toHaveLength(1);
   });
 
-  it('reports a row that breaks the contract instead of dropping it silently', async () => {
+  it('reports a row that breaks the contract and returns it as unreadable', async () => {
     const api = apiReturning({
       data: [ampMail, { ...ampMail, _id: 'broken', from: null }],
       pagination: { total: 2, limit: 50, offset: 0, hasMore: false },
     });
     const page = await api.listMessages({ mailboxId: 'inbox-1' });
     expect(page.data).toHaveLength(1);
+    // Never dropped: it comes back as a distinct, degraded row.
+    expect(page.unreadable).toEqual([
+      {
+        kind: 'unreadable',
+        _id: 'broken',
+        from: null,
+        subject: ampMail.subject,
+        receivedAt: ampMail.receivedAt,
+      },
+    ]);
     expect(recordInboxMetric).toHaveBeenCalledWith('message_parse_failed');
     expect(consoleError).toHaveBeenCalledWith(
       '[inbox] message failed schema validation',
       expect.objectContaining({ source: 'list', id: 'broken' }),
     );
+  });
+});
+
+describe('single message read', () => {
+  it('reports the failing fields before the detail screen shows its error', async () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const api = apiReturning({ ...ampMail, from: null });
+    await expect(api.getMessage(ampMail._id)).rejects.toThrow();
+    expect(consoleError).toHaveBeenCalledWith(
+      '[inbox] message failed schema validation',
+      expect.objectContaining({ source: 'detail', id: ampMail._id }),
+    );
+    consoleError.mockRestore();
+  });
+});
+
+describe('sendMessage', () => {
+  it('always sends the Idempotency-Key and a timeout that outlasts a synchronous relay', async () => {
+    const post = jest.fn().mockResolvedValue({ messageId: '<a@oxy.so>', message: 'Message sent' });
+    const api = createEmailApi({ post } as never);
+    await api.sendMessage({ to: [{ address: 'a@b.co' }], subject: 'Hi', idempotencyKey: 'inbox-send-k' });
+    const [, payload, config] = post.mock.calls[0];
+    expect(payload).not.toHaveProperty('idempotencyKey');
+    expect(config.headers).toEqual({ 'Idempotency-Key': 'inbox-send-k' });
+    expect(config.timeout).toBeGreaterThanOrEqual(30_000);
   });
 });

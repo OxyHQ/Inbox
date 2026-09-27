@@ -14,10 +14,13 @@
 
 import type { InfiniteData, QueryClient, QueryKey } from '@tanstack/react-query';
 import { emailKeys } from '@/hooks/queries/queryKeys';
-import type { Mailbox, Message, Pagination } from '@/services/emailApi';
+import type { Mailbox, Message, Pagination, UnreadableMessage } from '@/services/emailApi';
 
-interface MessagesPage {
+/** One page of a `['messages', ...]` infinite list. */
+export interface MessagesPage {
   data: Message[];
+  /** Rows the API sent that failed the schema; rendered as degraded rows. */
+  unreadable?: UnreadableMessage[];
   pagination: Pagination;
 }
 

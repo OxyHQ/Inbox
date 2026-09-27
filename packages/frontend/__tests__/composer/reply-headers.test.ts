@@ -21,3 +21,21 @@ describe('buildReplyHeaders', () => {
     ]);
   });
 });
+
+describe('buildReplyHeaders against the RFC msg-id contract', () => {
+  it('repairs a Message-Id written without angle brackets', () => {
+    expect(buildReplyHeaders({ messageId: 'abc@mailer.example', references: [] })).toEqual({
+      inReplyTo: '<abc@mailer.example>',
+      references: ['<abc@mailer.example>'],
+    });
+  });
+
+  it('never sends a database row id or a malformed reference', () => {
+    const headers = buildReplyHeaders({
+      messageId: '01a0821a-7395-7e43-bdb4-fa5166ea32d1',
+      references: ['<01a0821a-7395-7e43-bdb4-fa5166ea32d1>', 'garbage with spaces', '<root@amazon.com>'],
+    });
+    expect(headers.inReplyTo).toBeUndefined();
+    expect(headers.references).toEqual(['<root@amazon.com>']);
+  });
+});

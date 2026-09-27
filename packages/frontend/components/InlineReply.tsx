@@ -27,7 +27,7 @@ import { SmartReplyChips } from '@/components/SmartReplyChips';
 import { RichTextEditor, stripHtml, type RichTextEditorHandle } from '@/components/RichTextEditor';
 import { TemplatePicker } from '@/components/TemplatePicker';
 import { useTranslation } from '@/lib/i18n';
-import type { Message, EmailAddress, EmailTemplate } from '@/services/emailApi';
+import type { Message, EmailTemplate, RecipientInput } from '@/services/emailApi';
 import { buildReplyHeaders } from '@/utils/replyHeaders';
 import { buildReplyRecipients, joinAddresses } from '@/utils/replyRecipients';
 import { newSendIdempotencyKey } from '@/utils/sendIdempotency';
@@ -145,7 +145,7 @@ export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps
 
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  const parseAddresses = useCallback((input: string): EmailAddress[] => {
+  const parseAddresses = useCallback((input: string): RecipientInput[] => {
     return input
       .split(',')
       .map((s) => s.trim())

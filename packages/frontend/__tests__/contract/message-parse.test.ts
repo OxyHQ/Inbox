@@ -2,6 +2,7 @@ const recordInboxMetric = jest.fn();
 jest.mock('@/utils/inboxTelemetry', () => ({ recordInboxMetric }));
 
 import { createEmailApi } from '@/services/emailApi';
+import { ampAttachment, wireMessage } from '../fixtures/wire';
 
 /**
  * The shape the API sent for a Ramp verification mail on 2026-09-27: its AMP
@@ -9,32 +10,7 @@ import { createEmailApi } from '@/services/emailApi';
  * serialises as `contentId: null`. The client schema rejected null, and the
  * whole message vanished from the inbox a second after it appeared.
  */
-const ampMail = {
-  _id: '01a0e16f-99bc-7f50-af45-9a9ca01a82ea',
-  userId: 'user-1',
-  mailboxId: 'inbox-1',
-  messageId: '<code@geopod-ismtpd-9>',
-  threadId: '01a0e16f-99bc-7f50-af45-9a9ca01a82ea',
-  from: { name: 'Ramp', address: 'communications@ramp.com' },
-  to: [{ name: '', address: 'nate@oxy.so' }],
-  cc: [],
-  bcc: [],
-  subject: '977687 is your Ramp sign-in code',
-  text: 'Your login verification code',
-  html: null,
-  attachments: [
-    { fileId: 'file-1', name: 'attachment', contentType: 'text/x-amp-html', size: 22737, contentId: null, isInline: false },
-  ],
-  flags: { seen: false, starred: false, answered: false, forwarded: false, draft: false, pinned: false },
-  labels: [],
-  size: 40000,
-  inReplyTo: null,
-  references: [],
-  date: '2026-09-27T05:56:22.000Z',
-  receivedAt: '2026-09-27T05:56:22.583Z',
-  createdAt: '2026-09-27T05:56:22.583Z',
-  updatedAt: '2026-09-27T05:56:22.583Z',
-};
+const ampMail = wireMessage({ text: 'Your login verification code', html: null, attachments: [ampAttachment] });
 
 function apiReturning(body: unknown) {
   const http = { get: jest.fn().mockResolvedValue(body) };

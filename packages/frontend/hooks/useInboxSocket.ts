@@ -90,12 +90,17 @@ type MessagesInfinite = InfiniteData<MessagesPage>;
 function buildOptimisticMessage(event: EmailNewEvent, userId: string): Message {
   return {
     _id: event.id,
+    id: event.id,
     userId,
     mailboxId: event.mailboxId,
     messageId: event.messageId,
-    threadId: event.messageId,
-    from: event.from,
+    // A new row's thread is keyed by the smallest row id in its group; until
+    // the refetch says otherwise, the row is its own thread.
+    threadId: event.id,
+    from: { name: event.from.name ?? '', address: event.from.address },
     to: [],
+    cc: [],
+    bcc: [],
     subject: event.subject,
     text: event.snippet,
     html: null,
@@ -109,10 +114,24 @@ function buildOptimisticMessage(event: EmailNewEvent, userId: string): Message {
       pinned: false,
     },
     labels: [],
+    highlights: [],
+    encrypted: false,
+    spamScore: null,
+    spamAction: null,
+    inReplyTo: null,
+    references: [],
+    aliasTag: null,
+    snoozedUntil: null,
+    snoozedFromMailbox: null,
+    scheduledAt: null,
+    readReceiptRequested: false,
+    readReceiptSent: false,
     draftRevision: 1,
     size: 0,
     date: event.receivedAt,
     receivedAt: event.receivedAt,
+    createdAt: event.receivedAt,
+    updatedAt: event.receivedAt,
   };
 }
 

@@ -44,13 +44,16 @@ export function useCreateContact() {
     },
     onMutate: async (data) => {
       const now = new Date().toISOString();
+      const tempId = `optimistic:${Date.now()}`;
       const optimistic: Contact = {
-        _id: `optimistic:${Date.now()}`,
+        _id: tempId,
+        id: tempId,
         userId: '',
         name: data.name,
         email: data.email,
-        company: data.company,
-        notes: data.notes,
+        company: data.company ?? null,
+        notes: data.notes ?? null,
+        lastContactedAt: null,
         starred: data.starred ?? false,
         autoCollected: false,
         createdAt: now,

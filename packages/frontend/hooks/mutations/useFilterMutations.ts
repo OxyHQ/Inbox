@@ -41,8 +41,10 @@ export function useCreateFilter() {
     },
     onMutate: async (data) => {
       const now = new Date().toISOString();
+      const tempId = `optimistic:${Date.now()}`;
       const optimistic: EmailFilter = {
-        _id: `optimistic:${Date.now()}`,
+        _id: tempId,
+        id: tempId,
         userId: '',
         name: data.name,
         enabled: data.enabled ?? true,

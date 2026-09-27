@@ -60,6 +60,7 @@ import {
 import { useBundles } from '@/hooks/queries/useBundles';
 import { useUpdateBundle, useReorderBundle } from '@/hooks/mutations/useBundleMutations';
 import { useEmailStore } from '@/hooks/useEmail';
+import { EMAIL_FILTER_CONDITION_FIELDS, EMAIL_FILTER_CONDITION_OPERATORS } from '@oxy.so/contracts';
 import type { EmailFilterCondition, EmailFilterAction } from '@/services/emailApi';
 import { OutboundQueueSection } from '@/components/settings/OutboundQueueSection';
 
@@ -67,28 +68,43 @@ import { OutboundQueueSection } from '@/components/settings/OutboundQueueSection
 
 type FilterField = EmailFilterCondition['field'];
 type FilterOperator = EmailFilterCondition['operator'];
-type FilterActionType = 'archive' | 'mark-read' | 'star' | 'delete';
+/** The rule actions this form offers; the rest are set by other surfaces. */
+type FilterActionType = Extract<EmailFilterAction['type'], 'archive' | 'mark-read' | 'star' | 'delete'>;
 
-const FIELD_OPTIONS: { value: FilterField; labelKey: string }[] = [
-  { value: 'from', labelKey: 'search.filters.from' },
-  { value: 'to', labelKey: 'compose.fields.to' },
-  { value: 'subject', labelKey: 'compose.placeholders.subject' },
-  { value: 'has-attachment', labelKey: 'search.filters.hasAttachment' },
-  { value: 'size', labelKey: 'ui.settings.advanced.sizeBytes' },
-];
+// Keyed by the contract's vocabularies, so a field or operator the API adds
+// fails typecheck here until it has a label, instead of silently not showing.
+const FIELD_LABEL_KEYS: Record<FilterField, string> = {
+  from: 'search.filters.from',
+  to: 'compose.fields.to',
+  subject: 'compose.placeholders.subject',
+  'has-attachment': 'search.filters.hasAttachment',
+  size: 'ui.settings.advanced.sizeBytes',
+};
 
-const TEXT_OPERATORS: { value: FilterOperator; labelKey: string }[] = [
-  { value: 'contains', labelKey: 'ui.settings.advanced.contains' },
-  { value: 'equals', labelKey: 'ui.settings.advanced.equals' },
-  { value: 'not-contains', labelKey: 'ui.settings.advanced.notContains' },
-  { value: 'starts-with', labelKey: 'ui.settings.advanced.startsWith' },
-  { value: 'ends-with', labelKey: 'ui.settings.advanced.endsWith' },
-];
+const OPERATOR_LABEL_KEYS: Record<FilterOperator, string> = {
+  contains: 'ui.settings.advanced.contains',
+  equals: 'ui.settings.advanced.equals',
+  'not-contains': 'ui.settings.advanced.notContains',
+  'starts-with': 'ui.settings.advanced.startsWith',
+  'ends-with': 'ui.settings.advanced.endsWith',
+  'greater-than': 'ui.settings.advanced.largerThan',
+  'less-than': 'ui.settings.advanced.smallerThan',
+};
 
-const SIZE_OPERATORS: { value: FilterOperator; labelKey: string }[] = [
-  { value: 'greater-than', labelKey: 'ui.settings.advanced.largerThan' },
-  { value: 'less-than', labelKey: 'ui.settings.advanced.smallerThan' },
-];
+const SIZE_OPERATOR_SET = new Set<FilterOperator>(['greater-than', 'less-than']);
+
+const FIELD_OPTIONS: { value: FilterField; labelKey: string }[] = EMAIL_FILTER_CONDITION_FIELDS.map((value) => ({
+  value,
+  labelKey: FIELD_LABEL_KEYS[value],
+}));
+
+const TEXT_OPERATORS: { value: FilterOperator; labelKey: string }[] = EMAIL_FILTER_CONDITION_OPERATORS.filter(
+  (value) => !SIZE_OPERATOR_SET.has(value),
+).map((value) => ({ value, labelKey: OPERATOR_LABEL_KEYS[value] }));
+
+const SIZE_OPERATORS: { value: FilterOperator; labelKey: string }[] = EMAIL_FILTER_CONDITION_OPERATORS.filter(
+  (value) => SIZE_OPERATOR_SET.has(value),
+).map((value) => ({ value, labelKey: OPERATOR_LABEL_KEYS[value] }));
 
 const ACTION_OPTIONS: { value: FilterActionType; labelKey: string }[] = [
   { value: 'archive', labelKey: 'message.actions.archive' },

@@ -32,6 +32,7 @@ import {
 import { recordInboxMetric } from '@/utils/inboxTelemetry';
 import type {
   EmailAddress,
+  RecipientInput,
   Message,
   UnreadableMessage,
   Mailbox,
@@ -303,9 +304,9 @@ export function createEmailApi(http: HttpService) {
     // ─── Compose ────────────────────────────────────────────────────
 
     async sendMessage(message: {
-      to: EmailAddress[];
-      cc?: EmailAddress[];
-      bcc?: EmailAddress[];
+      to: RecipientInput[];
+      cc?: RecipientInput[];
+      bcc?: RecipientInput[];
       subject: string;
       text?: string;
       html?: string;
@@ -335,9 +336,9 @@ export function createEmailApi(http: HttpService) {
     },
 
     async saveDraft(draft: {
-      to?: EmailAddress[];
-      cc?: EmailAddress[];
-      bcc?: EmailAddress[];
+      to?: RecipientInput[];
+      cc?: RecipientInput[];
+      bcc?: RecipientInput[];
       subject?: string;
       text?: string;
       html?: string;

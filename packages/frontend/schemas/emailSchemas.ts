@@ -1,59 +1,53 @@
 /**
  * Zod schemas + inferred types for the Oxy email domain.
  *
- * Single source of truth for the runtime shape of every email entity returned
- * by `api.oxy.so`. Extracted from `services/emailApi.ts` so the validation
- * layer is decoupled from the HTTP client: schemas can be imported by tests,
- * cache helpers, and UI without pulling in the API constructor.
+ * Every API RESPONSE schema here is DERIVED from `@oxy.so/contracts`' email wire
+ * contract, which oxy-api is typed against and tests real responses with. One
+ * declaration, two sides: the client can no longer disagree with the server
+ * about a field's nullability, which is how `contentId: null` once made
+ * messages vanish from the inbox. Only client-side REFINEMENTS are composed on
+ * top (the typed card payload, and a card that fails to parse degrading to
+ * "no card" rather than failing its message) — never a redeclared field.
+ *
+ * The schemas below `Pagination` describe endpoints the contract does not
+ * cover yet (quota, settings, subscriptions, reminders, templates, saved
+ * searches); they stay local until it does.
  *
  * `services/emailApi.ts` re-exports everything here, so existing
  * `@/services/emailApi` imports keep working unchanged.
- *
- * The RESPONSE schemas below (message, attachment, contact, filter, ...) mirror
- * the API's DTOs by hand, which is how `contentId: null` drifted and hid mail.
- * They are due to become re-exports of the shared `@oxy.so/contracts` email
- * schemas, which the API is typed against; until that ships, any change to an
- * API DTO must be mirrored here, nullability included.
  */
 
 import { z } from 'zod';
+import {
+  MESSAGE_CARD_TYPES,
+  emailAttachmentSchema,
+  emailBundleSchema,
+  emailContactSchema,
+  emailFilterActionSchema,
+  emailFilterConditionSchema,
+  emailFilterSchema,
+  emailLabelSchema,
+  emailMailboxSchema,
+  emailMessageAddressSchema,
+  emailMessageCardSchema,
+  emailMessageFlagsSchema,
+  emailMessageHighlightSchema,
+  emailMessageSchema,
+  emailOutboxSchema,
+} from '@oxy.so/contracts';
 
-// ─── Schemas ───────────────────────────────────────────────────────
+// ─── Schemas derived from the wire contract ────────────────────────
 
-export const EmailAddressSchema = z.object({
-  name: z.string().optional(),
-  address: z.string(),
-});
-
-export const AttachmentSchema = z.object({
-  fileId: z.string(),
-  name: z.string(),
-  contentType: z.string(),
-  size: z.number(),
-  // The API sends `null` for a part with no Content-ID (an AMP body, any plain
-  // attachment). Rejecting null here dropped the WHOLE message from every list.
-  contentId: z.string().nullable().optional(),
-  isInline: z.boolean().optional(),
-});
-
-export const MessageFlagsSchema = z.object({
-  seen: z.boolean().optional().default(false),
-  starred: z.boolean().optional().default(false),
-  answered: z.boolean().optional().default(false),
-  forwarded: z.boolean().optional().default(false),
-  draft: z.boolean().optional().default(false),
-  pinned: z.boolean().optional().default(false),
-});
-
-export const CardTypeSchema = z.enum(['trip', 'purchase', 'event', 'bill', 'package']);
+export const EmailAddressSchema = emailMessageAddressSchema;
+export const AttachmentSchema = emailAttachmentSchema;
+export const MessageFlagsSchema = emailMessageFlagsSchema;
+export const CardTypeSchema = z.enum(MESSAGE_CARD_TYPES);
 
 /**
- * Loosely-structured payload extracted from a message for a smart card.
- *
- * Fields are the superset of every card variant (trip/purchase/event/bill/
- * package); all are optional because extraction is best-effort. `.passthrough()`
- * preserves any additional keys the backend extractor emits so cards are never
- * dropped on a schema mismatch — it only adds typing for the keys the UI reads.
+ * Typed view of a card's payload. The contract carries it as an open record;
+ * this names the keys the UI reads. Fields are the superset of every card
+ * variant, all optional because extraction is best-effort, and `.passthrough()`
+ * keeps any key the extractor adds.
  */
 export const CardDataSchema = z
   .object({
@@ -93,75 +87,26 @@ export const CardDataSchema = z
   })
   .passthrough();
 
-export const MessageCardSchema = z.object({
-  type: CardTypeSchema,
-  data: CardDataSchema,
-  confidence: z.number(),
-  extractedAt: z.string(),
+/**
+ * A card the UI can render: the contract's card with its payload present and
+ * typed. The wire allows `data: null`; a card with nothing in it has nothing to
+ * show, so it degrades to "no card" (see `MessageSchema`).
+ */
+export const MessageCardSchema = emailMessageCardSchema.extend({ data: CardDataSchema });
+
+export const HighlightSchema = emailMessageHighlightSchema;
+
+/**
+ * A message as every `/email` read returns it. The one refinement: a card that
+ * does not satisfy `MessageCardSchema` becomes `undefined` instead of failing
+ * the whole message — a best-effort AI extraction must never hide a mail.
+ */
+export const MessageSchema = emailMessageSchema.extend({
+  card: MessageCardSchema.optional().catch(undefined),
 });
 
-export const HighlightSchema = z.object({
-  type: z.string(),
-  value: z.string(),
-  label: z.string(),
-});
-
-export const MessageSchema = z.object({
-  _id: z.string(),
-  userId: z.string(),
-  mailboxId: z.string(),
-  messageId: z.string(),
-  threadId: z.string().optional(),
-  from: EmailAddressSchema,
-  replyTo: EmailAddressSchema.nullable().optional(),
-  to: z.array(EmailAddressSchema).default([]),
-  cc: z.array(EmailAddressSchema).optional(),
-  bcc: z.array(EmailAddressSchema).optional(),
-  subject: z.string().default(''),
-  text: z.string().nullable().optional(),
-  html: z.string().nullable().optional(),
-  headers: z.record(z.string(), z.string()).optional(),
-  attachments: z.array(AttachmentSchema).default([]),
-  flags: MessageFlagsSchema.default({}),
-  labels: z.array(z.string()).default([]),
-  card: MessageCardSchema.nullable().optional().catch(null),
-  highlights: z.array(HighlightSchema).optional(),
-  spamScore: z.number().nullable().optional(),
-  size: z.number().default(0),
-  inReplyTo: z.string().nullable().optional(),
-  references: z.array(z.string()).optional(),
-  aliasTag: z.string().nullable().optional(),
-  snoozedUntil: z.string().nullable().optional(),
-  scheduledAt: z.string().nullable().optional(),
-  draftRevision: z.number().int().min(1).default(1),
-  threadCount: z.number().optional(),
-  threadParticipants: z.array(z.string()).optional(),
-  senderAvatarPath: z.string().nullable().optional(),
-  date: z.string(),
-  receivedAt: z.string(),
-});
-
-export const MailboxSchema = z.object({
-  _id: z.string(),
-  userId: z.string(),
-  name: z.string(),
-  path: z.string(),
-  specialUse: z.string().nullable().optional(),
-  totalMessages: z.number(),
-  unseenMessages: z.number(),
-  size: z.number(),
-});
-
-export const LabelSchema = z.object({
-  _id: z.string(),
-  /** Absent on system labels, which are constants rather than stored rows. */
-  userId: z.string().optional(),
-  name: z.string(),
-  color: z.string(),
-  order: z.number(),
-  /** Part of the product; cannot be renamed, recoloured or deleted. */
-  system: z.boolean().default(false),
-});
+export const MailboxSchema = emailMailboxSchema;
+export const LabelSchema = emailLabelSchema;
 
 export const PaginationSchema = z.object({
   total: z.number(),
@@ -210,17 +155,7 @@ export const UnsubscribeResultSchema = z.object({
   method: z.string(),
 });
 
-export const BundleSchema = z.object({
-  _id: z.string(),
-  userId: z.string(),
-  name: z.string(),
-  icon: z.string(),
-  color: z.string(),
-  matchLabels: z.array(z.string()),
-  enabled: z.boolean(),
-  collapsed: z.boolean(),
-  order: z.number(),
-});
+export const BundleSchema = emailBundleSchema;
 
 export const ReminderSchema = z.object({
   _id: z.string(),
@@ -240,43 +175,13 @@ export const ContactSuggestionSchema = z.object({
   address: z.string(),
 });
 
-export const ContactSchema = z.object({
-  _id: z.string(),
-  userId: z.string(),
-  name: z.string(),
-  email: z.string(),
-  company: z.string().nullable().optional(),
-  notes: z.string().nullable().optional(),
-  starred: z.boolean(),
-  autoCollected: z.boolean(),
-  lastContactedAt: z.string().nullable().optional(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-});
+export const ContactSchema = emailContactSchema;
 
-export const EmailFilterConditionSchema = z.object({
-  field: z.enum(['from', 'to', 'subject', 'has-attachment', 'size']),
-  operator: z.enum(['contains', 'equals', 'not-contains', 'starts-with', 'ends-with', 'greater-than', 'less-than']),
-  value: z.string(),
-});
+export const EmailFilterConditionSchema = emailFilterConditionSchema;
 
-export const EmailFilterActionSchema = z.object({
-  type: z.enum(['move', 'label', 'star', 'mark-read', 'archive', 'delete', 'forward']),
-  value: z.string().optional(),
-});
+export const EmailFilterActionSchema = emailFilterActionSchema;
 
-export const EmailFilterSchema = z.object({
-  _id: z.string(),
-  userId: z.string(),
-  name: z.string(),
-  enabled: z.boolean(),
-  conditions: z.array(EmailFilterConditionSchema),
-  matchAll: z.boolean(),
-  actions: z.array(EmailFilterActionSchema),
-  order: z.number(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-});
+export const EmailFilterSchema = emailFilterSchema;
 
 export const EmailTemplateSchema = z.object({
   _id: z.string(),
@@ -289,28 +194,7 @@ export const EmailTemplateSchema = z.object({
   updatedAt: z.string(),
 });
 
-export const EmailOutboxSchema = z.object({
-  id: z.string(),
-  messageId: z.string(),
-  status: z.enum(['pending', 'processing', 'sent', 'failed', 'cancelled']),
-  attempts: z.number().int().min(0),
-  /**
-   * The retry budget, and whether it is spent. `status: 'failed'` alone does
-   * NOT mean the message is dead — a row waiting for its next attempt carries
-   * it too. `terminal` is the difference between "still trying" and "this will
-   * never leave unless you retry it", which is the only distinction a user can
-   * act on.
-   *
-   * Optional so an older API that does not send them still parses.
-   */
-  maxAttempts: z.number().int().min(1).optional(),
-  terminal: z.boolean().optional(),
-  nextAttemptAt: z.string(),
-  lastError: z.string().nullable(),
-  sentAt: z.string().nullable(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-});
+export const EmailOutboxSchema = emailOutboxSchema;
 
 export const SavedEmailSearchFiltersSchema = z.object({
   q: z.string().optional(),
@@ -338,6 +222,16 @@ export const SavedEmailSearchSchema = z.object({
 
 // ─── Compose input validation ──────────────────────────────────────
 
+/**
+ * A recipient the client SENDS (compose, draft save). Unlike the wire
+ * `EmailAddress`, where a missing display name is `''`, a typed address has
+ * no name at all.
+ */
+export interface RecipientInput {
+  name?: string;
+  address: string;
+}
+
 /** A single recipient email address, validated with Zod's email rule. */
 export const RecipientEmailSchema = z.string().trim().email();
 
@@ -351,7 +245,7 @@ export function isValidRecipientEmail(value: string): boolean {
  * only the syntactically-valid addresses. Single chokepoint for To/Cc/Bcc
  * parsing in the composer.
  */
-export function parseRecipientList(input: string): { address: string }[] {
+export function parseRecipientList(input: string): RecipientInput[] {
   return input
     .split(',')
     .map((s) => s.trim())

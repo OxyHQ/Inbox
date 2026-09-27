@@ -1,20 +1,7 @@
 import { createEmailApi } from '@/services/emailApi';
+import { wireMessage, wireOutbox } from '../fixtures/wire';
 
-const message = {
-  _id: 'message-1',
-  userId: 'user-1',
-  mailboxId: 'mailbox-1',
-  messageId: '<message-1@example.test>',
-  from: { address: 'sender@example.test' },
-  to: [],
-  subject: 'Budget',
-  attachments: [],
-  flags: { seen: true },
-  labels: [],
-  size: 0,
-  date: '2026-01-02T00:00:00.000Z',
-  receivedAt: '2026-01-02T00:00:00.000Z',
-};
+const message = wireMessage({ subject: 'Budget', flags: { seen: true, starred: false, answered: false, forwarded: false, draft: false, pinned: false } });
 
 describe('email search client contract', () => {
   it('sends every structured filter and preserves an explicit read=false state', async () => {
@@ -63,17 +50,7 @@ describe('email search client contract', () => {
   it('validates durable outbox and saved-search responses', async () => {
     const http = {
       get: jest.fn()
-        .mockResolvedValueOnce([{
-          id: 'outbox-1',
-          messageId: '<outbox-1@example.test>',
-          status: 'failed',
-          attempts: 2,
-          nextAttemptAt: '2026-01-02T00:00:00.000Z',
-          lastError: 'relay unavailable',
-          sentAt: null,
-          createdAt: '2026-01-02T00:00:00.000Z',
-          updatedAt: '2026-01-02T00:00:00.000Z',
-        }])
+        .mockResolvedValueOnce([wireOutbox()])
         .mockResolvedValueOnce([{
           id: 'saved-1',
           name: 'Unread finance',

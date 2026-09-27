@@ -45,9 +45,13 @@ export function useCreateLabel() {
     },
     onMutate: async ({ name, color }) => {
       const tempId = `optimistic:${Date.now()}`;
+      const now = new Date().toISOString();
       const optimistic: Label = {
         _id: tempId,
+        id: tempId,
         userId: '',
+        createdAt: now,
+        updatedAt: now,
         name,
         color,
         order: Number.MAX_SAFE_INTEGER,

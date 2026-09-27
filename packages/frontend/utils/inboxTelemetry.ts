@@ -19,6 +19,7 @@ export type InboxMetricName =
   | 'realtime_email_new'
   | 'realtime_email_changed'
   | 'realtime_malformed_event'
+  | 'message_parse_failed'
   | 'search_submitted'
   | 'composer_send_succeeded'
   | 'composer_send_queued'

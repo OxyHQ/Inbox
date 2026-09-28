@@ -41,15 +41,25 @@ this migration. Colors now come from semantic Bloom roles.
 Bloom PR [#234](https://github.com/OxyHQ/Bloom/pull/234) supplies `cozy` density
 and `showAvatar` while preserving existing defaults. It also fixes settings
 keyboard dismissal/focus using Bloom's existing modal keyboard primitive.
-The Inbox branch currently uses an isolated local build for verification;
-registry publication and the consumer manifest/lock update are still pending.
-Do not merge Inbox with the old published Bloom version: it lacks these APIs.
-No package patch or copied Bloom implementation belongs in the client.
+Both manifests and `bun.lock` pin the published maintenance release **4.34.1**.
+Validation uses a clean registry installation, with no local package copy or patch.
+The release is available under npm's `inbox-maintenance` tag; `latest` remains
+4.35.0. [Bloom PR #234](https://github.com/OxyHQ/Bloom/pull/234) carries the
+additive changes forward separately.
+
+The Doctor wrapper uses the published `@oxy.so/doctor` inspection API. It reports
+one explicit deferral: Bloom's 4.35.0 update, while the frontend declaration,
+root override and sole locked version are exactly 4.34.1. All other findings
+still fail CI, including a newer registry release, changed pin or duplicate
+installation. Remove this narrow exception when adopting the next Bloom release;
+that update needs separate compatibility review. Tests cover the fail-closed
+conditions. This keeps the approved maintenance release isolated without claiming
+compatibility with the unrelated 4.35.0 changes.
 
 ## Validation
 
 The local validation run passed 34 Jest suites (167 tests), lint and TypeScript.
-The web export produced 60,350 bytes of CSS, and the post-export TypeScript check
+The web export produced 52,619 bytes of CSS, and the post-export TypeScript check
 also passed. A locally compiled Android debug client and the exported web app
 both reached the signed-out access screen without JavaScript errors.
 

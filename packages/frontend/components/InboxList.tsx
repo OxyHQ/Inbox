@@ -209,7 +209,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   );
   const { isAuthenticated, user } = useOxy();
   const { prefs } = useInboxPrefs();
-  const { conversationView, density, showAvatars, showPreviews } =
+  const { conversationView, density, showPreviews } =
     useInboxDisplayPrefs();
   const messageActions = useMessageActions();
 
@@ -794,7 +794,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       isSnoozedView,
       expandedBundles,
       density,
-      showAvatars,
       showPreviews,
       themeKey: `${colors.unread}|${colors.surface}|${colors.surfaceVariant}|${colors.secondaryText}|${colors.primary}|${colors.border}`,
     }),
@@ -806,7 +805,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       isSnoozedView,
       expandedBundles,
       density,
-      showAvatars,
       showPreviews,
       colors.unread,
       colors.surface,
@@ -841,7 +839,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
           isPinPending={pinPendingId === msg._id}
           showSnoozeTime={isSnoozedView}
           density={density}
-          showAvatars={showAvatars}
           showPreviews={showPreviews}
         />
         <MessageRowExtras message={msg} sentiment={sentimentMap.get(msg._id)} />
@@ -863,7 +860,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       pinPendingId,
       isSnoozedView,
       density,
-      showAvatars,
       showPreviews,
       sentimentMap,
     ],

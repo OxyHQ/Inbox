@@ -1,12 +1,14 @@
+import { useAiChatShell } from '@oxy.so/bloom/ai-chat';
+import { ButtonGroup, ButtonGroupItem } from '@oxy.so/bloom/button-group';
 import { Button, IconButton } from '@oxy.so/bloom/button';
 import { Checkbox } from '@oxy.so/bloom/checkbox';
 import {
   RiArchiveLine,
   RiArrowGoBackLine,
-  RiArrowLeftLine,
   RiCornerUpLeftLine,
   RiDeleteBinLine,
   RiMailLine,
+  RiMenuLine,
   RiMoreLine,
   RiPrinterLine,
   RiPushpinLine,
@@ -145,6 +147,7 @@ export function MessageDetail(props: MessageDetailProps) {
 }
 
 function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
+  const shell = useAiChatShell();
   const insets = useSafeAreaInsets();
   const tabBarClearance = useTabBarClearance();
   const pathname = usePathname();
@@ -715,43 +718,57 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
       ]}
     >
       <PageHeader
+        onBack={handleBack}
+        backLabel={t('common.back')}
         leading={
-          <IconButton
-            accessibilityLabel={t('common.back')}
-            icon={<RiArrowLeftLine />}
-            onPress={handleBack}
-          />
+          shell?.navCollapsed && shell.hasNav ? (
+            <ButtonGroup accessibilityLabel={t('search.openMenu')}>
+              <ButtonGroupItem
+                iconOnly
+                leadingIcon={RiMenuLine}
+                accessibilityLabel={t('search.openMenu')}
+                onPress={shell.openNav}
+              />
+            </ButtonGroup>
+          ) : undefined
         }
+        sticky={false}
+        scrim="none"
+        safeArea={false}
         actions={
-          <View className="flex-row items-center gap-1">
-            <IconButton
+          <ButtonGroup>
+            <ButtonGroupItem
+              iconOnly
               accessibilityLabel={t('message.actions.archive')}
-              icon={<RiArchiveLine />}
+              leadingIcon={RiArchiveLine}
               onPress={handleArchive}
             />
-            <IconButton
+            <ButtonGroupItem
+              iconOnly
               accessibilityLabel={t('message.actions.delete')}
-              icon={<RiDeleteBinLine />}
+              leadingIcon={RiDeleteBinLine}
               onPress={handleDelete}
             />
-            <IconButton
+            <ButtonGroupItem
+              iconOnly
               accessibilityLabel={t(
                 currentMessage.flags.starred
                   ? 'message.actions.unstar'
                   : 'message.actions.star',
               )}
-              icon={
-                currentMessage.flags.starred ? <RiStarFill /> : <RiStarLine />
+              leadingIcon={
+                currentMessage.flags.starred ? RiStarFill : RiStarLine
               }
               onPress={handleStar}
               disabled={toggleStar.isPending}
             />
-            <IconButton
+            <ButtonGroupItem
+              iconOnly
               accessibilityLabel={t('message.actions.more')}
-              icon={<RiMoreLine />}
+              leadingIcon={RiMoreLine}
               onPress={() => moreMenuControl.open()}
             />
-          </View>
+          </ButtonGroup>
         }
       />
 

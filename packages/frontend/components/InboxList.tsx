@@ -1,6 +1,7 @@
 import { useMailboxScrollRestoration } from '@/hooks/useMailboxScrollRestoration';
-import { useAppShell } from '@oxy.so/bloom/app-shell';
-import { Button, IconButton } from '@oxy.so/bloom/button';
+import { useAiChatShell } from '@oxy.so/bloom/ai-chat';
+import { ButtonGroup, ButtonGroupItem } from '@oxy.so/bloom/button-group';
+import { Button } from '@oxy.so/bloom/button';
 import { RiAddLine, RiMenuLine, RiSearchLine } from '@oxy.so/bloom/icons';
 import { PageHeader } from '@oxy.so/bloom/page-header';
 /**
@@ -183,7 +184,8 @@ const TRIAGE_LIMIT = 3;
 
 export function InboxList({ replaceNavigation }: InboxListProps) {
   const router = useRouter();
-  const { openDrawer, drawerAvailable } = useAppShell();
+  const shell = useAiChatShell();
+  const drawerAvailable = shell?.navCollapsed && shell.hasNav;
   const colors = useColors();
   const { t } = useTranslation();
   const aliaChatRef = useRef<AliaChatSheetRef>(null);
@@ -668,7 +670,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     [router, replaceNavigation],
   );
 
-  const handleOpenDrawer = openDrawer;
+  const handleOpenDrawer = shell?.openNav;
 
   const handleAskAlia = useCallback(() => {
     aliaChatRef.current?.present();
@@ -1065,61 +1067,69 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
         <View>
           <PageHeader
             title={mailboxTitle}
-            presentation="bar"
             sticky={false}
-            leading={drawerAvailable ? (
-              <IconButton
-                accessibilityLabel={t('search.openMenu')}
-                icon={<RiMenuLine />}
-                onPress={handleOpenDrawer}
-              />
-            ) : undefined}
+            scrim="none"
+            safeArea={false}
+            leading={
+              drawerAvailable ? (
+                <ButtonGroup accessibilityLabel={t('search.openMenu')}>
+                  <ButtonGroupItem
+                    iconOnly
+                    leadingIcon={RiMenuLine}
+                    accessibilityLabel={t('search.openMenu')}
+                    onPress={handleOpenDrawer}
+                  />
+                </ButtonGroup>
+              ) : undefined
+            }
             actions={
-              <View className="flex-row items-center gap-1">
+              <ButtonGroup>
                 {isAuthenticated && (
                   <>
-                    <IconButton
-                      size="sm"
+                    <ButtonGroupItem
+                      iconOnly
+                      leadingIcon={RiAddLine}
                       accessibilityLabel={t('reminder.create.title')}
-                      icon={<RiAddLine />}
                       onPress={() => setCreateReminderVisible(true)}
                     />
-                    <Button size="sm" appearance="subtle" onPress={handleAskAlia}>
+                    <ButtonGroupItem onPress={handleAskAlia}>
                       {t('inbox.askAlia')}
-                    </Button>
+                    </ButtonGroupItem>
                   </>
                 )}
-                <IconButton
+                <ButtonGroupItem
+                  iconOnly
+                  leadingIcon={RiSearchLine}
                   accessibilityLabel={t('inbox.searchInMailbox', {
                     mailbox: mailboxTitle.toLowerCase(),
                   })}
-                  icon={<RiSearchLine />}
                   onPress={handleSearch}
                 />
-              </View>
+              </ButtonGroup>
             }
           />
           {isAuthenticated &&
-            (prefs.aiBrief || (isInboxView && needsResponseCount + followUpCount > 0)) && (
-            <View className="flex-row flex-wrap gap-1 px-3 pb-2">
-              {isInboxView && needsResponseCount + followUpCount > 0 && (
-                <Button
-                  size="sm"
-                  appearance={showTriage ? 'solid' : 'subtle'}
-                  onPress={() => setShowTriage((value) => !value)}
-                >{`${t('home.needsResponse')} · ${needsResponseCount + followUpCount}`}</Button>
-              )}
-              {prefs.aiBrief && (
-                <Button
-                  size="sm"
-                  appearance="subtle"
-                  onPress={() => setShowBrief((value) => !value)}
-                >
-                  {t('home.todaysBrief')}
-                </Button>
-              )}
-            </View>
-          )}
+            (prefs.aiBrief ||
+              (isInboxView && needsResponseCount + followUpCount > 0)) && (
+              <View className="flex-row flex-wrap gap-1 px-3 pb-2">
+                {isInboxView && needsResponseCount + followUpCount > 0 && (
+                  <Button
+                    size="sm"
+                    appearance={showTriage ? 'solid' : 'subtle'}
+                    onPress={() => setShowTriage((value) => !value)}
+                  >{`${t('home.needsResponse')} · ${needsResponseCount + followUpCount}`}</Button>
+                )}
+                {prefs.aiBrief && (
+                  <Button
+                    size="sm"
+                    appearance="subtle"
+                    onPress={() => setShowBrief((value) => !value)}
+                  >
+                    {t('home.todaysBrief')}
+                  </Button>
+                )}
+              </View>
+            )}
         </View>
       )}
 

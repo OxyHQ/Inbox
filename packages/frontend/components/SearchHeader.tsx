@@ -1,11 +1,13 @@
+import { useAiChatShell } from '@oxy.so/bloom/ai-chat';
 /** App-specific search routing around Bloom's shared search field and buttons. */
 import { useTranslation } from '@/lib/i18n';
-import { Button, IconButton } from '@oxy.so/bloom/button';
-import { RiArrowLeftLine, RiMenuLine, RiSearchLine } from '@oxy.so/bloom/icons';
+import { Button } from '@oxy.so/bloom/button';
+import { ButtonGroup, ButtonGroupItem } from '@oxy.so/bloom/button-group';
+import { PageHeader } from '@oxy.so/bloom/page-header';
+import { RiMenuLine, RiSearchLine } from '@oxy.so/bloom/icons';
 import { Search } from '@oxy.so/bloom/search';
 import { forwardRef } from 'react';
-import { View, type TextInput } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { TextInput } from 'react-native';
 
 interface SearchHeaderProps {
   onLeftIcon: () => void;
@@ -37,59 +39,52 @@ export const SearchHeader = forwardRef<TextInput, SearchHeaderProps>(
     ref,
   ) {
     const { t } = useTranslation();
-    const insets = useSafeAreaInsets();
+    const shell = useAiChatShell();
     const label = placeholder ?? t('search.placeholder');
     return (
-      <View
-        style={{
-          paddingTop: insets.top + 8,
-          paddingBottom: 8,
-          paddingLeft: insets.left + 12,
-          paddingRight: insets.right + 12,
-        }}
-      >
-        <View
-          style={{
-            width: '100%',
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 8,
-          }}
-        >
-          {!hideLeftIcon && (
-            <IconButton
-              accessibilityLabel={t(
-                leftIcon === 'menu' ? 'search.openMenu' : 'search.goBack',
-              )}
-              icon={leftIcon === 'menu' ? <RiMenuLine /> : <RiArrowLeftLine />}
-              onPress={onLeftIcon}
-            />
-          )}
-          <View style={{ flex: 1 }}>
-            {onChangeText ? (
-              <Search
-                ref={ref}
-                label={label}
-                value={value}
-                onChangeText={onChangeText}
-                onClearText={onClear}
-                onSubmitEditing={onSubmitEditing}
-                autoFocus={autoFocus}
+      <PageHeader
+        sticky={false}
+        scrim="none"
+        safeArea={false}
+        onBack={
+          !hideLeftIcon && leftIcon === 'arrow-left' ? onLeftIcon : undefined
+        }
+        backLabel={t('search.goBack')}
+        leading={
+          shell?.navCollapsed && shell.hasNav ? (
+            <ButtonGroup accessibilityLabel={t('search.openMenu')}>
+              <ButtonGroupItem
+                iconOnly
+                leadingIcon={RiMenuLine}
+                accessibilityLabel={t('search.openMenu')}
+                onPress={shell.openNav}
               />
-            ) : (
-              <Button
-                appearance="subtle"
-                leading={<RiSearchLine />}
-                onPress={onPress}
-                accessibilityLabel={label}
-                style={{ width: '100%', justifyContent: 'flex-start' }}
-              >
-                {label}
-              </Button>
-            )}
-          </View>
-        </View>
-      </View>
+            </ButtonGroup>
+          ) : undefined
+        }
+        title={
+          onChangeText ? (
+            <Search
+              ref={ref}
+              label={label}
+              value={value}
+              onChangeText={onChangeText}
+              onClearText={onClear}
+              onSubmitEditing={onSubmitEditing}
+              autoFocus={autoFocus}
+            />
+          ) : (
+            <Button
+              appearance="subtle"
+              leading={<RiSearchLine />}
+              onPress={onPress}
+              accessibilityLabel={label}
+            >
+              {label}
+            </Button>
+          )
+        }
+      />
     );
   },
 );

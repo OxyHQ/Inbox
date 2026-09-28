@@ -7,7 +7,7 @@ workspace; the brief and Alia open on demand.
 
 | Surface | Shared Bloom primitives | Inbox responsibilities |
 | --- | --- | --- |
-| Workspace | AppShell split layout, Sidebar, BottomBar, Fab | Mailbox/label destinations and SDK account actions |
+| Workspace | AiChatShell, AiChatContainer, AppShellSplitPanes, Sidebar, BottomBar, Fab | Mailbox/label destinations and SDK account actions |
 | Mail list | MailRow, MailSelectionBar, SwipeRow | Virtualization, grouping, unreadable rows, bulk mutations and preferences |
 | Conversation | PageHeader, MailThread, MailMessage | Safe HTML/CID resolution, unreadable entries, downloads, reply targets |
 | Composer | MailComposeSurface, MailRecipientField, TextFieldInput | Recipient validation/suggestions, editor, draft recovery, RFC reply headers and outbound queue |
@@ -21,17 +21,18 @@ this migration. Colors now come from semantic Bloom roles.
 
 ## State and navigation
 
-- The shell changes at 900px; the sidebar expands at 1200px. These thresholds
-  apply to every platform. The same route stack remains mounted through a width
-  change so a composer does not restart.
-- From 900px Bloom's `AppShell` split layout keeps the mailbox/search list
-  beside the routed conversation or composer. Its adjustable divider starts
-  at 380px (320–480px range). Below 900px only the routed pane is visible:
-  index routes render their list and opening a message presents its detail.
-  The navigator always occupies the same detail slot, preserving open drafts
-  when resizing. The desktop sidebar remains Bloom’s default card.
-- Bloom owns pane surfaces, framing and the divider; route scenes remain
-  transparent and each list/detail owns its scrolling (`paneScroll={false}`).
+- The workspace uses the same Bloom composition as Alia: `AiChatShell`,
+  `AiChatContainer`, a default `Sidebar` in flow and a `mobile surface="plain"`
+  copy in the reveal drawer. Bloom owns margins, surfaces, rounding, the
+  reveal animation, swipe gestures, dismissal and focus behavior.
+- At Bloom's `lg` breakpoint (1024px), `AppShellSplitPanes` keeps the list
+  beside the routed conversation/composer. Its shared divider is adjustable
+  from 320–480px, initially 380px. Below `lg`, index routes render the list
+  and conversation routes render the message in the same detail slot. The
+  navigator stays mounted, preserving open drafts through a width change.
+- `PageHeader` and `ButtonGroup` follow Alia's inline chrome: no scrim, no
+  sticky header or app-owned surface. Routes remain transparent, each pane
+  owns its scrolling, and the mobile `BottomBar` sits in the container slot.
 - Search state lives above the route stack. Its lifetime is
   scoped to the SDK user ID; switching accounts or signing out clears it.
   Outstanding interpretation/debounce callbacks cannot update a new session.
@@ -53,15 +54,18 @@ The 4.34.2 patch also fixes MailRow pointer hit testing: inert visual content
 passes clicks to the row action, while selection, star and archive controls
 remain independent. Real browser pointer tests cover all three densities.
 The shared fix is tracked in [Bloom #242](https://github.com/OxyHQ/Bloom/pull/242).
-Both manifests and `bun.lock` pin the published maintenance release **4.34.2**.
+Bloom [#243](https://github.com/OxyHQ/Bloom/pull/243) exposes the existing split-pane
+primitive for composition inside Alia’s shared shell, without an app-owned
+layout or a second shell context.
+Both manifests and `bun.lock` pin the published maintenance release **4.34.3**.
 Validation uses a clean registry installation, with no local package copy or patch.
 The maintenance releases use npm's `inbox-maintenance` tag, preserving
-`latest` (4.35.0 when 4.34.1 shipped; 5.1.1 when 4.34.2 shipped). [Bloom PR #234](https://github.com/OxyHQ/Bloom/pull/234) carries the
+`latest` (4.35.0 when 4.34.1 shipped; 5.1.1 for 4.34.2; 5.2.0 for 4.34.3). [Bloom PR #234](https://github.com/OxyHQ/Bloom/pull/234) carries the
 additive changes forward separately.
 
 The Doctor wrapper uses the published `@oxy.so/doctor` inspection API. It reports
 one explicit deferral: Bloom's 4.35.0 update, while the frontend declaration,
-root override and sole locked version are exactly 4.34.2. All other findings
+root override and sole locked version are exactly 4.34.3. All other findings
 still fail CI, including a newer registry release, changed pin or duplicate
 installation. Remove this narrow exception when adopting the next Bloom release;
 that update needs separate compatibility review. Tests cover the fail-closed
@@ -70,8 +74,8 @@ compatibility with the unrelated 4.35.0 changes.
 
 ## Validation
 
-The local validation run passed 34 Jest suites (167 tests), lint and TypeScript.
-The web export exceeds the 20 KB CSS floor, and the post-export TypeScript check
+The local validation run passed 34 Jest suites (168 tests), lint and TypeScript.
+The web export emits 60,386 bytes of CSS (above the 20 KB floor), and the post-export TypeScript check
 also passed. A locally compiled Android debug client and the exported web app
 both reached the signed-out access screen without JavaScript errors.
 
@@ -82,8 +86,10 @@ links/account handoff, bottom navigation and swipe action dispatch. Run
 
 Local browser fixtures use the real `InboxList`/FlashList, Bloom shell and mail
 components with mocked mail/account hooks. The mailbox now has a Bloom PageHeader
-and one shared content width for its header, controls and rows. They verify 390/899/900/1024/1440px layouts, pointer navigation with the list retained beside the conversation on wide screens, light/dark modes,
-recipient/subject preservation on resize, and scroll restoration. These are
+and one shared content width for its header, controls and rows. They verify 390/900/1023/1024/1440px layouts, pointer navigation with the list retained beside the conversation on wide screens, light/dark modes,
+recipient/subject preservation on resize, and scroll restoration. The reveal drawer
+is checked by pointer opening, Escape and veil dismissal, including the actual
+272px workspace translation. These are
 UI checks, not authenticated mail-delivery end-to-end tests.
 
 Run `bun run typecheck` before and after `bun run build`; verify the generated

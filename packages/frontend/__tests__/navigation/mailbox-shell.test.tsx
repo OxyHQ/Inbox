@@ -17,7 +17,7 @@ const mockDelete = jest.fn();
 const mockToggle = jest.fn();
 let mockPath = '/';
 let mockAuthenticated = true;
-let mockShell: any;
+let mockSidebar: any;
 let mockState: any;
 const mockMailboxes = [
   {
@@ -41,15 +41,22 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush }),
   usePathname: () => mockPath,
 }));
+jest.mock('@oxy.so/bloom/ai-chat', () => ({
+  AiChatShell: ({ children, sidebar }: any) => (
+    <div>
+      {sidebar}
+      {children}
+    </div>
+  ),
+  AiChatContainer: ({ children }: any) => <div>{children}</div>,
+}));
 jest.mock('@oxy.so/bloom/app-shell', () => ({
-  AppShell: (props: any) => {
-    mockShell = props;
-    return (
-      <div>
-        {props.children}
-        {props.sidebar.footer({ collapsed: false })}
-      </div>
-    );
+  AppShellSplitPanes: ({ detail }: any) => <div>{detail}</div>,
+}));
+jest.mock('@oxy.so/bloom/sidebar', () => ({
+  Sidebar: (props: any) => {
+    mockSidebar = props;
+    return <div>{props.footer({ collapsed: false })}</div>;
   },
 }));
 jest.mock(
@@ -98,7 +105,6 @@ jest.mock('@/constants/theme', () => ({
 }));
 jest.mock('@/assets/logo', () => ({ LogoIcon: () => null }));
 jest.mock('@/hooks/useIsDesktopLayout', () => ({
-  DESKTOP_BREAKPOINT: 900,
   useIsDesktopLayout: () => true,
 }));
 jest.mock('@/lib/i18n', () => ({
@@ -162,11 +168,11 @@ it('routes system mailboxes, custom folders, labels and compose without changing
     ],
   ]) {
     act(() =>
-      mockShell.sidebar.items.find((item: any) => item.key === key).onPress(),
+      mockSidebar.items.find((item: any) => item.key === key).onPress(),
     );
     expect(mockPush).toHaveBeenLastCalledWith(expected);
   }
-  act(() => mockShell.sidebar.primaryAction.onPress());
+  act(() => mockSidebar.primaryAction.onPress());
   expect(mockPush).toHaveBeenLastCalledWith('/compose');
   expect(screen.getByRole('button', { name: 'Account' })).toBeTruthy();
 });
@@ -181,7 +187,7 @@ it('retains folder create and long-press delete mutations and a keyboard-accessi
   );
   expect(mockCreate).toHaveBeenCalledWith({ name: 'Work' }, expect.any(Object));
   act(() =>
-    mockShell.sidebar.items
+    mockSidebar.items
       .find((item: any) => item.key === 'custom-id')
       .onLongPress(),
   );
@@ -200,10 +206,17 @@ it('retains folder create and long-press delete mutations and a keyboard-accessi
 it('selects label destinations and leaves auth-only actions absent when signed out', () => {
   mockPath = '/label/receipts';
   const view = render(<MailboxShell>{null}</MailboxShell>);
-  expect(mockShell.sidebar.selected).toBe('label:receipts');
+  expect(mockSidebar.selected).toBe('label:receipts');
   mockAuthenticated = false;
   view.rerender(<MailboxShell>{null}</MailboxShell>);
-  expect(mockShell.sidebar.items).toEqual([]);
-  expect(mockShell.sidebar.primaryAction).toBeUndefined();
+  expect(mockSidebar.items).toEqual([]);
+  expect(mockSidebar.primaryAction).toBeUndefined();
   expect(screen.getByRole('button', { name: 'Sign in' })).toBeTruthy();
+});
+
+it('keeps the source mailbox selected while reading a conversation', () => {
+  mockPath = '/conversation/message-id';
+  mockState.viewMode = { type: 'mailbox', mailbox: mockMailboxes[1] };
+  render(<MailboxShell>{null}</MailboxShell>);
+  expect(mockSidebar.selected).toBe('sent-id');
 });

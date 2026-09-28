@@ -1,7 +1,8 @@
+import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 /**
  * Conversation (message detail) route — /conversation/:id
  *
- * One routed page inside Bloom’s content panel, with back navigation at every width.
+ * The same routed detail stays mounted as the shell switches between one and two panes.
  */
 
 import { useLocalSearchParams } from 'expo-router';
@@ -14,6 +15,7 @@ import { useEmailStore } from '@/hooks/useEmail';
 import { useTranslation } from '@/lib/i18n';
 
 export default function ConversationScreen() {
+  const isDesktop = useIsDesktopLayout();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
 
@@ -41,7 +43,7 @@ export default function ConversationScreen() {
         <title>{pageTitle}</title>
       </Head>
       <MessageDetail
-        mode="standalone"
+        mode={isDesktop ? 'embedded' : 'standalone'}
         messageId={id}
       />
     </>

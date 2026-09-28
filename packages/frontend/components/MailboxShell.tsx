@@ -1,3 +1,5 @@
+import { InboxList } from '@/components/InboxList';
+import { SearchList } from '@/components/SearchList';
 import { InboxBottomBar } from '@/components/InboxBottomBar';
 
 import { MailScrollProvider } from './MailScrollProvider';
@@ -366,8 +368,24 @@ export function MailboxShell({ children }: { children: ReactNode }) {
   return (
     <MailScrollProvider>
       <AppShell
-        variant="feed"
-        panel
+        variant="split"
+        // Keep the routed navigator in the detail slot at every width. On
+        // phones its index routes render the list; wide layouts retain a
+        // separate list alongside the same conversation/composer instance.
+        pane="detail"
+        splitFrom={DESKTOP_BREAKPOINT}
+        paneScroll={false}
+        listWidth={380}
+        listMinWidth={320}
+        listMaxWidth={480}
+        list={
+          pathname.startsWith('/subscriptions') ? undefined :
+          pathname.startsWith('/search') ? (
+            <SearchList replaceNavigation />
+          ) : (
+            <InboxList replaceNavigation />
+          )
+        }
         scroll="fixed"
         drawer="overlay"
         header={null}
@@ -375,7 +393,6 @@ export function MailboxShell({ children }: { children: ReactNode }) {
         navExpandedFrom={1200}
         navigationAlign="edge"
         gutter={isDesktop ? 8 : 0}
-        contentWidth={1200}
         testID="mail-workspace"
         bottomBar={<InboxBottomBar />}
         drawerOpen={drawerOpen}

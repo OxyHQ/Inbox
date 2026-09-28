@@ -7,7 +7,7 @@ workspace; the brief and Alia open on demand.
 
 | Surface | Shared Bloom primitives | Inbox responsibilities |
 | --- | --- | --- |
-| Workspace | AppShell with ContentPanel, Sidebar, BottomBar, Fab | Mailbox/label destinations and SDK account actions |
+| Workspace | AppShell split layout, Sidebar, BottomBar, Fab | Mailbox/label destinations and SDK account actions |
 | Mail list | MailRow, MailSelectionBar, SwipeRow | Virtualization, grouping, unreadable rows, bulk mutations and preferences |
 | Conversation | PageHeader, MailThread, MailMessage | Safe HTML/CID resolution, unreadable entries, downloads, reply targets |
 | Composer | MailComposeSurface, MailRecipientField, TextFieldInput | Recipient validation/suggestions, editor, draft recovery, RFC reply headers and outbound queue |
@@ -24,11 +24,14 @@ this migration. Colors now come from semantic Bloom roles.
 - The shell changes at 900px; the sidebar expands at 1200px. These thresholds
   apply to every platform. The same route stack remains mounted through a width
   change so a composer does not restart.
-- Lists, search, conversations and composition occupy one routed content panel
-  at every width. There is no permanent empty detail column. The desktop sidebar
-  uses Bloom’s default card, with an 8px gutter; mobile is full-bleed. The shell
-  owns the panel surface and route scenes stay transparent. This follows the
-  surface ownership used by Alia and Mention.
+- From 900px Bloom's `AppShell` split layout keeps the mailbox/search list
+  beside the routed conversation or composer. Its adjustable divider starts
+  at 380px (320–480px range). Below 900px only the routed pane is visible:
+  index routes render their list and opening a message presents its detail.
+  The navigator always occupies the same detail slot, preserving open drafts
+  when resizing. The desktop sidebar remains Bloom’s default card.
+- Bloom owns pane surfaces, framing and the divider; route scenes remain
+  transparent and each list/detail owns its scrolling (`paneScroll={false}`).
 - Search state lives above the route stack. Its lifetime is
   scoped to the SDK user ID; switching accounts or signing out clears it.
   Outstanding interpretation/debounce callbacks cannot update a new session.
@@ -79,7 +82,7 @@ links/account handoff, bottom navigation and swipe action dispatch. Run
 
 Local browser fixtures use the real `InboxList`/FlashList, Bloom shell and mail
 components with mocked mail/account hooks. The mailbox now has a Bloom PageHeader
-and one shared content width for its header, controls and rows. They verify 390/899/900/1440px layouts, light/dark modes,
+and one shared content width for its header, controls and rows. They verify 390/899/900/1024/1440px layouts, pointer navigation with the list retained beside the conversation on wide screens, light/dark modes,
 recipient/subject preservation on resize, and scroll restoration. These are
 UI checks, not authenticated mail-delivery end-to-end tests.
 

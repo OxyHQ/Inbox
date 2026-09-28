@@ -1,6 +1,9 @@
 import { SearchList } from '@/components/SearchList';
+import { MessageDetailEmpty } from '@/components/MessageDetailEmpty';
+import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 
-/** Search stays in the same routed Bloom panel at every width. */
+/** The shell owns the persistent search list when two panes fit. */
 export default function SearchIndex() {
-  return <SearchList />;
+  const isDesktop = useIsDesktopLayout();
+  return isDesktop ? <MessageDetailEmpty /> : <SearchList />;
 }

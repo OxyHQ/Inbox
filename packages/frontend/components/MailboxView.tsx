@@ -1,3 +1,5 @@
+import { MessageDetailEmpty } from '@/components/MessageDetailEmpty';
+import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 /**
  * Renders a system mailbox view (inbox, sent, drafts, trash, …) or a custom
  * folder addressed by its mailbox id.
@@ -42,6 +44,7 @@ const VIEW_TO_SPECIAL_USE: Record<string, string> = {
 };
 
 export function MailboxView({ view }: { view: string }) {
+  const isDesktop = useIsDesktopLayout();
   const { data: mailboxes = [] } = useMailboxes();
   const { t } = useTranslation();
 
@@ -107,7 +110,7 @@ export function MailboxView({ view }: { view: string }) {
       <Head>
         <title>{pageTitle}</title>
       </Head>
-      <InboxList />
+      {isDesktop ? <MessageDetailEmpty /> : <InboxList />}
     </>
   );
 }

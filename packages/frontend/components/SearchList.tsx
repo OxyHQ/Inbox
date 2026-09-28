@@ -65,7 +65,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   const router = useRouter();
   const colors = useColors();
   const { t } = useTranslation();
-  const { density, showAvatars, showPreviews } = useInboxDisplayPrefs();
+  const { density, showPreviews } = useInboxDisplayPrefs();
   const inputRef = useRef<TextInput | null>(null);
   const { registerInput } = useSearchFocus();
   // Fans the input node out to BOTH the local ref (used by `handleClear` to
@@ -489,14 +489,12 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     () => ({
       selectedMessageId,
       density,
-      showAvatars,
       showPreviews,
       themeKey: `${colors.unread}|${colors.surface}|${colors.secondaryText}|${colors.primary}|${colors.border}`,
     }),
     [
       selectedMessageId,
       density,
-      showAvatars,
       showPreviews,
       colors.unread,
       colors.surface,
@@ -521,11 +519,10 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           onSelect={handleMessagePress}
           isSelected={item.message._id === selectedMessageId}
           density={density}
-          showAvatars={showAvatars}
           showPreviews={showPreviews}
         />
       ),
-    [handleMessagePress, selectedMessageId, density, showAvatars, showPreviews],
+    [handleMessagePress, selectedMessageId, density, showPreviews],
   );
 
   const handleEndReached = useCallback(() => {

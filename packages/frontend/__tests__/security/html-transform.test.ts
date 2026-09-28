@@ -44,9 +44,8 @@ describe('email HTML security boundary', () => {
     );
 
     expect(html).not.toContain('/email/proxy');
-    expect(html).toContain(
-      'src="https://api.clarity.surf/favicons/example.com"',
-    );
+    // Only the domain leaves: @clarity.surf/sdk >=0.4 serves it from Clarity itself.
+    expect(html).toContain('src="https://api.clarity.surf/favicons/example.com"');
   });
 
   it('does not proxy malformed image URLs containing a second absolute URL', () => {

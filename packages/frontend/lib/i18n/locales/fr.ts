@@ -621,9 +621,8 @@ const fr: LocaleDict = {
         sound: 'Sound', playSound: 'Play sound', soundDescription: 'A short chime on new messages.',
       },
       inbox: {
-        density: 'Message density', compact: 'Compact', comfortable: 'Comfortable', cozy: 'Cozy',
+        density: 'Message density', compact: 'Compact', comfortable: 'Comfortable',
         densityHint: 'Choose how tightly to pack message rows in the list.', display: 'Display',
-        avatars: 'Show avatars', avatarsDescription: 'Sender portraits at the start of each row.',
         previews: 'Show previews', previewsDescription: 'A short snippet of the message body.',
         threads: 'Group by thread', threadsDescription: 'Show conversations as a single row.',
         markRead: 'Mark as read on open', markReadDescription: 'Messages are marked read as soon as you open them.',

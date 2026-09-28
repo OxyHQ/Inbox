@@ -38,6 +38,13 @@ updates:
       - dependency-name: "react-native-worklets"
       - dependency-name: "nativewind"
       - dependency-name: "tailwindcss"
+      # zod 4: the email schemas extend @oxy.so/contracts', which are zod 3; a
+      # major here is 563 type errors until contracts moves. TypeScript 7:
+      # typescript-eslint does not support it yet, so lint cannot run (#60).
+      - dependency-name: "zod"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directories:

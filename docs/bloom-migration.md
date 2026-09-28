@@ -75,40 +75,25 @@ it does not recalculate panel margins, surfaces or safe areas.
 
 ## Shared library dependency
 
-Bloom PR [#234](https://github.com/OxyHQ/Bloom/pull/234) supplies `cozy` density
-and `showAvatar` while preserving existing defaults. It also fixes settings
-keyboard dismissal/focus using Bloom's existing modal keyboard primitive.
-The 4.34.2 patch also fixes MailRow pointer hit testing: inert visual content
-passes clicks to the row action, while selection, star and archive controls
-remain independent. Real browser pointer tests cover all three densities.
-The shared fix is tracked in [Bloom #242](https://github.com/OxyHQ/Bloom/pull/242).
-Bloom [#243](https://github.com/OxyHQ/Bloom/pull/243) exposes the existing split-pane
-primitive for composition inside Alia’s shared shell, without an app-owned
-layout or a second shell context. Version 4.34.4 adds its separated-panel
-variant; the default joined layout remains unchanged. Version 4.34.5 adds
-opt-in shell safe-area ownership, container fill inheritance, and the missing
-editor glyphs used by `NoteEditorToolbar`.
-Both manifests and `bun.lock` pin the published maintenance release **4.34.5**.
-Validation uses a clean registry installation, with no local package copy or patch.
-The maintenance releases use npm's `inbox-maintenance` tag, preserving
-`latest` (4.35.0 when 4.34.1 shipped; 5.1.1 for 4.34.2; 5.2.0 for 4.34.3). [Bloom PR #234](https://github.com/OxyHQ/Bloom/pull/234) carries the
-additive changes forward separately.
+The integration uses Bloom **5.4.0** together with Services 9,
+Core 3.2 and App Preset 2.2 from main. Bloom [#234](https://github.com/OxyHQ/Bloom/pull/234)
+carries mail density/settings improvements, [#242](https://github.com/OxyHQ/Bloom/pull/242)
+fixes MailRow pointer hit testing, and [#243](https://github.com/OxyHQ/Bloom/pull/243)
+provides separated split panes, shell safe-area ownership and editor icons.
+The earlier Bloom 4 maintenance releases were only used to validate the isolated
+layout branch; the final main integration retains the newer SDK and Bloom APIs.
 
-The Doctor wrapper uses the published `@oxy.so/doctor` inspection API. It reports
-one explicit deferral: Bloom's 4.35.0 update, while the frontend declaration,
-root override and sole locked version are exactly 4.34.5. All other findings
-still fail CI, including a newer registry release, changed pin or duplicate
-installation. Remove this narrow exception when adopting the next Bloom release;
-that update needs separate compatibility review. Tests cover the fail-closed
-conditions. This keeps the approved maintenance release isolated without claiming
-compatibility with the unrelated 4.35.0 changes.
+Both manifests and the lockfile resolve the published library normally. There
+are no local Bloom copies or package patches. The obsolete maintenance exception
+and its tests have been removed from the Doctor wrapper: all dependency-health
+findings now fail the gate.
 
 ## Validation
 
 The local validation run passed 34 Jest suites (168 tests), lint and TypeScript.
-The web export emits 60,365 bytes of CSS (above the 20 KB floor), and the post-export TypeScript check
-also passed. The final registry export passed with `--max-workers 2` after the
-default-worker Node process segfaulted during export. The previous layout revision was smoke-tested in a locally compiled
+The web export emits 59,815 bytes of CSS (above the 20 KB floor), and the post-export TypeScript check
+also passed. The current-major integration export uses `--max-workers 2`.
+The previous layout revision was smoke-tested in a locally compiled
 Android client. This cleanup is checked by Android export and Bloom's simulated
 iOS/Android inset regressions; it has not been exercised on a physical device.
 
@@ -132,15 +117,7 @@ JavaScript errors or page overflow.
 Run `bun run typecheck` before and after `bun run build`; verify the generated
 web CSS exceeds 20 KB. An Android export validates the native import graph;
 a running native client is additionally needed to validate gestures, keyboard
-and hardware-back behavior. No production deployment is part of this change.
-
-## Current dependency-health gate
-
-During the layout correction, npm advanced to Bloom 5.1.0 and Services 9.1.0.
-Doctor correctly rejects these unreviewed major-version gaps; the existing
-4.35.0 maintenance exception does not suppress them. The layout's local tests,
-typechecks and exports pass with the pinned library, but the PR remains draft
-until the separate SDK compatibility update is resolved.
+and hardware-back behavior. Merging to main uses the existing deployment workflow.
 
 ## UI fixtures
 

@@ -17,14 +17,12 @@ import { useInboxPrefs, type MessageDensity } from '@/contexts/inbox-prefs-conte
 
 export interface InboxDisplayPrefs {
   density: MessageDensity;
-  showAvatars: boolean;
   showPreviews: boolean;
   conversationView: boolean;
 }
 
 const DEFAULT_DISPLAY_PREFS: InboxDisplayPrefs = {
   density: 'comfortable',
-  showAvatars: true,
   showPreviews: true,
   conversationView: true,
 };
@@ -38,9 +36,8 @@ export function useInboxDisplayPrefs(): InboxDisplayPrefs {
     }
     return {
       density: prefs.density,
-      showAvatars: prefs.showAvatars,
       showPreviews: prefs.showPreviews,
       conversationView: prefs.conversationView,
     };
-  }, [prefs.density, prefs.showAvatars, prefs.showPreviews, prefs.conversationView, loaded]);
+  }, [prefs.density, prefs.showPreviews, prefs.conversationView, loaded]);
 }

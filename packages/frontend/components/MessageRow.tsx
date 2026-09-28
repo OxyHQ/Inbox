@@ -222,7 +222,6 @@ interface MessageRowProps {
   isPinPending?: boolean;
   showSnoozeTime?: boolean;
   density?: MessageDensity;
-  showAvatars?: boolean;
   showPreviews?: boolean;
 }
 
@@ -241,7 +240,6 @@ function MessageRowInner({
   isPinPending,
   showSnoozeTime,
   density = 'comfortable',
-  showAvatars = true,
   showPreviews = true,
 }: MessageRowProps) {
   const { t } = useTranslation();
@@ -321,7 +319,6 @@ function MessageRowInner({
       }
       onLongPress={onLongPress ? () => onLongPress(message._id) : undefined}
       density={density}
-      showAvatar={showAvatars}
       actions={isSelectionMode ? [] : actions}
       swipeEnabled={false}
       strings={{

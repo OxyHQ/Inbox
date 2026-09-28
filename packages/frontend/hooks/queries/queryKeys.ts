@@ -7,10 +7,7 @@
  *
  * Key shapes are preserved EXACTLY as they were when inlined, so prefix
  * invalidations, the socket's positional predicate (`key[0]`, `key[1]`,
- * `key[4]`), and existing mutation helpers remain compatible. The QueryClient
- * adds the active account/session scope at the hash boundary; this is
- * deliberate because several legacy broad keys are captured by mutation
- * modules at import time and must remain valid prefix keys.
+ * `key[4]`), and existing mutation helpers remain compatible.
  *   - messages list : ['messages', mailboxId|null, starred, label|null, userId]
  *   - message detail : ['message', messageId, userId]
  *   - thread         : ['thread', messageId]
@@ -20,24 +17,6 @@
  *   - `root` / bare arrays  → broad keys for invalidate / setQueriesData.
  *   - builder functions     → fully-qualified keys for a single query.
  */
-
-export type InboxQueryScope = string;
-
-let activeInboxQueryScope: InboxQueryScope | null = null;
-
-/**
- * Set the scope used by the Inbox QueryClient hash function.
- *
- * This is called only by the session/cache gate after the SDK has resolved the
- * active session. The gate keeps private UI unmounted while the scope changes.
- */
-export function setInboxQueryScope(scope: InboxQueryScope | null): void {
-  activeInboxQueryScope = scope;
-}
-
-export function getInboxQueryScope(): InboxQueryScope | null {
-  return activeInboxQueryScope;
-}
 
 export interface MessagesListParams {
   mailboxId?: string;
@@ -127,9 +106,9 @@ export const aiKeys = {
 } as const;
 
 /**
- * Query-key roots that should survive a cold restart (offline persistence).
- * Consumed by `queryClient`'s `shouldDehydrateQuery` whitelist. AI keys are
- * intentionally excluded — they are cheap to regenerate and can go stale.
+ * Query-key roots that should survive a cold restart (offline persistence),
+ * per account, via `OxyProvider`'s `accountQueries`. AI keys are intentionally
+ * excluded — they are cheap to regenerate and can go stale.
  */
 export const PERSISTED_QUERY_ROOTS: ReadonlySet<string> = new Set([
   'messages',
@@ -152,5 +131,17 @@ export const PERSISTED_QUERY_ROOTS: ReadonlySet<string> = new Set([
   'daily-brief',
 ]);
 
-/** Every persisted root contains private Inbox data. */
-export const PRIVATE_QUERY_ROOTS = PERSISTED_QUERY_ROOTS;
+/**
+ * Private to the account too, but never written to disk: signed attachment
+ * URLs expire, and AI output, search results and contact suggestions are
+ * cheap to regenerate.
+ * Dropped from memory on an account switch like the persisted roots.
+ */
+export const MEMORY_ONLY_QUERY_ROOTS: ReadonlySet<string> = new Set([
+  'attachment-url',
+  'contactSuggestions',
+  'inbox-ai',
+  'search',
+  'smartReplies',
+  'threadSummary',
+]);

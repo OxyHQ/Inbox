@@ -1,54 +1,52 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { queryClient, hashInboxQueryKey } from '@/hooks/queries/queryClient';
-import {
-  emailKeys,
-  getInboxQueryScope,
-  PERSISTED_QUERY_ROOTS,
-  setInboxQueryScope,
-} from '@/hooks/queries/queryKeys';
+import { INBOX_ACCOUNT_QUERIES, INBOX_MUTATION_KEYS } from '@/hooks/queries/queryClient';
+import { aiKeys, emailKeys } from '@/hooks/queries/queryKeys';
+
+/** Every root string a key factory entry can produce. */
+function emailKeyRoots(): Set<string> {
+  const roots = new Set<string>();
+  const visit = (value: unknown) => {
+    if (Array.isArray(value)) {
+      if (typeof value[0] === 'string') roots.add(value[0]);
+    } else if (typeof value === 'function') {
+      try {
+        visit((value as (...args: unknown[]) => unknown)({}));
+      } catch {
+        // A builder that needs real arguments; its broad `root` sibling covers it.
+      }
+    } else if (value && typeof value === 'object') {
+      Object.values(value).forEach(visit);
+    }
+  };
+  visit(emailKeys);
+  visit(aiKeys);
+  roots.add('daily-brief'); // `useDailyBrief` builds its own key
+  return roots;
+}
 
 describe('Inbox private-data isolation', () => {
-  afterEach(() => {
-    queryClient.clear();
-    setInboxQueryScope(null);
+  // The SDK isolates and persists per account exactly what it is told about.
+  // A root left out would survive an account switch in memory.
+  it('declares every private query root to the SDK', () => {
+    const declared = new Set([
+      ...INBOX_ACCOUNT_QUERIES.roots,
+      ...(INBOX_ACCOUNT_QUERIES.memoryOnlyRoots ?? []),
+    ]);
+    for (const root of emailKeyRoots()) {
+      expect(declared).toContain(root);
+    }
   });
 
-  it('hashes the same legacy key differently for different sessions', () => {
-    setInboxQueryScope('session-a');
-    const sessionAHash = hashInboxQueryKey(emailKeys.labels);
-
-    setInboxQueryScope('session-b');
-    const sessionBHash = hashInboxQueryKey(emailKeys.labels);
-
-    expect(sessionAHash).not.toBe(sessionBHash);
-    expect(getInboxQueryScope()).toBe('session-b');
+  it('never writes signed URLs, AI output or search results to disk', () => {
+    for (const root of ['attachment-url', 'inbox-ai', 'search', 'smartReplies', 'threadSummary']) {
+      expect(INBOX_ACCOUNT_QUERIES.roots).not.toContain(root);
+    }
   });
 
-  it('does not expose one session cache data through another session key', () => {
-    setInboxQueryScope('session-a');
-    queryClient.setQueryData(emailKeys.labels, [{ _id: 'label-a' }]);
-
-    setInboxQueryScope('session-b');
-    expect(queryClient.getQueryData(emailKeys.labels)).toBeUndefined();
-
-    setInboxQueryScope('session-a');
-    expect(queryClient.getQueryData(emailKeys.labels)).toEqual([{ _id: 'label-a' }]);
-  });
-
-  it('keeps every persisted private-data root behind the scoped hash boundary', () => {
-    setInboxQueryScope('session-a');
-    const sessionAHashes = [...PERSISTED_QUERY_ROOTS].map((root) =>
-      hashInboxQueryKey([root]),
-    );
-
-    setInboxQueryScope('session-b');
-    const sessionBHashes = [...PERSISTED_QUERY_ROOTS].map((root) =>
-      hashInboxQueryKey([root]),
-    );
-
-    expect(sessionAHashes).not.toEqual(sessionBHashes);
+  it('replays every queued message mutation for the same account only', () => {
+    expect(INBOX_ACCOUNT_QUERIES.mutationKeys).toEqual(Object.values(INBOX_MUTATION_KEYS));
   });
 });
 

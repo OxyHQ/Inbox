@@ -635,7 +635,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={styles.container}>
       {/* Header and filters stay in flow above the virtualized results. */}
       <View>
         <SearchHeader

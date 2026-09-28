@@ -7,6 +7,7 @@ export default function SearchLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
+        contentStyle: { backgroundColor: 'transparent' },
         animation: isDesktop ? 'none' : 'default',
       }}
     >

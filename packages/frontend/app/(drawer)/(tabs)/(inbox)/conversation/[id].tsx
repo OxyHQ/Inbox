@@ -1,9 +1,7 @@
-import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 /**
  * Conversation (message detail) route — /conversation/:id
  *
- * Desktop: rendered in Slot (right pane of split-view), embedded mode.
- * Mobile: pushed onto Stack, standalone mode with back button.
+ * One routed page inside Bloom’s content panel, with back navigation at every width.
  */
 
 import { useLocalSearchParams } from 'expo-router';
@@ -17,7 +15,6 @@ import { useTranslation } from '@/lib/i18n';
 
 export default function ConversationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const isDesktop = useIsDesktopLayout();
   const { t } = useTranslation();
 
   const { data: thread } = useThread(id);
@@ -44,7 +41,7 @@ export default function ConversationScreen() {
         <title>{pageTitle}</title>
       </Head>
       <MessageDetail
-        mode={isDesktop ? 'embedded' : 'standalone'}
+        mode="standalone"
         messageId={id}
       />
     </>

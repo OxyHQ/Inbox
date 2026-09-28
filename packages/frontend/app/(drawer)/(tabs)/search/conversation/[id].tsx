@@ -1,9 +1,7 @@
-import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 /**
  * Conversation detail within search context — /search/conversation/:id
  *
- * Desktop: rendered in Slot (right pane of split-view), embedded mode.
- * Mobile: pushed onto Stack, standalone mode with back button.
+ * One routed page inside Bloom’s content panel, with back navigation at every width.
  */
 
 import { useLocalSearchParams } from 'expo-router';
@@ -14,7 +12,6 @@ import { useEmailStore } from '@/hooks/useEmail';
 
 export default function SearchConversationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const isDesktop = useIsDesktopLayout();
 
   useEffect(() => {
     if (id) {
@@ -29,7 +26,7 @@ export default function SearchConversationScreen() {
 
   return (
     <MessageDetail
-      mode={isDesktop ? 'embedded' : 'standalone'}
+      mode="standalone"
       messageId={id}
     />
   );

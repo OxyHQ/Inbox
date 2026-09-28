@@ -7,7 +7,7 @@ workspace; the brief and Alia open on demand.
 
 | Surface | Shared Bloom primitives | Inbox responsibilities |
 | --- | --- | --- |
-| Workspace | AppShell, Sidebar, BottomBar, Fab | Mailbox/label destinations and SDK account actions |
+| Workspace | AppShell with ContentPanel, Sidebar, BottomBar, Fab | Mailbox/label destinations and SDK account actions |
 | Mail list | MailRow, MailSelectionBar, SwipeRow | Virtualization, grouping, unreadable rows, bulk mutations and preferences |
 | Conversation | PageHeader, MailThread, MailMessage | Safe HTML/CID resolution, unreadable entries, downloads, reply targets |
 | Composer | MailComposeSurface, MailRecipientField, TextFieldInput | Recipient validation/suggestions, editor, draft recovery, RFC reply headers and outbound queue |
@@ -24,7 +24,12 @@ this migration. Colors now come from semantic Bloom roles.
 - The shell changes at 900px; the sidebar expands at 1200px. These thresholds
   apply to every platform. The same route stack remains mounted through a width
   change so a composer does not restart.
-- Search state lives above the two responsive list locations. Its lifetime is
+- Lists, search, conversations and composition occupy one routed content panel
+  at every width. There is no permanent empty detail column. The desktop sidebar
+  uses Bloom’s default card, with an 8px gutter; mobile is full-bleed. The shell
+  owns the panel surface and route scenes stay transparent. This follows the
+  surface ownership used by Alia and Mention.
+- Search state lives above the route stack. Its lifetime is
   scoped to the SDK user ID; switching accounts or signing out clears it.
   Outstanding interpretation/debounce callbacks cannot update a new session.
 - Bloom stores scroll offsets under account + mailbox/search identity. The
@@ -59,7 +64,7 @@ compatibility with the unrelated 4.35.0 changes.
 ## Validation
 
 The local validation run passed 34 Jest suites (167 tests), lint and TypeScript.
-The web export produced 52,619 bytes of CSS, and the post-export TypeScript check
+The web export exceeds the 20 KB CSS floor, and the post-export TypeScript check
 also passed. A locally compiled Android debug client and the exported web app
 both reached the signed-out access screen without JavaScript errors.
 

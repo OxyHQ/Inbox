@@ -1,12 +1,10 @@
-import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 /**
  * Dynamic route for label views — /label/<name>.
  *
  * Syncs the URL label name into the email store (Zustand) so `InboxList`
  * fetches messages filtered by the matching label.
  *
- * Desktop: shows empty detail pane (list lives in the layout).
- * Mobile: shows the inbox list filtered to the label.
+ * The filtered list occupies the shared Bloom panel on every platform.
  *
  * When the URL points to a label that doesn't exist (no match on
  * lowercased name), we surface the empty-detail component with a "not
@@ -25,7 +23,6 @@ import { useMessages } from '@/hooks/queries/useMessages';
 import { useEmailStore } from '@/hooks/useEmail';
 
 export default function LabelViewRoute() {
-  const isDesktop = useIsDesktopLayout();
   const { name } = useLocalSearchParams<{ name: string }>();
   const { data: labels = [] } = useLabels();
 
@@ -71,7 +68,7 @@ export default function LabelViewRoute() {
       <Head>
         <title>{pageTitle}</title>
       </Head>
-      {isDesktop ? <MessageDetailEmpty /> : <InboxList />}
+      {label ? <InboxList /> : <MessageDetailEmpty />}
     </>
   );
 }

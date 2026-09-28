@@ -678,7 +678,6 @@ export function ComposeForm({
     <KeyboardAvoidingView
       style={[
         styles.container,
-        { backgroundColor: colors.background },
         mode === 'standalone' && { paddingTop: insets.top },
       ]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}

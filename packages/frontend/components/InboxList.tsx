@@ -1050,7 +1050,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   }, [isFetchingNextPage]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={styles.container}>
       {isSelectionMode ? (
         <SelectionToolbar
           count={selectedMessageIds.size}

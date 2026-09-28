@@ -561,7 +561,6 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
   const shellStyle = [
     styles.container,
-    { backgroundColor: colors.background },
     mode === 'standalone' && { paddingTop: insets.top },
   ];
 
@@ -712,7 +711,6 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     <View
       style={[
         styles.container,
-        { backgroundColor: colors.background },
         mode === 'standalone' && { paddingTop: insets.top },
       ]}
     >

@@ -60,12 +60,8 @@ export default function InboxLayout() {
   }, [currentIndex, messages]);
 
   const handleCompose = useCallback(() => {
-    if (isDesktop) {
-      router.replace('/compose');
-    } else {
-      router.push('/compose');
-    }
-  }, [router, isDesktop]);
+    router.push('/compose');
+  }, [router]);
 
   const openReply = useCallback(
     (mode: ReplyMode) => {
@@ -74,7 +70,7 @@ export default function InboxLayout() {
         username: user?.username,
         email: user?.email,
       });
-      router.replace({
+      router.push({
         pathname: '/compose',
         params: {
           // The parent's ROW id — the composer loads the parent by it to build
@@ -104,7 +100,7 @@ export default function InboxLayout() {
   const handleForward = useCallback(() => {
     if (selectedMessageId && currentMessage) {
       if (isDesktop) {
-        router.replace({
+        router.push({
           pathname: '/compose',
           params: {
             forward: currentMessage._id,
@@ -180,12 +176,6 @@ export default function InboxLayout() {
     }
   }, [selectedMessageId, toggleRead]);
 
-  /**
-   * Closing returns to the plain list route. The list pane keeps its own view
-   * state in the store, so this does not reset which mailbox is shown — and
-   * with the pane closed the mailbox route's `MailboxView` never mounts to
-   * override it either.
-   */
   const helpControl = useDialogControl();
   const handleShowHelp = useCallback(() => {
     helpControl.open();
@@ -212,6 +202,7 @@ export default function InboxLayout() {
       <Stack
         screenOptions={{
           headerShown: false,
+          contentStyle: { backgroundColor: 'transparent' },
           animation: isDesktop ? 'none' : 'default',
         }}
       >

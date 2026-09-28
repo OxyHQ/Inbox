@@ -1,6 +1,4 @@
 import { InboxBottomBar } from '@/components/InboxBottomBar';
-import { InboxList } from '@/components/InboxList';
-import { SearchList } from '@/components/SearchList';
 
 import { MailScrollProvider } from './MailScrollProvider';
 /** Mail navigation is data for Bloom's Sidebar; account/mail mutations remain owned by the SDK/app. */
@@ -88,9 +86,6 @@ export function MailboxShell({ children }: { children: ReactNode }) {
 
   const pathname = usePathname();
   const isDesktop = useIsDesktopLayout();
-  const searchRoute = pathname.startsWith('/search');
-  const fullPage =
-    pathname.startsWith('/settings') || pathname === '/subscriptions';
   const moreExpanded = useEmailStore((s) => s.moreExpanded);
   const toggleMore = useEmailStore((s) => s.toggleMore);
   const { data: mailboxes = [] } = useMailboxes();
@@ -371,34 +366,21 @@ export function MailboxShell({ children }: { children: ReactNode }) {
   return (
     <MailScrollProvider>
       <AppShell
-        variant="split"
-        pane="detail"
-        splitFrom={DESKTOP_BREAKPOINT}
-        paneScroll={false}
-        listWidth={360}
-        listMinWidth={280}
-        listMaxWidth={480}
-        list={
-          isDesktop && !fullPage ? (
-            searchRoute ? (
-              <SearchList replaceNavigation />
-            ) : (
-              <InboxList replaceNavigation />
-            )
-          ) : undefined
-        }
+        variant="feed"
+        panel
         scroll="fixed"
         drawer="overlay"
         header={null}
         navFrom={DESKTOP_BREAKPOINT}
         navExpandedFrom={1200}
-        gutter={12}
-        contentMaxWidth={1800}
+        navigationAlign="edge"
+        gutter={isDesktop ? 8 : 0}
+        contentWidth={1200}
+        testID="mail-workspace"
         bottomBar={<InboxBottomBar />}
         drawerOpen={drawerOpen}
         onDrawerOpenChange={setDrawerOpen}
         sidebar={{
-          surface: 'plain',
           size: 'md',
           items,
           selected,

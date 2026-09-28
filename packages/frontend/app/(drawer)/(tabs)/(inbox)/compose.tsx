@@ -1,4 +1,3 @@
-import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 import { useLocalSearchParams } from 'expo-router';
 import Head from 'expo-router/head';
 
@@ -6,7 +5,6 @@ import { ComposeForm } from '@/components/ComposeForm';
 import { useTranslation } from '@/lib/i18n';
 
 export default function ComposeRoute() {
-  const isDesktop = useIsDesktopLayout();
   const { t } = useTranslation();
   const params = useLocalSearchParams<{
     replyTo?: string;
@@ -28,7 +26,7 @@ export default function ComposeRoute() {
         <title>{pageTitle}</title>
       </Head>
       <ComposeForm
-        mode={isDesktop ? 'embedded' : 'standalone'}
+        mode="standalone"
         replyTo={params.replyTo}
         forward={params.forward}
         to={params.to}

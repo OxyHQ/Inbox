@@ -46,15 +46,19 @@ this migration. Colors now come from semantic Bloom roles.
 Bloom PR [#234](https://github.com/OxyHQ/Bloom/pull/234) supplies `cozy` density
 and `showAvatar` while preserving existing defaults. It also fixes settings
 keyboard dismissal/focus using Bloom's existing modal keyboard primitive.
-Both manifests and `bun.lock` pin the published maintenance release **4.34.1**.
+The 4.34.2 patch also fixes MailRow pointer hit testing: inert visual content
+passes clicks to the row action, while selection, star and archive controls
+remain independent. Real browser pointer tests cover all three densities.
+The shared fix is tracked in [Bloom #242](https://github.com/OxyHQ/Bloom/pull/242).
+Both manifests and `bun.lock` pin the published maintenance release **4.34.2**.
 Validation uses a clean registry installation, with no local package copy or patch.
-The release was published under npm's `inbox-maintenance` tag, preserving
-the then-current `latest` release (4.35.0). [Bloom PR #234](https://github.com/OxyHQ/Bloom/pull/234) carries the
+The maintenance releases use npm's `inbox-maintenance` tag, preserving
+`latest` (4.35.0 when 4.34.1 shipped; 5.1.1 when 4.34.2 shipped). [Bloom PR #234](https://github.com/OxyHQ/Bloom/pull/234) carries the
 additive changes forward separately.
 
 The Doctor wrapper uses the published `@oxy.so/doctor` inspection API. It reports
 one explicit deferral: Bloom's 4.35.0 update, while the frontend declaration,
-root override and sole locked version are exactly 4.34.1. All other findings
+root override and sole locked version are exactly 4.34.2. All other findings
 still fail CI, including a newer registry release, changed pin or duplicate
 installation. Remove this narrow exception when adopting the next Bloom release;
 that update needs separate compatibility review. Tests cover the fail-closed

@@ -3,9 +3,9 @@ import '../global.css';
 import { Stack, ThemeProvider } from 'expo-router';
 import Head from 'expo-router/head';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { Platform, View } from 'react-native';
+import { Platform } from 'react-native';
 import 'react-native-reanimated';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { OxyProvider, useOxy, RequireOxyAuth } from '@oxy.so/services';
@@ -13,12 +13,12 @@ import { toast } from '@oxy.so/bloom';
 import { ImageResolverProvider } from '@oxy.so/bloom/image-resolver';
 import type { ImageResolver } from '@oxy.so/bloom/image-resolver';
 import { BloomProvider } from '@oxy.so/bloom/provider';
-import { useNavigationTheme, useTheme } from '@oxy.so/bloom/theme';
+import { useNavigationTheme } from '@oxy.so/bloom/theme';
 import type { ThemeMode } from '@oxy.so/bloom/theme';
 import { PortalProvider, PortalOutlet } from '@oxy.so/bloom/portal';
 import { ConnectionStatusToasts } from '@oxy.so/bloom/connection-status';
 
-import { activateInboxQueryScope, queryClient } from '@/hooks/queries/queryClient';
+import { INBOX_ACCOUNT_QUERIES, queryClient } from '@/hooks/queries/queryClient';
 import { ThemeProvider as AppThemeProvider, useThemeContext } from '@/contexts/theme-context';
 import { InboxPrefsProvider } from '@/contexts/inbox-prefs-context';
 import { LocaleProvider, useTranslation } from '@/lib/i18n';
@@ -28,6 +28,7 @@ import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { useEmailPushNotifications } from '@/hooks/notifications/useEmailPushNotifications';
 import { useForegroundNotificationHandler } from '@/hooks/notifications/useForegroundNotificationHandler';
 import { useEmailStore } from '@/hooks/useEmail';
+import { removeLegacyQueryCache } from '@/utils/removeLegacyQueryCache';
 import { registerServiceWorker } from '@/utils/registerServiceWorker';
 import { clearQueue } from '@/utils/offlineQueue';
 import { OXY_CLIENT_ID, OXY_AUTH_REDIRECT_URI } from '@/constants/oxy';
@@ -66,8 +67,8 @@ function RootLayoutContent() {
 
   return (
     <KeyboardProvider>
-      <OxyProvider baseURL={API_URL} clientId={OXY_CLIENT_ID} authRedirectUri={OXY_AUTH_REDIRECT_URI} queryClient={queryClient}>
-        <InboxCacheRestoreGate>
+      <OxyProvider baseURL={API_URL} clientId={OXY_CLIENT_ID} authRedirectUri={OXY_AUTH_REDIRECT_URI} queryClient={queryClient} accountQueries={INBOX_ACCOUNT_QUERIES}>
+        <ScopedInboxPrefsProvider>
           <BloomImageResolver>
             <LocaleProvider>
               <PortalProvider>
@@ -81,7 +82,7 @@ function RootLayoutContent() {
               </PortalProvider>
             </LocaleProvider>
           </BloomImageResolver>
-        </InboxCacheRestoreGate>
+        </ScopedInboxPrefsProvider>
       </OxyProvider>
     </KeyboardProvider>
   );
@@ -99,46 +100,19 @@ function GatedNavigator() {
   );
 }
 
-function InboxCacheRestoreGate({ children }: { children: ReactNode }) {
-  const { colors } = useTheme();
-  const { activeSessionId, isAuthResolved, user } = useOxy();
-  const [ready, setReady] = useState(false);
-  const [readyScope, setReadyScope] = useState<string | null>(null);
-  const initializedScopeRef = useRef<string | null | undefined>(undefined);
-  const scope = isAuthResolved ? activeSessionId ?? user?.id ?? null : null;
-
-  useEffect(() => {
-    if (!isAuthResolved) return;
-
-    let cancelled = false;
-    const previousScope = initializedScopeRef.current;
-    const isInitialScope = previousScope === undefined;
-    initializedScopeRef.current = scope;
-
-    void activateInboxQueryScope(scope, !isInitialScope && previousScope !== null).then(() => {
-      if (cancelled) return;
-      if (!isInitialScope) {
-        useEmailStore.getState().resetAccountScopedState();
-      }
-      setReadyScope(scope);
-      setReady(true);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthResolved, scope]);
-
-  if (!isAuthResolved || !ready || readyScope !== scope) {
-    return <View style={{ flex: 1, backgroundColor: colors.background }} />;
-  }
-
-  return <ScopedInboxPrefsProvider>{children}</ScopedInboxPrefsProvider>;
-}
-
 function ScopedInboxPrefsProvider({ children }: { children: ReactNode }) {
   const { user } = useOxy();
   const scope = user?.id ?? null;
+
+  // The selected mailbox and the email API belong to the account. Its cached
+  // data is the SDK's to drop (`accountQueries`); this is the app's own state.
+  const previousScope = useRef(scope);
+  useEffect(() => {
+    if (previousScope.current === scope) return;
+    previousScope.current = scope;
+    useEmailStore.getState().resetAccountScopedState();
+  }, [scope]);
+
   return (
     <InboxPrefsProvider key={scope ?? 'anonymous'} scope={scope}>
       {children}
@@ -163,6 +137,9 @@ function RootEffects() {
   usePushRegistration();
   useEmailPushNotifications(canUsePrivateApi);
   useForegroundNotificationHandler();
+  useEffect(() => {
+    void removeLegacyQueryCache();
+  }, []);
   useEffect(() => {
     if (Platform.OS !== 'web') return;
 

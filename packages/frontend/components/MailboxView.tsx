@@ -1,3 +1,4 @@
+import { MessageDetailEmpty } from '@/components/MessageDetailEmpty';
 import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 /**
  * Renders a system mailbox view (inbox, sent, drafts, trash, …) or a custom
@@ -7,15 +8,13 @@ import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
  *   - `(inbox)/index.tsx` — the inbox itself, which lives at `/`
  *   - `(inbox)/[view].tsx` — every other system mailbox at `/<view>`
  *
- * Desktop: shows empty state (the list is rendered by the layout)
- * Mobile: shows the inbox list
+ * The route owns the list at every width; Bloom owns its surrounding panel.
  */
 
 import Head from 'expo-router/head';
 import { useEffect, useMemo } from 'react';
 
 import { InboxList } from '@/components/InboxList';
-import { MessageDetailEmpty } from '@/components/MessageDetailEmpty';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
 import { useMessages } from '@/hooks/queries/useMessages';

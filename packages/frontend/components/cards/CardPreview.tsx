@@ -4,19 +4,17 @@
  */
 
 import type { MessageCard } from '@/services/emailApi';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Chip } from '@oxy.so/bloom/chip';
 import {
-  resolveAccentColors,
-  useTheme,
-  type AccentTone,
-} from '@oxy.so/bloom/theme';
-import { Text } from '@oxy.so/bloom/typography';
-import { type ComponentProps } from 'react';
-import { StyleSheet, View } from 'react-native';
-
-type MaterialCommunityIconName = ComponentProps<
-  typeof MaterialCommunityIcons
->['name'];
+  RiSendPlaneLine,
+  RiShoppingBag3Line,
+  RiCalendarLine,
+  RiFileList2Line,
+  RiBox3Line,
+  RiFileTextLine,
+} from '@oxy.so/bloom/icons';
+import type { BloomIconComponent } from '@oxy.so/bloom/icons';
+import type { BloomTone } from '@oxy.so/bloom/appearance';
 
 interface CardPreviewProps {
   card: MessageCard;
@@ -24,13 +22,13 @@ interface CardPreviewProps {
 
 const CARD_CONFIG: Record<
   string,
-  { icon: MaterialCommunityIconName; tone: AccentTone }
+  { icon: BloomIconComponent; tone: BloomTone }
 > = {
-  trip: { icon: 'airplane', tone: 'info' },
-  purchase: { icon: 'shopping-outline', tone: 'success' },
-  event: { icon: 'calendar', tone: 'error' },
-  bill: { icon: 'receipt', tone: 'warning' },
-  package: { icon: 'package-variant', tone: 'tertiary' },
+  trip: { icon: RiSendPlaneLine, tone: 'info' },
+  purchase: { icon: RiShoppingBag3Line, tone: 'success' },
+  event: { icon: RiCalendarLine, tone: 'danger' },
+  bill: { icon: RiFileList2Line, tone: 'warning' },
+  package: { icon: RiBox3Line, tone: 'support' },
 };
 
 function getSummary(card: MessageCard): string {
@@ -111,52 +109,15 @@ function getSummary(card: MessageCard): string {
 }
 
 export function CardPreview({ card }: CardPreviewProps) {
-  const { colors } = useTheme();
-  const config = CARD_CONFIG[card.type] || {
-    icon: 'card-outline',
-    tone: 'default' as const,
+  const config = CARD_CONFIG[card.type] ?? {
+    icon: RiFileTextLine,
+    tone: 'neutral' as const,
   };
-  const palette = resolveAccentColors(colors, config.tone, 'subtle');
   const summary = getSummary(card);
-
   if (!summary) return null;
-
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: palette.background, borderColor: palette.border },
-      ]}
-    >
-      <MaterialCommunityIcons
-        name={config.icon}
-        size={14}
-        color={palette.foreground}
-      />
-      <Text
-        style={[styles.text, { color: palette.foreground }]}
-        numberOfLines={1}
-      >
-        {summary}
-      </Text>
-    </View>
+    <Chip appearance="subtle" tone={config.tone} leadingIcon={config.icon}>
+      {summary}
+    </Chip>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignSelf: 'flex-start',
-  },
-  text: {
-    fontSize: 12,
-    fontWeight: '500',
-    flexShrink: 1,
-  },
-});

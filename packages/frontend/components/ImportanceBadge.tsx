@@ -6,7 +6,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { TouchableOpacity } from 'react-native';
+import { Chip } from '@oxy.so/bloom/chip';
 import { Badge } from '@oxy.so/bloom/badge';
 
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
@@ -67,10 +67,13 @@ interface ImportanceBadgeProps {
   onPress?: () => void;
 }
 
-const BADGE_CONFIG: Record<Exclude<ImportanceLevel, null>, {
-  label: string;
-  color: 'error' | 'warning' | 'primary' | 'default';
-}> = {
+const BADGE_CONFIG: Record<
+  Exclude<ImportanceLevel, null>,
+  {
+    label: string;
+    color: 'error' | 'warning' | 'primary' | 'default';
+  }
+> = {
   urgent: {
     label: 'Urgent',
     color: 'error',
@@ -111,9 +114,14 @@ export function ImportanceBadge({ message, onPress }: ImportanceBadgeProps) {
 
   if (onPress) {
     return (
-      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-        {badge}
-      </TouchableOpacity>
+      <Chip
+        onPress={onPress}
+        color={config.color}
+        variant="subtle"
+        size="small"
+      >
+        {config.label}
+      </Chip>
     );
   }
 

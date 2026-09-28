@@ -1,63 +1,26 @@
-/**
- * Small image thumbnail for attachment previews in message rows.
- * Fetches a signed File Manager URL and renders a cached image.
- */
-
-import React, { useState } from 'react';
-import { View, Image, StyleSheet, ActivityIndicator } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-
+import { Avatar } from '@oxy.so/bloom/avatar';
+import { RiFileImageLine } from '@oxy.so/bloom/icons';
+import { Loading } from '@oxy.so/bloom/loading';
 import { useAttachmentUrl } from '@/hooks/queries/useAttachmentUrl';
-import { useColors } from '@/constants/theme';
-
 interface AttachmentThumbnailProps {
   fileId: string;
   size?: number;
 }
-
-export function AttachmentThumbnail({ fileId, size = 48 }: AttachmentThumbnailProps) {
-  const colors = useColors();
+export function AttachmentThumbnail({
+  fileId,
+  size = 48,
+}: AttachmentThumbnailProps) {
   const { url, isLoading } = useAttachmentUrl(fileId, true, 'thumb');
-  const [errored, setErrored] = useState(false);
-
-  const containerStyle = [
-    styles.container,
-    { width: size, height: size, backgroundColor: colors.surfaceVariant },
-  ];
-
-  if (isLoading) {
-    return (
-      <View style={containerStyle}>
-        <ActivityIndicator size="small" color={colors.secondaryText} />
-      </View>
-    );
-  }
-
-  if (!url || errored) {
-    return (
-      <View style={containerStyle}>
-        <MaterialCommunityIcons name="image-broken-variant" size={18} color={colors.secondaryText} />
-      </View>
-    );
-  }
-
   return (
-    <Image
-      source={{ uri: url }}
-      style={[containerStyle, styles.image]}
-      onError={() => setErrored(true)}
+    <Avatar
+      source={url}
+      size={size}
+      shape="squircle"
+      color="neutral"
+      alt="Attachment preview"
+      placeholderIcon={
+        isLoading ? <Loading size="small" /> : <RiFileImageLine />
+      }
     />
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  image: {
-    resizeMode: 'cover',
-  },
-});

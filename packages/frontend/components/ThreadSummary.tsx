@@ -1,34 +1,19 @@
-/**
- * Thread Summary component.
- *
- * Shows AI-generated summary, key points, and action items for long threads.
- * Collapsible by default with expand/collapse functionality.
- */
-
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import {
-  AiChat02Icon,
-  ArrowDown01Icon,
-  ArrowUp01Icon,
-  CheckListIcon,
-} from '@hugeicons/core-free-icons';
-import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
-import * as Skeleton from '@oxy.so/bloom/skeleton';
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from '@oxy.so/bloom/accordion';
+import { Badge } from '@oxy.so/bloom/badge';
+import { Button } from '@oxy.so/bloom/button';
+import { Card, CardHeader, CardTitle, CardBody } from '@oxy.so/bloom/card';
+import { Divider } from '@oxy.so/bloom/divider';
+import { RiSparklingLine } from '@oxy.so/bloom/icons';
+import { Loading } from '@oxy.so/bloom/loading';
+import { Text } from '@oxy.so/bloom/typography';
 import { useState } from 'react';
-import {
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-
-import { useColors } from '@/constants/theme';
-import {
-  useThreadSummary,
-  type ActionItem,
-} from '@/hooks/queries/useThreadSummary';
+import { View } from 'react-native';
+import { useThreadSummary } from '@/hooks/queries/useThreadSummary';
 import { useTranslation } from '@/lib/i18n';
 import type { Message } from '@/services/emailApi';
 
@@ -38,389 +23,87 @@ interface ThreadSummaryProps {
   minMessages?: number;
 }
 
-function ActionItemRow({
-  item,
-  colors,
-}: {
-  item: ActionItem;
-  colors: ReturnType<typeof useColors>;
-}) {
-  const { t } = useTranslation();
-  return (
-    <View style={styles.actionItem}>
-      <MaterialCommunityIcons
-        name="checkbox-blank-outline"
-        size={16}
-        color={colors.primary}
-      />
-      <View style={styles.actionItemContent}>
-        <Text style={[styles.actionItemText, { color: colors.text }]}>
-          {item.text}
-        </Text>
-        {(item.owner || item.deadline) && (
-          <View style={styles.actionItemMeta}>
-            {item.owner && (
-              <Text
-                style={[
-                  styles.actionItemOwner,
-                  { color: colors.secondaryText },
-                ]}
-              >
-                {item.owner}
-              </Text>
-            )}
-            {item.deadline && (
-              <Text
-                style={[styles.actionItemDeadline, { color: colors.primary }]}
-              >
-                {t('threadSummary.due', { date: item.deadline })}
-              </Text>
-            )}
-          </View>
-        )}
-      </View>
-    </View>
-  );
-}
-
 export function ThreadSummary({
   messageId,
   messages,
   minMessages = 4,
 }: ThreadSummaryProps) {
-  const colors = useColors();
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(true);
-
   const { summary, keyPoints, actionItems, isLoading, error, refetch } =
     useThreadSummary(messageId, messages, { minMessages });
-
-  // Don't render if not enough messages or no summary
-  if (messages.length < minMessages) {
-    return null;
-  }
-
-  if (isLoading) {
+  if (messages.length < minMessages) return null;
+  if (isLoading) return <Loading text={t('threadSummary.title')} />;
+  if (error)
     return (
-      <View
-        style={[
-          styles.container,
-          {
-            backgroundColor: colors.surfaceVariant,
-            borderColor: colors.border,
-          },
-        ]}
-      >
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            {Platform.OS === 'web' ? (
-              <HugeiconsIcon
-                icon={AiChat02Icon as unknown as IconSvgElement}
-                size={18}
-                color={colors.primary}
-              />
-            ) : (
-              <MaterialCommunityIcons
-                name="robot-outline"
-                size={18}
-                color={colors.primary}
-              />
-            )}
-            <Text style={[styles.headerTitle, { color: colors.text }]}>
-              {t('threadSummary.title')}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.loadingContent}>
-          <Skeleton.Box width="100%" height={14} borderRadius={4} />
-          <Skeleton.Box width="70%" height={14} borderRadius={4} />
-        </View>
-      </View>
+      <Card appearance="outline">
+        <CardHeader>
+          <CardTitle>{t('threadSummary.title')}</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <Text>{t('threadSummary.unavailable')}</Text>
+          <Button appearance="subtle" onPress={() => void refetch()}>
+            {t('common.retry')}
+          </Button>
+        </CardBody>
+      </Card>
     );
-  }
-
-  if (error) {
-    return (
-      <View
-        style={[
-          styles.container,
-          {
-            backgroundColor: colors.surfaceVariant,
-            borderColor: colors.border,
-          },
-        ]}
-      >
-        <Pressable
-          onPress={() => refetch()}
-          accessibilityRole="button"
-          style={styles.header}
-        >
-          <View style={styles.headerLeft}>
-            {Platform.OS === 'web' ? (
-              <HugeiconsIcon
-                icon={AiChat02Icon as unknown as IconSvgElement}
-                size={18}
-                color={colors.primary}
-              />
-            ) : (
-              <MaterialCommunityIcons
-                name="robot-outline"
-                size={18}
-                color={colors.primary}
-              />
-            )}
-            <Text style={[styles.headerTitle, { color: colors.text }]}>
-              {t('threadSummary.title')}
-            </Text>
-          </View>
-        </Pressable>
-        <Text style={[styles.errorText, { color: colors.secondaryText }]}>
-          {t('threadSummary.unavailable')} {t('home.brief.tapRetry')}
-        </Text>
-      </View>
-    );
-  }
-
-  // Don't render if no content
-  if (!summary && keyPoints.length === 0 && actionItems.length === 0) {
+  if (!summary && keyPoints.length === 0 && actionItems.length === 0)
     return null;
-  }
-
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: colors.surfaceVariant, borderColor: colors.border },
-      ]}
+    <Accordion
+      value={expanded ? 'summary' : undefined}
+      onValueChange={(value) => setExpanded(value === 'summary')}
     >
-      <TouchableOpacity
-        style={styles.header}
-        onPress={() => setExpanded(!expanded)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.headerLeft}>
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon
-              icon={AiChat02Icon as unknown as IconSvgElement}
-              size={18}
-              color={colors.primary}
-            />
-          ) : (
-            <MaterialCommunityIcons
-              name="robot-outline"
-              size={18}
-              color={colors.primary}
-            />
-          )}
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            Thread Summary
-          </Text>
-          <View
-            style={[styles.badge, { backgroundColor: colors.primaryContainer }]}
-          >
-            <Text style={[styles.badgeText, { color: colors.primary }]}>
-              {t('threadSummary.messages', { count: messages.length })}
-            </Text>
-          </View>
-        </View>
-        {Platform.OS === 'web' ? (
-          <HugeiconsIcon
-            icon={
-              (expanded
-                ? ArrowUp01Icon
-                : ArrowDown01Icon) as unknown as IconSvgElement
-            }
-            size={18}
-            color={colors.icon}
+      <AccordionItem value="summary">
+        <AccordionTrigger icon={<RiSparklingLine />}>
+          {t('threadSummary.title')}
+        </AccordionTrigger>
+        <AccordionContent>
+          <Badge
+            tone="neutral"
+            appearance="subtle"
+            content={t('threadSummary.messages', { count: messages.length })}
+            size="label-small"
           />
-        ) : (
-          <MaterialCommunityIcons
-            name={expanded ? 'chevron-up' : 'chevron-down'}
-            size={18}
-            color={colors.icon}
-          />
-        )}
-      </TouchableOpacity>
-
-      {expanded && (
-        <View style={styles.content}>
-          {/* Summary */}
-          {summary && (
-            <Text style={[styles.summary, { color: colors.text }]}>
-              {summary}
-            </Text>
-          )}
-
-          {/* Key Points */}
-          {keyPoints.length > 0 && (
-            <View style={styles.keyPointsSection}>
-              <Text
-                style={[styles.sectionLabel, { color: colors.secondaryText }]}
-              >
-                {t('threadSummary.keyPoints')}
-              </Text>
-              {keyPoints.map((point, index) => (
-                <View key={index} style={styles.keyPoint}>
-                  <View
-                    style={[
-                      styles.keyPointBullet,
-                      { backgroundColor: colors.primary },
-                    ]}
-                  />
-                  <Text style={[styles.keyPointText, { color: colors.text }]}>
-                    {point}
+          <View className="gap-3">
+            {summary && <Text selectable>{summary}</Text>}
+            {keyPoints.length > 0 && (
+              <View className="gap-2">
+                <Text variant="caption-1-medium">
+                  {t('threadSummary.keyPoints')}
+                </Text>
+                {keyPoints.map((point, index) => (
+                  <Text key={index} selectable>
+                    • {point}
                   </Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Action Items */}
-          {actionItems.length > 0 && (
-            <View style={styles.actionItemsSection}>
-              <View style={styles.actionItemsHeader}>
-                {Platform.OS === 'web' ? (
-                  <HugeiconsIcon
-                    icon={CheckListIcon as unknown as IconSvgElement}
-                    size={14}
-                    color={colors.secondaryText}
-                  />
-                ) : (
-                  <MaterialCommunityIcons
-                    name="checkbox-marked-outline"
-                    size={14}
-                    color={colors.secondaryText}
-                  />
-                )}
-                <Text
-                  style={[styles.sectionLabel, { color: colors.secondaryText }]}
-                >
+                ))}
+              </View>
+            )}
+            {actionItems.length > 0 && (
+              <View className="gap-2">
+                <Divider />
+                <Text variant="caption-1-medium">
                   {t('threadSummary.actionItems')}
                 </Text>
+                {actionItems.map((item, index) => (
+                  <View key={index} className="gap-1">
+                    <Text selectable>{item.text}</Text>
+                    {item.owner && (
+                      <Text variant="caption-1-regular">{item.owner}</Text>
+                    )}
+                    {item.deadline && (
+                      <Text variant="caption-1-regular">
+                        {t('threadSummary.due', { date: item.deadline })}
+                      </Text>
+                    )}
+                  </View>
+                ))}
               </View>
-              {actionItems.map((item, index) => (
-                <ActionItemRow key={index} item={item} colors={colors} />
-              ))}
-            </View>
-          )}
-        </View>
-      )}
-    </View>
+            )}
+          </View>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 16,
-    overflow: 'hidden',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  headerTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  content: {
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-  },
-  summary: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 6,
-  },
-  keyPointsSection: {
-    marginBottom: 12,
-  },
-  keyPoint: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    marginBottom: 4,
-  },
-  keyPointBullet: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    marginTop: 6,
-  },
-  keyPointText: {
-    fontSize: 13,
-    lineHeight: 18,
-    flex: 1,
-  },
-  actionItemsSection: {
-    paddingTop: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(0,0,0,0.1)',
-  },
-  actionItemsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 8,
-  },
-  actionItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    marginBottom: 8,
-  },
-  actionItemContent: {
-    flex: 1,
-  },
-  actionItemText: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  actionItemMeta: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 2,
-  },
-  actionItemOwner: {
-    fontSize: 11,
-  },
-  actionItemDeadline: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  loadingContent: {
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-    gap: 8,
-  },
-  errorText: {
-    fontSize: 13,
-    lineHeight: 18,
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-  },
-});

@@ -1,12 +1,23 @@
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardBody,
+} from '@oxy.so/bloom/card';
+import { EmptyState } from '@oxy.so/bloom/empty-state';
+import { Text } from '@oxy.so/bloom/typography';
+import { useAiChatShell } from '@oxy.so/bloom/ai-chat';
+import { ButtonGroup, ButtonGroupItem } from '@oxy.so/bloom/button-group';
 import { Button, IconButton } from '@oxy.so/bloom/button';
 import { Checkbox } from '@oxy.so/bloom/checkbox';
 import {
   RiArchiveLine,
   RiArrowGoBackLine,
-  RiArrowLeftLine,
   RiCornerUpLeftLine,
   RiDeleteBinLine,
   RiMailLine,
+  RiMenuLine,
   RiMoreLine,
   RiPrinterLine,
   RiPushpinLine,
@@ -29,9 +40,6 @@ import { PageHeader } from '@oxy.so/bloom/page-header';
  * - embedded: inline panel without back button (desktop split-view)
  */
 
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { ArrowLeft01Icon } from '@hugeicons/core-free-icons';
-import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import { Dialog, toast, useDialogControl } from '@oxy.so/bloom';
 import { Chip } from '@oxy.so/bloom/chip';
 import { Loading } from '@oxy.so/bloom/loading';
@@ -41,16 +49,7 @@ import * as Print from 'expo-print';
 import { usePathname } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useMemo, useState } from 'react';
-import {
-  Linking,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Linking, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import { HtmlBody } from '@/components/HtmlBody';
 import { InlineReply } from '@/components/InlineReply';
@@ -80,7 +79,6 @@ import { useThread } from '@/hooks/queries/useThread';
 import { useCidResolver } from '@/hooks/useCidResolver';
 import { useEmailStore } from '@/hooks/useEmail';
 import { useGoBack } from '@/hooks/useGoBack';
-import { useTabBarClearance } from '@/hooks/useTabBarClearance';
 import { useTranslation } from '@/lib/i18n';
 import type { Message } from '@/services/emailApi';
 import { safeDownloadFilename } from '@/utils/downloadFilename';
@@ -145,8 +143,7 @@ export function MessageDetail(props: MessageDetailProps) {
 }
 
 function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
-  const insets = useSafeAreaInsets();
-  const tabBarClearance = useTabBarClearance();
+  const shell = useAiChatShell();
   const pathname = usePathname();
   const colors = useColors();
   const { t } = useTranslation();
@@ -559,44 +556,20 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     return labels.filter((l) => currentMessage.labels.includes(l.name));
   }, [currentMessage, labels]);
 
-  const shellStyle = [
-    styles.container,
-    { backgroundColor: colors.background },
-    mode === 'standalone' && { paddingTop: insets.top },
-  ];
-
   const standaloneToolbar =
     mode === 'standalone' ? (
-      <View
-        style={[
-          styles.toolbar,
-          {
-            paddingLeft: 4 + insets.left,
-            paddingRight: 4 + insets.right,
-          },
-        ]}
-      >
-        <TouchableOpacity onPress={handleBack} style={styles.iconButton}>
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon
-              icon={ArrowLeft01Icon as unknown as IconSvgElement}
-              size={24}
-              color={colors.icon}
-            />
-          ) : (
-            <MaterialCommunityIcons
-              name="arrow-left"
-              size={24}
-              color={colors.icon}
-            />
-          )}
-        </TouchableOpacity>
-      </View>
+      <PageHeader
+        onBack={handleBack}
+        backLabel={t('common.back')}
+        sticky={false}
+        scrim="none"
+        safeArea={false}
+      />
     ) : null;
 
   if (isLoading) {
     return (
-      <View style={shellStyle}>
+      <View style={styles.container}>
         {standaloneToolbar}
         <View style={styles.loadingContainer}>
           <Loading />
@@ -605,42 +578,23 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     );
   }
 
-  if (isError) {
+  if (isError || !currentMessage) {
     return (
-      <View style={shellStyle}>
+      <View className="flex-1">
         {standaloneToolbar}
-        <View style={styles.loadingContainer}>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>
-            {t('ui.message.loadError')}
-          </Text>
-          <Text style={[styles.emptySubtitle, { color: colors.secondaryText }]}>
-            {t('ui.message.loadErrorDescription')}
-          </Text>
-          <TouchableOpacity
-            onPress={() => refetch()}
-            style={styles.retryButton}
-          >
-            <Text style={[styles.retryButtonText, { color: colors.primary }]}>
-              {t('common.retry')}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
-  if (!currentMessage) {
-    return (
-      <View style={shellStyle}>
-        {standaloneToolbar}
-        <View style={styles.loadingContainer}>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>
-            {t('ui.message.notFound')}
-          </Text>
-          <Text style={[styles.emptySubtitle, { color: colors.secondaryText }]}>
-            {t('ui.message.notFoundDescription')}
-          </Text>
-        </View>
+        <EmptyState
+          title={t(isError ? 'ui.message.loadError' : 'ui.message.notFound')}
+          description={t(
+            isError
+              ? 'ui.message.loadErrorDescription'
+              : 'ui.message.notFoundDescription',
+          )}
+          action={
+            isError
+              ? { label: t('common.retry'), onPress: () => void refetch() }
+              : undefined
+          }
+        />
       </View>
     );
   }
@@ -709,51 +663,59 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   });
 
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: colors.background },
-        mode === 'standalone' && { paddingTop: insets.top },
-      ]}
-    >
+    <View style={styles.container}>
       <PageHeader
+        onBack={handleBack}
+        backLabel={t('common.back')}
         leading={
-          <IconButton
-            accessibilityLabel={t('common.back')}
-            icon={<RiArrowLeftLine />}
-            onPress={handleBack}
-          />
+          shell?.navCollapsed && shell.hasNav ? (
+            <ButtonGroup accessibilityLabel={t('search.openMenu')}>
+              <ButtonGroupItem
+                iconOnly
+                leadingIcon={RiMenuLine}
+                accessibilityLabel={t('search.openMenu')}
+                onPress={shell.openNav}
+              />
+            </ButtonGroup>
+          ) : undefined
         }
+        sticky={false}
+        scrim="none"
+        safeArea={false}
         actions={
-          <View className="flex-row items-center gap-1">
-            <IconButton
+          <ButtonGroup>
+            <ButtonGroupItem
+              iconOnly
               accessibilityLabel={t('message.actions.archive')}
-              icon={<RiArchiveLine />}
+              leadingIcon={RiArchiveLine}
               onPress={handleArchive}
             />
-            <IconButton
+            <ButtonGroupItem
+              iconOnly
               accessibilityLabel={t('message.actions.delete')}
-              icon={<RiDeleteBinLine />}
+              leadingIcon={RiDeleteBinLine}
               onPress={handleDelete}
             />
-            <IconButton
+            <ButtonGroupItem
+              iconOnly
               accessibilityLabel={t(
                 currentMessage.flags.starred
                   ? 'message.actions.unstar'
                   : 'message.actions.star',
               )}
-              icon={
-                currentMessage.flags.starred ? <RiStarFill /> : <RiStarLine />
+              leadingIcon={
+                currentMessage.flags.starred ? RiStarFill : RiStarLine
               }
               onPress={handleStar}
               disabled={toggleStar.isPending}
             />
-            <IconButton
+            <ButtonGroupItem
+              iconOnly
               accessibilityLabel={t('message.actions.more')}
-              icon={<RiMoreLine />}
+              leadingIcon={RiMoreLine}
               onPress={() => moreMenuControl.open()}
             />
-          </View>
+          </ButtonGroup>
         }
       />
 
@@ -847,13 +809,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
       <ScrollView
         style={styles.body}
-        contentContainerStyle={[
-          styles.bodyContent,
-          {
-            paddingBottom:
-              replyMode && mode === 'standalone' ? tabBarClearance + 16 : 16,
-          },
-        ]}
+        contentContainerStyle={styles.bodyContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -890,26 +846,14 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
           {/* Thread count indicator */}
           {threadEntries.length > 1 && (
-            <View
-              style={[
-                styles.threadCount,
-                { backgroundColor: colors.surfaceVariant },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.threadCountText,
-                  { color: colors.secondaryText },
-                ]}
-              >
-                {t(
-                  threadEntries.length === 1
-                    ? 'ui.message.conversationMessages_one'
-                    : 'ui.message.conversationMessages_other',
-                  { count: threadEntries.length },
-                )}
-              </Text>
-            </View>
+            <Chip>
+              {t(
+                threadEntries.length === 1
+                  ? 'ui.message.conversationMessages_one'
+                  : 'ui.message.conversationMessages_other',
+                { count: threadEntries.length },
+              )}
+            </Chip>
           )}
 
           {/* AI Thread Summary - explicit opt-in before Oxy processes bounded thread content. */}
@@ -921,41 +865,18 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
                 minMessages={4}
               />
             ) : (
-              <TouchableOpacity
-                style={[
-                  styles.threadSummaryPrompt,
-                  {
-                    backgroundColor: colors.surfaceVariant,
-                    borderColor: colors.border,
-                  },
-                ]}
+              <Card
+                appearance="outline"
                 onPress={() => setThreadSummaryRequested(true)}
-                activeOpacity={0.75}
+                accessibilityLabel={t('ui.message.summaryTitle')}
               >
-                <MaterialCommunityIcons
-                  name="robot-outline"
-                  size={18}
-                  color={colors.primary}
-                />
-                <View style={styles.threadSummaryPromptText}>
-                  <Text
-                    style={[
-                      styles.threadSummaryPromptTitle,
-                      { color: colors.text },
-                    ]}
-                  >
-                    {t('ui.message.summaryTitle')}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.threadSummaryPromptDescription,
-                      { color: colors.secondaryText },
-                    ]}
-                  >
+                <CardHeader>
+                  <CardTitle>{t('ui.message.summaryTitle')}</CardTitle>
+                  <CardDescription>
                     {t('ui.message.summaryDescription')}
-                  </Text>
-                </View>
-              </TouchableOpacity>
+                  </CardDescription>
+                </CardHeader>
+              </Card>
             ))}
         </View>
 
@@ -968,25 +889,25 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
         {/* Highlights (key data points) */}
         {currentMessage.highlights && currentMessage.highlights.length > 0 && (
-          <View
-            style={[styles.highlightsSection, { borderColor: colors.border }]}
-          >
-            {currentMessage.highlights.map((h, i) => (
-              <View key={i} style={styles.highlightRow}>
-                <Text
-                  style={[
-                    styles.highlightLabel,
-                    { color: colors.secondaryText },
-                  ]}
-                >
-                  {h.label}
-                </Text>
-                <Text style={[styles.highlightValue, { color: colors.text }]}>
-                  {h.value}
-                </Text>
-              </View>
-            ))}
-          </View>
+          <Card appearance="outline">
+            <CardBody>
+              {currentMessage.highlights.map((h, i) => (
+                <View key={i} style={styles.highlightRow}>
+                  <Text
+                    style={[
+                      styles.highlightLabel,
+                      { color: colors.secondaryText },
+                    ]}
+                  >
+                    {h.label}
+                  </Text>
+                  <Text style={[styles.highlightValue, { color: colors.text }]}>
+                    {h.value}
+                  </Text>
+                </View>
+              ))}
+            </CardBody>
+          </Card>
         )}
 
         {/* Stale thread banner - gentle nudge to reply */}
@@ -1122,22 +1043,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  // `paddingLeft` / `paddingRight` are applied inline so they can include
-  // landscape `insets.left` / `insets.right` (leading back button clips
-  // under left notch otherwise).
-  toolbar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  iconButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 22,
-  },
   labelPickerTitle: {
     fontSize: 13,
     fontWeight: '600',
@@ -1155,24 +1060,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 32,
     gap: 8,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  retryButton: {
-    marginTop: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  retryButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
   },
   body: {
     flex: 1,
@@ -1206,15 +1093,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 12,
   },
-  highlightsSection: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderRadius: 10,
-    gap: 6,
-  },
   highlightRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1229,39 +1107,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     flex: 1,
-  },
-  // Thread view styles
-  threadCount: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-    marginBottom: 16,
-  },
-  threadCountText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  threadSummaryPrompt: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    marginBottom: 16,
-  },
-  threadSummaryPromptText: {
-    flex: 1,
-    gap: 2,
-  },
-  threadSummaryPromptTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  threadSummaryPromptDescription: {
-    fontSize: 12,
   },
   inlineReplyWrapper: {
     width: '100%',

@@ -90,7 +90,7 @@ export function isUserInitiatedNativeNavigation(request: {
  *   `light-dark()` declarations. Modern marketing email systems
  *   (Mailchimp, Litmus, Apple Mail's adaptive engine, etc.) already use
  *   this signal, so we trust it.
- * - Apply our own background/text only on `html` and `body` themselves
+ * - Keep the host transparent and apply theme text on `html` and `body`
  *   (without `!important`) so the email's own root-level styling wins
  *   when present.
  * - Crucially, do NOT force `background-color: transparent` on `body > div`,
@@ -108,7 +108,7 @@ function wrapHtml(
   isDark: boolean,
   colors: ReturnType<typeof useTheme>['colors'],
 ): string {
-  const bgColor = colors.background;
+  const bgColor = 'transparent';
   const textColor = colors.text;
   const linkColor = colors.primarySubtleForeground;
   const quoteBorderColor = colors.border;

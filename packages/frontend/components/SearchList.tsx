@@ -1,3 +1,5 @@
+import { Card, CardBody } from '@oxy.so/bloom/card';
+import { Divider } from '@oxy.so/bloom/divider';
 import { useMailboxScrollRestoration } from '@/hooks/useMailboxScrollRestoration';
 /**
  * Search emails list with Gmail-style search bar and filter chips.
@@ -6,32 +8,29 @@ import { useMailboxScrollRestoration } from '@/hooks/useMailboxScrollRestoration
 import { useSearchFocus } from '@/contexts/search-focus-context';
 import { useSearchSessionState } from '@/contexts/search-session-context';
 import { useGoBack } from '@/hooks/useGoBack';
-import { useTabBarClearance } from '@/hooks/useTabBarClearance';
 import { useTranslation } from '@/lib/i18n';
 import { Button, IconButton } from '@oxy.so/bloom/button';
 import { Chip } from '@oxy.so/bloom/chip';
 import { EmptyState } from '@oxy.so/bloom/empty-state';
-import { RiAttachmentLine, RiCloseLine, RiErrorWarningLine } from '@oxy.so/bloom/icons';
+import {
+  RiAttachmentLine,
+  RiCloseLine,
+  RiErrorWarningLine,
+} from '@oxy.so/bloom/icons';
 import { Loading } from '@oxy.so/bloom/loading';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { Text } from '@oxy.so/bloom/typography';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import {
-  type FlatList,
-  StyleSheet,
-  type TextInput,
-  View,
-} from 'react-native';
+import { type FlatList, StyleSheet, type TextInput, View } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EmptyIllustration } from '@/components/EmptyIllustration';
 import { MessageRow } from '@/components/MessageRow';
 import { SavedSearchBar } from '@/components/SavedSearchBar';
 import { SearchHeader } from '@/components/SearchHeader';
 import { UnreadableMessageRow } from '@/components/UnreadableMessageRow';
-import { CONTENT_MAX_WIDTH, SPACING } from '@/constants/layout';
+import { SPACING } from '@/constants/layout';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { useColors } from '@/constants/theme';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
@@ -64,8 +63,6 @@ interface SearchListProps {
 
 export function SearchList({ replaceNavigation }: SearchListProps) {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const tabBarClearance = useTabBarClearance();
   const colors = useColors();
   const { t } = useTranslation();
   const { density, showPreviews } = useInboxDisplayPrefs();
@@ -539,32 +536,40 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
 
   const renderEmpty = useCallback(() => {
     if (searching) {
-      return <Loading size="large" accessibilityLabel={t('common.loading')} style={styles.loadingContainer} />;
+      return (
+        <Loading
+          size="large"
+          accessibilityLabel={t('common.loading')}
+          style={styles.loadingContainer}
+        />
+      );
     }
     if (!hasSearched) {
       return (
         <EmptyState
           illustration={<EmptyIllustration size={180} />}
           description={t('search.empty.idle')}
-          footer={recentSearches.length > 0 ? (
-            <View style={styles.recentSearches}>
-              {recentSearches.map((recent) => (
-                <Button
-                  key={recent}
-                  appearance="outline"
-                  onPress={() => {
-                    setQuery(recent);
-                    void runSearch(recent, { allowAI: false });
-                  }}
-                >
-                  {recent}
+          footer={
+            recentSearches.length > 0 ? (
+              <View style={styles.recentSearches}>
+                {recentSearches.map((recent) => (
+                  <Button
+                    key={recent}
+                    appearance="outline"
+                    onPress={() => {
+                      setQuery(recent);
+                      void runSearch(recent, { allowAI: false });
+                    }}
+                  >
+                    {recent}
+                  </Button>
+                ))}
+                <Button appearance="plain" onPress={clearRecentSearches}>
+                  {t('search.clear')}
                 </Button>
-              ))}
-              <Button appearance="plain" onPress={clearRecentSearches}>
-                {t('search.clear')}
-              </Button>
-            </View>
-          ) : undefined}
+              </View>
+            ) : undefined
+          }
         />
       );
     }
@@ -597,7 +602,13 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
 
   const renderFooter = useCallback(() => {
     if (isFetchingNextPage) {
-      return <Loading size="small" accessibilityLabel={t('common.loading')} style={styles.footerLoading} />;
+      return (
+        <Loading
+          size="small"
+          accessibilityLabel={t('common.loading')}
+          style={styles.footerLoading}
+        />
+      );
     }
     if (searchFailed && items.length > 0) {
       return (
@@ -632,7 +643,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={styles.container}>
       {/* Header and filters stay in flow above the virtualized results. */}
       <View>
         <SearchHeader
@@ -648,12 +659,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         />
 
         {/* Filter chips */}
-        <View
-          style={[
-            styles.filterBar,
-            { paddingLeft: 16 + insets.left, paddingRight: 16 + insets.right },
-          ]}
-        >
+        <View style={[styles.filterBar]}>
           <Chip
             size="xl"
             selected={Boolean(filterFrom)}
@@ -686,54 +692,48 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         {/* Search interpretation display. AI is only requested on explicit submit;
           normal operator searches are rendered from the same parsed options. */}
         {(visibleInterpretation || nlParsing) && (
-          <View
-            style={[
-              styles.nlInterpretation,
-              {
-                backgroundColor: colors.surfaceVariant,
-                marginLeft: 16 + insets.left,
-                marginRight: 16 + insets.right,
-              },
-            ]}
-          >
-            {nlParsing ? (
-              <Loading
-                variant="inline"
-                size="small"
-                text={t('search.nl.understanding')}
-                accessibilityLabel={t('search.nl.understanding')}
-                style={styles.nlParsingRow}
-              />
-            ) : (
-              <Text variant="body-2-regular" style={styles.nlText}>
-                {visibleInterpretation}
-              </Text>
-            )}
-            {nlInterpretation && !nlParsing && (
-              <IconButton
-                icon={<RiCloseLine />}
-                accessibilityLabel={t('common.close')}
-                onPress={() => {
-                  setNlInterpretation('');
-                  setNlParsedOptions(null);
-                  setSubmittedQuery(query.trim());
-                }}
-              />
-            )}
-          </View>
+          <Card appearance="subtle">
+            <CardBody>
+              <View className="flex-row items-center gap-2">
+                {nlParsing ? (
+                  <Loading
+                    variant="inline"
+                    size="small"
+                    text={t('search.nl.understanding')}
+                    accessibilityLabel={t('search.nl.understanding')}
+                    style={styles.nlParsingRow}
+                  />
+                ) : (
+                  <Text variant="body-2-regular" style={styles.nlText}>
+                    {visibleInterpretation}
+                  </Text>
+                )}
+                {nlInterpretation && !nlParsing && (
+                  <IconButton
+                    icon={<RiCloseLine />}
+                    accessibilityLabel={t('common.close')}
+                    onPress={() => {
+                      setNlInterpretation('');
+                      setNlParsedOptions(null);
+                      setSubmittedQuery(query.trim());
+                    }}
+                  />
+                )}
+              </View>
+            </CardBody>
+          </Card>
         )}
 
         {/* Filter input overlay */}
         {editingFilter && (
-          <View
-            style={[
-              styles.filterInputRow,
-              { backgroundColor: colors.surfaceVariant },
-            ]}
-          >
+          <View style={styles.filterInputRow}>
             <View className="flex-1">
               <TextFieldInput
-                label={editingFilter === 'from' ? t('search.filters.from') : editingFilter}
+                label={
+                  editingFilter === 'from'
+                    ? t('search.filters.from')
+                    : editingFilter
+                }
                 value={filterInput}
                 onChangeText={setFilterInput}
                 autoFocus
@@ -754,7 +754,10 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         {/* Result count */}
         {hasSearched && !searching && items.length > 0 && (
           <View style={styles.resultCount}>
-            <Text variant="caption-1-medium" style={{ color: colors.secondaryText }}>
+            <Text
+              variant="caption-1-medium"
+              style={{ color: colors.secondaryText }}
+            >
               {t('search.results', { count: total })}
             </Text>
           </View>
@@ -782,14 +785,9 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
             ...(items.length === 0 ? styles.emptyListContent : null),
             ...styles.listContent,
             paddingTop: 0,
-            paddingBottom: tabBarClearance,
           }}
           showsVerticalScrollIndicator={false}
-          ItemSeparatorComponent={() => (
-            <View
-              style={[styles.separator, { backgroundColor: colors.border }]}
-            />
-          )}
+          ItemSeparatorComponent={() => <Divider spacing={0} />}
         />
       )}
     </View>
@@ -806,11 +804,8 @@ const styles = StyleSheet.create({
   },
   listContent: {
     width: '100%',
-    maxWidth: CONTENT_MAX_WIDTH,
     alignSelf: 'center',
   },
-  // `paddingLeft` / `paddingRight` are applied inline so they can include
-  // landscape `insets.left` / `insets.right`.
   filterBar: {
     flexDirection: 'row',
     paddingBottom: 8,
@@ -846,21 +841,6 @@ const styles = StyleSheet.create({
   footerLoading: {
     alignItems: 'center',
     paddingVertical: 18,
-  },
-  separator: {
-    height: StyleSheet.hairlineWidth,
-    marginLeft: 68,
-  },
-  // `marginLeft` / `marginRight` are applied inline so they can include
-  // landscape `insets.left` / `insets.right`.
-  nlInterpretation: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 8,
   },
   nlText: {
     flex: 1,

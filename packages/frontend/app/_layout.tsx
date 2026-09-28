@@ -18,8 +18,14 @@ import type { ThemeMode } from '@oxy.so/bloom/theme';
 import { PortalProvider, PortalOutlet } from '@oxy.so/bloom/portal';
 import { ConnectionStatusToasts } from '@oxy.so/bloom/connection-status';
 
-import { INBOX_ACCOUNT_QUERIES, queryClient } from '@/hooks/queries/queryClient';
-import { ThemeProvider as AppThemeProvider, useThemeContext } from '@/contexts/theme-context';
+import {
+  INBOX_ACCOUNT_QUERIES,
+  queryClient,
+} from '@/hooks/queries/queryClient';
+import {
+  ThemeProvider as AppThemeProvider,
+  useThemeContext,
+} from '@/contexts/theme-context';
 import { InboxPrefsProvider } from '@/contexts/inbox-prefs-context';
 import { LocaleProvider, useTranslation } from '@/lib/i18n';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -67,7 +73,13 @@ function RootLayoutContent() {
 
   return (
     <KeyboardProvider>
-      <OxyProvider baseURL={API_URL} clientId={OXY_CLIENT_ID} authRedirectUri={OXY_AUTH_REDIRECT_URI} queryClient={queryClient} accountQueries={INBOX_ACCOUNT_QUERIES}>
+      <OxyProvider
+        baseURL={API_URL}
+        clientId={OXY_CLIENT_ID}
+        authRedirectUri={OXY_AUTH_REDIRECT_URI}
+        queryClient={queryClient}
+        accountQueries={INBOX_ACCOUNT_QUERIES}
+      >
         <ScopedInboxPrefsProvider>
           <BloomImageResolver>
             <LocaleProvider>
@@ -91,8 +103,14 @@ function RootLayoutContent() {
 function GatedNavigator() {
   const { t } = useTranslation();
   return (
-    <RequireOxyAuth prompt="hard" title={t('auth.gate.title')} subtitle={t('auth.gate.subtitle')}>
-      <Stack>
+    <RequireOxyAuth
+      prompt="hard"
+      title={t('auth.gate.title')}
+      subtitle={t('auth.gate.subtitle')}
+    >
+      <Stack
+        screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}
+      >
         <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" options={{ headerShown: false }} />
       </Stack>
@@ -126,7 +144,9 @@ function BloomImageResolver({ children }: { children: ReactNode }) {
     (id, variant) => oxyServices.assets.publicUrl(id, variant),
     [oxyServices],
   );
-  return <ImageResolverProvider value={resolve}>{children}</ImageResolverProvider>;
+  return (
+    <ImageResolverProvider value={resolve}>{children}</ImageResolverProvider>
+  );
 }
 
 function RootEffects() {

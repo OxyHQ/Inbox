@@ -164,6 +164,7 @@ const en: LocaleDict = {
     flat: 'Flat',
     composeFab: 'Compose new email',
     composeFabLabel: 'Compose',
+    resizePanes: 'Resize mail panes',
     askAlia: 'Ask Alia',
     askAliaHint: 'Opens the Alia AI assistant to ask questions about your inbox',
     sections: {

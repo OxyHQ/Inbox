@@ -1,3 +1,4 @@
+import { Card, CardBody } from '@oxy.so/bloom/card';
 import {
   RiArchiveLine,
   RiCheckLine,
@@ -9,7 +10,7 @@ import { MailRow, type MailAction } from '@oxy.so/bloom/mail-list';
 import { useTheme } from '@oxy.so/bloom/theme';
 /** Bloom owns row layout, selection, hover actions and density on every platform. */
 
-import { RADIUS, SPACING } from '@/constants/layout';
+import { SPACING } from '@/constants/layout';
 import { useColors } from '@/constants/theme';
 import type { MessageDensity } from '@/contexts/inbox-prefs-context';
 import type { SentimentResult } from '@/hooks/queries/useSentimentAnalysis';
@@ -392,56 +393,42 @@ function MessageRowExtrasInner({
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.cardRail}
         >
-          {message.card && (
-            <View
-              style={[
-                styles.railCard,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}
-            >
-              <CardPreview card={message.card} />
-            </View>
-          )}
+          {message.card && <CardPreview card={message.card} />}
 
           {message.attachments.map((att, i) => {
             const isImage = att.contentType.toLowerCase().startsWith('image/');
             const info = getAttachmentInfo(att, tokens);
             return (
-              <View
-                key={att.fileId || i}
-                style={[
-                  styles.railCard,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                {isImage ? (
-                  <AttachmentThumbnail fileId={att.fileId} size={40} />
-                ) : Platform.OS === 'web' ? (
-                  <HugeiconsIcon
-                    icon={info.hugeIcon}
-                    size={20}
-                    color={info.color}
-                  />
-                ) : (
-                  <MaterialCommunityIcons
-                    name={info.icon}
-                    size={20}
-                    color={info.color}
-                  />
-                )}
-                <Text
-                  style={[
-                    styles.railCardLabel,
-                    { color: colors.secondaryText },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {info.label}
-                </Text>
-              </View>
+              <Card key={att.fileId || i} appearance="outline">
+                <CardBody>
+                  <View className="flex-row items-center gap-2">
+                    {isImage ? (
+                      <AttachmentThumbnail fileId={att.fileId} size={40} />
+                    ) : Platform.OS === 'web' ? (
+                      <HugeiconsIcon
+                        icon={info.hugeIcon}
+                        size={20}
+                        color={info.color}
+                      />
+                    ) : (
+                      <MaterialCommunityIcons
+                        name={info.icon}
+                        size={20}
+                        color={info.color}
+                      />
+                    )}
+                    <Text
+                      style={[
+                        styles.railCardLabel,
+                        { color: colors.secondaryText },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {info.label}
+                    </Text>
+                  </View>
+                </CardBody>
+              </Card>
             );
           })}
         </ScrollView>
@@ -457,16 +444,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: SPACING.sm,
     paddingRight: SPACING.lg,
-  },
-  railCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    maxWidth: 220,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.sm,
-    borderRadius: RADIUS.row,
-    borderWidth: StyleSheet.hairlineWidth,
   },
   railCardLabel: {
     flexShrink: 1,

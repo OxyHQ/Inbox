@@ -1,19 +1,14 @@
+import { Button } from '@oxy.so/bloom/button';
+import { RiCalendarLine } from '@oxy.so/bloom/icons';
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';
 import type { CardData } from '@/services/emailApi';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { toast } from '@oxy.so/bloom';
-import { Card, CardBody, CardHeader } from '@oxy.so/bloom/card';
-import { useTheme } from '@oxy.so/bloom/theme';
+import { Card, CardBody, CardHeader, CardTitle } from '@oxy.so/bloom/card';
 import { Text } from '@oxy.so/bloom/typography';
 import { useCallback } from 'react';
-import {
-  Linking,
-  Platform,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Linking, Platform, StyleSheet, View } from 'react-native';
 
 interface EventCardProps {
   data: CardData;
@@ -101,7 +96,6 @@ function buildGoogleCalendarUrl(data: CardData): string {
 
 export function EventCard({ data }: EventCardProps) {
   const colors = useColors();
-  const theme = useTheme();
   const { t } = useTranslation();
 
   const startTime = data.startTime
@@ -173,23 +167,7 @@ export function EventCard({ data }: EventCardProps) {
   return (
     <Card variant="filled">
       <CardHeader>
-        <View
-          style={[styles.header, { backgroundColor: theme.colors.errorSubtle }]}
-        >
-          <MaterialCommunityIcons
-            name="calendar"
-            size={18}
-            color={theme.colors.errorSubtleForeground}
-          />
-          <Text
-            style={[
-              styles.headerText,
-              { color: theme.colors.errorSubtleForeground },
-            ]}
-          >
-            {t('cards.event.header')}
-          </Text>
-        </View>
+        <CardTitle>{t('cards.event.header')}</CardTitle>
       </CardHeader>
       <CardBody>
         <View style={styles.body}>
@@ -238,34 +216,16 @@ export function EventCard({ data }: EventCardProps) {
 
           {/* Calendar action buttons */}
           <View style={styles.actions}>
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: colors.border }]}
+            <Button
+              appearance="subtle"
+              leading={<RiCalendarLine />}
               onPress={handleAddToCalendar}
-              activeOpacity={0.7}
             >
-              <MaterialCommunityIcons
-                name="calendar-plus"
-                size={16}
-                color={colors.text}
-              />
-              <Text style={[styles.actionText, { color: colors.text }]}>
-                {t('cards.event.addToCalendar')}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: colors.border }]}
-              onPress={handleOpenGoogleCalendar}
-              activeOpacity={0.7}
-            >
-              <MaterialCommunityIcons
-                name="google"
-                size={16}
-                color={colors.text}
-              />
-              <Text style={[styles.actionText, { color: colors.text }]}>
-                {t('cards.event.googleCalendar')}
-              </Text>
-            </TouchableOpacity>
+              {t('cards.event.addToCalendar')}
+            </Button>
+            <Button appearance="subtle" onPress={handleOpenGoogleCalendar}>
+              {t('cards.event.googleCalendar')}
+            </Button>
           </View>
         </View>
       </CardBody>
@@ -274,14 +234,6 @@ export function EventCard({ data }: EventCardProps) {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  headerText: { fontSize: 13, fontWeight: '600' },
   body: { gap: 8 },
   title: { fontSize: 15, fontWeight: '600' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -293,17 +245,5 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 4,
     flexWrap: 'wrap',
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  actionText: {
-    fontSize: 13,
-    fontWeight: '500',
   },
 });

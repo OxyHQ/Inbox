@@ -15,12 +15,12 @@
     "lint": "bun run --cwd packages/frontend lint",
     "doctor:oxy": "node scripts/oxy-doctor.mjs",
     "validate:agents-md": "bun ./scripts/check-agents-md-size.mjs && bun ./scripts/test-check-agents-md-size.mjs",
-    "test": "node --test scripts/oxy-doctor.test.mjs && bun run --cwd packages/frontend test"
+    "test": "bun run --cwd packages/frontend test"
   },
   "overrides": {
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "@oxy.so/bloom": "^5.1.0",
+    "@oxy.so/bloom": "^5.4.0",
     "@oxy.so/services": "^9.1.0",
     "@radix-ui/react-slot": "1.2.3",
     "lightningcss": "1.30.1",

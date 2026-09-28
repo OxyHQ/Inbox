@@ -2,8 +2,7 @@ import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 /**
  * Conversation (message detail) route — /conversation/:id
  *
- * Desktop: rendered in Slot (right pane of split-view), embedded mode.
- * Mobile: pushed onto Stack, standalone mode with back button.
+ * The same routed detail stays mounted as the shell switches between one and two panes.
  */
 
 import { useLocalSearchParams } from 'expo-router';
@@ -16,8 +15,8 @@ import { useEmailStore } from '@/hooks/useEmail';
 import { useTranslation } from '@/lib/i18n';
 
 export default function ConversationScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
   const isDesktop = useIsDesktopLayout();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
 
   const { data: thread } = useThread(id);

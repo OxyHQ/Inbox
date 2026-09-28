@@ -1,8 +1,6 @@
 import { useColors } from '@/constants/theme';
 import type { CardData } from '@/services/emailApi';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Card, CardBody, CardHeader } from '@oxy.so/bloom/card';
-import { useTheme } from '@oxy.so/bloom/theme';
+import { Card, CardBody, CardHeader, CardTitle } from '@oxy.so/bloom/card';
 import { Text } from '@oxy.so/bloom/typography';
 import { StyleSheet, View } from 'react-native';
 
@@ -12,7 +10,6 @@ interface PurchaseCardProps {
 
 export function PurchaseCard({ data }: PurchaseCardProps) {
   const colors = useColors();
-  const { colors: tokens } = useTheme();
 
   const formattedAmount =
     data.amount != null
@@ -25,23 +22,7 @@ export function PurchaseCard({ data }: PurchaseCardProps) {
   return (
     <Card variant="filled">
       <CardHeader>
-        <View
-          style={[styles.header, { backgroundColor: tokens.successSubtle }]}
-        >
-          <MaterialCommunityIcons
-            name="shopping-outline"
-            size={18}
-            color={tokens.successSubtleForeground}
-          />
-          <Text
-            style={[
-              styles.headerText,
-              { color: tokens.successSubtleForeground },
-            ]}
-          >
-            Purchase
-          </Text>
-        </View>
+        <CardTitle>Purchase</CardTitle>
       </CardHeader>
       <CardBody>
         <View style={styles.body}>
@@ -89,14 +70,6 @@ export function PurchaseCard({ data }: PurchaseCardProps) {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  headerText: { fontSize: 13, fontWeight: '600' },
   body: { gap: 6 },
   merchant: { fontSize: 15, fontWeight: '600' },
   amount: { fontSize: 20, fontWeight: '700' },

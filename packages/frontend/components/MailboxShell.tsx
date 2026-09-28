@@ -1,6 +1,6 @@
-import { InboxBottomBar } from '@/components/InboxBottomBar';
 import { InboxList } from '@/components/InboxList';
 import { SearchList } from '@/components/SearchList';
+import { InboxBottomBar } from '@/components/InboxBottomBar';
 
 import { MailScrollProvider } from './MailScrollProvider';
 /** Mail navigation is data for Bloom's Sidebar; account/mail mutations remain owned by the SDK/app. */
@@ -15,13 +15,11 @@ import {
 import { useLabels } from '@/hooks/queries/useLabels';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
 import { useEmailStore } from '@/hooks/useEmail';
-import {
-  DESKTOP_BREAKPOINT,
-  useIsDesktopLayout,
-} from '@/hooks/useIsDesktopLayout';
+import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 import { useTranslation } from '@/lib/i18n';
 import type { Mailbox } from '@/services/emailApi';
-import { AppShell } from '@oxy.so/bloom/app-shell';
+import { AiChatContainer, AiChatShell } from '@oxy.so/bloom/ai-chat';
+import { AppShellSplitPanes } from '@oxy.so/bloom/app-shell';
 import { Button } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
 import {
@@ -42,7 +40,11 @@ import {
   RiStarLine,
   RiTimeLine,
 } from '@oxy.so/bloom/icons';
-import type { SidebarNavItem } from '@oxy.so/bloom/sidebar';
+import {
+  Sidebar,
+  type SidebarNavItem,
+  type SidebarProps,
+} from '@oxy.so/bloom/sidebar';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { openAccountDialog, ProfileButton, useOxy } from '@oxy.so/services';
 import { usePathname, useRouter } from 'expo-router';
@@ -72,6 +74,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const onClose = useCallback(() => setDrawerOpen(false), []);
   const collapsed = useEmailStore((s) => s.sidebarCollapsed);
+  const viewMode = useEmailStore((s) => s.viewMode);
   const manageFoldersControl = useDialogControl();
 
   const handleAddAccount = useCallback(() => {
@@ -88,9 +91,6 @@ export function MailboxShell({ children }: { children: ReactNode }) {
 
   const pathname = usePathname();
   const isDesktop = useIsDesktopLayout();
-  const searchRoute = pathname.startsWith('/search');
-  const fullPage =
-    pathname.startsWith('/settings') || pathname === '/subscriptions';
   const moreExpanded = useEmailStore((s) => s.moreExpanded);
   const toggleMore = useEmailStore((s) => s.toggleMore);
   const { data: mailboxes = [] } = useMailboxes();
@@ -360,91 +360,122 @@ export function MailboxShell({ children }: { children: ReactNode }) {
           : []),
       ]
     : [];
-  const selected = isLabelRoute
-    ? `label:${activeLabelName}`
-    : (mailboxes.find((mailbox) =>
-        mailbox.specialUse
-          ? isMailboxActive(mailbox as Mailbox & { specialUse: string })
-          : currentView === mailbox._id.toLowerCase(),
-      )?._id ?? currentView);
+  const selectedMailbox =
+    viewMode?.type === 'label'
+      ? `label:${viewMode.labelName.toLowerCase()}`
+      : viewMode?.type === 'starred'
+        ? 'starred'
+        : viewMode?.type === 'mailbox'
+          ? viewMode.mailbox._id
+          : mailboxes.find(
+              (mailbox) => mailbox.specialUse === SPECIAL_USE.INBOX,
+            )?._id;
+  const selected =
+    pathSegments[0] === 'conversation' || pathSegments[0] === 'compose'
+      ? selectedMailbox
+      : isLabelRoute
+        ? `label:${activeLabelName}`
+        : (mailboxes.find((mailbox) =>
+            mailbox.specialUse
+              ? isMailboxActive(mailbox as Mailbox & { specialUse: string })
+              : currentView === mailbox._id.toLowerCase(),
+          )?._id ?? currentView);
+
+  const sidebarProps: SidebarProps = {
+    size: 'md',
+    items,
+    selected,
+    collapsed,
+    onCollapsedChange: (next) => {
+      if (next !== useEmailStore.getState().sidebarCollapsed)
+        useEmailStore.getState().toggleSidebar();
+    },
+    logo: {
+      icon: <LogoIcon height={28} color={colors.primary} />,
+      wordmark: t('app.name'),
+      onPress: () => {
+        router.push('/');
+        onClose();
+      },
+    },
+    showSearch: false,
+    showThemeToggle: false,
+    primaryAction: isAuthenticated
+      ? {
+          label: t('inbox.composeFabLabel'),
+          icon: RiEditLine,
+          onPress: handleCompose,
+        }
+      : undefined,
+    secondaryItems: [
+      {
+        key: 'settings',
+        label: t('tabs.settings'),
+        icon: RiSettings3Line,
+        onPress: handleNavigateManage,
+      },
+    ],
+    footer: ({ collapsed: compact }) => (
+      <ProfileButton
+        expanded={!compact}
+        placement="up"
+        onNavigateManage={handleNavigateManage}
+        onAddAccount={handleAddAccount}
+      />
+    ),
+  };
 
   return (
     <MailScrollProvider>
-      <AppShell
-        variant="split"
-        pane="detail"
-        splitFrom={DESKTOP_BREAKPOINT}
-        paneScroll={false}
-        listWidth={360}
-        listMinWidth={280}
-        listMaxWidth={480}
-        list={
-          isDesktop && !fullPage ? (
-            searchRoute ? (
-              <SearchList replaceNavigation />
-            ) : (
-              <InboxList replaceNavigation />
-            )
-          ) : undefined
+      <AiChatShell
+        safeArea
+        scroll="container"
+        testID="mail-workspace"
+        navOpen={drawerOpen}
+        onNavOpenChange={setDrawerOpen}
+        sidebarCollapsed={collapsed}
+        sidebar={<Sidebar {...sidebarProps} />}
+        mobileSidebar={
+          <Sidebar {...sidebarProps} mobile surface="plain" onClose={onClose} />
         }
-        scroll="fixed"
-        drawer="overlay"
-        header={null}
-        navFrom={DESKTOP_BREAKPOINT}
-        navExpandedFrom={1200}
-        gutter={12}
-        contentMaxWidth={1800}
-        bottomBar={<InboxBottomBar />}
-        drawerOpen={drawerOpen}
-        onDrawerOpenChange={setDrawerOpen}
-        sidebar={{
-          surface: 'plain',
-          size: 'md',
-          items,
-          selected,
-          collapsed,
-          onCollapsedChange: (next) => {
-            if (next !== useEmailStore.getState().sidebarCollapsed)
-              useEmailStore.getState().toggleSidebar();
-          },
-          logo: {
-            icon: <LogoIcon height={28} color={colors.primary} />,
-            wordmark: t('app.name'),
-            onPress: () => {
-              router.push('/');
-              onClose();
-            },
-          },
-          showSearch: false,
-          showThemeToggle: false,
-          primaryAction: isAuthenticated
-            ? {
-                label: t('inbox.composeFabLabel'),
-                icon: RiEditLine,
-                onPress: handleCompose,
-              }
-            : undefined,
-          secondaryItems: [
-            {
-              key: 'settings',
-              label: t('tabs.settings'),
-              icon: RiSettings3Line,
-              onPress: handleNavigateManage,
-            },
-          ],
-          footer: ({ collapsed: compact }) => (
-            <ProfileButton
-              expanded={!compact}
-              avatarSize={compact ? 24 : 32}
-              style={compact ? { alignSelf: 'center' } : undefined}
-              onNavigateManage={handleNavigateManage}
-              onAddAccount={handleAddAccount}
-            />
-          ),
+        labels={{
+          openNavigation: t('search.openMenu'),
+          closeNavigation: t('common.close'),
         }}
       >
-        {children}
-      </AppShell>
+        <AppShellSplitPanes
+          variant="separated"
+          list={
+            <AiChatContainer testID="mail-list-panel">
+              {pathname.startsWith('/search') ? (
+                <SearchList
+                  replaceNavigation={pathname.includes('/conversation/')}
+                />
+              ) : (
+                <InboxList
+                  replaceNavigation={pathname.includes('/conversation/')}
+                />
+              )}
+            </AiChatContainer>
+          }
+          detail={
+            <AiChatContainer
+              testID="mail-detail-panel"
+              composer={!isDesktop ? <InboxBottomBar /> : undefined}
+            >
+              {children}
+            </AiChatContainer>
+          }
+          showList={isDesktop && !pathname.startsWith('/subscriptions')}
+          showDetail
+          listWidth={380}
+          listMinWidth={320}
+          listMaxWidth={480}
+          paneScroll={false}
+          resizeLabel={t('inbox.resizePanes')}
+          testID="mail-workspace"
+        />
+      </AiChatShell>
       <Dialog
         control={createFolderControl}
         title={t('ui.drawer.newFolder')}

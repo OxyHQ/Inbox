@@ -2,8 +2,7 @@ import { useColors } from '@/constants/theme';
 import type { CardData } from '@/services/emailApi';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Badge } from '@oxy.so/bloom/badge';
-import { Card, CardBody, CardHeader } from '@oxy.so/bloom/card';
-import { useTheme } from '@oxy.so/bloom/theme';
+import { Card, CardBody, CardHeader, CardTitle } from '@oxy.so/bloom/card';
 import { Text } from '@oxy.so/bloom/typography';
 import { StyleSheet, View } from 'react-native';
 
@@ -13,7 +12,6 @@ interface PackageCardProps {
 
 export function PackageCard({ data }: PackageCardProps) {
   const colors = useColors();
-  const { colors: tokens } = useTheme();
 
   const estimatedDelivery = data.estimatedDelivery
     ? new Date(data.estimatedDelivery).toLocaleDateString(undefined, {
@@ -26,23 +24,7 @@ export function PackageCard({ data }: PackageCardProps) {
   return (
     <Card variant="filled">
       <CardHeader>
-        <View
-          style={[styles.header, { backgroundColor: tokens.tertiarySubtle }]}
-        >
-          <MaterialCommunityIcons
-            name="package-variant"
-            size={18}
-            color={tokens.tertiarySubtleForeground}
-          />
-          <Text
-            style={[
-              styles.headerText,
-              { color: tokens.tertiarySubtleForeground },
-            ]}
-          >
-            Package
-          </Text>
-        </View>
+        <CardTitle>Package</CardTitle>
       </CardHeader>
       <CardBody>
         <View style={styles.body}>
@@ -109,14 +91,6 @@ function getStatusTone(
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  headerText: { fontSize: 13, fontWeight: '600' },
   body: { gap: 8 },
   merchant: { fontSize: 15, fontWeight: '600' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 6 },

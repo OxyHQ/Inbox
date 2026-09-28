@@ -1,10 +1,14 @@
+import { EmptyState } from '@oxy.so/bloom/empty-state';
+import { Text } from '@oxy.so/bloom/typography';
 import { useMailboxScrollRestoration } from '@/hooks/useMailboxScrollRestoration';
-import { useAppShell } from '@oxy.so/bloom/app-shell';
-import { Button, IconButton } from '@oxy.so/bloom/button';
-import { RiAddLine } from '@oxy.so/bloom/icons';
+import { useAiChatShell } from '@oxy.so/bloom/ai-chat';
+import { ButtonGroup, ButtonGroupItem } from '@oxy.so/bloom/button-group';
+import { Button } from '@oxy.so/bloom/button';
+import { RiAddLine, RiMenuLine, RiSearchLine } from '@oxy.so/bloom/icons';
+import { PageHeader } from '@oxy.so/bloom/page-header';
 /**
- * Inbox message list with search bar, FAB compose, and pull-to-refresh.
- * Used by the (inbox) layout on desktop (always visible) and by the index route on mobile.
+ * Routed mailbox list with Bloom page chrome and pull-to-refresh.
+ * The shell owns the content width on every platform.
  */
 
 import { toast } from '@oxy.so/bloom';
@@ -23,7 +27,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, StyleSheet, View } from 'react-native';
 import Animated, { type AnimatedProps } from 'react-native-reanimated';
 
 import { BundleRow } from '@/components/BundleRow';
@@ -33,12 +37,11 @@ import { InboxGreeting } from '@/components/InboxGreeting';
 import { MessageRow, MessageRowExtras } from '@/components/MessageRow';
 import { OutboundQueueBanner } from '@/components/OutboundQueueBanner';
 import { ReminderRow } from '@/components/ReminderRow';
-import { SearchHeader } from '@/components/SearchHeader';
 import { SelectionToolbar } from '@/components/SelectionToolbar';
 import { SnoozeSheet } from '@/components/SnoozeSheet';
 import { SwipeableRow } from '@/components/SwipeableRow';
 import { UnreadableMessageRow } from '@/components/UnreadableMessageRow';
-import { CONTENT_MAX_WIDTH, SPACING } from '@/constants/layout';
+import { SPACING } from '@/constants/layout';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { useColors } from '@/constants/theme';
 import {
@@ -183,7 +186,8 @@ const TRIAGE_LIMIT = 3;
 
 export function InboxList({ replaceNavigation }: InboxListProps) {
   const router = useRouter();
-  const { openDrawer, drawerAvailable } = useAppShell();
+  const shell = useAiChatShell();
+  const drawerAvailable = shell?.navCollapsed && shell.hasNav;
   const colors = useColors();
   const { t } = useTranslation();
   const aliaChatRef = useRef<AliaChatSheetRef>(null);
@@ -668,7 +672,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     [router, replaceNavigation],
   );
 
-  const handleOpenDrawer = openDrawer;
+  const handleOpenDrawer = shell?.openNav;
 
   const handleAskAlia = useCallback(() => {
     aliaChatRef.current?.present();
@@ -1021,20 +1025,18 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const renderEmpty = useCallback(() => {
     if (isLoading) return null;
     return (
-      <View style={styles.emptyContainer}>
-        <EmptyIllustration size={180} />
-        <Text style={[styles.emptyTitle, { color: colors.text }]}>
-          {t('inbox.emptyTitle')}
-        </Text>
-        <Text style={[styles.emptySubtitle, { color: colors.secondaryText }]}>
-          {isAuthenticated ? t('inbox.emptyAllCaught') : t('inbox.emptySignIn')}
-        </Text>
-        {!isAuthenticated && (
-          <OxySignInButton variant="contained" style={{ marginTop: 8 }} />
-        )}
-      </View>
+      <EmptyState
+        illustration={<EmptyIllustration size={180} />}
+        title={t('inbox.emptyTitle')}
+        description={
+          isAuthenticated ? t('inbox.emptyAllCaught') : t('inbox.emptySignIn')
+        }
+        footer={
+          !isAuthenticated ? <OxySignInButton variant="contained" /> : undefined
+        }
+      />
     );
-  }, [colors, isAuthenticated, isLoading, t]);
+  }, [isAuthenticated, isLoading, t]);
 
   const renderFooter = useCallback(() => {
     if (!isFetchingNextPage) return null;
@@ -1046,7 +1048,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   }, [isFetchingNextPage]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={styles.container}>
       {isSelectionMode ? (
         <SelectionToolbar
           count={selectedMessageIds.size}
@@ -1059,44 +1061,71 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       ) : (
         // The shared header stays in flow above the virtualized message list.
         <View>
-          <SearchHeader
-            onLeftIcon={handleOpenDrawer}
-            hideLeftIcon={!drawerAvailable}
-            leftIcon="menu"
-            placeholder={t('inbox.searchInMailbox', {
-              mailbox: mailboxTitle.toLowerCase(),
-            })}
-            onPress={handleSearch}
+          <PageHeader
+            title={mailboxTitle}
+            sticky={false}
+            scrim="none"
+            safeArea={false}
+            leading={
+              drawerAvailable ? (
+                <ButtonGroup accessibilityLabel={t('search.openMenu')}>
+                  <ButtonGroupItem
+                    iconOnly
+                    leadingIcon={RiMenuLine}
+                    accessibilityLabel={t('search.openMenu')}
+                    onPress={handleOpenDrawer}
+                  />
+                </ButtonGroup>
+              ) : undefined
+            }
+            actions={
+              <ButtonGroup>
+                {isAuthenticated && (
+                  <>
+                    <ButtonGroupItem
+                      iconOnly
+                      leadingIcon={RiAddLine}
+                      accessibilityLabel={t('reminder.create.title')}
+                      onPress={() => setCreateReminderVisible(true)}
+                    />
+                    <ButtonGroupItem onPress={handleAskAlia}>
+                      {t('inbox.askAlia')}
+                    </ButtonGroupItem>
+                  </>
+                )}
+                <ButtonGroupItem
+                  iconOnly
+                  leadingIcon={RiSearchLine}
+                  accessibilityLabel={t('inbox.searchInMailbox', {
+                    mailbox: mailboxTitle.toLowerCase(),
+                  })}
+                  onPress={handleSearch}
+                />
+              </ButtonGroup>
+            }
           />
-          {isAuthenticated && (
-            <View className="flex-row flex-wrap gap-1 px-3 pb-2">
-              {isInboxView && needsResponseCount + followUpCount > 0 && (
-                <Button
-                  size="sm"
-                  appearance={showTriage ? 'solid' : 'subtle'}
-                  onPress={() => setShowTriage((value) => !value)}
-                >{`${t('home.needsResponse')} · ${needsResponseCount + followUpCount}`}</Button>
-              )}
-              {prefs.aiBrief && (
-                <Button
-                  size="sm"
-                  appearance="subtle"
-                  onPress={() => setShowBrief((value) => !value)}
-                >
-                  {t('home.todaysBrief')}
-                </Button>
-              )}
-              <IconButton
-                size="sm"
-                accessibilityLabel={t('reminder.create.title')}
-                icon={<RiAddLine />}
-                onPress={() => setCreateReminderVisible(true)}
-              />
-              <Button size="sm" appearance="subtle" onPress={handleAskAlia}>
-                {t('inbox.askAlia')}
-              </Button>
-            </View>
-          )}
+          {isAuthenticated &&
+            (prefs.aiBrief ||
+              (isInboxView && needsResponseCount + followUpCount > 0)) && (
+              <View className="flex-row flex-wrap gap-1 px-3 pb-2">
+                {isInboxView && needsResponseCount + followUpCount > 0 && (
+                  <Button
+                    size="sm"
+                    appearance={showTriage ? 'solid' : 'subtle'}
+                    onPress={() => setShowTriage((value) => !value)}
+                  >{`${t('home.needsResponse')} · ${needsResponseCount + followUpCount}`}</Button>
+                )}
+                {prefs.aiBrief && (
+                  <Button
+                    size="sm"
+                    appearance="subtle"
+                    onPress={() => setShowBrief((value) => !value)}
+                  >
+                    {t('home.todaysBrief')}
+                  </Button>
+                )}
+              </View>
+            )}
         </View>
       )}
 
@@ -1186,8 +1215,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     width: '100%',
-    maxWidth: CONTENT_MAX_WIDTH,
-    alignSelf: 'center',
   },
   listContainer: {
     flex: 1,
@@ -1197,22 +1224,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 80,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 120,
-    paddingHorizontal: 32,
-    gap: 12,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    textAlign: 'center',
   },
   emptyListContent: {
     flexGrow: 1,

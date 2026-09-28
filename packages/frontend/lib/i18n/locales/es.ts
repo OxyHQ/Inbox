@@ -159,6 +159,7 @@ const es: LocaleDict = {
     flat: 'Lista',
     composeFab: 'Redactar correo nuevo',
     composeFabLabel: 'Redactar',
+    resizePanes: 'Cambiar el tamaño de los paneles',
     askAlia: 'Preguntar a Alia',
     askAliaHint:
       'Abre el asistente de IA Alia para hacer preguntas sobre tu bandeja',

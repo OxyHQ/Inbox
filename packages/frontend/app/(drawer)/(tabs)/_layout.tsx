@@ -21,7 +21,13 @@ export default function TabsLayout() {
   return (
     <>
       <ResetTabBarOnRouteChange />
-      <Tabs tabBar={() => null} screenOptions={{ headerShown: false }}>
+      <Tabs
+        tabBar={() => null}
+        screenOptions={{
+          headerShown: false,
+          sceneStyle: { backgroundColor: 'transparent' },
+        }}
+      >
         <Tabs.Screen name="(inbox)" />
         <Tabs.Screen name="search" />
         <Tabs.Screen name="settings/index" options={{ href: null }} />

@@ -5,8 +5,7 @@ import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
  * Syncs the URL label name into the email store (Zustand) so `InboxList`
  * fetches messages filtered by the matching label.
  *
- * Desktop: shows empty detail pane (list lives in the layout).
- * Mobile: shows the inbox list filtered to the label.
+ * The shell owns the filtered list on wide screens; this route owns it on phones.
  *
  * When the URL points to a label that doesn't exist (no match on
  * lowercased name), we surface the empty-detail component with a "not
@@ -71,7 +70,7 @@ export default function LabelViewRoute() {
       <Head>
         <title>{pageTitle}</title>
       </Head>
-      {isDesktop ? <MessageDetailEmpty /> : <InboxList />}
+      {label && !isDesktop ? <InboxList /> : <MessageDetailEmpty />}
     </>
   );
 }

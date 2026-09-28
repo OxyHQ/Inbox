@@ -12,22 +12,29 @@
  */
 
 import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@oxy.so/bloom/card';
 import { useRouter } from 'expo-router';
-import { RiErrorWarningFill, RiTimeLine } from '@oxy.so/bloom/icons';
 
-import { useColors } from '@/constants/theme';
-import { SPACING } from '@/constants/layout';
 import { useOutboundMessages } from '@/hooks/queries/useOutboundMessages';
-import { outstandingOutbound, stuckOutbound } from '@/components/settings/OutboundQueueSection';
+import {
+  outstandingOutbound,
+  stuckOutbound,
+} from '@/components/settings/OutboundQueueSection';
 
 export function OutboundQueueBanner() {
-  const colors = useColors();
   const router = useRouter();
   const { data: messages = [] } = useOutboundMessages();
 
   const { outstanding, stuck } = useMemo(
-    () => ({ outstanding: outstandingOutbound(messages), stuck: stuckOutbound(messages) }),
+    () => ({
+      outstanding: outstandingOutbound(messages),
+      stuck: stuckOutbound(messages),
+    }),
     [messages],
   );
 
@@ -37,8 +44,6 @@ export function OutboundQueueBanner() {
   // delivered is not.
   const isStuck = stuck.length > 0;
   const count = isStuck ? stuck.length : outstanding.length;
-  const Icon = isStuck ? RiErrorWarningFill : RiTimeLine;
-  const accent = isStuck ? colors.error : colors.secondaryText;
 
   const title = isStuck
     ? `${count} message${count === 1 ? '' : 's'} could not be sent`
@@ -48,34 +53,16 @@ export function OutboundQueueBanner() {
     : 'They will go out on their own; open the delivery queue to follow along.';
 
   return (
-    <Pressable
-      accessibilityRole="button"
+    <Card
+      appearance="outline"
+      tone={isStuck ? 'danger' : 'neutral'}
       accessibilityLabel={`${title}. ${detail}`}
       onPress={() => router.push('/settings/advanced')}
-      style={[styles.container, { borderColor: accent, backgroundColor: colors.surface }]}
     >
-      <Icon size="sm" color={accent} />
-      <View style={styles.text}>
-        <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-        <Text style={[styles.detail, { color: colors.secondaryText }]}>{detail}</Text>
-      </View>
-    </Pressable>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{detail}</CardDescription>
+      </CardHeader>
+    </Card>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    marginHorizontal: SPACING.md,
-    marginBottom: SPACING.sm,
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 12,
-  },
-  text: { flex: 1 },
-  title: { fontSize: 14, fontWeight: '600' },
-  detail: { fontSize: 12, marginTop: 2 },
-});

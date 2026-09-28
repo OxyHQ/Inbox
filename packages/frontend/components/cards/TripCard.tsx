@@ -1,8 +1,7 @@
 import { useColors } from '@/constants/theme';
 import type { CardData } from '@/services/emailApi';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Card, CardBody, CardHeader } from '@oxy.so/bloom/card';
-import { useTheme } from '@oxy.so/bloom/theme';
+import { Card, CardBody, CardHeader, CardTitle } from '@oxy.so/bloom/card';
 import { Text } from '@oxy.so/bloom/typography';
 import { StyleSheet, View } from 'react-native';
 
@@ -12,7 +11,6 @@ interface TripCardProps {
 
 export function TripCard({ data }: TripCardProps) {
   const colors = useColors();
-  const { colors: tokens } = useTheme();
 
   const departureTime = data.departureTime
     ? new Date(data.departureTime).toLocaleString(undefined, {
@@ -34,18 +32,7 @@ export function TripCard({ data }: TripCardProps) {
   return (
     <Card variant="filled">
       <CardHeader>
-        <View style={[styles.header, { backgroundColor: tokens.infoSubtle }]}>
-          <MaterialCommunityIcons
-            name="airplane"
-            size={18}
-            color={tokens.infoSubtleForeground}
-          />
-          <Text
-            style={[styles.headerText, { color: tokens.infoSubtleForeground }]}
-          >
-            Trip
-          </Text>
-        </View>
+        <CardTitle>Trip</CardTitle>
       </CardHeader>
       <CardBody>
         <View style={styles.body}>
@@ -115,14 +102,6 @@ export function TripCard({ data }: TripCardProps) {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  headerText: { fontSize: 13, fontWeight: '600' },
   body: { gap: 8 },
   airline: { fontSize: 15, fontWeight: '600' },
   route: { flexDirection: 'row', alignItems: 'center', gap: 8 },

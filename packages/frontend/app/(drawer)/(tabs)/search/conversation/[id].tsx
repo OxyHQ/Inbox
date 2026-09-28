@@ -2,8 +2,7 @@ import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 /**
  * Conversation detail within search context — /search/conversation/:id
  *
- * Desktop: rendered in Slot (right pane of split-view), embedded mode.
- * Mobile: pushed onto Stack, standalone mode with back button.
+ * The same routed detail stays mounted as the shell switches between one and two panes.
  */
 
 import { useLocalSearchParams } from 'expo-router';
@@ -13,8 +12,8 @@ import { MessageDetail } from '@/components/MessageDetail';
 import { useEmailStore } from '@/hooks/useEmail';
 
 export default function SearchConversationScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
   const isDesktop = useIsDesktopLayout();
+  const { id } = useLocalSearchParams<{ id: string }>();
 
   useEffect(() => {
     if (id) {

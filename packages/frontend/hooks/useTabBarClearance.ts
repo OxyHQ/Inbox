@@ -1,12 +1,4 @@
-import { useTabBarFootprint } from '@oxy.so/bloom/tab-bar';
-
-import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
-
-const CLEARANCE = 12;
-
-/** Bloom tab-bar footprint plus the breathing room required by scroll content. */
+/** AppShell reserves navigation and safe-area space; this is content breathing room only. */
 export function useTabBarClearance(): number {
-  const footprint = useTabBarFootprint();
-  const isDesktopLayout = useIsDesktopLayout();
-  return isDesktopLayout ? 0 : footprint + CLEARANCE;
+  return 12;
 }

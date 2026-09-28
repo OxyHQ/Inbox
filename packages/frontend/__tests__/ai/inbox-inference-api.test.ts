@@ -29,11 +29,15 @@ function sseResponse(
   body: string | Uint8Array,
   contentType = 'text/event-stream; charset=utf-8',
 ): Response {
-  const bytes = typeof body === 'string' ? new TextEncoder().encode(body) : body;
+  const bytes =
+    typeof body === 'string' ? new TextEncoder().encode(body) : body;
   return {
     ok: true,
     status: 200,
-    headers: { get: (name: string) => name.toLowerCase() === 'content-type' ? contentType : null },
+    headers: {
+      get: (name: string) =>
+        name.toLowerCase() === 'content-type' ? contentType : null,
+    },
     body: null,
     arrayBuffer: async () => bytes.slice().buffer,
   } as unknown as Response;
@@ -58,7 +62,10 @@ function readerSseResponse(chunks: (string | Uint8Array)[]): {
     response: {
       ok: true,
       status: 200,
-      headers: { get: (name: string) => name.toLowerCase() === 'content-type' ? 'text/event-stream' : null },
+      headers: {
+        get: (name: string) =>
+          name.toLowerCase() === 'content-type' ? 'text/event-stream' : null,
+      },
       body: { getReader: () => ({ read, cancel, releaseLock }) },
     } as unknown as Response,
     read,
@@ -92,17 +99,25 @@ describe('Inbox point-inference API client', () => {
         actionItems: [{ text: 'Reply', owner: null, deadline: null }],
       });
 
-    await expect(runInboxCompose(client as never, {
-      operation: 'polish',
-      text: 'Draft',
-    })).resolves.toMatchObject({ text: 'Polished' });
-    await expect(runInboxNaturalSearch(client as never, 'unread mail')).resolves.toMatchObject({
+    await expect(
+      runInboxCompose(client as never, {
+        operation: 'polish',
+        text: 'Draft',
+      }),
+    ).resolves.toMatchObject({ text: 'Polished' });
+    await expect(
+      runInboxNaturalSearch(client as never, 'unread mail'),
+    ).resolves.toMatchObject({
       query: { unread: true },
     });
-    await expect(runInboxSmartReplies(client as never, 'message/with slash')).resolves.toEqual({
+    await expect(
+      runInboxSmartReplies(client as never, 'message/with slash'),
+    ).resolves.toEqual({
       replies: ['Yes', 'No'],
     });
-    await expect(runInboxThreadSummary(client as never, 'message-1')).resolves.toMatchObject({
+    await expect(
+      runInboxThreadSummary(client as never, 'message-1'),
+    ).resolves.toMatchObject({
       summary: 'Summary',
     });
 
@@ -123,8 +138,13 @@ describe('Inbox point-inference API client', () => {
       'hooks/queries/useSmartReplies.ts',
       'hooks/queries/useThreadSummary.ts',
       'services/inboxInferenceApi.ts',
-    ].map((path) => readFileSync(resolve(frontendRoot, path), 'utf8')).join('\n');
-    const inboxList = readFileSync(resolve(frontendRoot, 'components/InboxList.tsx'), 'utf8');
+    ]
+      .map((path) => readFileSync(resolve(frontendRoot, path), 'utf8'))
+      .join('\n');
+    const inboxList = readFileSync(
+      resolve(frontendRoot, 'components/InboxList.tsx'),
+      'utf8',
+    );
     const dailyBriefHook = readFileSync(
       resolve(frontendRoot, 'hooks/queries/useDailyBrief.ts'),
       'utf8',
@@ -134,7 +154,9 @@ describe('Inbox point-inference API client', () => {
       'components/SmartReplyChips.tsx',
       'contexts/inbox-prefs-context.tsx',
       'hooks/queries/queryKeys.ts',
-    ].map((path) => readFileSync(resolve(frontendRoot, path), 'utf8')).join('\n');
+    ]
+      .map((path) => readFileSync(resolve(frontendRoot, path), 'utf8'))
+      .join('\n');
     const localeRoot = resolve(frontendRoot, 'lib/i18n/locales');
     const localeSource = readdirSync(localeRoot)
       .filter((path) => path.endsWith('.ts'))
@@ -144,7 +166,9 @@ describe('Inbox point-inference API client', () => {
       readFileSync(resolve(frontendRoot, 'oxy.pages-headers.json'), 'utf8'),
     ) as { csp?: { connectSrc?: string[] } };
 
-    expect(source).not.toMatch(/\/alia\/chat\/completions|ALIA_API_KEY|aliaChatCompletion/);
+    expect(source).not.toMatch(
+      /\/alia\/chat\/completions|ALIA_API_KEY|aliaChatCompletion/,
+    );
     expect(source).not.toMatch(/\bfetch\(|getAccessToken\(\)/);
     expect(source).toContain('requestAuthenticatedResponse');
     for (const path of [
@@ -157,17 +181,20 @@ describe('Inbox point-inference API client', () => {
       expect(source).toContain(path);
     }
     expect(inboxList).toContain('<AliaChatSheet');
-    expect(inboxList).not.toMatch(/ALIA_PROXY_API_URL|apiUrl=\{ALIA_PROXY_API_URL\}|model="alia-lite"/);
+    expect(inboxList).not.toMatch(
+      /ALIA_PROXY_API_URL|apiUrl=\{ALIA_PROXY_API_URL\}|model="alia-lite"/,
+    );
     expect(dailyBriefHook).not.toMatch(/messages\.length|Message\[\]/);
     expect(pointInferenceUi).not.toMatch(/\bAlia\b|'alia'/);
-    expect(pointInferenceUi).toContain('bounded email context to Kaana');
+    expect(pointInferenceUi.replace(/\s+/g, ' ')).toContain(
+      'bounded email context to Kaana',
+    );
     expect(localeSource).not.toMatch(
       /drafted by Alia|Daily Brief and Smart Reply use Alia|conversation to Alia for summarization|Alia will draft it/,
     );
-    expect(headers.csp?.connectSrc).toEqual(expect.arrayContaining([
-      'https://api.alia.onl',
-      'wss://api.alia.onl',
-    ]));
+    expect(headers.csp?.connectSrc).toEqual(
+      expect.arrayContaining(['https://api.alia.onl', 'wss://api.alia.onl']),
+    );
     // Voice runs on the device since @alia.onl/sdk 8: no LiveKit room to reach.
     expect(headers.csp?.connectSrc).not.toContain('wss://livekit.oxy.so');
   });
@@ -180,33 +207,45 @@ describe('Inbox point-inference API client', () => {
       text: 'valid-looking',
       providerSecret: 'must-not-be-accepted',
     });
-    await expect(runInboxCompose(client as never, {
-      operation: 'draft',
-      prompt: 'Write a note',
-      tone: 'professional',
-    })).rejects.toThrow('invalid response');
+    await expect(
+      runInboxCompose(client as never, {
+        operation: 'draft',
+        prompt: 'Write a note',
+        tone: 'professional',
+      }),
+    ).rejects.toThrow('invalid response');
   });
 
   it('streams compose and daily-brief text through Oxy with the SDK token', async () => {
     const client = http();
-    client.requestAuthenticatedResponse.mockResolvedValue(sseResponse([
-      'data: {"type":"delta","text":"Hello"}',
-      '',
-      `data: {"type":"done","requestId":"${requestId}"}`,
-      '',
-      '',
-    ].join('\n')));
+    client.requestAuthenticatedResponse.mockResolvedValue(
+      sseResponse(
+        [
+          'data: {"type":"delta","text":"Hello"}',
+          '',
+          `data: {"type":"done","requestId":"${requestId}"}`,
+          '',
+          '',
+        ].join('\n'),
+      ),
+    );
 
-    await expect(collect(streamInboxDraft(client as never, {
-      operation: 'draft',
-      prompt: 'Write a note',
-      tone: 'friendly',
-    }))).resolves.toEqual(['Hello']);
+    await expect(
+      collect(
+        streamInboxDraft(client as never, {
+          operation: 'draft',
+          prompt: 'Write a note',
+          tone: 'friendly',
+        }),
+      ),
+    ).resolves.toEqual(['Hello']);
     const dayWindow = {
       startAt: '2026-09-02T21:00:00.000Z',
       endAt: '2026-09-03T21:00:00.000Z',
     };
-    await expect(collect(streamInboxDailyBrief(client as never, dayWindow))).resolves.toEqual(['Hello']);
+    await expect(
+      collect(streamInboxDailyBrief(client as never, dayWindow)),
+    ).resolves.toEqual(['Hello']);
 
     expect(client.requestAuthenticatedResponse).toHaveBeenNthCalledWith(1, {
       method: 'POST',
@@ -244,25 +283,31 @@ describe('Inbox point-inference API client', () => {
       startAt: '2026-09-02T21:00:00.000Z',
       endAt: '2026-09-03T21:00:00.000Z',
     };
-    await expect(collect(streamInboxDailyBrief(client as never, window))).rejects.toThrow(
-      'ended before completion',
-    );
+    await expect(
+      collect(streamInboxDailyBrief(client as never, window)),
+    ).rejects.toThrow('ended before completion');
 
-    client.requestAuthenticatedResponse.mockResolvedValueOnce(sseResponse('data: {not-json}\n\n'));
-    await expect(collect(streamInboxDailyBrief(client as never, window))).rejects.toThrow(
-      'invalid stream',
+    client.requestAuthenticatedResponse.mockResolvedValueOnce(
+      sseResponse('data: {not-json}\n\n'),
     );
+    await expect(
+      collect(streamInboxDailyBrief(client as never, window)),
+    ).rejects.toThrow('invalid stream');
 
-    client.requestAuthenticatedResponse.mockResolvedValueOnce(sseResponse([
-      `data: {"type":"done","requestId":"${requestId}"}`,
-      '',
-      'data: {"type":"delta","text":"late"}',
-      '',
-      '',
-    ].join('\n')));
-    await expect(collect(streamInboxDailyBrief(client as never, window))).rejects.toThrow(
-      'data after completion',
+    client.requestAuthenticatedResponse.mockResolvedValueOnce(
+      sseResponse(
+        [
+          `data: {"type":"done","requestId":"${requestId}"}`,
+          '',
+          'data: {"type":"delta","text":"late"}',
+          '',
+          '',
+        ].join('\n'),
+      ),
     );
+    await expect(
+      collect(streamInboxDailyBrief(client as never, window)),
+    ).rejects.toThrow('data after completion');
   });
 
   it('parses real reader chunk boundaries and releases the reader', async () => {
@@ -278,30 +323,38 @@ describe('Inbox point-inference API client', () => {
       startAt: '2026-09-02T21:00:00.000Z',
       endAt: '2026-09-03T21:00:00.000Z',
     };
-    await expect(collect(streamInboxDailyBrief(client as never, window))).resolves.toEqual(['Hello']);
+    await expect(
+      collect(streamInboxDailyBrief(client as never, window)),
+    ).resolves.toEqual(['Hello']);
     expect(stream.read).toHaveBeenCalledTimes(3);
     expect(stream.cancel).toHaveBeenCalledTimes(1);
     expect(stream.releaseLock).toHaveBeenCalledTimes(1);
 
-    const incomplete = readerSseResponse(['data: {"type":"delta","text":"partial"}\n\n']);
+    const incomplete = readerSseResponse([
+      'data: {"type":"delta","text":"partial"}\n\n',
+    ]);
     client.requestAuthenticatedResponse.mockResolvedValue(incomplete.response);
-    await expect(collect(streamInboxDailyBrief(client as never, window))).rejects.toThrow(
-      'ended before completion',
-    );
+    await expect(
+      collect(streamInboxDailyBrief(client as never, window)),
+    ).rejects.toThrow('ended before completion');
     expect(incomplete.cancel).toHaveBeenCalledTimes(1);
     expect(incomplete.releaseLock).toHaveBeenCalledTimes(1);
 
-    const postTerminal = readerSseResponse([[
-      `data: {"type":"done","requestId":"${requestId}"}`,
-      '',
-      'data: {"type":"delta","text":"late"}',
-      '',
-      '',
-    ].join('\n')]);
-    client.requestAuthenticatedResponse.mockResolvedValue(postTerminal.response);
-    await expect(collect(streamInboxDailyBrief(client as never, window))).rejects.toThrow(
-      'data after completion',
+    const postTerminal = readerSseResponse([
+      [
+        `data: {"type":"done","requestId":"${requestId}"}`,
+        '',
+        'data: {"type":"delta","text":"late"}',
+        '',
+        '',
+      ].join('\n'),
+    ]);
+    client.requestAuthenticatedResponse.mockResolvedValue(
+      postTerminal.response,
     );
+    await expect(
+      collect(streamInboxDailyBrief(client as never, window)),
+    ).rejects.toThrow('data after completion');
     expect(postTerminal.cancel).toHaveBeenCalledTimes(1);
     expect(postTerminal.releaseLock).toHaveBeenCalledTimes(1);
   });
@@ -316,22 +369,24 @@ describe('Inbox point-inference API client', () => {
     client.requestAuthenticatedResponse.mockResolvedValueOnce(
       sseResponse(`data: {"type":"done","requestId":"${requestId}"}`),
     );
-    await expect(collect(streamInboxDailyBrief(client as never, window))).rejects.toThrow(
-      'ended inside an SSE frame',
-    );
+    await expect(
+      collect(streamInboxDailyBrief(client as never, window)),
+    ).rejects.toThrow('ended inside an SSE frame');
 
     client.requestAuthenticatedResponse.mockResolvedValueOnce(
       sseResponse(Uint8Array.from([0xc3, 0x28])),
     );
-    await expect(collect(streamInboxDailyBrief(client as never, window))).rejects.toThrow(
-      'invalid UTF-8',
-    );
+    await expect(
+      collect(streamInboxDailyBrief(client as never, window)),
+    ).rejects.toThrow('invalid UTF-8');
 
     const invalidReader = readerSseResponse([Uint8Array.from([0xc3, 0x28])]);
-    client.requestAuthenticatedResponse.mockResolvedValueOnce(invalidReader.response);
-    await expect(collect(streamInboxDailyBrief(client as never, window))).rejects.toThrow(
-      'invalid UTF-8',
+    client.requestAuthenticatedResponse.mockResolvedValueOnce(
+      invalidReader.response,
     );
+    await expect(
+      collect(streamInboxDailyBrief(client as never, window)),
+    ).rejects.toThrow('invalid UTF-8');
     expect(invalidReader.cancel).toHaveBeenCalledTimes(1);
     expect(invalidReader.releaseLock).toHaveBeenCalledTimes(1);
 
@@ -342,10 +397,12 @@ describe('Inbox point-inference API client', () => {
     incompleteAfterTerminal.set(terminal);
     incompleteAfterTerminal[terminal.byteLength] = 0xc3;
     const invalidTerminalReader = readerSseResponse([incompleteAfterTerminal]);
-    client.requestAuthenticatedResponse.mockResolvedValueOnce(invalidTerminalReader.response);
-    await expect(collect(streamInboxDailyBrief(client as never, window))).rejects.toThrow(
-      'invalid UTF-8',
+    client.requestAuthenticatedResponse.mockResolvedValueOnce(
+      invalidTerminalReader.response,
     );
+    await expect(
+      collect(streamInboxDailyBrief(client as never, window)),
+    ).rejects.toThrow('invalid UTF-8');
     expect(invalidTerminalReader.cancel).toHaveBeenCalledTimes(1);
     expect(invalidTerminalReader.releaseLock).toHaveBeenCalledTimes(1);
   });
@@ -356,23 +413,31 @@ describe('Inbox point-inference API client', () => {
       startAt: '2026-09-02T21:00:00.000Z',
       endAt: '2026-09-03T21:00:00.000Z',
     };
-    client.requestAuthenticatedResponse.mockResolvedValueOnce(sseResponse([
-      `data: {"type":"error","error":{"schemaVersion":1,"code":"service_unavailable","message":"safe","retryable":true,"requestId":"${requestId}"}}`,
-      '',
-      '',
-    ].join('\n')));
-    await expect(collect(streamInboxDailyBrief(client as never, window))).rejects.toThrow(
-      'could not complete',
+    client.requestAuthenticatedResponse.mockResolvedValueOnce(
+      sseResponse(
+        [
+          `data: {"type":"error","error":{"schemaVersion":1,"code":"service_unavailable","message":"safe","retryable":true,"requestId":"${requestId}"}}`,
+          '',
+          '',
+        ].join('\n'),
+      ),
     );
+    await expect(
+      collect(streamInboxDailyBrief(client as never, window)),
+    ).rejects.toThrow('could not complete');
 
-    client.requestAuthenticatedResponse.mockResolvedValueOnce(sseResponse('not SSE', 'application/json'));
-    await expect(collect(streamInboxDailyBrief(client as never, window))).rejects.toThrow(
-      'invalid stream type',
+    client.requestAuthenticatedResponse.mockResolvedValueOnce(
+      sseResponse('not SSE', 'application/json'),
     );
+    await expect(
+      collect(streamInboxDailyBrief(client as never, window)),
+    ).rejects.toThrow('invalid stream type');
 
-    client.requestAuthenticatedResponse.mockResolvedValueOnce(sseResponse('\n'.repeat(4_097)));
-    await expect(collect(streamInboxDailyBrief(client as never, window))).rejects.toThrow(
-      'safety limit',
+    client.requestAuthenticatedResponse.mockResolvedValueOnce(
+      sseResponse('\n'.repeat(4_097)),
     );
+    await expect(
+      collect(streamInboxDailyBrief(client as never, window)),
+    ).rejects.toThrow('safety limit');
   });
 });

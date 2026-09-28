@@ -3,22 +3,21 @@
  * Ported from ~/Alia/apps/app/components/alia-face.tsx for the inbox app.
  */
 
-import React, { useEffect } from 'react';
+import { useColors } from '@/constants/theme';
+import { useEffect } from 'react';
 import { View } from 'react-native';
-import Svg, { Path, Ellipse } from 'react-native-svg';
 import Animated, {
-  useSharedValue,
-  useAnimatedProps,
-  useAnimatedStyle,
-  withTiming,
-  withRepeat,
-  withSequence,
-  withDelay,
   cancelAnimation,
   Easing,
+  useAnimatedProps,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
 } from 'react-native-reanimated';
-import { useTheme } from '@oxy.so/bloom/theme';
-import { useColors } from '@/constants/theme';
+import Svg, { Ellipse, Path } from 'react-native-svg';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedEllipse = Animated.createAnimatedComponent(Ellipse);
@@ -45,8 +44,18 @@ interface ExpressionData {
   rightEye: [number, number, number];
   leftBrow: [number, number, number, number, number, number];
   noseBrow: [
-    number, number, number, number, number, number,
-    number, number, number, number, number, number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
   ];
 }
 
@@ -116,12 +125,13 @@ const EXPRESSIONS: Record<AliaExpression, ExpressionData> = {
 const DEFAULT_EXPRESSION: AliaExpression = 'Idle A';
 const MORPH_CONFIG = { duration: 600, easing: Easing.bezier(0.4, 0, 0.2, 1) };
 
-export function AliaFace({ expression = DEFAULT_EXPRESSION, size = 120 }: AliaFaceProps) {
-  const { mode } = useTheme();
+export function AliaFace({
+  expression = DEFAULT_EXPRESSION,
+  size = 120,
+}: AliaFaceProps) {
   const colors = useColors();
-  const isDark = mode === 'dark';
 
-  const strokeColor = isDark ? '#ffffff' : '#000000';
+  const strokeColor = colors.text;
   const circleBg = colors.background;
   const circleBorder = colors.border;
 
@@ -222,7 +232,33 @@ export function AliaFace({ expression = DEFAULT_EXPRESSION, size = 120 }: AliaFa
     nb9.value = withTiming(target.noseBrow[9], MORPH_CONFIG);
     nb10.value = withTiming(target.noseBrow[10], MORPH_CONFIG);
     nb11.value = withTiming(target.noseBrow[11], MORPH_CONFIG);
-  }, [expression, leR, leX, leY, lb0, lb1, lb2, lb3, lb4, lb5, nb0, nb1, nb10, nb11, nb2, nb3, nb4, nb5, nb6, nb7, nb8, nb9, reR, reX, reY]);
+  }, [
+    expression,
+    leR,
+    leX,
+    leY,
+    lb0,
+    lb1,
+    lb2,
+    lb3,
+    lb4,
+    lb5,
+    nb0,
+    nb1,
+    nb10,
+    nb11,
+    nb2,
+    nb3,
+    nb4,
+    nb5,
+    nb6,
+    nb7,
+    nb8,
+    nb9,
+    reR,
+    reX,
+    reY,
+  ]);
 
   // Thinking wave (conditional)
   useEffect(() => {
@@ -233,8 +269,14 @@ export function AliaFace({ expression = DEFAULT_EXPRESSION, size = 120 }: AliaFa
           i * 200,
           withRepeat(
             withSequence(
-              withTiming(-3, { duration: 1250, easing: Easing.inOut(Easing.ease) }),
-              withTiming(3, { duration: 1250, easing: Easing.inOut(Easing.ease) }),
+              withTiming(-3, {
+                duration: 1250,
+                easing: Easing.inOut(Easing.ease),
+              }),
+              withTiming(3, {
+                duration: 1250,
+                easing: Easing.inOut(Easing.ease),
+              }),
             ),
             -1,
             true,
@@ -297,7 +339,18 @@ export function AliaFace({ expression = DEFAULT_EXPRESSION, size = 120 }: AliaFa
   }));
 
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: circleBg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: circleBorder }}>
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: circleBg,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: circleBorder,
+      }}
+    >
       <Animated.View style={breatheStyle}>
         <Svg width={size * 0.95} height={size * 0.95} viewBox="35 35 250 250">
           <AnimatedPath

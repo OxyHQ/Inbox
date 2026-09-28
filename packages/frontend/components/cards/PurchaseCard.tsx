@@ -1,10 +1,10 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Card, CardHeader, CardBody } from '@oxy.so/bloom/card';
-import { Text } from '@oxy.so/bloom/typography';
 import { useColors } from '@/constants/theme';
 import type { CardData } from '@/services/emailApi';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Card, CardBody, CardHeader } from '@oxy.so/bloom/card';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { Text } from '@oxy.so/bloom/typography';
+import { StyleSheet, View } from 'react-native';
 
 interface PurchaseCardProps {
   data: CardData;
@@ -12,40 +12,66 @@ interface PurchaseCardProps {
 
 export function PurchaseCard({ data }: PurchaseCardProps) {
   const colors = useColors();
+  const { colors: tokens } = useTheme();
 
-  const formattedAmount = data.amount != null
-    ? new Intl.NumberFormat(undefined, {
-        style: 'currency',
-        currency: data.currency || 'USD',
-      }).format(data.amount)
-    : null;
+  const formattedAmount =
+    data.amount != null
+      ? new Intl.NumberFormat(undefined, {
+          style: 'currency',
+          currency: data.currency || 'USD',
+        }).format(data.amount)
+      : null;
 
   return (
-    <Card variant="outlined">
+    <Card variant="filled">
       <CardHeader>
-        <View style={[styles.header, { backgroundColor: '#34A85320' }]}>
-          <MaterialCommunityIcons name="shopping-outline" size={18} color="#34A853" />
-          <Text style={[styles.headerText, { color: '#34A853' }]}>Purchase</Text>
+        <View
+          style={[styles.header, { backgroundColor: tokens.successSubtle }]}
+        >
+          <MaterialCommunityIcons
+            name="shopping-outline"
+            size={18}
+            color={tokens.successSubtleForeground}
+          />
+          <Text
+            style={[
+              styles.headerText,
+              { color: tokens.successSubtleForeground },
+            ]}
+          >
+            Purchase
+          </Text>
         </View>
       </CardHeader>
       <CardBody>
         <View style={styles.body}>
           {data.merchant && (
-            <Text style={[styles.merchant, { color: colors.text }]}>{data.merchant}</Text>
+            <Text style={[styles.merchant, { color: colors.text }]}>
+              {data.merchant}
+            </Text>
           )}
           {formattedAmount && (
-            <Text style={[styles.amount, { color: colors.text }]}>{formattedAmount}</Text>
+            <Text style={[styles.amount, { color: colors.text }]}>
+              {formattedAmount}
+            </Text>
           )}
           {data.orderNumber && (
             <View style={styles.row}>
-              <Text style={[styles.label, { color: colors.secondaryText }]}>Order #</Text>
-              <Text style={[styles.value, { color: colors.text }]}>{data.orderNumber}</Text>
+              <Text style={[styles.label, { color: colors.secondaryText }]}>
+                Order #
+              </Text>
+              <Text style={[styles.value, { color: colors.text }]}>
+                {data.orderNumber}
+              </Text>
             </View>
           )}
           {Array.isArray(data.items) && data.items.length > 0 && (
             <View style={styles.items}>
               {data.items.slice(0, 3).map((item: string, i: number) => (
-                <Text key={i} style={[styles.item, { color: colors.secondaryText }]}>
+                <Text
+                  key={i}
+                  style={[styles.item, { color: colors.secondaryText }]}
+                >
                   · {item}
                 </Text>
               ))}
@@ -63,7 +89,13 @@ export function PurchaseCard({ data }: PurchaseCardProps) {
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
   headerText: { fontSize: 13, fontWeight: '600' },
   body: { gap: 6 },
   merchant: { fontSize: 15, fontWeight: '600' },

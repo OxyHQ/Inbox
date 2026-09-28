@@ -1,3 +1,4 @@
+import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 /**
  * Renders a system mailbox view (inbox, sent, drafts, trash, …) or a custom
  * folder addressed by its mailbox id.
@@ -10,16 +11,15 @@
  * Mobile: shows the inbox list
  */
 
-import React, { useEffect, useMemo } from 'react';
-import { Platform, useWindowDimensions } from 'react-native';
 import Head from 'expo-router/head';
+import { useEffect, useMemo } from 'react';
 
 import { InboxList } from '@/components/InboxList';
 import { MessageDetailEmpty } from '@/components/MessageDetailEmpty';
-import { useEmailStore } from '@/hooks/useEmail';
+import { SPECIAL_USE } from '@/constants/mailbox';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
 import { useMessages } from '@/hooks/queries/useMessages';
-import { SPECIAL_USE } from '@/constants/mailbox';
+import { useEmailStore } from '@/hooks/useEmail';
 import { useTranslation } from '@/lib/i18n';
 
 /** Map a view segment to a `drawer.mailboxes.*` translation key. */
@@ -45,8 +45,7 @@ const VIEW_TO_SPECIAL_USE: Record<string, string> = {
 };
 
 export function MailboxView({ view }: { view: string }) {
-  const { width } = useWindowDimensions();
-  const isDesktop = Platform.OS === 'web' && width >= 900;
+  const isDesktop = useIsDesktopLayout();
   const { data: mailboxes = [] } = useMailboxes();
   const { t } = useTranslation();
 
@@ -54,7 +53,9 @@ export function MailboxView({ view }: { view: string }) {
   const selectStarred = useEmailStore((s) => s.selectStarred);
   const currentMailbox = useEmailStore((s) => s.currentMailbox);
 
-  const { data: messagesData } = useMessages({ mailboxId: currentMailbox?._id });
+  const { data: messagesData } = useMessages({
+    mailboxId: currentMailbox?._id,
+  });
 
   const viewLabel = useMemo(() => {
     if (!view) return t('drawer.mailboxes.Inbox');

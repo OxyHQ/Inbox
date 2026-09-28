@@ -1,60 +1,68 @@
+import { MailAddressFields } from '@/components/MailAddressFields';
+import {
+  buildComposeDraftPayload,
+  createDraftSaveQueue,
+  parseComposeRecipients,
+  type ComposeDraftSaveState,
+  type ComposeDraftSnapshot,
+} from '@/utils/composeDraft';
+import { stripHtml } from '@/utils/stripHtml';
+import { Button, IconButton } from '@oxy.so/bloom/button';
+import {
+  RiArrowDownSLine,
+  RiSaveLine,
+  RiSendPlaneLine,
+  RiTimeLine,
+} from '@oxy.so/bloom/icons';
+import { MailComposeSurface } from '@oxy.so/bloom/mail-compose';
 /**
  * Reusable compose / reply / forward form.
  *
  * Supports attachments, Cc/Bcc toggle, and discard confirmation.
  */
 
-import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { Dialog, toast, useDialogControl } from '@oxy.so/bloom';
+import { Admonition } from '@oxy.so/bloom/admonition';
+import type { FileMetadata } from '@oxy.so/core';
+import { useOxy } from '@oxy.so/services';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
-import { Dialog, useDialogControl, toast } from '@oxy.so/bloom';
-import { Admonition } from '@oxy.so/bloom/admonition';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
-import {
-  Cancel01Icon,
-  FloppyDiskIcon,
-  MailSend01Icon,
-  ArrowDown01Icon,
-  Attachment01Icon,
-  Clock01Icon,
-} from '@hugeicons/core-free-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useOxy } from '@oxy.so/services';
-import type { FileMetadata } from '@oxy.so/core';
 
-import { useGoBack } from '@/hooks/useGoBack';
-import { useTabBarClearance } from '@/hooks/useTabBarClearance';
-import { useColors } from '@/constants/theme';
-import { useEmailStore } from '@/hooks/useEmail';
-import { useSendMessageWithUndo, useSendMessage, useSaveDraft } from '@/hooks/mutations/useMessageMutations';
-import { useContactSuggestions } from '@/hooks/queries/useContactSuggestions';
 import { AiComposeToolbar } from '@/components/AiComposeToolbar';
-import { RichTextEditor, stripHtml, type RichTextEditorHandle } from '@/components/RichTextEditor';
+import { ReplyParentNotice } from '@/components/ReplyParentNotice';
+import {
+  RichTextEditor,
+  type RichTextEditorHandle,
+} from '@/components/RichTextEditor';
 import { ScheduleSendSheet } from '@/components/ScheduleSendSheet';
 import { TemplatePicker } from '@/components/TemplatePicker';
-import type { ContactSuggestion, EmailTemplate } from '@/services/emailApi';
-import { isValidRecipientEmail, parseRecipientList } from '@/schemas/emailSchemas';
+import { useColors } from '@/constants/theme';
+import {
+  useSaveDraft,
+  useSendMessage,
+  useSendMessageWithUndo,
+} from '@/hooks/mutations/useMessageMutations';
+import { useEmailStore } from '@/hooks/useEmail';
+import { useGoBack } from '@/hooks/useGoBack';
+import { useReplyParent } from '@/hooks/useReplyParent';
+import { useTabBarClearance } from '@/hooks/useTabBarClearance';
 import { useTranslation } from '@/lib/i18n';
+import type { EmailTemplate } from '@/services/emailApi';
 import {
   clearComposeRecovery,
   composeRecoveryStorageKey,
   loadComposeRecovery,
   saveComposeRecovery,
-  type ComposeRecoverySnapshot,
 } from '@/utils/composeRecovery';
-import { useReplyParent } from '@/hooks/useReplyParent';
-import type { ReplyHeaders } from '@/utils/replyHeaders';
 import { newSendIdempotencyKey } from '@/utils/sendIdempotency';
-import { ReplyParentNotice } from '@/components/ReplyParentNotice';
 
 /**
  * Local composer representation of an attachment. Just enough to render the
@@ -89,77 +97,29 @@ interface ComposeFormProps {
   body?: string;
 }
 
-export type ComposeDraftSaveState = 'idle' | 'saving' | 'saved' | 'error';
-
-export type ComposeDraftSnapshot = ComposeRecoverySnapshot;
-
-export interface ParsedComposeRecipients {
-  addresses: { address: string }[];
-  invalid: string[];
-}
-
-export interface DraftSaveQueue {
-  enqueue: (save: () => Promise<boolean>) => Promise<boolean>;
-}
-
-export function createDraftSaveQueue(): DraftSaveQueue {
-  let queue: Promise<boolean> = Promise.resolve(false);
-
-  return {
-    enqueue(save) {
-      const queuedSave = queue.then(save, save);
-      queue = queuedSave.then(
-        () => false,
-        () => false,
-      );
-      return queuedSave;
-    },
-  };
-}
-
-export function parseComposeRecipients(input: string): ParsedComposeRecipients {
-  const entries = input
-    .split(',')
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-  const invalid = entries.filter((entry) => !isValidRecipientEmail(entry));
-
-  return {
-    addresses: parseRecipientList(input),
-    invalid,
-  };
-}
-
-export function buildComposeDraftPayload(
-  snapshot: ComposeDraftSnapshot,
-  existingDraftId?: string,
-  web = isWeb,
-  replyHeaders?: ReplyHeaders,
-) {
-  return {
-    to: snapshot.to.trim() ? parseComposeRecipients(snapshot.to).addresses : undefined,
-    cc: snapshot.cc.trim() ? parseComposeRecipients(snapshot.cc).addresses : undefined,
-    bcc: snapshot.bcc.trim() ? parseComposeRecipients(snapshot.bcc).addresses : undefined,
-    subject: snapshot.subject || undefined,
-    text: web ? stripHtml(snapshot.body) || undefined : snapshot.body || undefined,
-    html: web ? snapshot.body || undefined : undefined,
-    // RFC threading headers of the parent, never `snapshot.replyTo` — that is
-    // the parent's row id, and a row id in `In-Reply-To` detaches the reply.
-    ...(replyHeaders ?? {}),
-    ...(snapshot.attachments && snapshot.attachments.length > 0
-      ? { attachments: snapshot.attachments.map(({ fileId }) => ({ fileId })) }
-      : {}),
-    existingDraftId,
-  };
-}
-
 function isDraftConflict(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
-  const candidate = error as { status?: number; statusCode?: number; response?: { status?: number } };
-  return candidate.status === 409 || candidate.statusCode === 409 || candidate.response?.status === 409;
+  const candidate = error as {
+    status?: number;
+    statusCode?: number;
+    response?: { status?: number };
+  };
+  return (
+    candidate.status === 409 ||
+    candidate.statusCode === 409 ||
+    candidate.response?.status === 409
+  );
 }
 
-export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initialCc, subject: initialSubject, body: initialBody }: ComposeFormProps) {
+export function ComposeForm({
+  mode,
+  replyTo,
+  forward,
+  to: initialTo,
+  cc: initialCc,
+  subject: initialSubject,
+  body: initialBody,
+}: ComposeFormProps) {
   // Compose can be opened from a deep link, where there is no history to pop.
   const closeCompose = useGoBack();
   const insets = useSafeAreaInsets();
@@ -197,10 +157,10 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
   const [bcc, setBcc] = useState('');
   const [subject, setSubject] = useState(initialSubject || '');
   const [body, setBody] = useState(initialBody || '');
-  const [showCcBcc, setShowCcBcc] = useState(!!(initialCc));
   const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
   const [signatureLoaded, setSignatureLoaded] = useState(false);
-  const [draftSaveState, setDraftSaveState] = useState<ComposeDraftSaveState>('idle');
+  const [draftSaveState, setDraftSaveState] =
+    useState<ComposeDraftSaveState>('idle');
   const [savedDraftKey, setSavedDraftKey] = useState<string | null>(null);
   const [recoveryLoaded, setRecoveryLoaded] = useState(false);
   const [draftSaveQueue] = useState(createDraftSaveQueue);
@@ -211,21 +171,25 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
   }, []);
 
   const recoveryKey = useMemo(
-    () => composeRecoveryStorageKey(
-      user?.id,
-      replyTo ? `reply:${replyTo}` : forward ? `forward:${forward}` : 'new',
-    ),
+    () =>
+      composeRecoveryStorageKey(
+        user?.id,
+        replyTo ? `reply:${replyTo}` : forward ? `forward:${forward}` : 'new',
+      ),
     [forward, replyTo, user?.id],
   );
 
   useEffect(() => {
     let cancelled = false;
-    const hasServerDraft = Boolean(initialTo || initialCc || initialSubject || initialBody);
+    const hasServerDraft = Boolean(
+      initialTo || initialCc || initialSubject || initialBody,
+    );
 
     void loadComposeRecovery(recoveryKey).then((record) => {
       if (cancelled) return;
       if (record && !hasServerDraft) {
-        if (record.snapshot.idempotencyKey) setIdempotencyKey(record.snapshot.idempotencyKey);
+        if (record.snapshot.idempotencyKey)
+          setIdempotencyKey(record.snapshot.idempotencyKey);
         setAlreadyQueued(record.snapshot.queued === true);
         setTo(record.snapshot.to);
         setCc(record.snapshot.cc);
@@ -247,7 +211,14 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
     return () => {
       cancelled = true;
     };
-  }, [initialBody, initialCc, initialSubject, initialTo, recoveryKey, updateBody]);
+  }, [
+    initialBody,
+    initialCc,
+    initialSubject,
+    initialTo,
+    recoveryKey,
+    updateBody,
+  ]);
 
   // Auto-insert signature from settings
   useEffect(() => {
@@ -261,7 +232,10 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
           updateBody(`\n\n--\n${settings.signature}`);
         }
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : t('compose.toast.signatureFailed');
+        const message =
+          err instanceof Error
+            ? err.message
+            : t('compose.toast.signatureFailed');
         toast.error(message);
       }
       setSignatureLoaded(true);
@@ -278,7 +252,9 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
   const fromAddress = user?.username ? `${user.username}@oxy.so` : '';
   const sending = sendPending || sendMessageMutation.isPending;
   const sendDisabled = sending || awaitingReplyHeaders;
-  const hasContent = Boolean(to.trim() || subject.trim() || body.trim() || attachments.length > 0);
+  const hasContent = Boolean(
+    to.trim() || subject.trim() || body.trim() || attachments.length > 0,
+  );
   const draftSnapshot = useMemo<ComposeDraftSnapshot>(
     () => ({
       to,
@@ -286,14 +262,29 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
       bcc,
       subject,
       body,
-      attachments: attachments.map((attachment) => ({ fileId: attachment.fileId })),
+      attachments: attachments.map((attachment) => ({
+        fileId: attachment.fileId,
+      })),
       replyTo,
       idempotencyKey,
       ...(alreadyQueued ? { queued: true } : {}),
     }),
-    [to, cc, bcc, subject, body, attachments, replyTo, idempotencyKey, alreadyQueued],
+    [
+      to,
+      cc,
+      bcc,
+      subject,
+      body,
+      attachments,
+      replyTo,
+      idempotencyKey,
+      alreadyQueued,
+    ],
   );
-  const draftSnapshotKey = useMemo(() => JSON.stringify(draftSnapshot), [draftSnapshot]);
+  const draftSnapshotKey = useMemo(
+    () => JSON.stringify(draftSnapshot),
+    [draftSnapshot],
+  );
   const saveDraftAsync = saveDraftMutation.mutateAsync;
 
   useEffect(() => {
@@ -312,7 +303,12 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         if (mountedRef.current) setDraftSaveState('saving');
         try {
           const draft = await saveDraftAsync({
-            ...buildComposeDraftPayload(snapshot, draftIdRef.current ?? undefined, isWeb, replyHeaders),
+            ...buildComposeDraftPayload(
+              snapshot,
+              draftIdRef.current ?? undefined,
+              isWeb,
+              replyHeaders,
+            ),
             ...(draftIdRef.current && draftRevisionRef.current
               ? { expectedRevision: draftRevisionRef.current }
               : {}),
@@ -343,7 +339,15 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
 
       return draftSaveQueue.enqueue(save);
     },
-    [api, awaitingReplyHeaders, draftSaveQueue, recoveryKey, replyHeaders, saveDraftAsync, t],
+    [
+      api,
+      awaitingReplyHeaders,
+      draftSaveQueue,
+      recoveryKey,
+      replyHeaders,
+      saveDraftAsync,
+      t,
+    ],
   );
 
   useEffect(() => {
@@ -352,7 +356,14 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
       void saveDraftSnapshot(draftSnapshot, draftSnapshotKey);
     }, 8_000);
     return () => clearTimeout(timer);
-  }, [api, hasContent, sending, draftSnapshot, draftSnapshotKey, saveDraftSnapshot]);
+  }, [
+    api,
+    hasContent,
+    sending,
+    draftSnapshot,
+    draftSnapshotKey,
+    saveDraftSnapshot,
+  ]);
 
   useEffect(() => {
     if (!recoveryLoaded || !hasContent || sending || sentRef.current) return;
@@ -375,34 +386,6 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
           ? t('common.notSaved')
           : null;
 
-  // Contact autocomplete state — track which field is active and the current query
-  const [activeField, setActiveField] = useState<'to' | 'cc' | 'bcc' | null>(null);
-  const [autocompleteQuery, setAutocompleteQuery] = useState('');
-  const { data: suggestions = [] } = useContactSuggestions(autocompleteQuery);
-
-  // Extract the last email segment (after the last comma) as the autocomplete query
-  const updateAutocomplete = useCallback((value: string, field: 'to' | 'cc' | 'bcc') => {
-    setActiveField(field);
-    const lastSegment = value.split(',').pop()?.trim() || '';
-    setAutocompleteQuery(lastSegment);
-  }, []);
-
-  const handleSelectSuggestion = useCallback(
-    (suggestion: ContactSuggestion, field: 'to' | 'cc' | 'bcc') => {
-      const setter = field === 'to' ? setTo : field === 'cc' ? setCc : setBcc;
-      setter((prev) => {
-        const parts = prev.split(',').map((s) => s.trim()).filter(Boolean);
-        // Replace the last (incomplete) segment with the selected address
-        if (parts.length > 0) parts.pop();
-        parts.push(suggestion.address);
-        return parts.join(', ') + ', ';
-      });
-      setAutocompleteQuery('');
-      setActiveField(null);
-    },
-    [],
-  );
-
   // Recipient parsing + validation is centralised in the Zod-backed
   // `parseRecipientList` (schemas/emailSchemas.ts) so the composer and any
   // future caller share one definition of a valid address.
@@ -421,9 +404,13 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
       ...field,
       result: parseComposeRecipients(field.value),
     }));
-    const invalidField = parsed.find((field) => field.result.invalid.length > 0);
+    const invalidField = parsed.find(
+      (field) => field.result.invalid.length > 0,
+    );
     if (invalidField) {
-      toast.error(`${t('compose.toast.invalidEmail')} (${invalidField.result.invalid.join(', ')})`);
+      toast.error(
+        `${t('compose.toast.invalidEmail')} (${invalidField.result.invalid.join(', ')})`,
+      );
       return null;
     }
 
@@ -434,8 +421,14 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
 
     return {
       to: parsed[0].result.addresses,
-      cc: parsed[1].result.addresses.length > 0 ? parsed[1].result.addresses : undefined,
-      bcc: parsed[2].result.addresses.length > 0 ? parsed[2].result.addresses : undefined,
+      cc:
+        parsed[1].result.addresses.length > 0
+          ? parsed[1].result.addresses
+          : undefined,
+      bcc:
+        parsed[2].result.addresses.length > 0
+          ? parsed[2].result.addresses
+          : undefined,
     };
   }, [to, cc, bcc, t]);
 
@@ -492,7 +485,10 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         text: isWeb ? stripHtml(body) : body,
         html: isWeb ? body : undefined,
         ...(replyHeaders ?? {}),
-        attachments: attachments.length > 0 ? attachments.map((a) => ({ fileId: a.fileId })) : undefined,
+        attachments:
+          attachments.length > 0
+            ? attachments.map((a) => ({ fileId: a.fileId }))
+            : undefined,
         idempotencyKey,
       },
       {
@@ -508,7 +504,10 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         // The snapshot is marked queued and keeps the session key, so reopening
         // it says so, and pressing Send again is the same message to the API.
         onQueued: () => {
-          void saveComposeRecovery(recoveryKey, { ...draftSnapshot, queued: true });
+          void saveComposeRecovery(recoveryKey, {
+            ...draftSnapshot,
+            queued: true,
+          });
           closeCompose();
         },
         onError: () => {
@@ -516,7 +515,19 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         },
       },
     );
-  }, [attachments, awaitingReplyHeaders, body, closeCompose, draftSnapshot, getValidatedRecipients, idempotencyKey, recoveryKey, replyHeaders, sendWithUndo, subject]);
+  }, [
+    attachments,
+    awaitingReplyHeaders,
+    body,
+    closeCompose,
+    draftSnapshot,
+    getValidatedRecipients,
+    idempotencyKey,
+    recoveryKey,
+    replyHeaders,
+    sendWithUndo,
+    subject,
+  ]);
 
   const handleSaveDraft = useCallback(() => {
     if (!hasContent) {
@@ -531,7 +542,15 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
         toast.error(t('common.notSaved'));
       }
     });
-  }, [closeCompose, draftSnapshot, draftSnapshotKey, hasContent, recoveryKey, saveDraftSnapshot, t]);
+  }, [
+    closeCompose,
+    draftSnapshot,
+    draftSnapshotKey,
+    hasContent,
+    recoveryKey,
+    saveDraftSnapshot,
+    t,
+  ]);
 
   const saveDraftDialog = useDialogControl();
 
@@ -557,79 +576,103 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
   }, []);
 
   // Handle template selection — insert into compose fields
-  const handleTemplateSelect = useCallback((template: EmailTemplate) => {
-    if (!subject.trim() && template.subject) {
-      setSubject(template.subject);
-    }
-    if (!body.trim()) {
-      if (isWeb && bodyRef.current) {
-        bodyRef.current.setContent(template.body);
-      } else {
-        updateBody(template.body);
+  const handleTemplateSelect = useCallback(
+    (template: EmailTemplate) => {
+      if (!subject.trim() && template.subject) {
+        setSubject(template.subject);
       }
-    } else {
-      // Append template body
-      const newBody = body + '\n' + template.body;
-      if (isWeb && bodyRef.current) {
-        bodyRef.current.setContent(newBody);
+      if (!body.trim()) {
+        if (isWeb && bodyRef.current) {
+          bodyRef.current.setContent(template.body);
+        } else {
+          updateBody(template.body);
+        }
       } else {
-        updateBody(newBody);
+        // Append template body
+        const newBody = body + '\n' + template.body;
+        if (isWeb && bodyRef.current) {
+          bodyRef.current.setContent(newBody);
+        } else {
+          updateBody(newBody);
+        }
       }
-    }
-  }, [subject, body, updateBody]);
+    },
+    [subject, body, updateBody],
+  );
 
   // Handle body changes from AI toolbar — on web, insert into contentEditable
-  const handleAiBodyChange = useCallback((text: string) => {
-    if (isWeb && bodyRef.current) {
-      bodyRef.current.setContent(text);
-    } else {
-      updateBody(text);
-    }
-  }, [updateBody]);
+  const handleAiBodyChange = useCallback(
+    (text: string) => {
+      if (isWeb && bodyRef.current) {
+        bodyRef.current.setContent(text);
+      } else {
+        updateBody(text);
+      }
+    },
+    [updateBody],
+  );
 
   // Schedule Send state
   const [showScheduleSheet, setShowScheduleSheet] = useState(false);
   const sendMenuControl = useDialogControl();
 
-  const handleScheduleSend = useCallback((scheduledDate: Date) => {
-    if (awaitingReplyHeaders) return;
-    const recipients = getValidatedRecipients();
-    if (!recipients) return;
+  const handleScheduleSend = useCallback(
+    (scheduledDate: Date) => {
+      if (awaitingReplyHeaders) return;
+      const recipients = getValidatedRecipients();
+      if (!recipients) return;
 
-    sentRef.current = true;
-    sendMessageMutation.mutate(
-      {
-        to: recipients.to,
-        cc: recipients.cc,
-        bcc: recipients.bcc,
-        subject,
-        text: isWeb ? stripHtml(body) : body,
-        html: isWeb ? body : undefined,
-        ...(replyHeaders ?? {}),
-        attachments: attachments.length > 0 ? attachments.map((a) => ({ fileId: a.fileId })) : undefined,
-        scheduledAt: scheduledDate.toISOString(),
-        idempotencyKey,
-      },
-      {
-        onSuccess: () => {
-          const timeStr = scheduledDate.toLocaleString(undefined, {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-          });
-          toast.success(`Email scheduled for ${timeStr}`);
-          void clearComposeRecovery(recoveryKey);
-          closeCompose();
+      sentRef.current = true;
+      sendMessageMutation.mutate(
+        {
+          to: recipients.to,
+          cc: recipients.cc,
+          bcc: recipients.bcc,
+          subject,
+          text: isWeb ? stripHtml(body) : body,
+          html: isWeb ? body : undefined,
+          ...(replyHeaders ?? {}),
+          attachments:
+            attachments.length > 0
+              ? attachments.map((a) => ({ fileId: a.fileId }))
+              : undefined,
+          scheduledAt: scheduledDate.toISOString(),
+          idempotencyKey,
         },
-        onError: (err: Error) => {
-          sentRef.current = false;
-          toast.error(err.message || t('compose.toast.scheduleFailed'));
+        {
+          onSuccess: () => {
+            const timeStr = scheduledDate.toLocaleString(undefined, {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+            });
+            toast.success(`Email scheduled for ${timeStr}`);
+            void clearComposeRecovery(recoveryKey);
+            closeCompose();
+          },
+          onError: (err: Error) => {
+            sentRef.current = false;
+            toast.error(err.message || t('compose.toast.scheduleFailed'));
+          },
         },
-      },
-    );
-  }, [attachments, awaitingReplyHeaders, body, closeCompose, getValidatedRecipients, idempotencyKey, recoveryKey, replyHeaders, sendMessageMutation, subject, t]);
+      );
+    },
+    [
+      attachments,
+      awaitingReplyHeaders,
+      body,
+      closeCompose,
+      getValidatedRecipients,
+      idempotencyKey,
+      recoveryKey,
+      replyHeaders,
+      sendMessageMutation,
+      subject,
+      t,
+    ],
+  );
 
   return (
     <KeyboardAvoidingView
@@ -640,301 +683,157 @@ export function ComposeForm({ mode, replyTo, forward, to: initialTo, cc: initial
       ]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        {mode === 'standalone' && (
-          <TouchableOpacity onPress={handleClose} style={styles.iconButton}>
-            {Platform.OS === 'web' ? (
-              <HugeiconsIcon icon={Cancel01Icon as unknown as IconSvgElement} size={24} color={colors.icon} />
-            ) : (
-              <MaterialCommunityIcons name="close" size={24} color={colors.icon} />
-            )}
-          </TouchableOpacity>
-        )}
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          {replyTo ? t('compose.titleReply') : forward ? t('compose.titleForward') : t('compose.titleCompose')}
-        </Text>
-        {draftStatusLabel && (
-          <Text
-            accessibilityLiveRegion="polite"
-            style={[styles.draftStatus, { color: visibleDraftSaveState === 'error' ? colors.error : colors.secondaryText }]}
-          >
-            {draftStatusLabel}
-          </Text>
-        )}
-        <View style={styles.headerSpacer} />
-          <TouchableOpacity accessibilityLabel={t('compose.dropZone')} accessibilityRole="button" onPress={handleAttachFile} style={styles.iconButton}>
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={Attachment01Icon as unknown as IconSvgElement} size={22} color={colors.icon} />
-          ) : (
-            <MaterialCommunityIcons name="paperclip" size={22} color={colors.icon} />
-          )}
-        </TouchableOpacity>
-        <TemplatePicker onSelect={handleTemplateSelect} />
-        <TouchableOpacity accessibilityLabel={t('compose.actions.saveDraft')} accessibilityRole="button" onPress={handleSaveDraft} style={styles.iconButton}>
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={FloppyDiskIcon as unknown as IconSvgElement} size={22} color={colors.icon} />
-          ) : (
-            <MaterialCommunityIcons name="content-save-outline" size={22} color={colors.icon} />
-          )}
-        </TouchableOpacity>
-        <View style={[styles.sendGroup, { backgroundColor: colors.primary, opacity: sendDisabled ? 0.5 : 1 }]}>
-          <TouchableOpacity
-            accessibilityLabel={t('compose.actions.send')}
-            accessibilityRole="button"
-            onPress={handleSend}
-            style={styles.sendGroupPrimary}
-            disabled={sendDisabled}
-            accessibilityState={{ disabled: sendDisabled }}
-            activeOpacity={0.7}
-          >
-            {Platform.OS === 'web' ? (
-              <HugeiconsIcon icon={MailSend01Icon as unknown as IconSvgElement} size={20} color={colors.background} />
-            ) : (
-              <MaterialCommunityIcons name="send" size={20} color={colors.background} />
-            )}
-            <Text style={[styles.sendGroupLabel, { color: colors.background }]}>
-              {sending || replyParent.status === 'loading' ? t('common.loading') : t('compose.actions.send')}
-            </Text>
-          </TouchableOpacity>
-          <View style={[styles.sendGroupDivider, { backgroundColor: colors.background }]} />
-          <TouchableOpacity
-            accessibilityLabel={t('compose.actions.moreSendOptions')}
-            accessibilityRole="button"
-            onPress={() => sendMenuControl.open()}
-            style={styles.sendGroupChevron}
-            disabled={sendDisabled}
-            accessibilityState={{ disabled: sendDisabled }}
-            activeOpacity={0.7}
-          >
-            {Platform.OS === 'web' ? (
-              <HugeiconsIcon icon={ArrowDown01Icon as unknown as IconSvgElement} size={16} color={colors.background} />
-            ) : (
-              <MaterialCommunityIcons name="chevron-down" size={18} color={colors.background} />
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Send-options menu */}
-      <Dialog control={sendMenuControl} label={t('compose.actions.sendOptions')} style={{ padding: 0 }}>
-        <TouchableOpacity
-          style={styles.sendMenuItem}
-          onPress={() => {
-            sendMenuControl.close();
-            handleSend();
-          }}
-          activeOpacity={0.6}
-        >
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={MailSend01Icon as unknown as IconSvgElement} size={18} color={colors.icon} />
-          ) : (
-            <MaterialCommunityIcons name="send" size={18} color={colors.icon} />
-          )}
-          <Text style={[styles.sendMenuItemText, { color: colors.text }]}>{t('compose.actions.sendNow')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.sendMenuItem}
-          onPress={() => {
-            sendMenuControl.close();
-            setShowScheduleSheet(true);
-          }}
-          activeOpacity={0.6}
-        >
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={Clock01Icon as unknown as IconSvgElement} size={18} color={colors.icon} />
-          ) : (
-            <MaterialCommunityIcons name="clock-outline" size={18} color={colors.icon} />
-          )}
-          <Text style={[styles.sendMenuItemText, { color: colors.text }]}>{t('compose.actions.scheduleSend')}</Text>
-        </TouchableOpacity>
-      </Dialog>
-
-      <ScrollView
-        style={styles.form}
-        contentContainerStyle={{ paddingBottom: mode === 'standalone' ? tabBarClearance : 0 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <ReplyParentNotice state={replyParent} />
-
-        {alreadyQueued && (
-          <View style={fieldRowInset}>
-            <Admonition type="info">{t('compose.queuedNotice')}</Admonition>
-          </View>
-        )}
-
-        {/* From */}
-        <View style={[styles.fieldRow, fieldRowInset, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>{t('compose.fields.from')}</Text>
-          <Text style={[styles.fromAddress, { color: colors.text }]}>{fromAddress}</Text>
-        </View>
-
-        {/* To */}
-        <View style={{ zIndex: activeField === 'to' ? 10 : 1 }}>
-          <View style={[styles.fieldRow, fieldRowInset, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>{t('compose.fields.to')}</Text>
-            <TextInput
-              style={[styles.fieldInput, { color: colors.text }]}
-              value={to}
-              onChangeText={(v) => { setTo(v); updateAutocomplete(v, 'to'); }}
-              onFocus={() => updateAutocomplete(to, 'to')}
-              onBlur={() => setTimeout(() => { if (activeField === 'to') setActiveField(null); }, 150)}
-              accessibilityLabel={t('compose.fields.to')}
-              placeholder={t('compose.placeholders.to')}
-              placeholderTextColor={colors.searchPlaceholder}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
+      <MailComposeSurface
+        variant="sheet"
+        title={
+          replyTo
+            ? t('compose.titleReply')
+            : forward
+              ? t('compose.titleForward')
+              : t('compose.titleCompose')
+        }
+        onClose={handleClose}
+        onSend={handleSend}
+        sending={sending}
+        sendDisabled={sendDisabled}
+        onAttach={handleAttachFile}
+        attachments={attachments.map((item) => ({
+          id: item.fileId,
+          name: item.name,
+          caption: formatSize(item.size),
+        }))}
+        onAttachmentRemove={(id) =>
+          handleRemoveAttachment(
+            attachments.findIndex((item) => item.fileId === id),
+          )
+        }
+        footer={
+          <View className="flex-row items-center gap-1">
+            <TemplatePicker onSelect={handleTemplateSelect} />
+            <IconButton
+              accessibilityLabel={t('compose.actions.saveDraft')}
+              onPress={handleSaveDraft}
+              icon={<RiSaveLine />}
             />
-            {!showCcBcc && (
-              <TouchableOpacity onPress={() => setShowCcBcc(true)}>
-                {Platform.OS === 'web' ? (
-                  <HugeiconsIcon icon={ArrowDown01Icon as unknown as IconSvgElement} size={20} color={colors.secondaryText} />
-                ) : (
-                  <MaterialCommunityIcons name="chevron-down" size={20} color={colors.secondaryText} />
-                )}
-              </TouchableOpacity>
-            )}
+            <IconButton
+              accessibilityLabel={t('compose.actions.moreSendOptions')}
+              onPress={() => sendMenuControl.open()}
+              disabled={sendDisabled}
+              icon={<RiArrowDownSLine />}
+            />
           </View>
-          {activeField === 'to' && suggestions.length > 0 && (
-            <View style={[styles.suggestionsDropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              {suggestions.map((s) => (
-                <TouchableOpacity key={s.address} style={styles.suggestionRow} onPress={() => handleSelectSuggestion(s, 'to')}>
-                  <Text style={[styles.suggestionName, { color: colors.text }]} numberOfLines={1}>
-                    {s.name || s.address}
-                  </Text>
-                  {s.name ? (
-                    <Text style={[styles.suggestionAddress, { color: colors.secondaryText }]} numberOfLines={1}>
-                      {s.address}
-                    </Text>
-                  ) : null}
-                </TouchableOpacity>
-              ))}
+        }
+        strings={{
+          send: t('compose.actions.send'),
+          sending: t('common.sending'),
+          attach: t('compose.dropZone'),
+          close: t('common.close'),
+        }}
+        style={{ flex: 1 }}
+      >
+        <Dialog
+          control={sendMenuControl}
+          label={t('compose.actions.sendOptions')}
+        >
+          <View style={{ gap: 8 }}>
+            <Button
+              disabled={sendDisabled}
+              appearance="subtle"
+              leading={<RiSendPlaneLine />}
+              onPress={() => {
+                sendMenuControl.close();
+                handleSend();
+              }}
+            >
+              {t('compose.actions.sendNow')}
+            </Button>
+            <Button
+              disabled={sendDisabled}
+              appearance="subtle"
+              leading={<RiTimeLine />}
+              onPress={() => {
+                sendMenuControl.close();
+                setShowScheduleSheet(true);
+              }}
+            >
+              {t('compose.actions.scheduleSend')}
+            </Button>
+          </View>
+        </Dialog>
+
+        <ScrollView
+          style={styles.form}
+          contentContainerStyle={{
+            paddingBottom: mode === 'standalone' ? tabBarClearance : 0,
+          }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <ReplyParentNotice state={replyParent} />
+
+          {alreadyQueued && (
+            <View style={fieldRowInset}>
+              <Admonition type="info">{t('compose.queuedNotice')}</Admonition>
             </View>
           )}
-        </View>
 
-        {/* Cc / Bcc */}
-        {showCcBcc && (
-          <>
-            <View style={{ zIndex: activeField === 'cc' ? 10 : 1 }}>
-              <View style={[styles.fieldRow, fieldRowInset, { borderBottomColor: colors.border }]}>
-                <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>{t('compose.fields.cc')}</Text>
-                <TextInput
-                  style={[styles.fieldInput, { color: colors.text }]}
-                  value={cc}
-                  onChangeText={(v) => { setCc(v); updateAutocomplete(v, 'cc'); }}
-                  onFocus={() => updateAutocomplete(cc, 'cc')}
-                  onBlur={() => setTimeout(() => { if (activeField === 'cc') setActiveField(null); }, 150)}
-                  accessibilityLabel={t('compose.fields.cc')}
-                  placeholder={t('compose.fields.cc')}
-                  placeholderTextColor={colors.searchPlaceholder}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-              {activeField === 'cc' && suggestions.length > 0 && (
-                <View style={[styles.suggestionsDropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  {suggestions.map((s) => (
-                    <TouchableOpacity key={s.address} style={styles.suggestionRow} onPress={() => handleSelectSuggestion(s, 'cc')}>
-                      <Text style={[styles.suggestionName, { color: colors.text }]} numberOfLines={1}>
-                        {s.name || s.address}
-                      </Text>
-                      {s.name ? (
-                        <Text style={[styles.suggestionAddress, { color: colors.secondaryText }]} numberOfLines={1}>
-                          {s.address}
-                        </Text>
-                      ) : null}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
-            <View style={{ zIndex: activeField === 'bcc' ? 10 : 1 }}>
-              <View style={[styles.fieldRow, fieldRowInset, { borderBottomColor: colors.border }]}>
-                <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>{t('compose.fields.bcc')}</Text>
-                <TextInput
-                  style={[styles.fieldInput, { color: colors.text }]}
-                  value={bcc}
-                  onChangeText={(v) => { setBcc(v); updateAutocomplete(v, 'bcc'); }}
-                  onFocus={() => updateAutocomplete(bcc, 'bcc')}
-                  onBlur={() => setTimeout(() => { if (activeField === 'bcc') setActiveField(null); }, 150)}
-                  accessibilityLabel={t('compose.fields.bcc')}
-                  placeholder={t('compose.fields.bcc')}
-                  placeholderTextColor={colors.searchPlaceholder}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-              {activeField === 'bcc' && suggestions.length > 0 && (
-                <View style={[styles.suggestionsDropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  {suggestions.map((s) => (
-                    <TouchableOpacity key={s.address} style={styles.suggestionRow} onPress={() => handleSelectSuggestion(s, 'bcc')}>
-                      <Text style={[styles.suggestionName, { color: colors.text }]} numberOfLines={1}>
-                        {s.name || s.address}
-                      </Text>
-                      {s.name ? (
-                        <Text style={[styles.suggestionAddress, { color: colors.secondaryText }]} numberOfLines={1}>
-                          {s.address}
-                        </Text>
-                      ) : null}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
-          </>
-        )}
-
-        {/* Subject */}
-        <View style={[styles.fieldRow, fieldRowInset, { borderBottomColor: colors.border }]}>
-          <TextInput
-            style={[styles.subjectInput, { color: colors.text }]}
-            value={subject}
-            onChangeText={setSubject}
-            accessibilityLabel={t('compose.placeholders.subject')}
-            placeholder={t('compose.placeholders.subject')}
-            placeholderTextColor={colors.searchPlaceholder}
-          />
-        </View>
-
-        {/* Attachments */}
-        {attachments.length > 0 && (
-          <View style={[styles.attachmentsSection, fieldRowInset, { borderBottomColor: colors.border }]}>
-            {attachments.map((att, i) => (
-              <View key={att.fileId} style={[styles.attachmentChip, { backgroundColor: colors.surfaceVariant }]}>
-                <MaterialCommunityIcons name="paperclip" size={14} color={colors.secondaryText} />
-                <Text style={[styles.attachmentName, { color: colors.text }]} numberOfLines={1}>
-                  {att.name}
-                </Text>
-                <Text style={[styles.attachmentSize, { color: colors.secondaryText }]}>
-                  {formatSize(att.size)}
-                </Text>
-                <TouchableOpacity accessibilityLabel={t('common.remove')} accessibilityRole="button" onPress={() => handleRemoveAttachment(i)} hitSlop={4}>
-                  <MaterialCommunityIcons name="close-circle" size={16} color={colors.secondaryText} />
-                </TouchableOpacity>
-              </View>
-            ))}
+          {/* From */}
+          <View
+            style={[
+              styles.fieldRow,
+              fieldRowInset,
+              { borderBottomColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>
+              {t('compose.fields.from')}
+            </Text>
+            <Text style={[styles.fromAddress, { color: colors.text }]}>
+              {fromAddress}
+            </Text>
           </View>
-        )}
 
-        {/* AI Compose Toolbar */}
-        <AiComposeToolbar
-          body={body}
-          onBodyChange={handleAiBodyChange}
-          onSubjectSuggested={!subject.trim() ? handleSubjectSuggested : undefined}
-        />
+          <MailAddressFields
+            to={to}
+            onToChange={setTo}
+            cc={cc}
+            onCcChange={setCc}
+            bcc={bcc}
+            onBccChange={setBcc}
+            subject={subject}
+            onSubjectChange={setSubject}
+          />
+          {draftStatusLabel && (
+            <Text
+              accessibilityLiveRegion="polite"
+              style={{
+                color:
+                  visibleDraftSaveState === 'error'
+                    ? colors.error
+                    : colors.secondaryText,
+              }}
+            >
+              {draftStatusLabel}
+            </Text>
+          )}
 
-        {/* Body */}
-        <RichTextEditor
-          ref={bodyRef}
-          value={body}
-          onChange={updateBody}
-          placeholder={t('compose.placeholders.body')}
-        />
-      </ScrollView>
+          {/* AI Compose Toolbar */}
+          <AiComposeToolbar
+            body={body}
+            onBodyChange={handleAiBodyChange}
+            onSubjectSuggested={
+              !subject.trim() ? handleSubjectSuggested : undefined
+            }
+          />
+
+          {/* Body */}
+          <RichTextEditor
+            ref={bodyRef}
+            value={body}
+            onChange={updateBody}
+            placeholder={t('compose.placeholders.body')}
+          />
+        </ScrollView>
+      </MailComposeSurface>
 
       {/* Schedule Send Sheet */}
       <ScheduleSendSheet
@@ -970,74 +869,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-    paddingVertical: 4,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '500',
-    flex: 0,
-    marginLeft: 4,
-  },
-  draftStatus: {
-    fontSize: 12,
-    marginLeft: 4,
-  },
-  headerSpacer: {
-    flex: 1,
-  },
-  iconButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 22,
-  },
-  sendGroup: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    height: 40,
-    borderRadius: 20,
-    overflow: 'hidden',
-    marginHorizontal: 4,
-  },
-  sendGroupPrimary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    gap: 6,
-  },
-  sendGroupLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  sendGroupDivider: {
-    width: StyleSheet.hairlineWidth,
-    opacity: 0.4,
-    marginVertical: 8,
-  },
-  sendGroupChevron: {
-    width: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sendMenuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
-  },
-  sendMenuItemText: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
   form: {
     flex: 1,
   },
@@ -1054,70 +885,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     width: 36,
   },
-  fieldInput: {
-    flex: 1,
-    fontSize: 15,
-    paddingVertical: 0,
-  },
   fromAddress: {
     fontSize: 15,
     flex: 1,
-  },
-  subjectInput: {
-    flex: 1,
-    fontSize: 16,
-    paddingVertical: 0,
-  },
-  // `paddingLeft` / `paddingRight` are applied inline via `fieldRowInset`.
-  attachmentsSection: {
-    paddingVertical: 8,
-    gap: 6,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  attachmentChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  attachmentName: {
-    fontSize: 13,
-    flex: 1,
-  },
-  attachmentSize: {
-    fontSize: 11,
-  },
-  suggestionsDropdown: {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    right: 0,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderTopWidth: 0,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
-    maxHeight: 200,
-    overflow: 'hidden',
-    ...(Platform.OS === 'web'
-      ? { boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }
-      : { elevation: 4 }),
-  },
-  suggestionRow: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  suggestionName: {
-    fontSize: 14,
-    fontWeight: '500',
-    flexShrink: 1,
-  },
-  suggestionAddress: {
-    fontSize: 13,
-    flexShrink: 0,
   },
 });

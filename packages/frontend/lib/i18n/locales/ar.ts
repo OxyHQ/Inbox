@@ -445,6 +445,8 @@ const ar: LocaleDict = {
   },
 
   selection: {
+    count: 'المحدد: {{count}}',
+    select: 'تحديد الرسالة',
     archive: 'أرشفة',
     delete: 'حذف',
     star: 'تمييز',

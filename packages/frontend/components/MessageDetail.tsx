@@ -1,3 +1,26 @@
+import { Button, IconButton } from '@oxy.so/bloom/button';
+import { Checkbox } from '@oxy.so/bloom/checkbox';
+import {
+  RiArchiveLine,
+  RiArrowGoBackLine,
+  RiArrowLeftLine,
+  RiCornerUpLeftLine,
+  RiDeleteBinLine,
+  RiMailLine,
+  RiMoreLine,
+  RiPrinterLine,
+  RiPushpinLine,
+  RiShareForwardLine,
+  RiStarFill,
+  RiStarLine,
+  RiTimeLine,
+} from '@oxy.so/bloom/icons';
+import {
+  MailMessage,
+  MailThread,
+  type MailThreadMessage,
+} from '@oxy.so/bloom/mail-thread';
+import { PageHeader } from '@oxy.so/bloom/page-header';
 /**
  * Reusable message detail view.
  *
@@ -6,72 +29,63 @@
  * - embedded: inline panel without back button (desktop split-view)
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-  Linking,
-} from 'react-native';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
-import * as Print from 'expo-print';
-import { Loading } from '@oxy.so/bloom/loading';
-import { Chip } from '@oxy.so/bloom/chip';
-import { Dialog, useDialogControl, toast } from '@oxy.so/bloom';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { ArrowLeft01Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
-import {
-  ArrowLeft01Icon,
-  Archive01Icon,
-  Delete01Icon,
-  StarIcon,
-  PinIcon,
-  Clock01Icon,
-  Attachment01Icon,
-  MailReply01Icon,
-  MailReplyAll01Icon,
-  Forward01Icon,
-  MoreHorizontalIcon,
-  Mail01Icon,
-  SpamIcon,
-  LabelIcon,
-  PrinterIcon,
-} from '@hugeicons/core-free-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { usePathname } from 'expo-router';
+import { Dialog, toast, useDialogControl } from '@oxy.so/bloom';
+import { Chip } from '@oxy.so/bloom/chip';
+import { Loading } from '@oxy.so/bloom/loading';
 import { useOxy } from '@oxy.so/services';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Print from 'expo-print';
+import { usePathname } from 'expo-router';
+import * as Sharing from 'expo-sharing';
+import { useCallback, useMemo, useState } from 'react';
+import {
+  Linking,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useGoBack } from '@/hooks/useGoBack';
-import { useTabBarClearance } from '@/hooks/useTabBarClearance';
-import { useColors } from '@/constants/theme';
-import { useTranslation } from '@/lib/i18n';
-import { SPECIAL_USE } from '@/constants/mailbox';
-import { useEmailStore } from '@/hooks/useEmail';
-import { useMessage } from '@/hooks/queries/useMessage';
-import { useThread } from '@/hooks/queries/useThread';
-import { useMailboxes } from '@/hooks/queries/useMailboxes';
-import { useLabels } from '@/hooks/queries/useLabels';
-import { useToggleStar, useToggleRead, useArchiveMessage, useDeleteMessage, useUpdateMessageLabels, useTogglePin, useSnoozeMessage } from '@/hooks/mutations/useMessageMutations';
-import { SenderAvatar } from '@/components/Avatar';
 import { HtmlBody } from '@/components/HtmlBody';
 import { InlineReply } from '@/components/InlineReply';
-import { ThreadSummary } from '@/components/ThreadSummary';
 import { SentimentIndicator } from '@/components/SentimentIndicator';
+import { SnoozeSheet } from '@/components/SnoozeSheet';
 import { StaleThreadBanner } from '@/components/StaleThreadBanner';
+import { ThreadSummary } from '@/components/ThreadSummary';
+import { UnreadableThreadEntry } from '@/components/UnreadableThreadEntry';
+import { CardRenderer } from '@/components/cards/CardRenderer';
+import { SPECIAL_USE } from '@/constants/mailbox';
+import { useColors } from '@/constants/theme';
+import {
+  useArchiveMessage,
+  useDeleteMessage,
+  useSnoozeMessage,
+  useTogglePin,
+  useToggleRead,
+  useToggleStar,
+  useUpdateMessageLabels,
+} from '@/hooks/mutations/useMessageMutations';
+import { useLabels } from '@/hooks/queries/useLabels';
+import { useMailboxes } from '@/hooks/queries/useMailboxes';
+import { useMessage } from '@/hooks/queries/useMessage';
 import { useSentimentAnalysis } from '@/hooks/queries/useSentimentAnalysis';
 import { useStaleThread } from '@/hooks/queries/useStaleThread';
-import { SnoozeSheet } from '@/components/SnoozeSheet';
-import { CardRenderer } from '@/components/cards/CardRenderer';
-import type { EmailAddress } from '@/services/emailApi';
+import { useThread } from '@/hooks/queries/useThread';
 import { useCidResolver } from '@/hooks/useCidResolver';
+import { useEmailStore } from '@/hooks/useEmail';
+import { useGoBack } from '@/hooks/useGoBack';
+import { useTabBarClearance } from '@/hooks/useTabBarClearance';
+import { useTranslation } from '@/lib/i18n';
+import type { Message } from '@/services/emailApi';
 import { safeDownloadFilename } from '@/utils/downloadFilename';
 import { emlFilename, saveEmlFile } from '@/utils/saveEml';
 import { buildThreadEntries } from '@/utils/threadEntries';
-import { UnreadableThreadEntry } from '@/components/UnreadableThreadEntry';
 
 function formatFullDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -85,10 +99,6 @@ function formatFullDate(dateStr: string): string {
   });
 }
 
-function formatRecipients(addresses: EmailAddress[]): string {
-  return addresses.map((a) => a.name || a.address).join(', ');
-}
-
 function formatShortDate(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();
@@ -96,12 +106,22 @@ function formatShortDate(dateStr: string): string {
   const isThisYear = date.getFullYear() === now.getFullYear();
 
   if (isToday) {
-    return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    return date.toLocaleTimeString(undefined, {
+      hour: 'numeric',
+      minute: '2-digit',
+    });
   }
   if (isThisYear) {
-    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+    });
   }
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
 function getSnippet(text: string | null | undefined, maxLength = 100): string {
@@ -131,10 +151,21 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const colors = useColors();
   const { t } = useTranslation();
 
-  const { data: currentMessage, isLoading, isError, refetch } = useMessage(messageId);
+  const {
+    data: currentMessage,
+    isLoading,
+    isError,
+    refetch,
+  } = useMessage(messageId);
   const { data: threadData, refetch: refetchThread } = useThread(messageId);
-  const threadMessages = useMemo(() => threadData?.messages ?? [], [threadData]);
-  const threadUnreadable = useMemo(() => threadData?.unreadable ?? [], [threadData]);
+  const threadMessages = useMemo(
+    () => threadData?.messages ?? [],
+    [threadData],
+  );
+  const threadUnreadable = useMemo(
+    () => threadData?.unreadable ?? [],
+    [threadData],
+  );
   const emailApi = useEmailStore((s) => s._api);
   const { data: mailboxes = [] } = useMailboxes();
   const { data: labels = [] } = useLabels();
@@ -148,9 +179,13 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const snoozeMutation = useSnoozeMessage();
 
   const [snoozeVisible, setSnoozeVisible] = useState(false);
-  const [replyMode, setReplyMode] = useState<'reply' | 'reply-all' | 'forward' | null>(null);
+  const [replyMode, setReplyMode] = useState<
+    'reply' | 'reply-all' | 'forward' | null
+  >(null);
   const [replyTargetId, setReplyTargetId] = useState<string | null>(null);
-  const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set([messageId]));
+  const [expandedMessages, setExpandedMessages] = useState<Set<string>>(
+    new Set([messageId]),
+  );
   const [messageMenuId, setMessageMenuId] = useState<string | null>(null);
   const [threadSummaryRequested, setThreadSummaryRequested] = useState(false);
 
@@ -194,7 +229,9 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
   const handleArchive = useCallback(() => {
     if (!messageId) return;
-    const archiveBox = mailboxes.find((m) => m.specialUse === SPECIAL_USE.ARCHIVE);
+    const archiveBox = mailboxes.find(
+      (m) => m.specialUse === SPECIAL_USE.ARCHIVE,
+    );
     if (!archiveBox) {
       toast.error(t('inbox.toast.archiveUnavailable'));
       return;
@@ -207,7 +244,11 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     if (!messageId) return;
     const trashBox = mailboxes.find((m) => m.specialUse === SPECIAL_USE.TRASH);
     const isInTrash = currentMailbox?.specialUse === SPECIAL_USE.TRASH;
-    deleteMutation.mutate({ messageId, trashMailboxId: trashBox?._id, isInTrash });
+    deleteMutation.mutate({
+      messageId,
+      trashMailboxId: trashBox?._id,
+      isInTrash,
+    });
     if (mode === 'standalone') handleBack();
   }, [messageId, mailboxes, currentMailbox, deleteMutation, handleBack, mode]);
 
@@ -226,28 +267,44 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     }
     moreMenuControl.close();
     if (mode === 'standalone') handleBack();
-  }, [messageId, mailboxes, archiveMutation, handleBack, mode, moreMenuControl]);
+  }, [
+    messageId,
+    mailboxes,
+    archiveMutation,
+    handleBack,
+    mode,
+    moreMenuControl,
+  ]);
 
-  const handleReply = useCallback((targetMsgId?: string) => {
-    if (!currentMessage) return;
-    setReplyTargetId(targetMsgId || null);
-    setReplyMode('reply');
-    setMessageMenuId(null);
-  }, [currentMessage]);
+  const handleReply = useCallback(
+    (targetMsgId?: string) => {
+      if (!currentMessage) return;
+      setReplyTargetId(targetMsgId || null);
+      setReplyMode('reply');
+      setMessageMenuId(null);
+    },
+    [currentMessage],
+  );
 
-  const handleReplyAll = useCallback((targetMsgId?: string) => {
-    if (!currentMessage) return;
-    setReplyTargetId(targetMsgId || null);
-    setReplyMode('reply-all');
-    setMessageMenuId(null);
-  }, [currentMessage]);
+  const handleReplyAll = useCallback(
+    (targetMsgId?: string) => {
+      if (!currentMessage) return;
+      setReplyTargetId(targetMsgId || null);
+      setReplyMode('reply-all');
+      setMessageMenuId(null);
+    },
+    [currentMessage],
+  );
 
-  const handleForward = useCallback((targetMsgId?: string) => {
-    if (!currentMessage) return;
-    setReplyTargetId(targetMsgId || null);
-    setReplyMode('forward');
-    setMessageMenuId(null);
-  }, [currentMessage]);
+  const handleForward = useCallback(
+    (targetMsgId?: string) => {
+      if (!currentMessage) return;
+      setReplyTargetId(targetMsgId || null);
+      setReplyMode('forward');
+      setMessageMenuId(null);
+    },
+    [currentMessage],
+  );
 
   const handleCloseReply = useCallback(() => {
     setReplyMode(null);
@@ -268,9 +325,10 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
   // Sort thread messages by date (oldest first for conversation view)
   const sortedThread = useMemo(() => {
-    if (threadMessages.length === 0) return currentMessage ? [currentMessage] : [];
+    if (threadMessages.length === 0)
+      return currentMessage ? [currentMessage] : [];
     return [...threadMessages].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
     );
   }, [threadMessages, currentMessage]);
 
@@ -289,7 +347,11 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         const { content } = await emailApi.exportMessage(rawMessageId);
         await saveEmlFile(content, emlFilename(row?.subject), t);
       } catch (err: unknown) {
-        toast.error(err instanceof Error ? err.message : t('message.toast.downloadFailed'));
+        toast.error(
+          err instanceof Error
+            ? err.message
+            : t('message.toast.downloadFailed'),
+        );
       }
     },
     [emailApi, t, threadUnreadable],
@@ -301,49 +363,56 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   // Resolve CID inline image references to signed File Manager URLs
   const resolvedHtmlMap = useCidResolver(sortedThread, oxyServices, messageId);
 
-  const handleAttachment = useCallback(async (fileId: string, filename: string) => {
-    try {
-      const url = await oxyServices.assets.url(fileId);
-      if (Platform.OS === 'web') {
-        window.open(url, '_blank', 'noopener,noreferrer');
-      } else {
-        const documentDirectory = FileSystem.documentDirectory;
-        if (!documentDirectory) {
-          await Linking.openURL(url);
-          return;
-        }
-        const localUri = documentDirectory + safeDownloadFilename(filename);
-        const { uri } = await FileSystem.downloadAsync(url, localUri);
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(uri);
-        } else {
-          await Linking.openURL(url);
-        }
-      }
-    } catch (error: unknown) {
+  const handleAttachment = useCallback(
+    async (fileId: string, filename: string) => {
       try {
         const url = await oxyServices.assets.url(fileId);
-        await Linking.openURL(url);
-      } catch (err: unknown) {
-        const message = err instanceof Error
-          ? err.message
-          : error instanceof Error
-            ? error.message
-            : t('message.toast.attachmentFailed');
-        toast.error(message);
+        if (Platform.OS === 'web') {
+          window.open(url, '_blank', 'noopener,noreferrer');
+        } else {
+          const documentDirectory = FileSystem.documentDirectory;
+          if (!documentDirectory) {
+            await Linking.openURL(url);
+            return;
+          }
+          const localUri = documentDirectory + safeDownloadFilename(filename);
+          const { uri } = await FileSystem.downloadAsync(url, localUri);
+          if (await Sharing.isAvailableAsync()) {
+            await Sharing.shareAsync(uri);
+          } else {
+            await Linking.openURL(url);
+          }
+        }
+      } catch (error: unknown) {
+        try {
+          const url = await oxyServices.assets.url(fileId);
+          await Linking.openURL(url);
+        } catch (err: unknown) {
+          const message =
+            err instanceof Error
+              ? err.message
+              : error instanceof Error
+                ? error.message
+                : t('message.toast.attachmentFailed');
+          toast.error(message);
+        }
       }
-    }
-  }, [oxyServices, t]);
+    },
+    [oxyServices, t],
+  );
 
-  const handleToggleLabel = useCallback((labelName: string) => {
-    if (!currentMessage) return;
-    const hasLabel = currentMessage.labels.includes(labelName);
-    updateLabels.mutate({
-      messageId,
-      add: hasLabel ? [] : [labelName],
-      remove: hasLabel ? [labelName] : [],
-    });
-  }, [currentMessage, messageId, updateLabels]);
+  const handleToggleLabel = useCallback(
+    (labelName: string) => {
+      if (!currentMessage) return;
+      const hasLabel = currentMessage.labels.includes(labelName);
+      updateLabels.mutate({
+        messageId,
+        add: hasLabel ? [] : [labelName],
+        remove: hasLabel ? [labelName] : [],
+      });
+    },
+    [currentMessage, messageId, updateLabels],
+  );
 
   const handlePrint = useCallback(() => {
     if (!currentMessage) return;
@@ -351,10 +420,16 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     const fromStr = currentMessage.from.name
       ? `${currentMessage.from.name} <${currentMessage.from.address}>`
       : currentMessage.from.address;
-    const toStr = currentMessage.to.map((a) => a.name ? `${a.name} <${a.address}>` : a.address).join(', ');
-    const ccStr = currentMessage.cc?.map((a) => a.name ? `${a.name} <${a.address}>` : a.address).join(', ') || '';
+    const toStr = currentMessage.to
+      .map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
+      .join(', ');
+    const ccStr =
+      currentMessage.cc
+        ?.map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
+        .join(', ') || '';
     const dateStr = formatFullDate(currentMessage.date);
-    const bodyHtml = currentMessage.html || `<pre>${currentMessage.text || ''}</pre>`;
+    const bodyHtml =
+      currentMessage.html || `<pre>${currentMessage.text || ''}</pre>`;
 
     const printHtml = `<!DOCTYPE html>
 <html>
@@ -397,7 +472,8 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         try {
           await Print.printAsync({ html: printHtml });
         } catch (err: unknown) {
-          const message = err instanceof Error ? err.message : t('message.toast.printFailed');
+          const message =
+            err instanceof Error ? err.message : t('message.toast.printFailed');
           toast.error(message);
         }
       })();
@@ -412,10 +488,16 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     const fromStr = currentMessage.from.name
       ? `${currentMessage.from.name} <${currentMessage.from.address}>`
       : currentMessage.from.address;
-    const toStr = currentMessage.to.map((a) => a.name ? `${a.name} <${a.address}>` : a.address).join(', ');
-    const ccStr = currentMessage.cc?.map((a) => a.name ? `${a.name} <${a.address}>` : a.address).join(', ') || '';
+    const toStr = currentMessage.to
+      .map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
+      .join(', ');
+    const ccStr =
+      currentMessage.cc
+        ?.map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
+        .join(', ') || '';
     const dateStr = new Date(currentMessage.date).toUTCString();
-    const msgId = currentMessage.messageId || `<${currentMessage._id}@inbox.oxy.so>`;
+    const msgId =
+      currentMessage.messageId || `<${currentMessage._id}@inbox.oxy.so>`;
     const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
     const textBody = currentMessage.text || '';
@@ -496,9 +578,17 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
       >
         <TouchableOpacity onPress={handleBack} style={styles.iconButton}>
           {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={ArrowLeft01Icon as unknown as IconSvgElement} size={24} color={colors.icon} />
+            <HugeiconsIcon
+              icon={ArrowLeft01Icon as unknown as IconSvgElement}
+              size={24}
+              color={colors.icon}
+            />
           ) : (
-            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.icon} />
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={24}
+              color={colors.icon}
+            />
           )}
         </TouchableOpacity>
       </View>
@@ -520,12 +610,19 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
       <View style={shellStyle}>
         {standaloneToolbar}
         <View style={styles.loadingContainer}>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('ui.message.loadError')}</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>
+            {t('ui.message.loadError')}
+          </Text>
           <Text style={[styles.emptySubtitle, { color: colors.secondaryText }]}>
             {t('ui.message.loadErrorDescription')}
           </Text>
-          <TouchableOpacity onPress={() => refetch()} style={styles.retryButton}>
-            <Text style={[styles.retryButtonText, { color: colors.primary }]}>{t('common.retry')}</Text>
+          <TouchableOpacity
+            onPress={() => refetch()}
+            style={styles.retryButton}
+          >
+            <Text style={[styles.retryButtonText, { color: colors.primary }]}>
+              {t('common.retry')}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -537,7 +634,9 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
       <View style={shellStyle}>
         {standaloneToolbar}
         <View style={styles.loadingContainer}>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('ui.message.notFound')}</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>
+            {t('ui.message.notFound')}
+          </Text>
           <Text style={[styles.emptySubtitle, { color: colors.secondaryText }]}>
             {t('ui.message.notFoundDescription')}
           </Text>
@@ -548,6 +647,67 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
   // No maxContentWidth - use full available width like Gmail
 
+  const threadStrings = {
+    to: t('compose.fields.to'),
+    cc: t('compose.fields.cc'),
+    bcc: t('compose.fields.bcc'),
+    reply: t('message.actions.reply'),
+    replyAll: t('message.actions.replyAll'),
+    forward: t('message.actions.forward'),
+  };
+  const toThreadMessage = (msg: Message): MailThreadMessage => ({
+    id: msg._id,
+    sender: {
+      ...msg.from,
+      name: msg.from.name ?? undefined,
+      avatar: msg.senderAvatarPath
+        ? `${process.env.EXPO_PUBLIC_API_URL ?? 'https://api.oxy.so'}${msg.senderAvatarPath}`
+        : undefined,
+    },
+    to: msg.to.map((address) => ({
+      ...address,
+      name: address.name ?? undefined,
+    })),
+    cc: msg.cc?.map((address) => ({
+      ...address,
+      name: address.name ?? undefined,
+    })),
+    date: formatFullDate(msg.date),
+    time: formatShortDate(msg.date),
+    preview: getSnippet(msg.text),
+    unread: !msg.flags.seen,
+    starred: msg.flags.starred,
+    onStarredChange: (starred) => {
+      if (!toggleStar.isPending)
+        toggleStar.mutate({ messageId: msg._id, starred });
+    },
+    onReply: () => handleReply(msg._id),
+    onReplyAll: () => handleReplyAll(msg._id),
+    onForward: () => handleForward(msg._id),
+    attachments: msg.attachments.map((attachment) => ({
+      id: attachment.fileId,
+      name: attachment.name,
+      onPress: () => handleAttachment(attachment.fileId, attachment.name),
+    })),
+    menu: (
+      <IconButton
+        accessibilityLabel={t('message.actions.more')}
+        icon={<RiMoreLine />}
+        onPress={() => {
+          setMessageMenuId(msg._id);
+          messageMenuControl.open();
+        }}
+      />
+    ),
+    children: msg.html ? (
+      <HtmlBody html={resolvedHtmlMap[msg._id] ?? msg.html} />
+    ) : (
+      <Text selectable style={{ color: colors.text }}>
+        {msg.text || t('message.detail.emptyMessage')}
+      </Text>
+    ),
+  });
+
   return (
     <View
       style={[
@@ -556,202 +716,143 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         mode === 'standalone' && { paddingTop: insets.top },
       ]}
     >
-      {/* Toolbar */}
-      <View
-        style={[
-          styles.toolbar,
-          {
-            borderBottomColor: colors.border,
-            paddingLeft: 4 + insets.left,
-            paddingRight: 4 + insets.right,
-          },
-        ]}
-      >
-        {mode === 'standalone' && (
-          <TouchableOpacity onPress={handleBack} style={styles.iconButton}>
-            {Platform.OS === 'web' ? (
-              <HugeiconsIcon icon={ArrowLeft01Icon as unknown as IconSvgElement} size={24} color={colors.icon} />
-            ) : (
-              <MaterialCommunityIcons name="arrow-left" size={24} color={colors.icon} />
+      <PageHeader
+        leading={
+          <IconButton
+            accessibilityLabel={t('common.back')}
+            icon={<RiArrowLeftLine />}
+            onPress={handleBack}
+          />
+        }
+        actions={
+          <View className="flex-row items-center gap-1">
+            <IconButton
+              accessibilityLabel={t('message.actions.archive')}
+              icon={<RiArchiveLine />}
+              onPress={handleArchive}
+            />
+            <IconButton
+              accessibilityLabel={t('message.actions.delete')}
+              icon={<RiDeleteBinLine />}
+              onPress={handleDelete}
+            />
+            <IconButton
+              accessibilityLabel={t(
+                currentMessage.flags.starred
+                  ? 'message.actions.unstar'
+                  : 'message.actions.star',
+              )}
+              icon={
+                currentMessage.flags.starred ? <RiStarFill /> : <RiStarLine />
+              }
+              onPress={handleStar}
+              disabled={toggleStar.isPending}
+            />
+            <IconButton
+              accessibilityLabel={t('message.actions.more')}
+              icon={<RiMoreLine />}
+              onPress={() => moreMenuControl.open()}
+            />
+          </View>
+        }
+      />
+
+      <Dialog control={moreMenuControl} label={t('message.actions.more')}>
+        <View className="gap-2">
+          <Button
+            appearance="subtle"
+            leading={<RiMailLine />}
+            onPress={handleMarkUnread}
+          >
+            {t('message.actions.markUnread')}
+          </Button>
+          <Button
+            appearance="subtle"
+            leading={<RiPushpinLine />}
+            onPress={() => {
+              moreMenuControl.close();
+              handlePin();
+            }}
+            disabled={togglePin.isPending}
+          >
+            {t(
+              currentMessage.flags.pinned
+                ? 'message.actions.unpin'
+                : 'message.actions.pin',
             )}
-          </TouchableOpacity>
-        )}
-        <View style={styles.toolbarSpacer} />
-        <TouchableOpacity
-          accessibilityLabel={t('message.actions.archive')}
-          accessibilityRole="button"
-          onPress={handleArchive}
-          style={styles.iconButton}
-        >
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={Archive01Icon as unknown as IconSvgElement} size={22} color={colors.icon} />
-          ) : (
-            <MaterialCommunityIcons name="archive-outline" size={22} color={colors.icon} />
-          )}
-        </TouchableOpacity>
-        <TouchableOpacity
-          accessibilityLabel={t('message.actions.delete')}
-          accessibilityRole="button"
-          onPress={handleDelete}
-          style={styles.iconButton}
-        >
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={Delete01Icon as unknown as IconSvgElement} size={22} color={colors.icon} />
-          ) : (
-            <MaterialCommunityIcons name="delete-outline" size={22} color={colors.icon} />
-          )}
-        </TouchableOpacity>
-        <TouchableOpacity
-          accessibilityLabel={t('message.actions.markUnread')}
-          accessibilityRole="button"
-          onPress={handleMarkUnread}
-          style={styles.iconButton}
-        >
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={Mail01Icon as unknown as IconSvgElement} size={22} color={colors.icon} />
-          ) : (
-            <MaterialCommunityIcons name="email-mark-as-unread" size={22} color={colors.icon} />
-          )}
-        </TouchableOpacity>
-        <TouchableOpacity
-          accessibilityLabel={currentMessage.flags.pinned ? t('message.actions.unpin') : t('message.actions.pin')}
-          accessibilityRole="button"
-          accessibilityState={{ selected: currentMessage.flags.pinned }}
-          onPress={handlePin}
-          style={[styles.iconButton, togglePin.isPending && { opacity: 0.5 }]}
-          disabled={togglePin.isPending}
-        >
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon
-              icon={PinIcon as unknown as IconSvgElement}
-              size={22}
-              color={currentMessage.flags.pinned ? colors.primary : colors.icon}
-              strokeWidth={1.5}
-              fill={currentMessage.flags.pinned ? colors.primary : 'none'}
-            />
-          ) : (
-            <MaterialCommunityIcons
-              name={currentMessage.flags.pinned ? 'pin' : 'pin-outline'}
-              size={22}
-              color={currentMessage.flags.pinned ? colors.primary : colors.icon}
-            />
-          )}
-        </TouchableOpacity>
-        <TouchableOpacity
-          accessibilityLabel={currentMessage.flags.starred ? t('message.actions.unstar') : t('message.actions.star')}
-          accessibilityRole="button"
-          accessibilityState={{ selected: currentMessage.flags.starred }}
-          onPress={handleStar}
-          style={[styles.iconButton, toggleStar.isPending && { opacity: 0.5 }]}
-          disabled={toggleStar.isPending}
-        >
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon
-              icon={StarIcon as unknown as IconSvgElement}
-              size={22}
-              color={currentMessage.flags.starred ? colors.starred : colors.icon}
-              strokeWidth={1.5}
-              fill={currentMessage.flags.starred ? colors.starred : 'none'}
-            />
-          ) : (
-            <MaterialCommunityIcons
-              name={currentMessage.flags.starred ? 'star' : 'star-outline'}
-              size={22}
-              color={currentMessage.flags.starred ? colors.starred : colors.icon}
-            />
-          )}
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => setSnoozeVisible(true)} style={styles.iconButton}>
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={Clock01Icon as unknown as IconSvgElement} size={22} color={colors.icon} />
-          ) : (
-            <MaterialCommunityIcons name="clock-outline" size={22} color={colors.icon} />
-          )}
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handlePrint} style={styles.iconButton}>
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={PrinterIcon as unknown as IconSvgElement} size={22} color={colors.icon} />
-          ) : (
-            <MaterialCommunityIcons name="printer-outline" size={22} color={colors.icon} />
-          )}
-        </TouchableOpacity>
-
-        {/* More menu */}
-        <TouchableOpacity onPress={() => moreMenuControl.open()} style={styles.iconButton}>
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={MoreHorizontalIcon as unknown as IconSvgElement} size={22} color={colors.icon} />
-          ) : (
-            <MaterialCommunityIcons name="dots-vertical" size={22} color={colors.icon} />
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {/* More menu dialog */}
-      <Dialog control={moreMenuControl} label={t('message.actions.more')} style={{ padding: 0 }}>
-        <TouchableOpacity style={styles.menuItem} onPress={handleMarkUnread} activeOpacity={0.6}>
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={Mail01Icon as unknown as IconSvgElement} size={16} color={colors.icon} />
-          ) : (
-            <MaterialCommunityIcons name="email-mark-as-unread" size={16} color={colors.icon} />
-          )}
-          <Text style={[styles.menuItemText, { color: colors.text }]}>{t('message.actions.markUnread')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem} onPress={handleMarkSpam} activeOpacity={0.6}>
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={SpamIcon as unknown as IconSvgElement} size={16} color={colors.icon} />
-          ) : (
-            <MaterialCommunityIcons name="alert-octagon-outline" size={16} color={colors.icon} />
-          )}
-          <Text style={[styles.menuItemText, { color: colors.text }]}>{t('message.actions.reportSpam')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem} onPress={() => { moreMenuControl.close(); labelPickerControl.open(); }} activeOpacity={0.6}>
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={LabelIcon as unknown as IconSvgElement} size={16} color={colors.icon} />
-          ) : (
-            <MaterialCommunityIcons name="label-outline" size={16} color={colors.icon} />
-          )}
-          <Text style={[styles.menuItemText, { color: colors.text }]}>{t('message.actions.label')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem} onPress={handleDownloadEml} activeOpacity={0.6}>
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={Mail01Icon as unknown as IconSvgElement} size={16} color={colors.icon} />
-          ) : (
-            <MaterialCommunityIcons name="email-arrow-right-outline" size={16} color={colors.icon} />
-          )}
-          <Text style={[styles.menuItemText, { color: colors.text }]}>{t('message.actions.downloadEml')}</Text>
-        </TouchableOpacity>
+          </Button>
+          <Button
+            appearance="subtle"
+            leading={<RiTimeLine />}
+            onPress={() => {
+              moreMenuControl.close();
+              setSnoozeVisible(true);
+            }}
+          >
+            {t('message.actions.snooze')}
+          </Button>
+          <Button
+            appearance="subtle"
+            leading={<RiPrinterLine />}
+            onPress={() => {
+              moreMenuControl.close();
+              handlePrint();
+            }}
+          >
+            {t('message.actions.print')}
+          </Button>
+          <Button appearance="subtle" onPress={handleMarkSpam}>
+            {t('message.actions.reportSpam')}
+          </Button>
+          <Button
+            appearance="subtle"
+            onPress={() => {
+              moreMenuControl.close();
+              labelPickerControl.open();
+            }}
+          >
+            {t('message.actions.label')}
+          </Button>
+          <Button appearance="subtle" onPress={handleDownloadEml}>
+            {t('message.actions.downloadEml')}
+          </Button>
+        </View>
       </Dialog>
 
       {/* Label picker dialog */}
-      <Dialog control={labelPickerControl} label={t('message.labelPicker.title')} style={{ padding: 0 }}>
-        <Text style={[styles.labelPickerTitle, { color: colors.text }]}>{t('message.labelPicker.title')}</Text>
+      <Dialog
+        control={labelPickerControl}
+        label={t('message.labelPicker.title')}
+        style={{ padding: 0 }}
+      >
+        <Text style={[styles.labelPickerTitle, { color: colors.text }]}>
+          {t('message.labelPicker.title')}
+        </Text>
         {labels.length === 0 && (
-          <Text style={[styles.labelPickerEmpty, { color: colors.secondaryText }]}>{t('message.labelPicker.empty')}</Text>
+          <Text
+            style={[styles.labelPickerEmpty, { color: colors.secondaryText }]}
+          >
+            {t('message.labelPicker.empty')}
+          </Text>
         )}
-        {labels.map((lbl) => {
-          const isAssigned = currentMessage.labels.includes(lbl.name);
-          return (
-            <TouchableOpacity
-              key={lbl._id}
-              style={styles.labelPickerItem}
-              onPress={() => handleToggleLabel(lbl.name)}
-              activeOpacity={0.6}
-            >
-              <View style={[styles.labelDot, { backgroundColor: lbl.color }]} />
-              <Text style={[styles.labelPickerItemText, { color: colors.text }]}>{lbl.name}</Text>
-              {isAssigned && (
-                <MaterialCommunityIcons name="check" size={16} color={colors.primary} />
-              )}
-            </TouchableOpacity>
-          );
-        })}
+        {labels.map((label) => (
+          <Checkbox
+            key={label._id}
+            checked={currentMessage.labels.includes(label.name)}
+            onCheckedChange={() => handleToggleLabel(label.name)}
+            label={label.name}
+          />
+        ))}
       </Dialog>
 
       <ScrollView
         style={styles.body}
         contentContainerStyle={[
           styles.bodyContent,
-          { paddingBottom: replyMode && mode === 'standalone' ? tabBarClearance + 16 : 16 },
+          {
+            paddingBottom:
+              replyMode && mode === 'standalone' ? tabBarClearance + 16 : 16,
+          },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -759,8 +860,16 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         {/* Subject and metadata - with horizontal padding */}
         <View style={styles.contentPadded}>
           <View style={styles.subjectRow}>
-            <Text style={[styles.subject, { color: colors.text }]}>{currentMessage.subject || t('message.detail.noSubject')}</Text>
-            {sentiment && <SentimentIndicator sentiment={sentiment} size="medium" showLabel />}
+            <Text style={[styles.subject, { color: colors.text }]}>
+              {currentMessage.subject || t('message.detail.noSubject')}
+            </Text>
+            {sentiment && (
+              <SentimentIndicator
+                sentiment={sentiment}
+                size="medium"
+                showLabel
+              />
+            )}
           </View>
 
           {/* Label chips */}
@@ -781,38 +890,73 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
           {/* Thread count indicator */}
           {threadEntries.length > 1 && (
-            <View style={[styles.threadCount, { backgroundColor: colors.surfaceVariant }]}>
-              <Text style={[styles.threadCountText, { color: colors.secondaryText }]}>
-                {t(threadEntries.length === 1 ? 'ui.message.conversationMessages_one' : 'ui.message.conversationMessages_other', { count: threadEntries.length })}
+            <View
+              style={[
+                styles.threadCount,
+                { backgroundColor: colors.surfaceVariant },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.threadCountText,
+                  { color: colors.secondaryText },
+                ]}
+              >
+                {t(
+                  threadEntries.length === 1
+                    ? 'ui.message.conversationMessages_one'
+                    : 'ui.message.conversationMessages_other',
+                  { count: threadEntries.length },
+                )}
               </Text>
             </View>
           )}
 
           {/* AI Thread Summary - explicit opt-in before Oxy processes bounded thread content. */}
-          {sortedThread.length >= 4 && (
-            threadSummaryRequested ? (
-              <ThreadSummary messageId={messageId} messages={sortedThread} minMessages={4} />
+          {sortedThread.length >= 4 &&
+            (threadSummaryRequested ? (
+              <ThreadSummary
+                messageId={messageId}
+                messages={sortedThread}
+                minMessages={4}
+              />
             ) : (
               <TouchableOpacity
                 style={[
                   styles.threadSummaryPrompt,
-                  { backgroundColor: colors.surfaceVariant, borderColor: colors.border },
+                  {
+                    backgroundColor: colors.surfaceVariant,
+                    borderColor: colors.border,
+                  },
                 ]}
                 onPress={() => setThreadSummaryRequested(true)}
                 activeOpacity={0.75}
               >
-                <MaterialCommunityIcons name="robot-outline" size={18} color={colors.primary} />
+                <MaterialCommunityIcons
+                  name="robot-outline"
+                  size={18}
+                  color={colors.primary}
+                />
                 <View style={styles.threadSummaryPromptText}>
-                  <Text style={[styles.threadSummaryPromptTitle, { color: colors.text }]}>
+                  <Text
+                    style={[
+                      styles.threadSummaryPromptTitle,
+                      { color: colors.text },
+                    ]}
+                  >
                     {t('ui.message.summaryTitle')}
                   </Text>
-                  <Text style={[styles.threadSummaryPromptDescription, { color: colors.secondaryText }]}>
+                  <Text
+                    style={[
+                      styles.threadSummaryPromptDescription,
+                      { color: colors.secondaryText },
+                    ]}
+                  >
                     {t('ui.message.summaryDescription')}
                   </Text>
                 </View>
               </TouchableOpacity>
-            )
-          )}
+            ))}
         </View>
 
         {/* Rich card for structured data (flights, orders, etc.) */}
@@ -824,11 +968,22 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
         {/* Highlights (key data points) */}
         {currentMessage.highlights && currentMessage.highlights.length > 0 && (
-          <View style={[styles.highlightsSection, { borderColor: colors.border }]}>
+          <View
+            style={[styles.highlightsSection, { borderColor: colors.border }]}
+          >
             {currentMessage.highlights.map((h, i) => (
               <View key={i} style={styles.highlightRow}>
-                <Text style={[styles.highlightLabel, { color: colors.secondaryText }]}>{h.label}</Text>
-                <Text style={[styles.highlightValue, { color: colors.text }]}>{h.value}</Text>
+                <Text
+                  style={[
+                    styles.highlightLabel,
+                    { color: colors.secondaryText },
+                  ]}
+                >
+                  {h.label}
+                </Text>
+                <Text style={[styles.highlightValue, { color: colors.text }]}>
+                  {h.value}
+                </Text>
               </View>
             ))}
           </View>
@@ -840,169 +995,49 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           onReply={() => handleReply()}
         />
 
-        {/* Thread messages */}
-        {threadEntries.map((entry, index) => {
-          if (entry.kind === 'unreadable') {
-            return (
+        {/* Bloom owns the conversation chrome; Inbox retains safe HTML and unreadable entries. */}
+        {threadUnreadable.length === 0 ? (
+          <MailThread
+            messages={sortedThread.map(toThreadMessage)}
+            expandedIds={[...expandedMessages]}
+            onExpandedIdsChange={(ids) => setExpandedMessages(new Set(ids))}
+            collapseAfter={0}
+            strings={threadStrings}
+          />
+        ) : (
+          threadEntries.map((entry) =>
+            entry.kind === 'unreadable' ? (
               <UnreadableThreadEntry
                 key={entry.key}
                 row={entry.row}
                 onRetry={() => void refetchThread()}
-                onOpenRaw={(id) => void handleOpenRaw(id)}
+                onOpenRaw={handleOpenRaw}
               />
-            );
-          }
-          const msg = entry.message;
-          const isExpanded = expandedMessages.has(msg._id);
-          const msgSenderName = msg.from.name || msg.from.address.split('@')[0];
-          const isLast = index === threadEntries.length - 1;
-
-          if (!isExpanded) {
-            // Collapsed thread message
-            return (
-              <View key={msg._id} style={styles.contentPadded}>
-                <TouchableOpacity
-                  style={[
-                    styles.collapsedMessage,
-                    { borderBottomColor: colors.border },
-                    isLast && { borderBottomWidth: 0 },
-                  ]}
-                  onPress={() => toggleMessageExpanded(msg._id)}
-                  activeOpacity={0.7}
-                >
-                  <SenderAvatar avatarPath={msg.senderAvatarPath} name={msgSenderName} size={36} />
-                  <View style={styles.collapsedMessageContent}>
-                    <View style={styles.collapsedMessageHeader}>
-                      <Text style={[styles.collapsedSenderName, { color: colors.text }]} numberOfLines={1}>
-                        {msgSenderName}
-                      </Text>
-                      <Text style={[styles.collapsedDate, { color: colors.secondaryText }]}>
-                        {formatShortDate(msg.date)}
-                      </Text>
-                    </View>
-                    <Text style={[styles.collapsedSnippet, { color: colors.secondaryText }]} numberOfLines={1}>
-                      {getSnippet(msg.text)}
-                    </Text>
-                  </View>
-                  {msg.attachments.length > 0 && (
-                    <MaterialCommunityIcons name="paperclip" size={14} color={colors.secondaryText} />
-                  )}
-                </TouchableOpacity>
-              </View>
-            );
-          }
-
-          // Expanded thread message
-          return (
-            <View
-              key={msg._id}
-              style={[
-                styles.expandedMessage,
-                { borderBottomColor: colors.border },
-                isLast && { borderBottomWidth: 0 },
-              ]}
-            >
-              {/* Sender header - with padding */}
-              <View style={styles.contentPadded}>
-                <View style={styles.senderRow}>
-                  <TouchableOpacity
-                    onPress={() => sortedThread.length > 1 ? toggleMessageExpanded(msg._id) : undefined}
-                    activeOpacity={sortedThread.length > 1 ? 0.7 : 1}
-                    style={styles.senderRowMain}
-                  >
-                    <SenderAvatar avatarPath={msg.senderAvatarPath} name={msgSenderName} size={40} />
-                    <View style={styles.senderInfo}>
-                      <View style={styles.senderNameRow}>
-                        <Text style={[styles.senderName, { color: colors.text }]}>{msgSenderName}</Text>
-                        <Text style={[styles.messageDate, { color: colors.secondaryText }]}>
-                          {formatShortDate(msg.date)}
-                        </Text>
-                      </View>
-                      <Text style={[styles.toLine, { color: colors.secondaryText }]} numberOfLines={1}>
-                        to {formatRecipients(msg.to)}
-                        {msg.cc && msg.cc.length > 0 ? `, cc: ${formatRecipients(msg.cc)}` : ''}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-
-                  {/* Message action icons - like Gmail */}
-                  <View style={styles.messageActions}>
-                    <TouchableOpacity
-                      style={styles.messageActionButton}
-                      onPress={() => handleReply(msg._id)}
-                      activeOpacity={0.7}
-                    >
-                      {Platform.OS === 'web' ? (
-                        <HugeiconsIcon icon={MailReply01Icon as unknown as IconSvgElement} size={18} color={colors.icon} />
-                      ) : (
-                        <MaterialCommunityIcons name="reply" size={18} color={colors.icon} />
-                      )}
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.messageActionButton}
-                      onPress={() => {
-                        setMessageMenuId(msg._id);
-                        messageMenuControl.open();
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      {Platform.OS === 'web' ? (
-                        <HugeiconsIcon icon={MoreHorizontalIcon as unknown as IconSvgElement} size={18} color={colors.icon} />
-                      ) : (
-                        <MaterialCommunityIcons name="dots-vertical" size={18} color={colors.icon} />
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {/* Attachments */}
-                {msg.attachments.length > 0 && (
-                  <View style={[styles.attachmentsBar, { borderColor: colors.border }]}>
-                    {msg.attachments.map((att, i) => (
-                      <TouchableOpacity
-                        key={att.fileId || i}
-                        style={[styles.attachmentChip, { backgroundColor: colors.surfaceVariant }]}
-                        onPress={() => handleAttachment(att.fileId, att.name)}
-                        activeOpacity={0.7}
-                      >
-                        {Platform.OS === 'web' ? (
-                          <HugeiconsIcon icon={Attachment01Icon as unknown as IconSvgElement} size={14} color={colors.secondaryText} />
-                        ) : (
-                          <MaterialCommunityIcons name="paperclip" size={14} color={colors.secondaryText} />
-                        )}
-                        <Text style={[styles.attachmentName, { color: colors.text }]} numberOfLines={1}>
-                          {att.name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-              </View>
-
-              {/* Body - full width with consistent padding */}
-              <View style={styles.messageBody}>
-                {msg.html ? (
-                  <View style={styles.contentPadded}>
-                    <HtmlBody html={resolvedHtmlMap[msg._id] ?? msg.html ?? ''} />
-                  </View>
-                ) : (
-                  <View style={styles.contentPadded}>
-                    <Text style={[styles.bodyText, { color: colors.text }]}>
-                      {msg.text || '(empty message)'}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </View>
-          );
-        })}
+            ) : (
+              <MailMessage
+                key={entry.message._id}
+                {...toThreadMessage(entry.message)}
+                expanded={expandedMessages.has(entry.message._id)}
+                onExpandedChange={() =>
+                  toggleMessageExpanded(entry.message._id)
+                }
+                strings={threadStrings}
+              />
+            ),
+          )
+        )}
 
         {/* Inline reply - appears at bottom of thread, inside scroll area */}
         {replyMode && (
           <View style={[styles.inlineReplyWrapper, { marginTop: 16 }]}>
             <InlineReply
               key={`${replyMode}:${replyTargetId ?? currentMessage._id}`}
-              message={replyTargetId ? (sortedThread.find(m => m._id === replyTargetId) || currentMessage) : currentMessage}
+              message={
+                replyTargetId
+                  ? sortedThread.find((m) => m._id === replyTargetId) ||
+                    currentMessage
+                  : currentMessage
+              }
               mode={replyMode}
               onClose={handleCloseReply}
             />
@@ -1017,93 +1052,66 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         onSnooze={handleSnooze}
       />
 
-      {/* Per-message action dialog */}
       <Dialog
         control={messageMenuControl}
         onClose={() => setMessageMenuId(null)}
         label={t('message.actions.messageActions')}
-        style={{ padding: 0 }}
       >
-        <TouchableOpacity style={styles.menuItem} onPress={() => handleReply(messageMenuId ?? undefined)} activeOpacity={0.6}>
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={MailReply01Icon as unknown as IconSvgElement} size={16} color={colors.icon} />
-          ) : (
-            <MaterialCommunityIcons name="reply" size={16} color={colors.icon} />
-          )}
-          <Text style={[styles.menuItemText, { color: colors.text }]}>{t('message.actions.reply')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem} onPress={() => handleReplyAll(messageMenuId ?? undefined)} activeOpacity={0.6}>
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={MailReplyAll01Icon as unknown as IconSvgElement} size={16} color={colors.icon} />
-          ) : (
-            <MaterialCommunityIcons name="reply-all" size={16} color={colors.icon} />
-          )}
-          <Text style={[styles.menuItemText, { color: colors.text }]}>{t('message.actions.replyAll')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem} onPress={() => handleForward(messageMenuId ?? undefined)} activeOpacity={0.6}>
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={Forward01Icon as unknown as IconSvgElement} size={16} color={colors.icon} />
-          ) : (
-            <MaterialCommunityIcons name="share" size={16} color={colors.icon} />
-          )}
-          <Text style={[styles.menuItemText, { color: colors.text }]}>{t('message.actions.forward')}</Text>
-        </TouchableOpacity>
+        <View className="gap-2">
+          <Button
+            appearance="subtle"
+            leading={<RiCornerUpLeftLine />}
+            onPress={() => {
+              messageMenuControl.close();
+              handleReply(messageMenuId ?? undefined);
+            }}
+          >
+            {t('message.actions.reply')}
+          </Button>
+          <Button
+            appearance="subtle"
+            leading={<RiArrowGoBackLine />}
+            onPress={() => {
+              messageMenuControl.close();
+              handleReplyAll(messageMenuId ?? undefined);
+            }}
+          >
+            {t('message.actions.replyAll')}
+          </Button>
+          <Button
+            appearance="subtle"
+            leading={<RiShareForwardLine />}
+            onPress={() => {
+              messageMenuControl.close();
+              handleForward(messageMenuId ?? undefined);
+            }}
+          >
+            {t('message.actions.forward')}
+          </Button>
+        </View>
       </Dialog>
-
-      {/* Sticky reply buttons at bottom */}
       {!replyMode && (
-        <View
-          style={[
-            styles.stickyReplyBar,
-            {
-              backgroundColor: colors.background,
-              borderTopColor: colors.border,
-              paddingBottom: mode === 'standalone' ? tabBarClearance + 8 : 8,
-            },
-          ]}
-        >
-          <TouchableOpacity
-            accessibilityLabel={t('message.actions.reply')}
-            accessibilityRole="button"
-            style={[styles.replyButton, { borderColor: colors.border }]}
+        <View className="flex-row flex-wrap gap-2 p-3">
+          <Button
+            leading={<RiCornerUpLeftLine />}
             onPress={() => handleReply()}
-            activeOpacity={0.7}
           >
-            {Platform.OS === 'web' ? (
-              <HugeiconsIcon icon={MailReply01Icon as unknown as IconSvgElement} size={18} color={colors.icon} />
-            ) : (
-              <MaterialCommunityIcons name="reply" size={18} color={colors.icon} />
-            )}
-            <Text style={[styles.replyButtonText, { color: colors.text }]}>{t('message.actions.reply')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            accessibilityLabel={t('message.actions.replyAll')}
-            accessibilityRole="button"
-            style={[styles.replyButton, { borderColor: colors.border }]}
+            {t('message.actions.reply')}
+          </Button>
+          <Button
+            appearance="subtle"
+            leading={<RiArrowGoBackLine />}
             onPress={() => handleReplyAll()}
-            activeOpacity={0.7}
           >
-            {Platform.OS === 'web' ? (
-              <HugeiconsIcon icon={MailReplyAll01Icon as unknown as IconSvgElement} size={18} color={colors.icon} />
-            ) : (
-              <MaterialCommunityIcons name="reply-all" size={18} color={colors.icon} />
-            )}
-            <Text style={[styles.replyButtonText, { color: colors.text }]}>{t('message.actions.replyAll')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            accessibilityLabel={t('message.actions.forward')}
-            accessibilityRole="button"
-            style={[styles.replyButton, { borderColor: colors.border }]}
+            {t('message.actions.replyAll')}
+          </Button>
+          <Button
+            appearance="subtle"
+            leading={<RiShareForwardLine />}
             onPress={() => handleForward()}
-            activeOpacity={0.7}
           >
-            {Platform.OS === 'web' ? (
-              <HugeiconsIcon icon={Forward01Icon as unknown as IconSvgElement} size={18} color={colors.icon} />
-            ) : (
-              <MaterialCommunityIcons name="share" size={18} color={colors.icon} />
-            )}
-            <Text style={[styles.replyButtonText, { color: colors.text }]}>{t('message.actions.forward')}</Text>
-          </TouchableOpacity>
+            {t('message.actions.forward')}
+          </Button>
         </View>
       )}
     </View>
@@ -1123,26 +1131,12 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  toolbarSpacer: {
-    flex: 1,
-  },
   iconButton: {
     width: 44,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 22,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    gap: 10,
-  },
-  menuItemText: {
-    fontSize: 13,
-    fontWeight: '500',
   },
   labelPickerTitle: {
     fontSize: 13,
@@ -1154,22 +1148,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     paddingHorizontal: 14,
     paddingVertical: 8,
-  },
-  labelPickerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    gap: 10,
-  },
-  labelPickerItemText: {
-    fontSize: 13,
-    flex: 1,
-  },
-  labelDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
   },
   loadingContainer: {
     flex: 1,
@@ -1252,117 +1230,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
   },
-  senderRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    marginBottom: 16,
-  },
-  senderRowMain: {
-    flexDirection: 'row',
-    flex: 1,
-    gap: 12,
-  },
-  senderInfo: {
-    flex: 1,
-  },
-  messageActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 0,
-    marginTop: 4,
-  },
-  messageActionButton: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 16,
-  },
-  senderNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  senderName: {
-    fontSize: 15,
-    fontWeight: '600',
-    flex: 1,
-  },
-  messageDate: {
-    fontSize: 12,
-  },
-  toLine: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  senderDetails: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    gap: 4,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  detailLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    width: 40,
-  },
-  detailValue: {
-    fontSize: 12,
-    flex: 1,
-  },
-  attachmentsBar: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-    paddingTop: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  attachmentChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  attachmentName: {
-    fontSize: 13,
-    maxWidth: 180,
-  },
-  messageBody: {
-    marginTop: 8,
-  },
-  bodyText: {
-    fontSize: 15,
-    lineHeight: 24,
-  },
-  stickyReplyBar: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  replyButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  replyButtonText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
   // Thread view styles
   threadCount: {
     paddingHorizontal: 12,
@@ -1395,37 +1262,6 @@ const styles = StyleSheet.create({
   },
   threadSummaryPromptDescription: {
     fontSize: 12,
-  },
-  collapsedMessage: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    gap: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  collapsedMessageContent: {
-    flex: 1,
-  },
-  collapsedMessageHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  collapsedSenderName: {
-    fontSize: 14,
-    fontWeight: '600',
-    flex: 1,
-  },
-  collapsedDate: {
-    fontSize: 12,
-  },
-  collapsedSnippet: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  expandedMessage: {
-    paddingVertical: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   inlineReplyWrapper: {
     width: '100%',

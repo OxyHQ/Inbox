@@ -451,6 +451,8 @@ const en: LocaleDict = {
   },
 
   selection: {
+    count: 'Selected: {{count}}',
+    select: 'Select message',
     archive: 'Archive',
     delete: 'Delete',
     star: 'Star',

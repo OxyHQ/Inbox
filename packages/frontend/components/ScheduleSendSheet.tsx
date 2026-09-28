@@ -1,3 +1,6 @@
+import { useTranslation } from '@/lib/i18n';
+import { Button } from '@oxy.so/bloom/button';
+import { Text as BloomText } from '@oxy.so/bloom/typography';
 /**
  * Schedule Send picker overlay.
  *
@@ -6,19 +9,10 @@
  * Uses Bloom BottomSheet with gesture dismissal and animated transitions.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-} from 'react-native';
-import { BottomSheet, type BottomSheetRef } from '@oxy.so/bloom/bottom-sheet';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
-import { Clock01Icon } from '@hugeicons/core-free-icons';
-import { useColors } from '@/constants/theme';
+import { BottomSheet, type BottomSheetRef } from '@oxy.so/bloom/bottom-sheet';
+import { useCallback, useEffect, useRef } from 'react';
+import { View } from 'react-native';
 
 interface ScheduleOption {
   label: string;
@@ -51,36 +45,40 @@ function getScheduleOptions(): ScheduleOption[] {
   // Monday morning: next Monday 8 AM
   const dayOfWeek = now.getDay();
   const monday = new Date(now);
-  const daysUntilMon = dayOfWeek === 1 ? 7 : ((8 - dayOfWeek) % 7);
+  const daysUntilMon = dayOfWeek === 1 ? 7 : (8 - dayOfWeek) % 7;
   monday.setDate(monday.getDate() + daysUntilMon);
   monday.setHours(8, 0, 0, 0);
 
   const formatTime = (d: Date) =>
     d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
   const formatDay = (d: Date) =>
-    d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    d.toLocaleDateString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
 
   return [
     {
-      label: 'Later today',
+      label: 'schedule.options.laterToday',
       sublabel: formatTime(laterToday),
       icon: 'weather-sunny',
       getDate: () => laterToday,
     },
     {
-      label: 'Tomorrow morning',
+      label: 'schedule.options.tomorrowMorning',
       sublabel: `${formatDay(tomorrowMorning)}, ${formatTime(tomorrowMorning)}`,
       icon: 'weather-sunset-up',
       getDate: () => tomorrowMorning,
     },
     {
-      label: 'Tomorrow afternoon',
+      label: 'schedule.options.tomorrowAfternoon',
       sublabel: `${formatDay(tomorrowAfternoon)}, ${formatTime(tomorrowAfternoon)}`,
       icon: 'weather-sunny',
       getDate: () => tomorrowAfternoon,
     },
     {
-      label: 'Monday morning',
+      label: 'schedule.options.mondayMorning',
       sublabel: `${formatDay(monday)}, ${formatTime(monday)}`,
       icon: 'calendar-arrow-right',
       getDate: () => monday,
@@ -94,9 +92,13 @@ interface ScheduleSendSheetProps {
   onSchedule: (date: Date) => void;
 }
 
-export function ScheduleSendSheet({ visible, onClose, onSchedule }: ScheduleSendSheetProps) {
-  const colors = useColors();
-  const options = useMemo(() => getScheduleOptions(), []);
+export function ScheduleSendSheet({
+  visible,
+  onClose,
+  onSchedule,
+}: ScheduleSendSheetProps) {
+  const { t } = useTranslation();
+  const options = getScheduleOptions();
   const sheetRef = useRef<BottomSheetRef>(null);
 
   useEffect(() => {
@@ -117,69 +119,16 @@ export function ScheduleSendSheet({ visible, onClose, onSchedule }: ScheduleSend
 
   return (
     <BottomSheet ref={sheetRef} onDismiss={onClose} detached>
-      <View style={styles.content}>
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={Clock01Icon as unknown as IconSvgElement} size={20} color={colors.primary} />
-          ) : (
-            <MaterialCommunityIcons name="clock-outline" size={20} color={colors.primary} />
-          )}
-          <Text style={[styles.title, { color: colors.text }]}>Schedule send</Text>
-        </View>
+      <View className="gap-2 p-4">
+        <BloomText variant="body-semibold">{t('schedule.title')}</BloomText>
         {options.map((option) => (
-          <TouchableOpacity
+          <Button
             key={option.label}
-            style={styles.option}
+            appearance="subtle"
             onPress={() => handleSelect(option)}
-            activeOpacity={0.6}
-          >
-            <MaterialCommunityIcons name={option.icon} size={20} color={colors.icon} />
-            <View style={styles.optionText}>
-              <Text style={[styles.optionLabel, { color: colors.text }]}>{option.label}</Text>
-              <Text style={[styles.optionSublabel, { color: colors.secondaryText }]}>
-                {option.sublabel}
-              </Text>
-            </View>
-          </TouchableOpacity>
+          >{`${t(option.label)} · ${option.sublabel}`}</Button>
         ))}
       </View>
     </BottomSheet>
   );
 }
-
-const styles = StyleSheet.create({
-  content: {
-    paddingBottom: 24,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  option: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-  },
-  optionText: {
-    flex: 1,
-  },
-  optionLabel: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  optionSublabel: {
-    fontSize: 12,
-    marginTop: 1,
-  },
-});

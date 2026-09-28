@@ -1,3 +1,4 @@
+import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 /**
  * Conversation detail within search context — /search/conversation/:id
  *
@@ -5,17 +6,15 @@
  * Mobile: pushed onto Stack, standalone mode with back button.
  */
 
-import React, { useEffect } from 'react';
-import { Platform, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
+import { useEffect } from 'react';
 
 import { MessageDetail } from '@/components/MessageDetail';
 import { useEmailStore } from '@/hooks/useEmail';
 
 export default function SearchConversationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { width } = useWindowDimensions();
-  const isDesktop = Platform.OS === 'web' && width >= 900;
+  const isDesktop = useIsDesktopLayout();
 
   useEffect(() => {
     if (id) {
@@ -28,5 +27,10 @@ export default function SearchConversationScreen() {
 
   if (!id) return null;
 
-  return <MessageDetail mode={isDesktop ? 'embedded' : 'standalone'} messageId={id} />;
+  return (
+    <MessageDetail
+      mode={isDesktop ? 'embedded' : 'standalone'}
+      messageId={id}
+    />
+  );
 }

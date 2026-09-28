@@ -1,10 +1,11 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Card, CardHeader, CardBody } from '@oxy.so/bloom/card';
-import { Text } from '@oxy.so/bloom/typography';
 import { useColors } from '@/constants/theme';
 import type { CardData } from '@/services/emailApi';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Badge } from '@oxy.so/bloom/badge';
+import { Card, CardBody, CardHeader } from '@oxy.so/bloom/card';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { Text } from '@oxy.so/bloom/typography';
+import { StyleSheet, View } from 'react-native';
 
 interface PackageCardProps {
   data: CardData;
@@ -12,6 +13,7 @@ interface PackageCardProps {
 
 export function PackageCard({ data }: PackageCardProps) {
   const colors = useColors();
+  const { colors: tokens } = useTheme();
 
   const estimatedDelivery = data.estimatedDelivery
     ? new Date(data.estimatedDelivery).toLocaleDateString(undefined, {
@@ -22,40 +24,69 @@ export function PackageCard({ data }: PackageCardProps) {
     : null;
 
   return (
-    <Card variant="outlined">
+    <Card variant="filled">
       <CardHeader>
-        <View style={[styles.header, { backgroundColor: '#9334E620' }]}>
-          <MaterialCommunityIcons name="package-variant" size={18} color="#9334E6" />
-          <Text style={[styles.headerText, { color: '#9334E6' }]}>Package</Text>
+        <View
+          style={[styles.header, { backgroundColor: tokens.tertiarySubtle }]}
+        >
+          <MaterialCommunityIcons
+            name="package-variant"
+            size={18}
+            color={tokens.tertiarySubtleForeground}
+          />
+          <Text
+            style={[
+              styles.headerText,
+              { color: tokens.tertiarySubtleForeground },
+            ]}
+          >
+            Package
+          </Text>
         </View>
       </CardHeader>
       <CardBody>
         <View style={styles.body}>
           {data.merchant && (
-            <Text style={[styles.merchant, { color: colors.text }]}>{data.merchant}</Text>
+            <Text style={[styles.merchant, { color: colors.text }]}>
+              {data.merchant}
+            </Text>
           )}
           {data.status && (
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(data.status) + '20' }]}>
-              <Text style={[styles.statusText, { color: getStatusColor(data.status) }]}>
-                {data.status}
-              </Text>
-            </View>
+            <Badge
+              variant="subtle"
+              color={getStatusTone(data.status)}
+              content={data.status}
+            />
           )}
           {data.carrier && (
             <View style={styles.row}>
-              <MaterialCommunityIcons name="truck-outline" size={14} color={colors.secondaryText} />
-              <Text style={[styles.carrier, { color: colors.secondaryText }]}>{data.carrier}</Text>
+              <MaterialCommunityIcons
+                name="truck-outline"
+                size={14}
+                color={colors.secondaryText}
+              />
+              <Text style={[styles.carrier, { color: colors.secondaryText }]}>
+                {data.carrier}
+              </Text>
             </View>
           )}
           {data.trackingNumber && (
             <View style={styles.row}>
-              <Text style={[styles.label, { color: colors.secondaryText }]}>Tracking</Text>
-              <Text style={[styles.tracking, { color: colors.text }]}>{data.trackingNumber}</Text>
+              <Text style={[styles.label, { color: colors.secondaryText }]}>
+                Tracking
+              </Text>
+              <Text style={[styles.tracking, { color: colors.text }]}>
+                {data.trackingNumber}
+              </Text>
             </View>
           )}
           {estimatedDelivery && (
             <View style={styles.row}>
-              <MaterialCommunityIcons name="calendar-check-outline" size={14} color={colors.secondaryText} />
+              <MaterialCommunityIcons
+                name="calendar-check-outline"
+                size={14}
+                color={colors.secondaryText}
+              />
               <Text style={[styles.delivery, { color: colors.secondaryText }]}>
                 Est. {estimatedDelivery}
               </Text>
@@ -67,21 +98,27 @@ export function PackageCard({ data }: PackageCardProps) {
   );
 }
 
-function getStatusColor(status: string): string {
+function getStatusTone(
+  status: string,
+): 'success' | 'info' | 'warning' | 'default' {
   const s = status.toLowerCase();
-  if (s.includes('deliver')) return '#34A853';
-  if (s.includes('transit') || s.includes('shipped')) return '#1A73E8';
-  if (s.includes('out for')) return '#F9AB00';
-  return '#5F6368';
+  if (s.includes('out for')) return 'warning';
+  if (s.includes('delivered')) return 'success';
+  if (s.includes('transit') || s.includes('shipped')) return 'info';
+  return 'default';
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
   headerText: { fontSize: 13, fontWeight: '600' },
   body: { gap: 8 },
   merchant: { fontSize: 15, fontWeight: '600' },
-  statusBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
-  statusText: { fontSize: 12, fontWeight: '600' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   carrier: { fontSize: 13 },
   label: { fontSize: 12 },

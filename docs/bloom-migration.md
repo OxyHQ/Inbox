@@ -1,0 +1,75 @@
+# Inbox UI migration to Bloom
+
+Inbox uses one responsive Expo tree for web and Android. Mail is the primary
+workspace; the brief and Alia open on demand.
+
+## Component ownership
+
+| Surface | Shared Bloom primitives | Inbox responsibilities |
+| --- | --- | --- |
+| Workspace | AppShell, Sidebar, BottomBar, Fab | Mailbox/label destinations and SDK account actions |
+| Mail list | MailRow, MailSelectionBar, SwipeRow | Virtualization, grouping, unreadable rows, bulk mutations and preferences |
+| Conversation | PageHeader, MailThread, MailMessage | Safe HTML/CID resolution, unreadable entries, downloads, reply targets |
+| Composer | MailComposeSurface, MailRecipientField, TextFieldInput | Recipient validation/suggestions, editor, draft recovery, RFC reply headers and outbound queue |
+| Settings | SettingsModal and its page/row templates | Existing preferences, forms, mutations and bookmarked route compatibility |
+| Search | Search, Chip, EmptyState, Loading | Local operators, opt-in inference, saved/recent searches and pagination |
+
+The custom drawer, tab bar, settings navigation, floating-header hook, row
+density geometry and independent color palette are removed. Structured mail
+cards and the HTML editor remain domain-specific; neither is reimplemented by
+this migration. Colors now come from semantic Bloom roles.
+
+## State and navigation
+
+- The shell changes at 900px; the sidebar expands at 1200px. These thresholds
+  apply to every platform. The same route stack remains mounted through a width
+  change so a composer does not restart.
+- Search state lives above the two responsive list locations. Its lifetime is
+  scoped to the SDK user ID; switching accounts or signing out clears it.
+  Outstanding interpretation/debounce callbacks cannot update a new session.
+- Bloom stores scroll offsets under account + mailbox/search identity. The
+  shell's current detail route is deliberately not part of the list identity.
+- A completed swipe still executes the configured mail action. Disabling a
+  direction leaves it inert. Selection keeps the same bulk mutations.
+- Recipient fields retain incomplete input on every keystroke, including Cc
+  and Bcc, so validation and local draft recovery see what the user typed.
+- Existing `/settings/*` URLs open the matching Bloom settings page. Opening
+  settings from the normal navigation preserves the current mail/compose route.
+
+## Shared library dependency
+
+Bloom PR [#234](https://github.com/OxyHQ/Bloom/pull/234) supplies `cozy` density
+and `showAvatar` while preserving existing defaults. It also fixes settings
+keyboard dismissal/focus using Bloom's existing modal keyboard primitive.
+The Inbox branch currently uses an isolated local build for verification;
+registry publication and the consumer manifest/lock update are still pending.
+Do not merge Inbox with the old published Bloom version: it lacks these APIs.
+No package patch or copied Bloom implementation belongs in the client.
+
+## Validation
+
+The local validation run passed 34 Jest suites (167 tests), lint and TypeScript.
+The web export produced 60,350 bytes of CSS, and the post-export TypeScript check
+also passed. A locally compiled Android debug client and the exported web app
+both reached the signed-out access screen without JavaScript errors.
+
+The Jest suite covers recipient draft preservation, existing composer/reply and
+HTML safety, account-scoped search retention, mailbox navigation, settings deep
+links/account handoff, bottom navigation and swipe action dispatch. Run
+`bun run test`, never `bun test`.
+
+Local browser fixtures use actual Bloom and Inbox UI components with mocked
+mail/account data. They verify 390/899/900/1440px layouts, light/dark modes,
+recipient/subject preservation on resize, and scroll restoration. These are
+UI checks, not authenticated mail-delivery end-to-end tests.
+
+Run `bun run typecheck` before and after `bun run build`; verify the generated
+web CSS exceeds 20 KB. An Android export validates the native import graph;
+a running native client is additionally needed to validate gestures, keyboard
+and hardware-back behavior. No production deployment is part of this change.
+
+## UI fixtures
+
+![Desktop mailbox fixture](images/bloom-mail-desktop.png)
+
+![Mobile mailbox fixture](images/bloom-mail-mobile.png)

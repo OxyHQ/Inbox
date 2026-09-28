@@ -1,3 +1,4 @@
+import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 /**
  * Dynamic route for label views — /label/<name>.
  *
@@ -13,20 +14,18 @@
  * label from the drawer.
  */
 
-import React, { useEffect, useMemo } from 'react';
-import { Platform, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import Head from 'expo-router/head';
+import { useEffect, useMemo } from 'react';
 
 import { InboxList } from '@/components/InboxList';
 import { MessageDetailEmpty } from '@/components/MessageDetailEmpty';
-import { useEmailStore } from '@/hooks/useEmail';
 import { useLabels } from '@/hooks/queries/useLabels';
 import { useMessages } from '@/hooks/queries/useMessages';
+import { useEmailStore } from '@/hooks/useEmail';
 
 export default function LabelViewRoute() {
-  const { width } = useWindowDimensions();
-  const isDesktop = Platform.OS === 'web' && width >= 900;
+  const isDesktop = useIsDesktopLayout();
   const { name } = useLocalSearchParams<{ name: string }>();
   const { data: labels = [] } = useLabels();
 

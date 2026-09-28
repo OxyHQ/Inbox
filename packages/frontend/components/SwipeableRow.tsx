@@ -1,55 +1,37 @@
-/**
- * Gmail-style swipeable row wrapper for native platforms.
- *
- * The row is behaviour-agnostic: it renders whichever swipe actions the user
- * configured (`leftAction` / `rightAction`) and delegates the actual work to
- * the parent via `onAction(action, messageId)`. It knows nothing about
- * mutations or the message cache — `InboxList` wires the handlers through
- * `useMessageActions`.
- *
- * Built on `ReanimatedSwipeable` (the supported successor to
- * `react-native-gesture-handler`'s legacy `Swipeable`, which is deprecated as
- * of gesture-handler 2.18+).
- *
- * Web: swipe gestures are not supported, so the children render as-is.
- */
-
-import React, { useCallback, useRef } from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import ReanimatedSwipeable, {
-  type SwipeableMethods,
-  SwipeDirection,
-} from 'react-native-gesture-handler/ReanimatedSwipeable';
-
-import { useColors } from '@/constants/theme';
-import { getSwipeActionConfig, type SwipeActionConfig } from '@/constants/swipeActions';
 import type { SwipeAction } from '@/contexts/inbox-prefs-context';
-
+import { useTranslation } from '@/lib/i18n';
+import {
+  RiArchiveLine,
+  RiDeleteBinLine,
+  RiMailOpenLine,
+  RiTimeLine,
+} from '@oxy.so/bloom/icons';
+import {
+  SwipeRow,
+  useSwipeAvailable,
+  type SwipeRowAction,
+} from '@oxy.so/bloom/swipe-row';
+import { useState, type ReactNode } from 'react';
 interface SwipeableRowProps {
-  children: React.ReactNode;
+  children: ReactNode;
   messageId: string;
-  /** Action revealed by a left-to-right swipe. */
   leftAction: SwipeAction;
-  /** Action revealed by a right-to-left swipe. */
   rightAction: SwipeAction;
   onAction: (action: SwipeAction, messageId: string) => void;
 }
-
-function ActionPane({
-  config,
-  backgroundColor,
-}: {
-  config: SwipeActionConfig;
-  backgroundColor: string;
-}) {
-  return (
-    <View style={[styles.action, { backgroundColor }]}>
-      <MaterialCommunityIcons name={config.icon} size={24} color="#FFFFFF" />
-    </View>
-  );
-}
-
+const icons = {
+  archive: RiArchiveLine,
+  delete: RiDeleteBinLine,
+  'mark-read': RiMailOpenLine,
+  snooze: RiTimeLine,
+};
+const labels = {
+  archive: 'selection.archive',
+  delete: 'selection.delete',
+  'mark-read': 'selection.markRead',
+  snooze: 'message.actions.snooze',
+};
+/** Bloom owns touch detection and gestures on both web and native. */
 export function SwipeableRow({
   children,
   messageId,
@@ -57,55 +39,39 @@ export function SwipeableRow({
   rightAction,
   onAction,
 }: SwipeableRowProps) {
-  const swipeableRef = useRef<SwipeableMethods>(null);
-  const colors = useColors();
-
-  const leftConfig = getSwipeActionConfig(leftAction);
-  const rightConfig = getSwipeActionConfig(rightAction);
-
-  const handleOpen = useCallback(
-    (direction: SwipeDirection) => {
-      swipeableRef.current?.close();
-      const action = direction === SwipeDirection.LEFT ? leftAction : rightAction;
-      if (action === 'none') return;
-      onAction(action, messageId);
-    },
-    [leftAction, rightAction, onAction, messageId],
-  );
-
-  // Web has no swipe gesture, and if both sides are disabled there's nothing
-  // to render — pass the row straight through.
-  if (Platform.OS === 'web' || (!leftConfig && !rightConfig)) {
+  const enabled = useSwipeAvailable();
+  const [gesture, setGesture] = useState(0);
+  const { t } = useTranslation();
+  const action = (key: SwipeAction): SwipeRowAction[] =>
+    key === 'none'
+      ? []
+      : [
+          {
+            key,
+            icon: icons[key],
+            label: t(labels[key]),
+            tone: key === 'delete' ? 'negative' : 'accent',
+            onPress: () => onAction(key, messageId),
+          },
+        ];
+  if (!enabled || (leftAction === 'none' && rightAction === 'none'))
     return <>{children}</>;
-  }
-
   return (
-    <ReanimatedSwipeable
-      ref={swipeableRef}
-      renderLeftActions={
-        leftConfig
-          ? () => <ActionPane config={leftConfig} backgroundColor={colors[leftConfig.colorKey]} />
-          : undefined
-      }
-      renderRightActions={
-        rightConfig
-          ? () => <ActionPane config={rightConfig} backgroundColor={colors[rightConfig.colorKey]} />
-          : undefined
-      }
-      onSwipeableOpen={handleOpen}
-      overshootLeft={false}
-      overshootRight={false}
-      friction={2}
+    <SwipeRow
+      key={gesture}
+      onOpenChange={(side) => {
+        if (side === null) return;
+        const selected = side === 'left' ? leftAction : rightAction;
+        if (selected === 'none') return;
+        // A completed swipe executes the configured mail action. A fresh gesture
+        // surface closes even when the action (read/snooze) keeps the message visible.
+        setGesture((value) => value + 1);
+        onAction(selected, messageId);
+      }}
+      actions={{ left: action(leftAction), right: action(rightAction) }}
+      closeLabel={t('common.close')}
     >
       {children}
-    </ReanimatedSwipeable>
+    </SwipeRow>
   );
 }
-
-const styles = StyleSheet.create({
-  action: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 80,
-  },
-});

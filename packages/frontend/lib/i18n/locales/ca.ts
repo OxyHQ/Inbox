@@ -448,6 +448,8 @@ const ca: LocaleDict = {
   },
 
   selection: {
+    count: 'Seleccionats: {{count}}',
+    select: 'Selecciona el missatge',
     archive: 'Arxiva',
     delete: 'Elimina',
     star: 'Destaca',

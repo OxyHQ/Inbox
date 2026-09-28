@@ -444,6 +444,8 @@ const ja: LocaleDict = {
   },
 
   selection: {
+    count: '選択中: {{count}}',
+    select: 'メッセージを選択',
     archive: 'アーカイブ',
     delete: '削除',
     star: 'スター',

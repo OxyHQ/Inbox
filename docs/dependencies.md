@@ -57,3 +57,16 @@ keep out.
 
 Neither CI nor the application installs `latest` or modifies dependencies at
 runtime.
+
+## Compiler and schema major-version compatibility
+
+Inbox remains on Zod 3 while `@oxy.so/contracts` publishes Zod 3 schemas.
+Mixing those schemas with Zod 4's inference and composition APIs produces
+unknown mail types and incompatible schema objects. Move them together.
+
+The Jest transformer is `ts-jest`, whose TypeScript peer range is `<7`.
+TypeScript 7 has no JavaScript compiler API for this transformer; keep
+TypeScript 6 until the transformer/compiler migration is validated together.
+The Jest 30 upgrade itself is retained and passes the suite. Clarity 0.4's
+favicon endpoint is also retained; its security test checks the new domain-only
+URL rather than the old Google fallback.

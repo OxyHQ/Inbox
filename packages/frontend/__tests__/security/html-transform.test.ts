@@ -45,7 +45,7 @@ describe('email HTML security boundary', () => {
 
     expect(html).not.toContain('/email/proxy');
     expect(html).toContain(
-      'src="https://www.google.com/s2/favicons?sz=64&domain_url=example.com"',
+      'src="https://api.clarity.surf/favicons/example.com"',
     );
   });
 

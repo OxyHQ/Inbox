@@ -1,157 +1,47 @@
-import { resolveAccentColors, useTheme } from '@oxy.so/bloom/theme';
-/**
- * Sentiment Indicator component.
- *
- * Shows visual indicator for email sentiment/tone:
- * - Urgent (red alert)
- * - Frustrated/needs attention (orange warning)
- * - Positive (green)
- * - Formal (gray)
- * - Action requested (blue)
- */
-
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Badge } from '@oxy.so/bloom/badge';
 import {
-  Alert01Icon,
-  SentIcon,
-  ThumbsUpIcon,
-} from '@hugeicons/core-free-icons';
-import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
-import { Text } from '@oxy.so/bloom/typography';
-import { Platform, StyleSheet, View } from 'react-native';
-
+  RiAlertLine,
+  RiThumbUpLine,
+  RiSendPlaneLine,
+  RiEmotionLine,
+} from '@oxy.so/bloom/icons';
+import type { BloomTone } from '@oxy.so/bloom/appearance';
 import type { SentimentResult } from '@/hooks/queries/useSentimentAnalysis';
-
 interface SentimentIndicatorProps {
   sentiment: SentimentResult | null;
   size?: 'small' | 'medium';
   showLabel?: boolean;
 }
-
+const TONES: Record<SentimentResult['type'], BloomTone> = {
+  urgent: 'danger',
+  frustrated: 'warning',
+  positive: 'success',
+  formal: 'neutral',
+  neutral: 'neutral',
+  request: 'info',
+};
 export function SentimentIndicator({
   sentiment,
   size = 'small',
   showLabel = false,
 }: SentimentIndicatorProps) {
-  const { colors } = useTheme();
   if (!sentiment) return null;
-  const palette = resolveAccentColors(
-    colors,
-    {
-      urgent: 'error',
-      frustrated: 'warning',
-      positive: 'success',
-      formal: 'default',
-      neutral: 'default',
-      request: 'info',
-    }[sentiment.type] as 'error' | 'warning' | 'success' | 'default' | 'info',
-    'subtle',
-  );
-
-  const iconSize = size === 'small' ? 12 : 16;
-  const fontSize = size === 'small' ? 10 : 12;
-
-  // Use web-specific icons when available
-  const renderIcon = () => {
-    if (Platform.OS === 'web') {
-      switch (sentiment.type) {
-        case 'urgent':
-        case 'frustrated':
-          return (
-            <HugeiconsIcon
-              icon={Alert01Icon as unknown as IconSvgElement}
-              size={iconSize}
-              color={palette.foreground}
-            />
-          );
-        case 'positive':
-          return (
-            <HugeiconsIcon
-              icon={ThumbsUpIcon as unknown as IconSvgElement}
-              size={iconSize}
-              color={palette.foreground}
-            />
-          );
-        case 'request':
-          return (
-            <HugeiconsIcon
-              icon={SentIcon as unknown as IconSvgElement}
-              size={iconSize}
-              color={palette.foreground}
-            />
-          );
-        default:
-          return (
-            <MaterialCommunityIcons
-              name={sentiment.icon}
-              size={iconSize}
-              color={palette.foreground}
-            />
-          );
-      }
-    }
-
-    return (
-      <MaterialCommunityIcons
-        name={sentiment.icon}
-        size={iconSize}
-        color={palette.foreground}
-      />
-    );
-  };
-
-  if (!showLabel) {
-    // Just the icon for compact display
-    return (
-      <View
-        accessibilityRole="image"
-        accessibilityLabel={sentiment.label}
-        style={[styles.iconOnly, { backgroundColor: palette.background }]}
-      >
-        {renderIcon()}
-      </View>
-    );
-  }
-
-  // Full badge with label
+  const Icon =
+    sentiment.type === 'positive'
+      ? RiThumbUpLine
+      : sentiment.type === 'request'
+        ? RiSendPlaneLine
+        : ['urgent', 'frustrated'].includes(sentiment.type)
+          ? RiAlertLine
+          : RiEmotionLine;
+  // Keep the textual meaning available even in compact message rows.
   return (
-    <View
-      style={[
-        styles.badge,
-        size === 'medium' && styles.badgeMedium,
-        { backgroundColor: palette.background },
-      ]}
-    >
-      {renderIcon()}
-      <Text style={[styles.label, { color: palette.foreground, fontSize }]}>
-        {sentiment.label}
-      </Text>
-    </View>
+    <Badge
+      tone={TONES[sentiment.type]}
+      appearance="subtle"
+      icon={Icon}
+      content={sentiment.label}
+      size={showLabel && size === 'medium' ? 'label-medium' : 'label-small'}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  iconOnly: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  badgeMedium: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  label: {
-    fontWeight: '600',
-  },
-});

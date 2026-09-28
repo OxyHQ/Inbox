@@ -6,8 +6,6 @@ import {
   RiStarLine,
 } from '@oxy.so/bloom/icons';
 import { MailSelectionBar } from '@oxy.so/bloom/mail-list';
-import { View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 interface SelectionToolbarProps {
   count: number;
   onClose: () => void;
@@ -24,46 +22,43 @@ export function SelectionToolbar({
   onStar,
   onMarkRead,
 }: SelectionToolbarProps) {
-  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   return (
-    <View style={{ paddingTop: insets.top }}>
-      <MailSelectionBar
-        count={count}
-        total={count}
-        onClear={onClose}
-        actions={[
-          {
-            key: 'archive',
-            label: t('selection.archive'),
-            icon: RiArchiveLine,
-            onPress: onArchive,
-          },
-          {
-            key: 'delete',
-            label: t('selection.delete'),
-            icon: RiDeleteBinLine,
-            tone: 'negative',
-            onPress: onDelete,
-          },
-          {
-            key: 'star',
-            label: t('selection.star'),
-            icon: RiStarLine,
-            onPress: onStar,
-          },
-          {
-            key: 'read',
-            label: t('selection.markRead'),
-            icon: RiMailOpenLine,
-            onPress: onMarkRead,
-          },
-        ]}
-        strings={{
-          clearSelection: t('common.close'),
-          selectedCount: (count) => t('selection.count', { count }),
-        }}
-      />
-    </View>
+    <MailSelectionBar
+      count={count}
+      total={count}
+      onClear={onClose}
+      actions={[
+        {
+          key: 'archive',
+          label: t('selection.archive'),
+          icon: RiArchiveLine,
+          onPress: onArchive,
+        },
+        {
+          key: 'delete',
+          label: t('selection.delete'),
+          icon: RiDeleteBinLine,
+          tone: 'negative',
+          onPress: onDelete,
+        },
+        {
+          key: 'star',
+          label: t('selection.star'),
+          icon: RiStarLine,
+          onPress: onStar,
+        },
+        {
+          key: 'read',
+          label: t('selection.markRead'),
+          icon: RiMailOpenLine,
+          onPress: onMarkRead,
+        },
+      ]}
+      strings={{
+        clearSelection: t('common.close'),
+        selectedCount: (count) => t('selection.count', { count }),
+      }}
+    />
   );
 }

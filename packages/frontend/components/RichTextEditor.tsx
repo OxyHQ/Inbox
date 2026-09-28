@@ -1,20 +1,29 @@
+import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
+import { TextFieldInput } from '@oxy.so/bloom/text-field';
+import { Button } from '@oxy.so/bloom/button';
 /**
  * Cross-platform rich text editor.
  *
- * Web: contentEditable div with formatting toolbar.
- * Native: plain TextInput multiline fallback.
+ * Bloom owns controls; the editable document remains in the mail body slot.
+ * Web: contentEditable with Bloom NoteEditorToolbar.
+ * Native: Bloom Textarea plain-text fallback.
  */
 
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { NoteEditorToolbar } from '@oxy.so/bloom/note-editor';
+import { Textarea } from '@oxy.so/bloom/textarea';
+import { Text } from '@oxy.so/bloom/typography';
 import {
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+  RiBold,
+  RiItalic,
+  RiUnderline,
+  RiStrikethrough,
+  RiListOrdered,
+  RiListUnordered,
+  RiLink,
+  RiFormatClear,
+} from '@oxy.so/bloom/icons';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Platform, StyleSheet, TextInput, View } from 'react-native';
 
 import { useColors } from '@/constants/theme';
 
@@ -33,16 +42,6 @@ export interface RichTextEditorHandle {
   focus: () => void;
 }
 
-interface WebToolbarButtonProps {
-  command?: string;
-  icon?: string;
-  label?: string;
-  isActive?: boolean;
-  onPress: () => void;
-  activeColor: string;
-  iconColor: string;
-}
-
 function isEditorContentEmpty(content: string): boolean {
   if (!content.trim()) return true;
   const textContent = content
@@ -50,49 +49,6 @@ function isEditorContentEmpty(content: string): boolean {
     .replace(/&nbsp;/gi, ' ')
     .trim();
   return !textContent && !/<img\b/i.test(content);
-}
-
-function WebToolbarButton({
-  command,
-  icon,
-  label,
-  isActive = false,
-  onPress,
-  activeColor,
-  iconColor,
-}: WebToolbarButtonProps) {
-  return (
-    <TouchableOpacity
-      accessibilityLabel={command ?? label ?? icon}
-      onPress={onPress}
-      style={[
-        webStyles.toolbarButton,
-        isActive && { backgroundColor: `${activeColor}20` },
-      ]}
-      activeOpacity={0.7}
-    >
-      {icon ? (
-        <MaterialCommunityIcons
-          name={icon as keyof typeof MaterialCommunityIcons.glyphMap}
-          size={16}
-          color={isActive ? activeColor : iconColor}
-        />
-      ) : label ? (
-        <Text
-          style={[
-            webStyles.toolbarButtonLabel,
-            { color: isActive ? activeColor : iconColor },
-            label === 'B' && { fontWeight: '700' },
-            label === 'I' && { fontStyle: 'italic' },
-            label === 'U' && { textDecorationLine: 'underline' },
-            label === 'S' && { textDecorationLine: 'line-through' },
-          ]}
-        >
-          {label}
-        </Text>
-      ) : null}
-    </TouchableOpacity>
-  );
 }
 
 // ─── Web Implementation ──────────────────────────────────────────────
@@ -104,6 +60,9 @@ function WebRichTextEditor(
   const colors = useColors();
   const editorRef = useRef<HTMLDivElement | null>(null);
   const isComposing = useRef(false);
+  const selectionRef = useRef<Range | null>(null);
+  const linkControl = useDialogControl();
+  const [linkUrl, setLinkUrl] = useState('');
   const isEmpty = isEditorContentEmpty(value);
   const setEditorRef = useCallback((element: HTMLDivElement | null) => {
     editorRef.current = element;
@@ -214,6 +173,13 @@ function WebRichTextEditor(
   );
 
   const handleSelectionChange = useCallback(() => {
+    const selection = document.getSelection();
+    if (
+      !selection?.rangeCount ||
+      !editorRef.current?.contains(selection.anchorNode)
+    )
+      return;
+    selectionRef.current = selection.getRangeAt(0).cloneRange();
     updateActiveFormats();
   }, [updateActiveFormats]);
 
@@ -248,6 +214,17 @@ function WebRichTextEditor(
   const exec = useCallback(
     (command: string, argument?: string) => {
       editorRef.current?.focus();
+      const selection = document.getSelection();
+      if (
+        selectionRef.current &&
+        selection &&
+        editorRef.current?.contains(
+          selectionRef.current.commonAncestorContainer,
+        )
+      ) {
+        selection.removeAllRanges();
+        selection.addRange(selectionRef.current);
+      }
       document.execCommand(command, false, argument);
       emitChange();
       updateActiveFormats();
@@ -256,9 +233,16 @@ function WebRichTextEditor(
   );
 
   const handleLink = useCallback(() => {
-    const url = window.prompt('Enter URL:');
-    if (url) exec('createLink', url);
-  }, [exec]);
+    setLinkUrl('');
+    linkControl.open();
+  }, [linkControl]);
+
+  const insertLink = useCallback(() => {
+    const url = linkUrl.trim();
+    if (!url) return;
+    linkControl.close();
+    requestAnimationFrame(() => exec('createLink', url));
+  }, [exec, linkControl, linkUrl]);
 
   const handleClearFormatting = useCallback(() => {
     exec('removeFormat');
@@ -267,93 +251,88 @@ function WebRichTextEditor(
 
   return (
     <View style={[webStyles.container, style]}>
-      {/* Formatting toolbar */}
-      <View
-        style={[
-          webStyles.toolbar,
-          { backgroundColor: colors.surface, borderBottomColor: colors.border },
+      <Dialog control={linkControl} title="Insert link">
+        <View className="gap-3">
+          <TextFieldInput
+            label="URL"
+            placeholder="https://"
+            value={linkUrl}
+            onChangeText={setLinkUrl}
+            autoFocus
+            autoCapitalize="none"
+            autoCorrect={false}
+            onSubmitEditing={insertLink}
+          />
+          <Button onPress={insertLink} disabled={!linkUrl.trim()}>
+            Insert link
+          </Button>
+        </View>
+      </Dialog>
+      <NoteEditorToolbar
+        accessibilityLabel="Text formatting"
+        actions={[
+          {
+            key: 'bold',
+            label: 'Bold',
+            icon: RiBold,
+            active: activeFormats.has('bold'),
+            onPress: () => exec('bold'),
+          },
+          {
+            key: 'italic',
+            label: 'Italic',
+            icon: RiItalic,
+            active: activeFormats.has('italic'),
+            onPress: () => exec('italic'),
+          },
+          {
+            key: 'underline',
+            label: 'Underline',
+            icon: RiUnderline,
+            active: activeFormats.has('underline'),
+            onPress: () => exec('underline'),
+          },
+          {
+            key: 'strikeThrough',
+            label: 'Strikethrough',
+            icon: RiStrikethrough,
+            active: activeFormats.has('strikeThrough'),
+            onPress: () => exec('strikeThrough'),
+          },
+          {
+            key: 'insertUnorderedList',
+            label: 'Bullet list',
+            icon: RiListUnordered,
+            active: activeFormats.has('insertUnorderedList'),
+            onPress: () => exec('insertUnorderedList'),
+          },
+          {
+            key: 'insertOrderedList',
+            label: 'Numbered list',
+            icon: RiListOrdered,
+            active: activeFormats.has('insertOrderedList'),
+            onPress: () => exec('insertOrderedList'),
+          },
+          {
+            key: 'link',
+            label: 'Insert link',
+            icon: RiLink,
+            onPress: handleLink,
+          },
+          {
+            key: 'clear',
+            label: 'Clear formatting',
+            icon: RiFormatClear,
+            onPress: handleClearFormatting,
+          },
         ]}
-      >
-        <WebToolbarButton
-          command="bold"
-          label="B"
-          isActive={activeFormats.has('bold')}
-          onPress={() => exec('bold')}
-          activeColor={colors.primary}
-          iconColor={colors.icon}
-        />
-        <WebToolbarButton
-          command="italic"
-          label="I"
-          isActive={activeFormats.has('italic')}
-          onPress={() => exec('italic')}
-          activeColor={colors.primary}
-          iconColor={colors.icon}
-        />
-        <WebToolbarButton
-          command="underline"
-          label="U"
-          isActive={activeFormats.has('underline')}
-          onPress={() => exec('underline')}
-          activeColor={colors.primary}
-          iconColor={colors.icon}
-        />
-        <WebToolbarButton
-          command="strikeThrough"
-          label="S"
-          isActive={activeFormats.has('strikeThrough')}
-          onPress={() => exec('strikeThrough')}
-          activeColor={colors.primary}
-          iconColor={colors.icon}
-        />
-        <View
-          style={[
-            webStyles.toolbarSeparator,
-            { backgroundColor: colors.border },
-          ]}
-        />
-        <WebToolbarButton
-          command="insertUnorderedList"
-          icon="format-list-bulleted"
-          isActive={activeFormats.has('insertUnorderedList')}
-          onPress={() => exec('insertUnorderedList')}
-          activeColor={colors.primary}
-          iconColor={colors.icon}
-        />
-        <WebToolbarButton
-          command="insertOrderedList"
-          icon="format-list-numbered"
-          isActive={activeFormats.has('insertOrderedList')}
-          onPress={() => exec('insertOrderedList')}
-          activeColor={colors.primary}
-          iconColor={colors.icon}
-        />
-        <View
-          style={[
-            webStyles.toolbarSeparator,
-            { backgroundColor: colors.border },
-          ]}
-        />
-        <WebToolbarButton
-          icon="link-variant"
-          onPress={handleLink}
-          activeColor={colors.primary}
-          iconColor={colors.icon}
-        />
-        <WebToolbarButton
-          icon="format-clear"
-          onPress={handleClearFormatting}
-          activeColor={colors.primary}
-          iconColor={colors.icon}
-        />
-      </View>
+      />
 
       {/* Editable area */}
       <View style={webStyles.editorWrapper}>
         {isEmpty && placeholder && (
           <Text
             style={[webStyles.placeholder, { color: colors.searchPlaceholder }]}
-            pointerEvents="none"
           >
             {placeholder}
           </Text>
@@ -389,7 +368,6 @@ function NativeRichTextEditor(
   { value, onChange, placeholder, style, autoFocus }: RichTextEditorProps,
   ref: React.Ref<RichTextEditorHandle>,
 ) {
-  const colors = useColors();
   const inputRef = useRef<TextInput>(null);
 
   React.useImperativeHandle(ref, () => ({
@@ -402,14 +380,14 @@ function NativeRichTextEditor(
   }));
 
   return (
-    <TextInput
-      ref={inputRef}
-      style={[nativeStyles.bodyInput, { color: colors.text }, style]}
+    <Textarea
+      inputRef={inputRef}
+      style={style}
+      rows={10}
+      autoResize
       value={value}
       onChangeText={onChange}
       placeholder={placeholder}
-      placeholderTextColor={colors.searchPlaceholder}
-      multiline
       textAlignVertical="top"
       autoFocus={autoFocus}
     />
@@ -443,30 +421,6 @@ const webStyles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  toolbar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 2,
-  },
-  toolbarButton: {
-    width: 28,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 4,
-  },
-  toolbarButtonLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  toolbarSeparator: {
-    width: 1,
-    height: 16,
-    marginHorizontal: 4,
-  },
   editorWrapper: {
     flex: 1,
     position: 'relative',
@@ -477,15 +431,5 @@ const webStyles = StyleSheet.create({
     left: 16,
     fontSize: 15,
     pointerEvents: 'none',
-  },
-});
-
-const nativeStyles = StyleSheet.create({
-  bodyInput: {
-    flex: 1,
-    fontSize: 15,
-    lineHeight: 24,
-    padding: 16,
-    minHeight: 200,
   },
 });

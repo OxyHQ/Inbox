@@ -17,19 +17,19 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   Image,
-  Pressable,
   ScrollView,
   StyleSheet,
   type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { IconButton } from '@oxy.so/bloom/button';
+import { Card, CardHeader } from '@oxy.so/bloom/card';
+import { RiArrowLeftSLine, RiArrowRightSLine } from '@oxy.so/bloom/icons';
 import { Text } from '@oxy.so/bloom/typography';
 import { SPACING as BLOOM_SPACING } from '@oxy.so/bloom/design-tokens';
 
 import { Avatar } from './Avatar';
-import { useColors } from '@/constants/theme';
 import type { Subscription } from '@/services/emailApi';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://api.oxy.so';
@@ -59,7 +59,7 @@ function EnvelopePile({ count }: { count: number }) {
   const height = (envelopes.length - 1) * ENVELOPE_STEP + ENVELOPE_HEIGHT;
 
   return (
-    <View style={[styles.pile, { height }]} pointerEvents="none">
+    <View style={[styles.pile, { height }]}>
       {envelopes.map((i) => (
         <Image
           key={i}
@@ -77,8 +77,10 @@ interface SubscriptionStacksProps {
   onSelect?: (subscriptionId: string) => void;
 }
 
-export function SubscriptionStacks({ subscriptions, onSelect }: SubscriptionStacksProps) {
-  const colors = useColors();
+export function SubscriptionStacks({
+  subscriptions,
+  onSelect,
+}: SubscriptionStacksProps) {
   const scrollRef = useRef<ScrollView>(null);
 
   // Only what the arrows need: whether there is anywhere to go in each
@@ -109,7 +111,9 @@ export function SubscriptionStacks({ subscriptions, onSelect }: SubscriptionStac
     const { offset, viewport, content } = geometry.current;
     const maxOffset = Math.max(0, content - viewport);
     const next = { left: offset > 1, right: offset < maxOffset - 1 };
-    setEdges((prev) => (prev.left === next.left && prev.right === next.right ? prev : next));
+    setEdges((prev) =>
+      prev.left === next.left && prev.right === next.right ? prev : next,
+    );
   }, []);
 
   const handleScroll = useCallback(
@@ -157,12 +161,20 @@ export function SubscriptionStacks({ subscriptions, onSelect }: SubscriptionStac
         onContentSizeChange={handleContentSizeChange}
       >
         {ordered.map((sub) => (
-          <SubscriptionColumn key={sub._id} subscription={sub} onSelect={onSelect} colorText={colors.unread} />
+          <SubscriptionColumn
+            key={sub._id}
+            subscription={sub}
+            onSelect={onSelect}
+          />
         ))}
       </ScrollView>
 
-      {edges.left && <ScrollArrow direction="left" onPress={() => scrollBy(-1)} colors={colors} />}
-      {edges.right && <ScrollArrow direction="right" onPress={() => scrollBy(1)} colors={colors} />}
+      {edges.left && (
+        <ScrollArrow direction="left" onPress={() => scrollBy(-1)} />
+      )}
+      {edges.right && (
+        <ScrollArrow direction="right" onPress={() => scrollBy(1)} />
+      )}
     </View>
   );
 }
@@ -174,58 +186,66 @@ export function SubscriptionStacks({ subscriptions, onSelect }: SubscriptionStac
 function ScrollArrow({
   direction,
   onPress,
-  colors,
 }: {
   direction: 'left' | 'right';
   onPress: () => void;
-  colors: ReturnType<typeof useColors>;
 }) {
   return (
-    <Pressable
-      onPress={onPress}
+    <View
       style={[
         styles.arrow,
         direction === 'left' ? styles.arrowLeft : styles.arrowRight,
-        { backgroundColor: colors.surface, borderColor: colors.border },
       ]}
-      accessibilityRole="button"
-      accessibilityLabel={direction === 'left' ? 'Scroll left' : 'Scroll right'}
     >
-      <MaterialCommunityIcons
-        name={direction === 'left' ? 'chevron-left' : 'chevron-right'}
-        size={20}
-        color={colors.icon}
+      <IconButton
+        onPress={onPress}
+        appearance="outline"
+        accessibilityLabel={
+          direction === 'left' ? 'Scroll left' : 'Scroll right'
+        }
+        icon={
+          direction === 'left' ? <RiArrowLeftSLine /> : <RiArrowRightSLine />
+        }
       />
-    </Pressable>
+    </View>
   );
 }
 
 function SubscriptionColumn({
   subscription,
   onSelect,
-  colorText,
 }: {
   subscription: Subscription;
   onSelect?: (subscriptionId: string) => void;
-  colorText: string;
 }) {
-  const handlePress = useCallback(() => onSelect?.(subscription._id), [onSelect, subscription._id]);
+  const handlePress = useCallback(
+    () => onSelect?.(subscription._id),
+    [onSelect, subscription._id],
+  );
 
   return (
     <View style={styles.column}>
-      <Pressable
+      <Card
+        appearance="plain"
         onPress={handlePress}
-        style={styles.head}
         accessibilityRole="button"
         accessibilityLabel={`${subscription.name}, ${subscription.messageCount} messages`}
       >
-        <Avatar
-          name={subscription.name}
-          size={40}
-          avatarUrl={subscription.senderAvatarPath ? `${API_URL}${subscription.senderAvatarPath}` : null}
-        />
-        <Text style={[styles.count, { color: colorText }]}>{subscription.messageCount}</Text>
-      </Pressable>
+        <CardHeader>
+          <View className="items-center gap-1">
+            <Avatar
+              name={subscription.name}
+              size={40}
+              avatarUrl={
+                subscription.senderAvatarPath
+                  ? `${API_URL}${subscription.senderAvatarPath}`
+                  : null
+              }
+            />
+            <Text variant="body-2-medium">{subscription.messageCount}</Text>
+          </View>
+        </CardHeader>
+      </Card>
 
       <EnvelopePile count={subscription.messageCount} />
     </View>
@@ -245,17 +265,9 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     alignItems: 'center',
   },
-  head: {
-    alignItems: 'center',
-    gap: BLOOM_SPACING['space-4'],
-    marginBottom: BLOOM_SPACING['space-16'],
-  },
-  count: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
   pile: {
     width: ENVELOPE_WIDTH,
+    pointerEvents: 'none',
   },
   envelope: {
     position: 'absolute',
@@ -270,12 +282,6 @@ const styles = StyleSheet.create({
     // back up by half its height to sit ON the midline.
     top: '50%',
     transform: [{ translateY: -16 }],
-    height: 32,
-    width: 32,
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   arrowLeft: {
     left: BLOOM_SPACING['space-4'],

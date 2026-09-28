@@ -12,7 +12,8 @@ import { MailQuoteToggle } from '@oxy.so/bloom/mail-thread';
 import { toast } from '@oxy.so/bloom';
 import { useOxy } from '@oxy.so/services';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Text } from 'react-native';
+import { Platform } from 'react-native';
+import { Text } from '@oxy.so/bloom/typography';
 
 import {
   RichTextEditor,

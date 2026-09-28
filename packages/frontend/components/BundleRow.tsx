@@ -6,12 +6,18 @@ import { Badge } from '@oxy.so/bloom/badge';
  * Taps to expand inline, showing bundled messages.
  */
 
-import { useColors } from '@/constants/theme';
 import type { Bundle, Message } from '@/services/emailApi';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Text } from '@oxy.so/bloom/typography';
 import { useMemo, type ComponentProps } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { View } from 'react-native';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@oxy.so/bloom/card';
+import { RiArrowUpSLine, RiArrowDownSLine } from '@oxy.so/bloom/icons';
 
 type MaterialCommunityIconName = ComponentProps<
   typeof MaterialCommunityIcons
@@ -32,8 +38,6 @@ export function BundleRow({
   isExpanded,
   onToggle,
 }: BundleRowProps) {
-  const colors = useColors();
-
   const latestPreview = useMemo(() => {
     if (messages.length === 0) return '';
     const latest = messages[0];
@@ -43,31 +47,23 @@ export function BundleRow({
   }, [messages]);
 
   return (
-    <TouchableOpacity
-      style={[styles.container, { backgroundColor: colors.surface }]}
+    <Card
+      appearance="plain"
       onPress={onToggle}
-      activeOpacity={0.7}
+      accessibilityLabel={`${bundle.name}, ${messages.length} messages, ${isExpanded ? 'collapse' : 'expand'}`}
     >
-      <View
-        style={[styles.iconCircle, { backgroundColor: colors.surfaceVariant }]}
-      >
-        <MaterialCommunityIcons
-          name={(bundle.icon || 'folder-outline') as MaterialCommunityIconName}
-          size={20}
-          color={bundle.color}
-        />
-      </View>
-      <View style={styles.content}>
-        <View style={styles.topRow}>
-          <Text
-            style={[
-              styles.name,
-              { color: colors.text },
-              unreadCount > 0 && styles.nameUnread,
-            ]}
-          >
-            {bundle.name}
-          </Text>
+      <CardHeader>
+        <View className="flex-row items-center gap-2">
+          <MaterialCommunityIcons
+            name={
+              (bundle.icon || 'folder-outline') as MaterialCommunityIconName
+            }
+            size={20}
+            color={bundle.color}
+          />
+          <View className="flex-1">
+            <CardTitle>{bundle.name}</CardTitle>
+          </View>
           {unreadCount > 0 && (
             <Badge
               color="primary"
@@ -76,64 +72,13 @@ export function BundleRow({
               size="small"
             />
           )}
-          <Text style={[styles.count, { color: colors.secondaryText }]}>
-            {messages.length}
-          </Text>
-          <MaterialCommunityIcons
-            name={isExpanded ? 'chevron-up' : 'chevron-down'}
-            size={18}
-            color={colors.secondaryText}
-          />
+          <Text variant="caption-1-regular">{messages.length}</Text>
+          {isExpanded ? <RiArrowUpSLine /> : <RiArrowDownSLine />}
         </View>
         {!isExpanded && (
-          <Text
-            style={[styles.preview, { color: colors.secondaryText }]}
-            numberOfLines={1}
-          >
-            {latestPreview}
-          </Text>
+          <CardDescription numberOfLines={1}>{latestPreview}</CardDescription>
         )}
-      </View>
-    </TouchableOpacity>
+      </CardHeader>
+    </Card>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-  iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: {
-    flex: 1,
-    gap: 2,
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  name: {
-    fontSize: 14,
-    fontWeight: '500',
-    flex: 1,
-  },
-  nameUnread: {
-    fontWeight: '700',
-  },
-  count: {
-    fontSize: 12,
-  },
-  preview: {
-    fontSize: 13,
-  },
-});

@@ -5,21 +5,14 @@
  * Tapping a chip inserts the text into the reply composer.
  */
 
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { AiMail01Icon } from '@hugeicons/core-free-icons';
-import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
+import { Button } from '@oxy.so/bloom/button';
 import { Chip } from '@oxy.so/bloom/chip';
-import * as Skeleton from '@oxy.so/bloom/skeleton';
+import { RiSparklingLine } from '@oxy.so/bloom/icons';
+import { Loading } from '@oxy.so/bloom/loading';
+import { Text } from '@oxy.so/bloom/typography';
 import { useCallback, useState } from 'react';
-import {
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { View } from 'react-native';
 
-import { useColors } from '@/constants/theme';
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
 import { useSmartReplies } from '@/hooks/queries/useSmartReplies';
 import type { Message } from '@/services/emailApi';
@@ -33,7 +26,6 @@ export function SmartReplyChips({
   message,
   onSelectReply,
 }: SmartReplyChipsProps) {
-  const colors = useColors();
   const { prefs } = useInboxPrefs();
   const [hasRequestedReplies, setHasRequestedReplies] = useState(false);
   const { replies, isLoading, refetch } = useSmartReplies(message);
@@ -50,77 +42,34 @@ export function SmartReplyChips({
 
   if (!hasRequestedReplies) {
     return (
-      <View style={styles.container}>
-        <TouchableOpacity
-          accessibilityRole="button"
+      <View className="gap-2">
+        <Button
+          appearance="subtle"
+          leading={<RiSparklingLine />}
           onPress={handleGenerateReplies}
-          style={[styles.generateButton, { borderColor: colors.border }]}
         >
-          {Platform.OS === 'web' ? (
-            <HugeiconsIcon
-              icon={AiMail01Icon as unknown as IconSvgElement}
-              size={14}
-              color={colors.primary}
-            />
-          ) : (
-            <MaterialCommunityIcons
-              name="creation"
-              size={14}
-              color={colors.primary}
-            />
-          )}
-          <Text style={[styles.generateText, { color: colors.primary }]}>
-            Generate quick replies with AI
-          </Text>
-        </TouchableOpacity>
-        <Text style={[styles.privacyText, { color: colors.secondaryText }]}>
+          Generate quick replies with AI
+        </Button>
+        <Text variant="caption-1-regular">
           Oxy checks for sensitive content before sending bounded email context
           to Kaana.
         </Text>
       </View>
     );
   }
-
-  // Don't render anything if no suggestions and not loading after an explicit request.
-  if (!isLoading && replies.length === 0) {
-    return null;
-  }
-
+  if (!isLoading && replies.length === 0) return null;
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        {Platform.OS === 'web' ? (
-          <HugeiconsIcon
-            icon={AiMail01Icon as unknown as IconSvgElement}
-            size={14}
-            color={colors.primary}
-          />
-        ) : (
-          <MaterialCommunityIcons
-            name="creation"
-            size={14}
-            color={colors.primary}
-          />
-        )}
-        <Text style={[styles.label, { color: colors.secondaryText }]}>
-          Quick replies
-        </Text>
-      </View>
-
-      <View style={styles.chips}>
+    <View className="gap-2">
+      <Text variant="caption-1-regular">Quick replies</Text>
+      <View className="flex-row flex-wrap gap-2">
         {isLoading ? (
-          // Skeleton loading state
-          <>
-            <Skeleton.Pill size={34} style={styles.chipSkeletonPill} />
-            <Skeleton.Pill size={34} style={styles.chipSkeletonPillMedium} />
-            <Skeleton.Pill size={34} style={styles.chipSkeletonPillShort} />
-          </>
+          <Loading text="Generating quick replies" />
         ) : (
           replies.map((reply, index) => (
             <Chip
               key={index}
-              variant="subtle"
-              color="primary"
+              appearance="subtle"
+              tone="accent"
               onPress={() => onSelectReply(reply)}
             >
               {reply}
@@ -131,52 +80,3 @@ export function SmartReplyChips({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  generateButton: {
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    flexDirection: 'row',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  generateText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  privacyText: {
-    fontSize: 11,
-    lineHeight: 14,
-  },
-  chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chipSkeletonPill: {
-    width: 120,
-  },
-  chipSkeletonPillMedium: {
-    width: 160,
-  },
-  chipSkeletonPillShort: {
-    width: 90,
-  },
-});

@@ -1,3 +1,5 @@
+import { EmptyState } from '@oxy.so/bloom/empty-state';
+import { Text } from '@oxy.so/bloom/typography';
 import { useMailboxScrollRestoration } from '@/hooks/useMailboxScrollRestoration';
 import { useAiChatShell } from '@oxy.so/bloom/ai-chat';
 import { ButtonGroup, ButtonGroupItem } from '@oxy.so/bloom/button-group';
@@ -25,7 +27,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, StyleSheet, View } from 'react-native';
 import Animated, { type AnimatedProps } from 'react-native-reanimated';
 
 import { BundleRow } from '@/components/BundleRow';
@@ -1027,20 +1029,18 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const renderEmpty = useCallback(() => {
     if (isLoading) return null;
     return (
-      <View style={styles.emptyContainer}>
-        <EmptyIllustration size={180} />
-        <Text style={[styles.emptyTitle, { color: colors.text }]}>
-          {t('inbox.emptyTitle')}
-        </Text>
-        <Text style={[styles.emptySubtitle, { color: colors.secondaryText }]}>
-          {isAuthenticated ? t('inbox.emptyAllCaught') : t('inbox.emptySignIn')}
-        </Text>
-        {!isAuthenticated && (
-          <OxySignInButton variant="contained" style={{ marginTop: 8 }} />
-        )}
-      </View>
+      <EmptyState
+        illustration={<EmptyIllustration size={180} />}
+        title={t('inbox.emptyTitle')}
+        description={
+          isAuthenticated ? t('inbox.emptyAllCaught') : t('inbox.emptySignIn')
+        }
+        footer={
+          !isAuthenticated ? <OxySignInButton variant="contained" /> : undefined
+        }
+      />
     );
-  }, [colors, isAuthenticated, isLoading, t]);
+  }, [isAuthenticated, isLoading, t]);
 
   const renderFooter = useCallback(() => {
     if (!isFetchingNextPage) return null;
@@ -1228,22 +1228,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 80,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 120,
-    paddingHorizontal: 32,
-    gap: 12,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    textAlign: 'center',
   },
   emptyListContent: {
     flexGrow: 1,

@@ -1,3 +1,5 @@
+import { Text } from '@oxy.so/bloom/typography';
+import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { MailAddressFields } from '@/components/MailAddressFields';
 import {
   buildComposeDraftPayload,
@@ -26,15 +28,7 @@ import { Admonition } from '@oxy.so/bloom/admonition';
 import type { FileMetadata } from '@oxy.so/core';
 import { useOxy } from '@oxy.so/services';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 
 import { AiComposeToolbar } from '@/components/AiComposeToolbar';
 import { ReplyParentNotice } from '@/components/ReplyParentNotice';
@@ -53,7 +47,6 @@ import {
 import { useEmailStore } from '@/hooks/useEmail';
 import { useGoBack } from '@/hooks/useGoBack';
 import { useReplyParent } from '@/hooks/useReplyParent';
-import { useTabBarClearance } from '@/hooks/useTabBarClearance';
 import { useTranslation } from '@/lib/i18n';
 import type { EmailTemplate } from '@/services/emailApi';
 import {
@@ -88,7 +81,6 @@ function fileMetadataToAttachment(file: FileMetadata): ComposerAttachment {
 const isWeb = Platform.OS === 'web';
 
 interface ComposeFormProps {
-  mode: 'standalone' | 'embedded';
   replyTo?: string;
   forward?: string;
   to?: string;
@@ -112,7 +104,6 @@ function isDraftConflict(error: unknown): boolean {
 }
 
 export function ComposeForm({
-  mode,
   replyTo,
   forward,
   to: initialTo,
@@ -122,18 +113,9 @@ export function ComposeForm({
 }: ComposeFormProps) {
   // Compose can be opened from a deep link, where there is no history to pop.
   const closeCompose = useGoBack();
-  const insets = useSafeAreaInsets();
-  const tabBarClearance = useTabBarClearance();
   const colors = useColors();
   const { t } = useTranslation();
 
-  // Field rows inherit the static `paddingHorizontal: 16` from styles.fieldRow.
-  // For landscape notch protection we widen the horizontal padding inline so
-  // the To/Cc/Bcc/Subject input rows clear the device side cutouts.
-  const fieldRowInset = useMemo(
-    () => ({ paddingLeft: 16 + insets.left, paddingRight: 16 + insets.right }),
-    [insets.left, insets.right],
-  );
   const { user, showBottomSheet } = useOxy();
   const api = useEmailStore((s) => s._api);
   const { sendWithUndo, isPending: sendPending } = useSendMessageWithUndo();
@@ -676,10 +658,7 @@ export function ComposeForm({
 
   return (
     <KeyboardAvoidingView
-      style={[
-        styles.container,
-        mode === 'standalone' && { paddingTop: insets.top },
-      ]}
+      className="flex-1"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <MailComposeSurface
@@ -760,36 +739,20 @@ export function ComposeForm({
           </View>
         </Dialog>
 
-        <ScrollView
-          style={styles.form}
-          contentContainerStyle={{
-            paddingBottom: mode === 'standalone' ? tabBarClearance : 0,
-          }}
-          keyboardShouldPersistTaps="handled"
-        >
+        <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
           <ReplyParentNotice state={replyParent} />
 
           {alreadyQueued && (
-            <View style={fieldRowInset}>
+            <View>
               <Admonition type="info">{t('compose.queuedNotice')}</Admonition>
             </View>
           )}
 
-          {/* From */}
-          <View
-            style={[
-              styles.fieldRow,
-              fieldRowInset,
-              { borderBottomColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.fieldLabel, { color: colors.secondaryText }]}>
-              {t('compose.fields.from')}
-            </Text>
-            <Text style={[styles.fromAddress, { color: colors.text }]}>
-              {fromAddress}
-            </Text>
-          </View>
+          <TextFieldInput
+            label={t('compose.fields.from')}
+            value={fromAddress}
+            editable={false}
+          />
 
           <MailAddressFields
             to={to}
@@ -863,29 +826,3 @@ export function ComposeForm({
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  form: {
-    flex: 1,
-  },
-  // `paddingLeft` / `paddingRight` are applied inline via `fieldRowInset` so
-  // they can include landscape `insets.left` / `insets.right`.
-  fieldRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 12,
-  },
-  fieldLabel: {
-    fontSize: 14,
-    width: 36,
-  },
-  fromAddress: {
-    fontSize: 15,
-    flex: 1,
-  },
-});

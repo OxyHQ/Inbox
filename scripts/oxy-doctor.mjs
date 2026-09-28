@@ -3,7 +3,7 @@ import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import { fetchLatestVersion, findRepositoryRoot, inspectRepository, lockfileVersions } from '@oxy.so/doctor';
 
-// The 4.34.3 maintenance release isolates this migration from 4.35.0.
+// The 4.34.5 maintenance release isolates this migration from 4.35.0.
 // Reassess and remove this exception when adopting the next Bloom release.
 export function isDeferredBloomUpdate(finding, lockedVersions, override) {
   return finding.severity === 'warning'
@@ -11,11 +11,11 @@ export function isDeferredBloomUpdate(finding, lockedVersions, override) {
     && finding.package === '@oxy.so/bloom'
     && finding.manifest === 'packages/frontend/package.json'
     && finding.section === 'dependencies'
-    && finding.range === '4.34.3'
+    && finding.range === '4.34.5'
     && finding.latest === '4.35.0'
-    && override === '4.34.3'
+    && override === '4.34.5'
     && lockedVersions.length === 1
-    && lockedVersions[0] === '4.34.3';
+    && lockedVersions[0] === '4.34.5';
 }
 
 async function main() {

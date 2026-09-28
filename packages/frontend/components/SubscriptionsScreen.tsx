@@ -1,4 +1,3 @@
-import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 import { PageHeader } from '@oxy.so/bloom/page-header';
 /**
  * Subscriptions management screen.
@@ -14,28 +13,23 @@ import {
   type FlashListRef,
 } from '@shopify/flash-list';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Platform,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { RefreshControl, View } from 'react-native';
 import Animated, { type AnimatedProps } from 'react-native-reanimated';
 
 import { SubscriptionRow } from '@/components/SubscriptionRow';
 import { SubscriptionStacks } from '@/components/SubscriptionStacks';
-import { useColors } from '@/constants/theme';
 import { useUnsubscribe } from '@/hooks/mutations/useUnsubscribe';
 import { useSubscriptions } from '@/hooks/queries/useSubscriptions';
 import { useGoBack } from '@/hooks/useGoBack';
-import { useTabBarClearance } from '@/hooks/useTabBarClearance';
 import type { Subscription } from '@/services/emailApi';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { News01Icon } from '@hugeicons/core-free-icons';
-import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAiChatShell } from '@oxy.so/bloom/ai-chat';
+import { ButtonGroup, ButtonGroupItem } from '@oxy.so/bloom/button-group';
+import { Divider } from '@oxy.so/bloom/divider';
+import { EmptyState } from '@oxy.so/bloom/empty-state';
+import { RiMailLine, RiMenuLine } from '@oxy.so/bloom/icons';
+import { Loading } from '@oxy.so/bloom/loading';
+import { Text } from '@oxy.so/bloom/typography';
+import { useTranslation } from '@/lib/i18n';
 
 const AnimatedSubscriptionsList = Animated.createAnimatedComponent(
   FlashList as React.ComponentType<FlashListProps<Subscription>>,
@@ -46,11 +40,9 @@ const AnimatedSubscriptionsList = Animated.createAnimatedComponent(
 >;
 
 export function SubscriptionsScreen() {
-  const insets = useSafeAreaInsets();
-  const tabBarClearance = useTabBarClearance();
   const minimizeTabBarOnScroll = useMinimizeOnScroll();
-  const colors = useColors();
-  const isDesktop = useIsDesktopLayout();
+  const shell = useAiChatShell();
+  const { t } = useTranslation();
 
   const {
     data,
@@ -142,72 +134,45 @@ export function SubscriptionsScreen() {
     [handleUnsubscribe, unsubscribingAddress],
   );
 
-  const renderSeparator = useCallback(
-    () => (
-      <View
-        style={[
-          styles.separator,
-          {
-            backgroundColor: colors.border,
-            marginLeft: 16 + insets.left,
-            marginRight: 16 + insets.right,
-          },
-        ]}
-      />
-    ),
-    [colors.border, insets.left, insets.right],
-  );
-
+  const renderSeparator = useCallback(() => <Divider spacing={0} />, []);
   const renderEmpty = useCallback(
     () => (
-      <View style={styles.emptyContainer}>
-        {Platform.OS === 'web' ? (
-          <HugeiconsIcon
-            icon={News01Icon as unknown as IconSvgElement}
-            size={64}
-            color={colors.border}
-          />
-        ) : (
-          <MaterialCommunityIcons
-            name="newspaper-variant-outline"
-            size={64}
-            color={colors.border}
-          />
-        )}
-        <Text style={[styles.emptyTitle, { color: colors.text }]}>
-          No subscriptions found
-        </Text>
-        <Text style={[styles.emptySubtitle, { color: colors.secondaryText }]}>
-          Senders who email you frequently will appear here.
-        </Text>
-      </View>
+      <EmptyState
+        icon={RiMailLine}
+        title="No subscriptions found"
+        description="Senders who email you frequently will appear here."
+      />
     ),
-    [colors],
+    [],
   );
-
   const renderFooter = useCallback(
-    () =>
-      isFetchingNextPage ? (
-        <View style={styles.footer}>
-          <ActivityIndicator size="small" color={colors.primary} />
-        </View>
-      ) : null,
-    [isFetchingNextPage, colors.primary],
+    () => (isFetchingNextPage ? <Loading /> : null),
+    [isFetchingNextPage],
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={{ paddingTop: isDesktop ? 0 : insets.top }}>
-        <PageHeader
-          title="Subscriptions"
-          onBack={isDesktop ? undefined : handleBack}
-        />
-      </View>
-
+    <View className="flex-1">
+      <PageHeader
+        title={t('drawer.subscriptions')}
+        onBack={handleBack}
+        sticky={false}
+        scrim="none"
+        safeArea={false}
+        leading={
+          shell?.navCollapsed && shell.hasNav ? (
+            <ButtonGroup accessibilityLabel={t('search.openMenu')}>
+              <ButtonGroupItem
+                iconOnly
+                leadingIcon={RiMenuLine}
+                accessibilityLabel={t('search.openMenu')}
+                onPress={shell.openNav}
+              />
+            </ButtonGroup>
+          ) : undefined
+        }
+      />
       {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
+        <Loading />
       ) : (
         <AnimatedSubscriptionsList
           ref={listRef}
@@ -223,17 +188,10 @@ export function SubscriptionsScreen() {
               {/* Scrolls with the list rather than sitting in a fixed band:
                   only the header stays put, same as the inbox. */}
               {subscriptions.length > 0 && (
-                <View style={styles.subtitle}>
-                  <Text
-                    style={[
-                      styles.subtitleText,
-                      { color: colors.secondaryText },
-                    ]}
-                  >
-                    When you unsubscribe, it can take a few days to stop
-                    receiving messages
-                  </Text>
-                </View>
+                <Text variant="caption-1-regular">
+                  When you unsubscribe, it can take a few days to stop receiving
+                  messages
+                </Text>
               )}
             </>
           }
@@ -247,61 +205,13 @@ export function SubscriptionsScreen() {
             <RefreshControl
               refreshing={isRefetching && !isFetchingNextPage}
               onRefresh={refetch}
-              tintColor={colors.primary}
             />
           }
-          contentContainerStyle={{
-            ...(subscriptions.length === 0 ? styles.emptyListContent : null),
-            paddingTop: 0,
-            paddingBottom: tabBarClearance,
-          }}
+          contentContainerStyle={
+            subscriptions.length === 0 ? { flexGrow: 1 } : undefined
+          }
         />
       )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  subtitle: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  subtitleText: {
-    fontSize: 13,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  // `marginLeft` / `marginRight` are applied inline so they can include
-  // landscape `insets.left` / `insets.right`.
-  separator: {
-    height: StyleSheet.hairlineWidth,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 80,
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  emptyListContent: {
-    flexGrow: 1,
-  },
-  footer: {
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-});

@@ -26,7 +26,6 @@ export default function ComposeRoute() {
         <title>{pageTitle}</title>
       </Head>
       <ComposeForm
-        mode="standalone"
         replyTo={params.replyTo}
         forward={params.forward}
         to={params.to}

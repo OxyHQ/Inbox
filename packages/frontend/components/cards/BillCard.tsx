@@ -1,8 +1,7 @@
 import { useColors } from '@/constants/theme';
 import type { CardData } from '@/services/emailApi';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Card, CardBody, CardHeader } from '@oxy.so/bloom/card';
-import { useTheme } from '@oxy.so/bloom/theme';
+import { Card, CardBody, CardHeader, CardTitle } from '@oxy.so/bloom/card';
 import { Text } from '@oxy.so/bloom/typography';
 import { StyleSheet, View } from 'react-native';
 
@@ -12,7 +11,6 @@ interface BillCardProps {
 
 export function BillCard({ data }: BillCardProps) {
   const colors = useColors();
-  const { colors: tokens } = useTheme();
 
   const formattedAmount =
     data.amount != null
@@ -35,23 +33,7 @@ export function BillCard({ data }: BillCardProps) {
   return (
     <Card variant="filled">
       <CardHeader>
-        <View
-          style={[styles.header, { backgroundColor: tokens.warningSubtle }]}
-        >
-          <MaterialCommunityIcons
-            name="receipt"
-            size={18}
-            color={tokens.warningSubtleForeground}
-          />
-          <Text
-            style={[
-              styles.headerText,
-              { color: tokens.warningSubtleForeground },
-            ]}
-          >
-            Bill
-          </Text>
-        </View>
+        <CardTitle>Bill</CardTitle>
       </CardHeader>
       <CardBody>
         <View style={styles.body}>
@@ -100,14 +82,6 @@ export function BillCard({ data }: BillCardProps) {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  headerText: { fontSize: 13, fontWeight: '600' },
   body: { gap: 6 },
   biller: { fontSize: 15, fontWeight: '600' },
   amount: { fontSize: 20, fontWeight: '700' },

@@ -428,6 +428,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
   return (
     <MailScrollProvider>
       <AiChatShell
+        safeArea
         scroll="container"
         testID="mail-workspace"
         navOpen={drawerOpen}
@@ -442,10 +443,11 @@ export function MailboxShell({ children }: { children: ReactNode }) {
           closeNavigation: t('common.close'),
         }}
       >
-        <AiChatContainer composer={!isDesktop ? <InboxBottomBar /> : undefined}>
-          <AppShellSplitPanes
-            list={
-              pathname.startsWith('/search') ? (
+        <AppShellSplitPanes
+          variant="separated"
+          list={
+            <AiChatContainer testID="mail-list-panel">
+              {pathname.startsWith('/search') ? (
                 <SearchList
                   replaceNavigation={pathname.includes('/conversation/')}
                 />
@@ -453,19 +455,26 @@ export function MailboxShell({ children }: { children: ReactNode }) {
                 <InboxList
                   replaceNavigation={pathname.includes('/conversation/')}
                 />
-              )
-            }
-            detail={children}
-            showList={isDesktop && !pathname.startsWith('/subscriptions')}
-            showDetail
-            listWidth={380}
-            listMinWidth={320}
-            listMaxWidth={480}
-            paneScroll={false}
-            resizeLabel={t('inbox.resizePanes')}
-            testID="mail-workspace"
-          />
-        </AiChatContainer>
+              )}
+            </AiChatContainer>
+          }
+          detail={
+            <AiChatContainer
+              testID="mail-detail-panel"
+              composer={!isDesktop ? <InboxBottomBar /> : undefined}
+            >
+              {children}
+            </AiChatContainer>
+          }
+          showList={isDesktop && !pathname.startsWith('/subscriptions')}
+          showDetail
+          listWidth={380}
+          listMinWidth={320}
+          listMaxWidth={480}
+          paneScroll={false}
+          resizeLabel={t('inbox.resizePanes')}
+          testID="mail-workspace"
+        />
       </AiChatShell>
       <Dialog
         control={createFolderControl}

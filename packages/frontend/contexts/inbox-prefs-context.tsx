@@ -11,11 +11,16 @@
  * (defaults are used until the load resolves).
  */
 
+import type { MailDensity } from '@oxy.so/bloom/mail-list';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Platform } from 'react-native';
 
-export type MessageDensity = 'compact' | 'comfortable' | 'cozy';
+/**
+ * Bloom's row densities. Bloom 5 dropped `cozy`; a stored `cozy` falls back to
+ * the default (`comfortable`) through `mergeInboxPrefs`.
+ */
+export type MessageDensity = MailDensity;
 export type SwipeAction = 'archive' | 'delete' | 'mark-read' | 'snooze' | 'none';
 
 export interface InboxPrefs {
@@ -26,7 +31,6 @@ export interface InboxPrefs {
   /** Auto-mark messages as read when opened. */
   markReadOnOpen: boolean;
   /** Show senders' avatars in the list. */
-  showAvatars: boolean;
   /** Show message previews (snippets) in the list. */
   showPreviews: boolean;
 
@@ -54,7 +58,6 @@ export const DEFAULT_INBOX_PREFS: InboxPrefs = {
   density: 'comfortable',
   conversationView: true,
   markReadOnOpen: true,
-  showAvatars: true,
   showPreviews: true,
   leftSwipeAction: 'archive',
   rightSwipeAction: 'delete',
@@ -68,7 +71,7 @@ export const DEFAULT_INBOX_PREFS: InboxPrefs = {
 };
 
 function isMessageDensity(value: unknown): value is MessageDensity {
-  return value === 'compact' || value === 'comfortable' || value === 'cozy';
+  return value === 'compact' || value === 'comfortable';
 }
 
 function isSwipeAction(value: unknown): value is SwipeAction {
@@ -87,7 +90,6 @@ export function mergeInboxPrefs(value: unknown): InboxPrefs {
     density: isMessageDensity(stored.density) ? stored.density : DEFAULT_INBOX_PREFS.density,
     conversationView: readBoolean(stored.conversationView, DEFAULT_INBOX_PREFS.conversationView),
     markReadOnOpen: readBoolean(stored.markReadOnOpen, DEFAULT_INBOX_PREFS.markReadOnOpen),
-    showAvatars: readBoolean(stored.showAvatars, DEFAULT_INBOX_PREFS.showAvatars),
     showPreviews: readBoolean(stored.showPreviews, DEFAULT_INBOX_PREFS.showPreviews),
     leftSwipeAction: isSwipeAction(stored.leftSwipeAction) ? stored.leftSwipeAction : DEFAULT_INBOX_PREFS.leftSwipeAction,
     rightSwipeAction: isSwipeAction(stored.rightSwipeAction) ? stored.rightSwipeAction : DEFAULT_INBOX_PREFS.rightSwipeAction,

@@ -11,7 +11,6 @@ const DENSITY_OPTIONS: readonly { value: MessageDensity; labelKey: string }[] =
   [
     { value: 'compact', labelKey: 'ui.settings.inbox.compact' },
     { value: 'comfortable', labelKey: 'ui.settings.inbox.comfortable' },
-    { value: 'cozy', labelKey: 'ui.settings.inbox.cozy' },
   ];
 
 const SWIPE_OPTIONS: readonly { value: SwipeAction; labelKey: string }[] = [
@@ -26,7 +25,6 @@ export function InboxPrefsSection() {
   const { t } = useTranslation();
   const { prefs, setPref } = useInboxPrefs();
   const toggles = [
-    ['showAvatars', 'avatars'],
     ['showPreviews', 'previews'],
     ['conversationView', 'threads'],
     ['markReadOnOpen', 'markRead'],

@@ -48,8 +48,8 @@ and `showAvatar` while preserving existing defaults. It also fixes settings
 keyboard dismissal/focus using Bloom's existing modal keyboard primitive.
 Both manifests and `bun.lock` pin the published maintenance release **4.34.1**.
 Validation uses a clean registry installation, with no local package copy or patch.
-The release is available under npm's `inbox-maintenance` tag; `latest` remains
-4.35.0. [Bloom PR #234](https://github.com/OxyHQ/Bloom/pull/234) carries the
+The release was published under npm's `inbox-maintenance` tag, preserving
+the then-current `latest` release (4.35.0). [Bloom PR #234](https://github.com/OxyHQ/Bloom/pull/234) carries the
 additive changes forward separately.
 
 The Doctor wrapper uses the published `@oxy.so/doctor` inspection API. It reports
@@ -82,6 +82,14 @@ Run `bun run typecheck` before and after `bun run build`; verify the generated
 web CSS exceeds 20 KB. An Android export validates the native import graph;
 a running native client is additionally needed to validate gestures, keyboard
 and hardware-back behavior. No production deployment is part of this change.
+
+## Current dependency-health gate
+
+During the layout correction, npm advanced to Bloom 5.1.0 and Services 9.1.0.
+Doctor correctly rejects these unreviewed major-version gaps; the existing
+4.35.0 maintenance exception does not suppress them. The layout's local tests,
+typechecks and exports pass with the pinned library, but the PR remains draft
+until the separate SDK compatibility update is resolved.
 
 ## UI fixtures
 

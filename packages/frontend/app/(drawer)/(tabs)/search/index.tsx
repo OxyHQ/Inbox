@@ -1,3 +1,4 @@
+import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 /**
  * Index route for the (search) group.
  *
@@ -5,15 +6,11 @@
  * Mobile: rendered as the main screen — shows the search list.
  */
 
-import React from 'react';
-import { Platform, useWindowDimensions } from 'react-native';
-
-import { SearchList } from '@/components/SearchList';
 import { MessageDetailEmpty } from '@/components/MessageDetailEmpty';
+import { SearchList } from '@/components/SearchList';
 
 export default function SearchIndex() {
-  const { width } = useWindowDimensions();
-  const isDesktop = Platform.OS === 'web' && width >= 900;
+  const isDesktop = useIsDesktopLayout();
 
   if (isDesktop) {
     return <MessageDetailEmpty />;

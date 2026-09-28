@@ -1,30 +1,12 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text } from '@oxy.so/bloom/typography';
-import { useColors } from '@/constants/theme';
-import { EmptyIllustration } from '@/components/EmptyIllustration';
 import { useTranslation } from '@/lib/i18n';
-
+import { EmptyState } from '@oxy.so/bloom/empty-state';
+import { RiMailLine } from '@oxy.so/bloom/icons';
+import { View } from 'react-native';
 export function MessageDetailEmpty() {
-  const colors = useColors();
   const { t } = useTranslation();
-
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <EmptyIllustration size={180} />
-      <Text style={[styles.text, { color: colors.secondaryText }]}>{t('empty.selectConversation')}</Text>
+    <View className="flex-1 justify-center">
+      <EmptyState icon={RiMailLine} title={t('empty.selectConversation')} />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
-  },
-  text: {
-    fontSize: 16,
-  },
-});

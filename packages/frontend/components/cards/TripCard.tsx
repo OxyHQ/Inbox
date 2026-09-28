@@ -1,10 +1,10 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Card, CardHeader, CardBody } from '@oxy.so/bloom/card';
-import { Text } from '@oxy.so/bloom/typography';
 import { useColors } from '@/constants/theme';
 import type { CardData } from '@/services/emailApi';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Card, CardBody, CardHeader } from '@oxy.so/bloom/card';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { Text } from '@oxy.so/bloom/typography';
+import { StyleSheet, View } from 'react-native';
 
 interface TripCardProps {
   data: CardData;
@@ -12,6 +12,7 @@ interface TripCardProps {
 
 export function TripCard({ data }: TripCardProps) {
   const colors = useColors();
+  const { colors: tokens } = useTheme();
 
   const departureTime = data.departureTime
     ? new Date(data.departureTime).toLocaleString(undefined, {
@@ -31,11 +32,19 @@ export function TripCard({ data }: TripCardProps) {
     : null;
 
   return (
-    <Card variant="outlined">
+    <Card variant="filled">
       <CardHeader>
-        <View style={[styles.header, { backgroundColor: '#1A73E820' }]}>
-          <MaterialCommunityIcons name="airplane" size={18} color="#1A73E8" />
-          <Text style={[styles.headerText, { color: '#1A73E8' }]}>Trip</Text>
+        <View style={[styles.header, { backgroundColor: tokens.infoSubtle }]}>
+          <MaterialCommunityIcons
+            name="airplane"
+            size={18}
+            color={tokens.infoSubtleForeground}
+          />
+          <Text
+            style={[styles.headerText, { color: tokens.infoSubtleForeground }]}
+          >
+            Trip
+          </Text>
         </View>
       </CardHeader>
       <CardBody>
@@ -47,30 +56,54 @@ export function TripCard({ data }: TripCardProps) {
           )}
           {(data.departure || data.arrival) && (
             <View style={styles.route}>
-              <Text style={[styles.city, { color: colors.text }]}>{data.departure || '—'}</Text>
-              <MaterialCommunityIcons name="arrow-right" size={16} color={colors.secondaryText} />
-              <Text style={[styles.city, { color: colors.text }]}>{data.arrival || '—'}</Text>
+              <Text style={[styles.city, { color: colors.text }]}>
+                {data.departure || '—'}
+              </Text>
+              <MaterialCommunityIcons
+                name="arrow-right"
+                size={16}
+                color={colors.secondaryText}
+              />
+              <Text style={[styles.city, { color: colors.text }]}>
+                {data.arrival || '—'}
+              </Text>
             </View>
           )}
           {departureTime && (
             <Text style={[styles.time, { color: colors.secondaryText }]}>
-              {departureTime}{arrivalTime ? ` → ${arrivalTime}` : ''}
+              {departureTime}
+              {arrivalTime ? ` → ${arrivalTime}` : ''}
             </Text>
           )}
           {data.confirmationCode && (
             <View style={styles.codeRow}>
-              <Text style={[styles.codeLabel, { color: colors.secondaryText }]}>Confirmation</Text>
-              <Text style={[styles.codeValue, { color: colors.text }]}>{data.confirmationCode}</Text>
+              <Text style={[styles.codeLabel, { color: colors.secondaryText }]}>
+                Confirmation
+              </Text>
+              <Text style={[styles.codeValue, { color: colors.text }]}>
+                {data.confirmationCode}
+              </Text>
             </View>
           )}
           {data.hotel && (
             <View style={styles.codeRow}>
-              <MaterialCommunityIcons name="bed-outline" size={14} color={colors.secondaryText} />
-              <Text style={[styles.hotelText, { color: colors.text }]}>{data.hotel}</Text>
+              <MaterialCommunityIcons
+                name="bed-outline"
+                size={14}
+                color={colors.secondaryText}
+              />
+              <Text style={[styles.hotelText, { color: colors.text }]}>
+                {data.hotel}
+              </Text>
               {data.checkIn && (
                 <Text style={[styles.time, { color: colors.secondaryText }]}>
-                  {new Date(data.checkIn).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                  {data.checkOut ? ` – ${new Date(data.checkOut).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : ''}
+                  {new Date(data.checkIn).toLocaleDateString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                  {data.checkOut
+                    ? ` – ${new Date(data.checkOut).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+                    : ''}
                 </Text>
               )}
             </View>
@@ -82,7 +115,13 @@ export function TripCard({ data }: TripCardProps) {
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
   headerText: { fontSize: 13, fontWeight: '600' },
   body: { gap: 8 },
   airline: { fontSize: 15, fontWeight: '600' },

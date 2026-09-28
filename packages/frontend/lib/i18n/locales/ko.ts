@@ -444,6 +444,8 @@ const ko: LocaleDict = {
   },
 
   selection: {
+    count: '선택됨: {{count}}',
+    select: '메시지 선택',
     archive: '보관',
     delete: '삭제',
     star: '별표',

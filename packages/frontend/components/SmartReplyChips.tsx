@@ -5,23 +5,23 @@
  * Tapping a chip inserts the text into the reply composer.
  */
 
-import React, { useCallback, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Platform,
-  TouchableOpacity,
-} from 'react-native';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { AiMail01Icon } from '@hugeicons/core-free-icons';
+import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import { Chip } from '@oxy.so/bloom/chip';
 import * as Skeleton from '@oxy.so/bloom/skeleton';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
-import { AiMail01Icon } from '@hugeicons/core-free-icons';
+import { useCallback, useState } from 'react';
+import {
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 import { useColors } from '@/constants/theme';
-import { useSmartReplies } from '@/hooks/queries/useSmartReplies';
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
+import { useSmartReplies } from '@/hooks/queries/useSmartReplies';
 import type { Message } from '@/services/emailApi';
 
 interface SmartReplyChipsProps {
@@ -29,7 +29,10 @@ interface SmartReplyChipsProps {
   onSelectReply: (text: string) => void;
 }
 
-export function SmartReplyChips({ message, onSelectReply }: SmartReplyChipsProps) {
+export function SmartReplyChips({
+  message,
+  onSelectReply,
+}: SmartReplyChipsProps) {
   const colors = useColors();
   const { prefs } = useInboxPrefs();
   const [hasRequestedReplies, setHasRequestedReplies] = useState(false);
@@ -71,7 +74,8 @@ export function SmartReplyChips({ message, onSelectReply }: SmartReplyChipsProps
           </Text>
         </TouchableOpacity>
         <Text style={[styles.privacyText, { color: colors.secondaryText }]}>
-          Oxy checks for sensitive content before sending bounded email context to Kaana.
+          Oxy checks for sensitive content before sending bounded email context
+          to Kaana.
         </Text>
       </View>
     );
@@ -115,7 +119,7 @@ export function SmartReplyChips({ message, onSelectReply }: SmartReplyChipsProps
           replies.map((reply, index) => (
             <Chip
               key={index}
-              variant="outlined"
+              variant="subtle"
               color="primary"
               onPress={() => onSelectReply(reply)}
             >

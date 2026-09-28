@@ -1,15 +1,14 @@
-import React from 'react';
-import { StyleSheet, Platform, useWindowDimensions } from 'react-native';
-import { Link, Stack } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { H1, H4 } from '@oxy.so/bloom/typography';
 import { useColors } from '@/constants/theme';
+import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 import { useTranslation } from '@/lib/i18n';
+import { H1, H4 } from '@oxy.so/bloom/typography';
+import { Link, Stack } from 'expo-router';
+import { StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function NotFoundScreen() {
   const colors = useColors();
-  const { width } = useWindowDimensions();
-  const isDesktop = Platform.OS === 'web' && width >= 900;
+  const isDesktop = useIsDesktopLayout();
   const { t } = useTranslation();
 
   return (

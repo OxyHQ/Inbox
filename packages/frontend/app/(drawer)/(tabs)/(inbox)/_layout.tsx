@@ -1,49 +1,33 @@
-/**
- * Responsive inbox layout.
- *
- * Desktop (web ≥ 900px): two-column split — InboxList on left, Slot (child route) on right.
- * Mobile / narrow: Stack navigation — index shows list, conversation/[id] pushes on top.
- */
+import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
+/** A stable route stack preserves drafts and list state when the shell changes width. */
 
-import React, { useMemo, useCallback } from 'react';
-import { View, TouchableOpacity, StyleSheet, Platform, useWindowDimensions } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Slot, Stack, useRouter, usePathname } from 'expo-router';
 import { useDialogControl } from '@oxy.so/bloom';
 import { useOxy } from '@oxy.so/services';
-import { ContentPanel } from '@oxy.so/bloom/content-panel';
+import { Stack, useRouter } from 'expo-router';
+import { useCallback, useMemo } from 'react';
 
-import { useColors } from '@/constants/theme';
-import { SPACING } from '@/constants/layout';
-import { SPECIAL_USE } from '@/constants/mailbox';
-import { InboxList } from '@/components/InboxList';
 import { KeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp';
-import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import { useEmailStore } from '@/hooks/useEmail';
-import { useMessages } from '@/hooks/queries/useMessages';
+import { SPECIAL_USE } from '@/constants/mailbox';
+import {
+  useArchiveMessage,
+  useDeleteMessage,
+  useToggleRead,
+  useToggleStar,
+} from '@/hooks/mutations/useMessageMutations';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
-import { useToggleStar, useToggleRead, useArchiveMessage, useDeleteMessage } from '@/hooks/mutations/useMessageMutations';
-import { buildReplyRecipients, joinAddresses, type ReplyMode } from '@/utils/replyRecipients';
+import { useMessages } from '@/hooks/queries/useMessages';
+import { useEmailStore } from '@/hooks/useEmail';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import {
+  buildReplyRecipients,
+  joinAddresses,
+  type ReplyMode,
+} from '@/utils/replyRecipients';
 
 export default function InboxLayout() {
-  const { width } = useWindowDimensions();
   const router = useRouter();
-  const pathname = usePathname();
-  const colors = useColors();
   const { user } = useOxy();
-  const isDesktop = Platform.OS === 'web' && width >= 900;
-  /**
-   * Every child of this group is either a mailbox list (`/`, `/sent`,
-   * `/label/x` — they render an empty state into the Slot) or a detail ABOUT a
-   * message (`conversation`, `compose`), which sits beside the list.
-   *
-   * Screens that are neither do not belong in this navigator at all: they get
-   * their own route outside the group, so they are never squeezed into the
-   * detail slot. `subscriptions` used to live here and rendered invisible on
-   * desktop for exactly that reason.
-   */
-  const hasOpenDetail = pathname.startsWith('/conversation/') || pathname.startsWith('/compose');
-
+  const isDesktop = useIsDesktopLayout();
   const currentMailbox = useEmailStore((s) => s.currentMailbox);
   const selectedMessageId = useEmailStore((s) => s.selectedMessageId);
 
@@ -55,7 +39,10 @@ export default function InboxLayout() {
   const { data: messagesData } = useMessages({
     mailboxId: currentMailbox?._id ?? inboxMailboxId,
   });
-  const messages = useMemo(() => messagesData?.pages.flatMap((p) => p.data) ?? [], [messagesData]);
+  const messages = useMemo(
+    () => messagesData?.pages.flatMap((p) => p.data) ?? [],
+    [messagesData],
+  );
 
   const toggleStar = useToggleStar();
   const toggleRead = useToggleRead();
@@ -101,7 +88,14 @@ export default function InboxLayout() {
         },
       });
     },
-    [selectedMessageId, currentMessage, router, isDesktop, user?.username, user?.email],
+    [
+      selectedMessageId,
+      currentMessage,
+      router,
+      isDesktop,
+      user?.username,
+      user?.email,
+    ],
   );
 
   const handleReply = useCallback(() => openReply('reply'), [openReply]);
@@ -125,18 +119,29 @@ export default function InboxLayout() {
 
   const handleArchive = useCallback(() => {
     if (selectedMessageId) {
-      const archiveBox = mailboxes.find((m) => m.specialUse === SPECIAL_USE.ARCHIVE);
+      const archiveBox = mailboxes.find(
+        (m) => m.specialUse === SPECIAL_USE.ARCHIVE,
+      );
       if (archiveBox) {
-        archiveMutation.mutate({ messageId: selectedMessageId, archiveMailboxId: archiveBox._id });
+        archiveMutation.mutate({
+          messageId: selectedMessageId,
+          archiveMailboxId: archiveBox._id,
+        });
       }
     }
   }, [selectedMessageId, mailboxes, archiveMutation]);
 
   const handleDelete = useCallback(() => {
     if (selectedMessageId) {
-      const trashBox = mailboxes.find((m) => m.specialUse === SPECIAL_USE.TRASH);
+      const trashBox = mailboxes.find(
+        (m) => m.specialUse === SPECIAL_USE.TRASH,
+      );
       const isInTrash = currentMailbox?.specialUse === SPECIAL_USE.TRASH;
-      deleteMutation.mutate({ messageId: selectedMessageId, trashMailboxId: trashBox?._id, isInTrash });
+      deleteMutation.mutate({
+        messageId: selectedMessageId,
+        trashMailboxId: trashBox?._id,
+        isInTrash,
+      });
     }
   }, [selectedMessageId, mailboxes, currentMailbox, deleteMutation]);
 
@@ -162,7 +167,10 @@ export default function InboxLayout() {
 
   const handleToggleStar = useCallback(() => {
     if (selectedMessageId && currentMessage) {
-      toggleStar.mutate({ messageId: selectedMessageId, starred: !currentMessage.flags.starred });
+      toggleStar.mutate({
+        messageId: selectedMessageId,
+        starred: !currentMessage.flags.starred,
+      });
     }
   }, [selectedMessageId, currentMessage, toggleStar]);
 
@@ -178,11 +186,6 @@ export default function InboxLayout() {
    * with the pane closed the mailbox route's `MailboxView` never mounts to
    * override it either.
    */
-  const handleCloseDetail = useCallback(() => {
-    useEmailStore.setState({ selectedMessageId: null });
-    router.replace('/');
-  }, [router]);
-
   const helpControl = useDialogControl();
   const handleShowHelp = useCallback(() => {
     helpControl.open();
@@ -204,77 +207,21 @@ export default function InboxLayout() {
     enabled: isDesktop,
   });
 
-  if (isDesktop) {
-    return (
-      <View style={[styles.splitContainer, { backgroundColor: colors.background }]}>
-        {/* Both panes transition in CSS via NativeWind: the list narrows and
-            the detail pane takes the width it frees, on the same duration and
-            curve, so the split reads as one movement. No JS animation driver —
-            on web these compile to real CSS transitions. */}
-        <View
-          className={`min-h-0 transition-[width] duration-300 ease-out ${hasOpenDetail ? 'w-[380px]' : 'w-full'}`}
-        >
-          <InboxList replaceNavigation />
-        </View>
-        {/*
-          * The detail pane is framed with Bloom's shared `ContentPanel`, the
-          * same component Mention's layout uses for its centre column.
-          *
-          * `<Slot />` renders UNCONDITIONALLY: it is where this layout's child
-          * routes mount, and tearing it out of the tree in the same commit that
-          * navigates away from a child route leaves that route with nowhere to
-          * go. Visibility is a matter of the pane's width and opacity, and
-          * `pointerEvents` keeps the hidden pane from swallowing clicks.
-          */}
-        <View
-          className={`min-h-0 overflow-hidden transition-all duration-300 ease-out ${hasOpenDetail ? 'flex-1 opacity-100' : 'w-0 opacity-0'}`}
-          style={styles.detailPane}
-          pointerEvents={hasOpenDetail ? 'auto' : 'none'}
-        >
-            <ContentPanel framed maskColor={colors.background}>
-              <Slot />
-            </ContentPanel>
-            {/* Floats over the panel so it works for every child route
-                (conversation, compose) without each one wiring its own. */}
-            {hasOpenDetail && (
-            <TouchableOpacity
-              onPress={handleCloseDetail}
-              hitSlop={SPACING.sm}
-              className="absolute right-5 top-5 h-8 w-8 items-center justify-center rounded-[10px] border"
-              style={{ backgroundColor: colors.background, borderColor: colors.border }}
-              accessibilityRole="button"
-              accessibilityLabel="Close"
-            >
-              <MaterialCommunityIcons name="close" size={18} color={colors.icon} />
-            </TouchableOpacity>
-            )}
-        </View>
-        <KeyboardShortcutsHelp control={helpControl} />
-      </View>
-    );
-  }
-
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="[view]" />
-      <Stack.Screen name="label/[name]" />
-      <Stack.Screen name="conversation/[id]" />
-      <Stack.Screen name="compose" />
-    </Stack>
+    <>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: isDesktop ? 'none' : 'default',
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="[view]" />
+        <Stack.Screen name="label/[name]" />
+        <Stack.Screen name="conversation/[id]" />
+        <Stack.Screen name="compose" />
+      </Stack>
+      <KeyboardShortcutsHelp control={helpControl} />
+    </>
   );
 }
-
-const styles = StyleSheet.create({
-  splitContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    minHeight: 0,
-  },
-  detailPane: {
-    flex: 1,
-    minHeight: 0,
-    padding: 8,
-    paddingLeft: 0,
-  },
-});

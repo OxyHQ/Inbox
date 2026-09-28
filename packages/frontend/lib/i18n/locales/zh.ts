@@ -442,6 +442,8 @@ const zh: LocaleDict = {
   },
 
   selection: {
+    count: '已选择：{{count}}',
+    select: '选择邮件',
     archive: '存档',
     delete: '删除',
     star: '加星标',

@@ -5,28 +5,31 @@
  * Collapsible by default with expand/collapse functionality.
  */
 
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-  Pressable,
-} from 'react-native';
-import * as Skeleton from '@oxy.so/bloom/skeleton';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import {
   AiChat02Icon,
-  CheckListIcon,
   ArrowDown01Icon,
   ArrowUp01Icon,
+  CheckListIcon,
 } from '@hugeicons/core-free-icons';
+import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
+import * as Skeleton from '@oxy.so/bloom/skeleton';
+import { useState } from 'react';
+import {
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 import { useColors } from '@/constants/theme';
+import {
+  useThreadSummary,
+  type ActionItem,
+} from '@/hooks/queries/useThreadSummary';
 import { useTranslation } from '@/lib/i18n';
-import { useThreadSummary, type ActionItem } from '@/hooks/queries/useThreadSummary';
 import type { Message } from '@/services/emailApi';
 
 interface ThreadSummaryProps {
@@ -57,12 +60,19 @@ function ActionItemRow({
         {(item.owner || item.deadline) && (
           <View style={styles.actionItemMeta}>
             {item.owner && (
-              <Text style={[styles.actionItemOwner, { color: colors.secondaryText }]}>
+              <Text
+                style={[
+                  styles.actionItemOwner,
+                  { color: colors.secondaryText },
+                ]}
+              >
                 {item.owner}
               </Text>
             )}
             {item.deadline && (
-              <Text style={[styles.actionItemDeadline, { color: colors.primary }]}>
+              <Text
+                style={[styles.actionItemDeadline, { color: colors.primary }]}
+              >
                 {t('threadSummary.due', { date: item.deadline })}
               </Text>
             )}
@@ -73,16 +83,17 @@ function ActionItemRow({
   );
 }
 
-export function ThreadSummary({ messageId, messages, minMessages = 4 }: ThreadSummaryProps) {
+export function ThreadSummary({
+  messageId,
+  messages,
+  minMessages = 4,
+}: ThreadSummaryProps) {
   const colors = useColors();
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(true);
 
-  const { summary, keyPoints, actionItems, isLoading, error, refetch } = useThreadSummary(
-    messageId,
-    messages,
-    { minMessages }
-  );
+  const { summary, keyPoints, actionItems, isLoading, error, refetch } =
+    useThreadSummary(messageId, messages, { minMessages });
 
   // Don't render if not enough messages or no summary
   if (messages.length < minMessages) {
@@ -91,15 +102,33 @@ export function ThreadSummary({ messageId, messages, minMessages = 4 }: ThreadSu
 
   if (isLoading) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.surfaceVariant, borderColor: colors.border }]}>
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.surfaceVariant,
+            borderColor: colors.border,
+          },
+        ]}
+      >
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             {Platform.OS === 'web' ? (
-              <HugeiconsIcon icon={AiChat02Icon as unknown as IconSvgElement} size={18} color={colors.primary} />
+              <HugeiconsIcon
+                icon={AiChat02Icon as unknown as IconSvgElement}
+                size={18}
+                color={colors.primary}
+              />
             ) : (
-              <MaterialCommunityIcons name="robot-outline" size={18} color={colors.primary} />
+              <MaterialCommunityIcons
+                name="robot-outline"
+                size={18}
+                color={colors.primary}
+              />
             )}
-            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('threadSummary.title')}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>
+              {t('threadSummary.title')}
+            </Text>
           </View>
         </View>
         <View style={styles.loadingContent}>
@@ -112,15 +141,37 @@ export function ThreadSummary({ messageId, messages, minMessages = 4 }: ThreadSu
 
   if (error) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.surfaceVariant, borderColor: colors.border }]}>
-        <Pressable onPress={() => refetch()} accessibilityRole="button" style={styles.header}>
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.surfaceVariant,
+            borderColor: colors.border,
+          },
+        ]}
+      >
+        <Pressable
+          onPress={() => refetch()}
+          accessibilityRole="button"
+          style={styles.header}
+        >
           <View style={styles.headerLeft}>
             {Platform.OS === 'web' ? (
-              <HugeiconsIcon icon={AiChat02Icon as unknown as IconSvgElement} size={18} color={colors.primary} />
+              <HugeiconsIcon
+                icon={AiChat02Icon as unknown as IconSvgElement}
+                size={18}
+                color={colors.primary}
+              />
             ) : (
-              <MaterialCommunityIcons name="robot-outline" size={18} color={colors.primary} />
+              <MaterialCommunityIcons
+                name="robot-outline"
+                size={18}
+                color={colors.primary}
+              />
             )}
-            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('threadSummary.title')}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>
+              {t('threadSummary.title')}
+            </Text>
           </View>
         </Pressable>
         <Text style={[styles.errorText, { color: colors.secondaryText }]}>
@@ -136,7 +187,12 @@ export function ThreadSummary({ messageId, messages, minMessages = 4 }: ThreadSu
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.surfaceVariant, borderColor: colors.border }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.surfaceVariant, borderColor: colors.border },
+      ]}
+    >
       <TouchableOpacity
         style={styles.header}
         onPress={() => setExpanded(!expanded)}
@@ -144,12 +200,24 @@ export function ThreadSummary({ messageId, messages, minMessages = 4 }: ThreadSu
       >
         <View style={styles.headerLeft}>
           {Platform.OS === 'web' ? (
-            <HugeiconsIcon icon={AiChat02Icon as unknown as IconSvgElement} size={18} color={colors.primary} />
+            <HugeiconsIcon
+              icon={AiChat02Icon as unknown as IconSvgElement}
+              size={18}
+              color={colors.primary}
+            />
           ) : (
-            <MaterialCommunityIcons name="robot-outline" size={18} color={colors.primary} />
+            <MaterialCommunityIcons
+              name="robot-outline"
+              size={18}
+              color={colors.primary}
+            />
           )}
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Thread Summary</Text>
-          <View style={[styles.badge, { backgroundColor: colors.primary + '20' }]}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            Thread Summary
+          </Text>
+          <View
+            style={[styles.badge, { backgroundColor: colors.primaryContainer }]}
+          >
             <Text style={[styles.badgeText, { color: colors.primary }]}>
               {t('threadSummary.messages', { count: messages.length })}
             </Text>
@@ -157,7 +225,11 @@ export function ThreadSummary({ messageId, messages, minMessages = 4 }: ThreadSu
         </View>
         {Platform.OS === 'web' ? (
           <HugeiconsIcon
-            icon={(expanded ? ArrowUp01Icon : ArrowDown01Icon) as unknown as IconSvgElement}
+            icon={
+              (expanded
+                ? ArrowUp01Icon
+                : ArrowDown01Icon) as unknown as IconSvgElement
+            }
             size={18}
             color={colors.icon}
           />
@@ -174,19 +246,30 @@ export function ThreadSummary({ messageId, messages, minMessages = 4 }: ThreadSu
         <View style={styles.content}>
           {/* Summary */}
           {summary && (
-            <Text style={[styles.summary, { color: colors.text }]}>{summary}</Text>
+            <Text style={[styles.summary, { color: colors.text }]}>
+              {summary}
+            </Text>
           )}
 
           {/* Key Points */}
           {keyPoints.length > 0 && (
             <View style={styles.keyPointsSection}>
-              <Text style={[styles.sectionLabel, { color: colors.secondaryText }]}>
+              <Text
+                style={[styles.sectionLabel, { color: colors.secondaryText }]}
+              >
                 {t('threadSummary.keyPoints')}
               </Text>
               {keyPoints.map((point, index) => (
                 <View key={index} style={styles.keyPoint}>
-                  <View style={[styles.keyPointBullet, { backgroundColor: colors.primary }]} />
-                  <Text style={[styles.keyPointText, { color: colors.text }]}>{point}</Text>
+                  <View
+                    style={[
+                      styles.keyPointBullet,
+                      { backgroundColor: colors.primary },
+                    ]}
+                  />
+                  <Text style={[styles.keyPointText, { color: colors.text }]}>
+                    {point}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -197,11 +280,21 @@ export function ThreadSummary({ messageId, messages, minMessages = 4 }: ThreadSu
             <View style={styles.actionItemsSection}>
               <View style={styles.actionItemsHeader}>
                 {Platform.OS === 'web' ? (
-                  <HugeiconsIcon icon={CheckListIcon as unknown as IconSvgElement} size={14} color={colors.secondaryText} />
+                  <HugeiconsIcon
+                    icon={CheckListIcon as unknown as IconSvgElement}
+                    size={14}
+                    color={colors.secondaryText}
+                  />
                 ) : (
-                  <MaterialCommunityIcons name="checkbox-marked-outline" size={14} color={colors.secondaryText} />
+                  <MaterialCommunityIcons
+                    name="checkbox-marked-outline"
+                    size={14}
+                    color={colors.secondaryText}
+                  />
                 )}
-                <Text style={[styles.sectionLabel, { color: colors.secondaryText }]}>
+                <Text
+                  style={[styles.sectionLabel, { color: colors.secondaryText }]}
+                >
                   {t('threadSummary.actionItems')}
                 </Text>
               </View>

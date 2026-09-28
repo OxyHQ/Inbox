@@ -1,13 +1,19 @@
-import React, { useCallback } from 'react';
-import { View, StyleSheet, TouchableOpacity, Platform, Linking } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Card, CardHeader, CardBody } from '@oxy.so/bloom/card';
-import { Text } from '@oxy.so/bloom/typography';
-import { toast } from '@oxy.so/bloom';
-import { useTheme } from '@oxy.so/bloom/theme';
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';
 import type { CardData } from '@/services/emailApi';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { toast } from '@oxy.so/bloom';
+import { Card, CardBody, CardHeader } from '@oxy.so/bloom/card';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { Text } from '@oxy.so/bloom/typography';
+import { useCallback } from 'react';
+import {
+  Linking,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 interface EventCardProps {
   data: CardData;
@@ -18,7 +24,10 @@ interface EventCardProps {
  * Returns e.g. "20260415T090000Z"
  */
 function toIcsDate(date: Date): string {
-  return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  return date
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d{3}/, '');
 }
 
 /**
@@ -32,7 +41,11 @@ function generateIcs(data: CardData): string {
     : new Date(start.getTime() + 60 * 60 * 1000);
 
   const escapeIcs = (s: string) =>
-    s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+    s
+      .replace(/\\/g, '\\\\')
+      .replace(/;/g, '\\;')
+      .replace(/,/g, '\\,')
+      .replace(/\n/g, '\\n');
 
   const lines: string[] = [
     'BEGIN:VCALENDAR',
@@ -52,7 +65,8 @@ function generateIcs(data: CardData): string {
   const descParts: string[] = [];
   if (data.description) descParts.push(data.description);
   if (data.organizer) descParts.push(`Organizer: ${data.organizer}`);
-  if (descParts.length > 0) lines.push(`DESCRIPTION:${escapeIcs(descParts.join('\\n'))}`);
+  if (descParts.length > 0)
+    lines.push(`DESCRIPTION:${escapeIcs(descParts.join('\\n'))}`);
 
   lines.push('END:VEVENT', 'END:VCALENDAR');
 
@@ -69,7 +83,10 @@ function buildGoogleCalendarUrl(data: CardData): string {
     : new Date(start.getTime() + 60 * 60 * 1000);
 
   const formatGcalDate = (d: Date) =>
-    d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    d
+      .toISOString()
+      .replace(/[-:]/g, '')
+      .replace(/\.\d{3}/, '');
 
   const params = new URLSearchParams({
     action: 'TEMPLATE',
@@ -109,7 +126,9 @@ export function EventCard({ data }: EventCardProps) {
 
     if (Platform.OS === 'web') {
       // Web: create a Blob and trigger download
-      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+      const blob = new Blob([icsContent], {
+        type: 'text/calendar;charset=utf-8',
+      });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -139,7 +158,8 @@ export function EventCard({ data }: EventCardProps) {
           toast.error(t('ui.event.sharingUnavailable'));
         }
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : t('ui.event.openFailed');
+        const message =
+          err instanceof Error ? err.message : t('ui.event.openFailed');
         toast.error(message);
       }
     }
@@ -151,36 +171,68 @@ export function EventCard({ data }: EventCardProps) {
   }, [data]);
 
   return (
-    <Card variant="outlined">
+    <Card variant="filled">
       <CardHeader>
-        <View style={[styles.header, { backgroundColor: theme.colors.backgroundSecondary }]}>
-          <MaterialCommunityIcons name="calendar" size={18} color={colors.error} />
-          <Text style={[styles.headerText, { color: colors.error }]}>{t('cards.event.header')}</Text>
+        <View
+          style={[styles.header, { backgroundColor: theme.colors.errorSubtle }]}
+        >
+          <MaterialCommunityIcons
+            name="calendar"
+            size={18}
+            color={theme.colors.errorSubtleForeground}
+          />
+          <Text
+            style={[
+              styles.headerText,
+              { color: theme.colors.errorSubtleForeground },
+            ]}
+          >
+            {t('cards.event.header')}
+          </Text>
         </View>
       </CardHeader>
       <CardBody>
         <View style={styles.body}>
           {data.title && (
-            <Text style={[styles.title, { color: colors.text }]}>{data.title}</Text>
+            <Text style={[styles.title, { color: colors.text }]}>
+              {data.title}
+            </Text>
           )}
           {startTime && (
             <View style={styles.row}>
-              <MaterialCommunityIcons name="clock-outline" size={14} color={colors.secondaryText} />
+              <MaterialCommunityIcons
+                name="clock-outline"
+                size={14}
+                color={colors.secondaryText}
+              />
               <Text style={[styles.time, { color: colors.secondaryText }]}>
-                {startTime}{endTime ? ` – ${endTime}` : ''}
+                {startTime}
+                {endTime ? ` – ${endTime}` : ''}
               </Text>
             </View>
           )}
           {data.location && (
             <View style={styles.row}>
-              <MaterialCommunityIcons name="map-marker-outline" size={14} color={colors.secondaryText} />
-              <Text style={[styles.location, { color: colors.secondaryText }]}>{data.location}</Text>
+              <MaterialCommunityIcons
+                name="map-marker-outline"
+                size={14}
+                color={colors.secondaryText}
+              />
+              <Text style={[styles.location, { color: colors.secondaryText }]}>
+                {data.location}
+              </Text>
             </View>
           )}
           {data.organizer && (
             <View style={styles.row}>
-              <MaterialCommunityIcons name="account-outline" size={14} color={colors.secondaryText} />
-              <Text style={[styles.organizer, { color: colors.secondaryText }]}>{data.organizer}</Text>
+              <MaterialCommunityIcons
+                name="account-outline"
+                size={14}
+                color={colors.secondaryText}
+              />
+              <Text style={[styles.organizer, { color: colors.secondaryText }]}>
+                {data.organizer}
+              </Text>
             </View>
           )}
 
@@ -191,16 +243,28 @@ export function EventCard({ data }: EventCardProps) {
               onPress={handleAddToCalendar}
               activeOpacity={0.7}
             >
-              <MaterialCommunityIcons name="calendar-plus" size={16} color={colors.text} />
-              <Text style={[styles.actionText, { color: colors.text }]}>{t('cards.event.addToCalendar')}</Text>
+              <MaterialCommunityIcons
+                name="calendar-plus"
+                size={16}
+                color={colors.text}
+              />
+              <Text style={[styles.actionText, { color: colors.text }]}>
+                {t('cards.event.addToCalendar')}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: colors.border }]}
               onPress={handleOpenGoogleCalendar}
               activeOpacity={0.7}
             >
-              <MaterialCommunityIcons name="google" size={16} color={colors.text} />
-              <Text style={[styles.actionText, { color: colors.text }]}>{t('cards.event.googleCalendar')}</Text>
+              <MaterialCommunityIcons
+                name="google"
+                size={16}
+                color={colors.text}
+              />
+              <Text style={[styles.actionText, { color: colors.text }]}>
+                {t('cards.event.googleCalendar')}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -210,7 +274,13 @@ export function EventCard({ data }: EventCardProps) {
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
   headerText: { fontSize: 13, fontWeight: '600' },
   body: { gap: 8 },
   title: { fontSize: 15, fontWeight: '600' },

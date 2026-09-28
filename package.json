@@ -13,14 +13,14 @@
     "build": "bun run --cwd packages/frontend build",
     "typecheck": "bun run --cwd packages/frontend typecheck",
     "lint": "bun run --cwd packages/frontend lint",
-    "doctor:oxy": "oxy-doctor --ci",
+    "doctor:oxy": "node scripts/oxy-doctor.mjs",
     "validate:agents-md": "bun ./scripts/check-agents-md-size.mjs && bun ./scripts/test-check-agents-md-size.mjs",
-    "test": "bun run --cwd packages/frontend test"
+    "test": "node --test scripts/oxy-doctor.test.mjs && bun run --cwd packages/frontend test"
   },
   "overrides": {
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "@oxy.so/bloom": "^4.31.0",
+    "@oxy.so/bloom": "4.34.1",
     "@oxy.so/services": "^8.3.0",
     "@radix-ui/react-slot": "1.2.3",
     "lightningcss": "1.30.1",

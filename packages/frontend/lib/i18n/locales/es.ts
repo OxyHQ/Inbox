@@ -448,6 +448,8 @@ const es: LocaleDict = {
   },
 
   selection: {
+    count: 'Seleccionados: {{count}}',
+    select: 'Seleccionar mensaje',
     archive: 'Archivar',
     delete: 'Eliminar',
     star: 'Destacar',

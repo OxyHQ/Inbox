@@ -1,10 +1,10 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Card, CardHeader, CardBody } from '@oxy.so/bloom/card';
-import { Text } from '@oxy.so/bloom/typography';
 import { useColors } from '@/constants/theme';
 import type { CardData } from '@/services/emailApi';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Card, CardBody, CardHeader } from '@oxy.so/bloom/card';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { Text } from '@oxy.so/bloom/typography';
+import { StyleSheet, View } from 'react-native';
 
 interface BillCardProps {
   data: CardData;
@@ -12,13 +12,15 @@ interface BillCardProps {
 
 export function BillCard({ data }: BillCardProps) {
   const colors = useColors();
+  const { colors: tokens } = useTheme();
 
-  const formattedAmount = data.amount != null
-    ? new Intl.NumberFormat(undefined, {
-        style: 'currency',
-        currency: data.currency || 'USD',
-      }).format(data.amount)
-    : null;
+  const formattedAmount =
+    data.amount != null
+      ? new Intl.NumberFormat(undefined, {
+          style: 'currency',
+          currency: data.currency || 'USD',
+        }).format(data.amount)
+      : null;
 
   const dueDate = data.dueDate
     ? new Date(data.dueDate).toLocaleDateString(undefined, {
@@ -31,20 +33,37 @@ export function BillCard({ data }: BillCardProps) {
   const isOverdue = data.dueDate ? new Date(data.dueDate) < new Date() : false;
 
   return (
-    <Card variant="outlined">
+    <Card variant="filled">
       <CardHeader>
-        <View style={[styles.header, { backgroundColor: '#F9AB0020' }]}>
-          <MaterialCommunityIcons name="receipt" size={18} color="#F9AB00" />
-          <Text style={[styles.headerText, { color: '#F9AB00' }]}>Bill</Text>
+        <View
+          style={[styles.header, { backgroundColor: tokens.warningSubtle }]}
+        >
+          <MaterialCommunityIcons
+            name="receipt"
+            size={18}
+            color={tokens.warningSubtleForeground}
+          />
+          <Text
+            style={[
+              styles.headerText,
+              { color: tokens.warningSubtleForeground },
+            ]}
+          >
+            Bill
+          </Text>
         </View>
       </CardHeader>
       <CardBody>
         <View style={styles.body}>
           {data.biller && (
-            <Text style={[styles.biller, { color: colors.text }]}>{data.biller}</Text>
+            <Text style={[styles.biller, { color: colors.text }]}>
+              {data.biller}
+            </Text>
           )}
           {formattedAmount && (
-            <Text style={[styles.amount, { color: colors.text }]}>{formattedAmount}</Text>
+            <Text style={[styles.amount, { color: colors.text }]}>
+              {formattedAmount}
+            </Text>
           )}
           {dueDate && (
             <View style={styles.row}>
@@ -53,15 +72,25 @@ export function BillCard({ data }: BillCardProps) {
                 size={14}
                 color={isOverdue ? colors.danger : colors.secondaryText}
               />
-              <Text style={[styles.dueDate, { color: isOverdue ? colors.danger : colors.secondaryText }]}>
-                {isOverdue ? 'Overdue · ' : 'Due '}{dueDate}
+              <Text
+                style={[
+                  styles.dueDate,
+                  { color: isOverdue ? colors.danger : colors.secondaryText },
+                ]}
+              >
+                {isOverdue ? 'Overdue · ' : 'Due '}
+                {dueDate}
               </Text>
             </View>
           )}
           {data.accountNumber && (
             <View style={styles.row}>
-              <Text style={[styles.label, { color: colors.secondaryText }]}>Account</Text>
-              <Text style={[styles.value, { color: colors.text }]}>{data.accountNumber}</Text>
+              <Text style={[styles.label, { color: colors.secondaryText }]}>
+                Account
+              </Text>
+              <Text style={[styles.value, { color: colors.text }]}>
+                {data.accountNumber}
+              </Text>
             </View>
           )}
         </View>
@@ -71,7 +100,13 @@ export function BillCard({ data }: BillCardProps) {
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
   headerText: { fontSize: 13, fontWeight: '600' },
   body: { gap: 6 },
   biller: { fontSize: 15, fontWeight: '600' },

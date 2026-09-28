@@ -1,3 +1,4 @@
+import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 /**
  * Conversation (message detail) route — /conversation/:id
  *
@@ -5,20 +6,18 @@
  * Mobile: pushed onto Stack, standalone mode with back button.
  */
 
-import React, { useEffect } from 'react';
-import { Platform, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import Head from 'expo-router/head';
+import { useEffect } from 'react';
 
 import { MessageDetail } from '@/components/MessageDetail';
-import { useEmailStore } from '@/hooks/useEmail';
 import { useThread } from '@/hooks/queries/useThread';
+import { useEmailStore } from '@/hooks/useEmail';
 import { useTranslation } from '@/lib/i18n';
 
 export default function ConversationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { width } = useWindowDimensions();
-  const isDesktop = Platform.OS === 'web' && width >= 900;
+  const isDesktop = useIsDesktopLayout();
   const { t } = useTranslation();
 
   const { data: thread } = useThread(id);
@@ -44,7 +43,10 @@ export default function ConversationScreen() {
       <Head>
         <title>{pageTitle}</title>
       </Head>
-      <MessageDetail mode={isDesktop ? 'embedded' : 'standalone'} messageId={id} />
+      <MessageDetail
+        mode={isDesktop ? 'embedded' : 'standalone'}
+        messageId={id}
+      />
     </>
   );
 }

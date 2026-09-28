@@ -1,3 +1,4 @@
+import { Badge } from '@oxy.so/bloom/badge';
 /**
  * Collapsible bundle row for the inbox list.
  *
@@ -5,14 +6,16 @@
  * Taps to expand inline, showing bundled messages.
  */
 
-import React, { useMemo, type ComponentProps } from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Text } from '@oxy.so/bloom/typography';
 import { useColors } from '@/constants/theme';
 import type { Bundle, Message } from '@/services/emailApi';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Text } from '@oxy.so/bloom/typography';
+import { useMemo, type ComponentProps } from 'react';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
-type MaterialCommunityIconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
+type MaterialCommunityIconName = ComponentProps<
+  typeof MaterialCommunityIcons
+>['name'];
 
 interface BundleRowProps {
   bundle: Bundle;
@@ -22,7 +25,13 @@ interface BundleRowProps {
   onToggle: () => void;
 }
 
-export function BundleRow({ bundle, messages, unreadCount, isExpanded, onToggle }: BundleRowProps) {
+export function BundleRow({
+  bundle,
+  messages,
+  unreadCount,
+  isExpanded,
+  onToggle,
+}: BundleRowProps) {
   const colors = useColors();
 
   const latestPreview = useMemo(() => {
@@ -39,7 +48,9 @@ export function BundleRow({ bundle, messages, unreadCount, isExpanded, onToggle 
       onPress={onToggle}
       activeOpacity={0.7}
     >
-      <View style={[styles.iconCircle, { backgroundColor: bundle.color + '20' }]}>
+      <View
+        style={[styles.iconCircle, { backgroundColor: colors.surfaceVariant }]}
+      >
         <MaterialCommunityIcons
           name={(bundle.icon || 'folder-outline') as MaterialCommunityIconName}
           size={20}
@@ -48,13 +59,22 @@ export function BundleRow({ bundle, messages, unreadCount, isExpanded, onToggle 
       </View>
       <View style={styles.content}>
         <View style={styles.topRow}>
-          <Text style={[styles.name, { color: colors.text }, unreadCount > 0 && styles.nameUnread]}>
+          <Text
+            style={[
+              styles.name,
+              { color: colors.text },
+              unreadCount > 0 && styles.nameUnread,
+            ]}
+          >
             {bundle.name}
           </Text>
           {unreadCount > 0 && (
-            <View style={[styles.badge, { backgroundColor: bundle.color }]}>
-              <Text style={styles.badgeText}>{unreadCount}</Text>
-            </View>
+            <Badge
+              color="primary"
+              variant="subtle"
+              content={unreadCount}
+              size="small"
+            />
           )}
           <Text style={[styles.count, { color: colors.secondaryText }]}>
             {messages.length}
@@ -66,7 +86,10 @@ export function BundleRow({ bundle, messages, unreadCount, isExpanded, onToggle 
           />
         </View>
         {!isExpanded && (
-          <Text style={[styles.preview, { color: colors.secondaryText }]} numberOfLines={1}>
+          <Text
+            style={[styles.preview, { color: colors.secondaryText }]}
+            numberOfLines={1}
+          >
             {latestPreview}
           </Text>
         )}
@@ -106,18 +129,6 @@ const styles = StyleSheet.create({
   },
   nameUnread: {
     fontWeight: '700',
-  },
-  badge: {
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 10,
-    minWidth: 20,
-    alignItems: 'center',
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#fff',
   },
   count: {
     fontSize: 12,

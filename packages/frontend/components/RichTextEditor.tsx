@@ -5,16 +5,16 @@
  * Native: plain TextInput multiline fallback.
  */
 
-import React, { useRef, useCallback, useEffect, useState } from 'react';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View,
+  Platform,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  Platform,
+  View,
 } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { useColors } from '@/constants/theme';
 
@@ -117,9 +117,12 @@ function WebRichTextEditor(
     if (document.queryCommandState('bold')) formats.add('bold');
     if (document.queryCommandState('italic')) formats.add('italic');
     if (document.queryCommandState('underline')) formats.add('underline');
-    if (document.queryCommandState('strikeThrough')) formats.add('strikeThrough');
-    if (document.queryCommandState('insertOrderedList')) formats.add('insertOrderedList');
-    if (document.queryCommandState('insertUnorderedList')) formats.add('insertUnorderedList');
+    if (document.queryCommandState('strikeThrough'))
+      formats.add('strikeThrough');
+    if (document.queryCommandState('insertOrderedList'))
+      formats.add('insertOrderedList');
+    if (document.queryCommandState('insertUnorderedList'))
+      formats.add('insertUnorderedList');
     setActiveFormats(formats);
   }, []);
 
@@ -140,17 +143,21 @@ function WebRichTextEditor(
   }, [autoFocus]);
 
   // Expose imperative handle
-  React.useImperativeHandle(ref, () => ({
-    setContent(content: string) {
-      const el = editorRef.current;
-      if (!el) return;
-      el.innerHTML = content;
-      onChange(content);
-    },
-    focus() {
-      editorRef.current?.focus();
-    },
-  }), [onChange]);
+  React.useImperativeHandle(
+    ref,
+    () => ({
+      setContent(content: string) {
+        const el = editorRef.current;
+        if (!el) return;
+        el.innerHTML = content;
+        onChange(content);
+      },
+      focus() {
+        editorRef.current?.focus();
+      },
+    }),
+    [onChange],
+  );
 
   const emitChange = useCallback(() => {
     const el = editorRef.current;
@@ -178,16 +185,13 @@ function WebRichTextEditor(
   }, [emitChange]);
 
   // Plain-text paste by default; Shift+paste keeps formatting
-  const handlePaste = useCallback(
-    (e: ClipboardEvent) => {
-      // Check if Shift is held to allow rich paste (shiftKey exists on the native event)
-      if ((e as unknown as KeyboardEvent).shiftKey) return;
-      e.preventDefault();
-      const text = e.clipboardData?.getData('text/plain') ?? '';
-      document.execCommand('insertText', false, text);
-    },
-    [],
-  );
+  const handlePaste = useCallback((e: ClipboardEvent) => {
+    // Check if Shift is held to allow rich paste (shiftKey exists on the native event)
+    if ((e as unknown as KeyboardEvent).shiftKey) return;
+    e.preventDefault();
+    const text = e.clipboardData?.getData('text/plain') ?? '';
+    document.execCommand('insertText', false, text);
+  }, []);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -231,7 +235,14 @@ function WebRichTextEditor(
       el.removeEventListener('keydown', handleKeyDown as EventListener);
       document.removeEventListener('selectionchange', handleSelectionChange);
     };
-  }, [handleInput, handleCompositionStart, handleCompositionEnd, handlePaste, handleKeyDown, handleSelectionChange]);
+  }, [
+    handleInput,
+    handleCompositionStart,
+    handleCompositionEnd,
+    handlePaste,
+    handleKeyDown,
+    handleSelectionChange,
+  ]);
 
   // Toolbar commands
   const exec = useCallback(
@@ -296,7 +307,10 @@ function WebRichTextEditor(
           iconColor={colors.icon}
         />
         <View
-          style={[webStyles.toolbarSeparator, { backgroundColor: colors.border }]}
+          style={[
+            webStyles.toolbarSeparator,
+            { backgroundColor: colors.border },
+          ]}
         />
         <WebToolbarButton
           command="insertUnorderedList"
@@ -315,7 +329,10 @@ function WebRichTextEditor(
           iconColor={colors.icon}
         />
         <View
-          style={[webStyles.toolbarSeparator, { backgroundColor: colors.border }]}
+          style={[
+            webStyles.toolbarSeparator,
+            { backgroundColor: colors.border },
+          ]}
         />
         <WebToolbarButton
           icon="link-variant"
@@ -387,11 +404,7 @@ function NativeRichTextEditor(
   return (
     <TextInput
       ref={inputRef}
-      style={[
-        nativeStyles.bodyInput,
-        { color: colors.text },
-        style,
-      ]}
+      style={[nativeStyles.bodyInput, { color: colors.text }, style]}
       value={value}
       onChangeText={onChange}
       placeholder={placeholder}
@@ -403,9 +416,10 @@ function NativeRichTextEditor(
   );
 }
 
-const NativeEditor = React.forwardRef<RichTextEditorHandle, RichTextEditorProps>(
-  NativeRichTextEditor,
-);
+const NativeEditor = React.forwardRef<
+  RichTextEditorHandle,
+  RichTextEditorProps
+>(NativeRichTextEditor);
 
 // ─── Exported component (platform switch) ────────────────────────────
 
@@ -422,27 +436,6 @@ export const RichTextEditor = React.forwardRef<
 RichTextEditor.displayName = 'RichTextEditor';
 
 // ─── Helper: strip HTML to plain text ────────────────────────────────
-
-export function stripHtml(html: string): string {
-  if (Platform.OS === 'web') {
-    const tmp = document.createElement('div');
-    tmp.innerHTML = html;
-    return tmp.textContent || tmp.innerText || '';
-  }
-  // Naive fallback for native
-  return html
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi, '\n')
-    .replace(/<\/div>/gi, '\n')
-    .replace(/<\/li>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
-}
 
 // ─── Styles ──────────────────────────────────────────────────────────
 

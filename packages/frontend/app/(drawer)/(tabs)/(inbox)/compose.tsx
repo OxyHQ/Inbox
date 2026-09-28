@@ -1,4 +1,4 @@
-import { Platform, useWindowDimensions } from 'react-native';
+import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 import { useLocalSearchParams } from 'expo-router';
 import Head from 'expo-router/head';
 
@@ -6,8 +6,7 @@ import { ComposeForm } from '@/components/ComposeForm';
 import { useTranslation } from '@/lib/i18n';
 
 export default function ComposeRoute() {
-  const { width } = useWindowDimensions();
-  const isDesktop = Platform.OS === 'web' && width >= 900;
+  const isDesktop = useIsDesktopLayout();
   const { t } = useTranslation();
   const params = useLocalSearchParams<{
     replyTo?: string;

@@ -1,3 +1,7 @@
+import { MailAddressFields } from '@/components/MailAddressFields';
+import { stripHtml } from '@/utils/stripHtml';
+import { MailComposeSurface } from '@oxy.so/bloom/mail-compose';
+import { MailQuoteToggle } from '@oxy.so/bloom/mail-thread';
 /**
  * Gmail-like inline reply component.
  *
@@ -5,29 +9,25 @@
  * without navigating to a separate compose page.
  */
 
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-} from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { getNormalizedUserHandle } from '@oxy.so/core';
-import { useOxy } from '@oxy.so/services';
 import { toast } from '@oxy.so/bloom';
+import { useOxy } from '@oxy.so/services';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Platform, Text } from 'react-native';
 
-import { useColors } from '@/constants/theme';
-import { useEmailStore } from '@/hooks/useEmail';
-import { useSendMessageWithUndo } from '@/hooks/mutations/useMessageMutations';
-import { Avatar } from '@/components/Avatar';
+import {
+  RichTextEditor,
+  type RichTextEditorHandle,
+} from '@/components/RichTextEditor';
 import { SmartReplyChips } from '@/components/SmartReplyChips';
-import { RichTextEditor, stripHtml, type RichTextEditorHandle } from '@/components/RichTextEditor';
 import { TemplatePicker } from '@/components/TemplatePicker';
+import { useSendMessageWithUndo } from '@/hooks/mutations/useMessageMutations';
+import { useEmailStore } from '@/hooks/useEmail';
 import { useTranslation } from '@/lib/i18n';
-import type { Message, EmailTemplate, RecipientInput } from '@/services/emailApi';
+import type {
+  EmailTemplate,
+  Message,
+  RecipientInput,
+} from '@/services/emailApi';
 import { buildReplyHeaders } from '@/utils/replyHeaders';
 import { buildReplyRecipients, joinAddresses } from '@/utils/replyRecipients';
 import { newSendIdempotencyKey } from '@/utils/sendIdempotency';
@@ -62,8 +62,12 @@ interface InlineReplyProps {
   onSent?: () => void;
 }
 
-export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps) {
-  const colors = useColors();
+export function InlineReply({
+  message,
+  mode,
+  onClose,
+  onSent,
+}: InlineReplyProps) {
   const { t } = useTranslation();
   const { user } = useOxy();
   const api = useEmailStore((s) => s._api);
@@ -77,7 +81,10 @@ export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps
     () =>
       mode === 'forward'
         ? { to: [], cc: [] }
-        : buildReplyRecipients(message, mode, { username: user?.username, email: user?.email }),
+        : buildReplyRecipients(message, mode, {
+            username: user?.username,
+            email: user?.email,
+          }),
     [mode, message, user?.username, user?.email],
   );
   const initialTo = joinAddresses(initialRecipients.to);
@@ -85,9 +92,13 @@ export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps
 
   const initialSubject = useMemo(() => {
     if (mode === 'forward') {
-      return message.subject.startsWith('Fwd:') ? message.subject : `Fwd: ${message.subject}`;
+      return message.subject.startsWith('Fwd:')
+        ? message.subject
+        : `Fwd: ${message.subject}`;
     }
-    return message.subject.startsWith('Re:') ? message.subject : `Re: ${message.subject}`;
+    return message.subject.startsWith('Re:')
+      ? message.subject
+      : `Re: ${message.subject}`;
   }, [mode, message]);
 
   const [to, setTo] = useState(initialTo);
@@ -95,7 +106,6 @@ export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps
   const [bcc, setBcc] = useState('');
   const [body, setBody] = useState('');
   const [quotedText, setQuotedText] = useState('');
-  const [showCcBcc, setShowCcBcc] = useState(!!initialCc);
   const [signatureLoaded, setSignatureLoaded] = useState(false);
 
   // Load signature and quoted text on mount
@@ -114,12 +124,13 @@ export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps
       }
 
       if (mode === 'forward') {
-        const forwardBody = t('inlineReply.forwardHeader', {
-          from: message.from.name || message.from.address,
-          date: formatQuoteDate(message.date),
-          subject: message.subject,
-          to: message.to.map((a) => a.name || a.address).join(', '),
-        }) + (message.text || '');
+        const forwardBody =
+          t('inlineReply.forwardHeader', {
+            from: message.from.name || message.from.address,
+            date: formatQuoteDate(message.date),
+            subject: message.subject,
+            to: message.to.map((a) => a.name || a.address).join(', '),
+          }) + (message.text || '');
         setQuotedText(forwardBody);
       } else {
         setQuotedText(
@@ -140,10 +151,10 @@ export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps
     setup();
   }, [api, signatureLoaded, message, mode, t]);
 
-  const userName = user?.name?.displayName ?? getNormalizedUserHandle(user) ?? t('ui.me');
   const sending = sendPending;
 
-  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const isValidEmail = (email: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const parseAddresses = useCallback((input: string): RecipientInput[] => {
     return input
@@ -192,9 +203,22 @@ export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps
         },
       },
     );
-  }, [to, cc, bcc, body, quotedText, initialSubject, message, mode, sendWithUndo, onClose, onSent, parseAddresses, t, idempotencyKey]);
-
-  const senderName = message.from.name || message.from.address.split('@')[0];
+  }, [
+    to,
+    cc,
+    bcc,
+    body,
+    quotedText,
+    initialSubject,
+    message,
+    mode,
+    sendWithUndo,
+    onClose,
+    onSent,
+    parseAddresses,
+    t,
+    idempotencyKey,
+  ]);
 
   // Handle smart reply selection - insert the text into the body
   const handleSmartReplySelect = useCallback((text: string) => {
@@ -217,239 +241,70 @@ export function InlineReply({ message, mode, onClose, onSent }: InlineReplyProps
   const showSmartReplies = mode !== 'forward';
 
   // Handle template selection — insert into reply fields
-  const handleTemplateSelect = useCallback((template: EmailTemplate) => {
-    if (!body.trim()) {
-      if (isWeb && bodyRef.current) {
-        bodyRef.current.setContent(template.body);
+  const handleTemplateSelect = useCallback(
+    (template: EmailTemplate) => {
+      if (!body.trim()) {
+        if (isWeb && bodyRef.current) {
+          bodyRef.current.setContent(template.body);
+        } else {
+          setBody(template.body);
+        }
       } else {
-        setBody(template.body);
+        const newBody = body + '\n' + template.body;
+        if (isWeb && bodyRef.current) {
+          bodyRef.current.setContent(newBody);
+        } else {
+          setBody(newBody);
+        }
       }
-    } else {
-      const newBody = body + '\n' + template.body;
-      if (isWeb && bodyRef.current) {
-        bodyRef.current.setContent(newBody);
-      } else {
-        setBody(newBody);
-      }
-    }
-    bodyRef.current?.focus();
-  }, [body]);
+      bodyRef.current?.focus();
+    },
+    [body],
+  );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      {/* Header row with avatar and close */}
-      <View style={styles.header}>
-        <Avatar name={userName} size={36} />
-        <View style={styles.headerContent}>
-          <View style={styles.toRow}>
-            <Text style={[styles.toLabel, { color: colors.secondaryText }]}>
-              {mode === 'forward' ? t('inlineReply.forwardTo') : mode === 'reply-all' ? t('inlineReply.replyAllTo') : t('inlineReply.replyTo')}
-            </Text>
-            <TextInput
-              style={[styles.toInput, { color: colors.text }]}
-              value={to}
-              onChangeText={setTo}
-              placeholder={mode === 'forward' ? t('inlineReply.addRecipients') : senderName}
-              placeholderTextColor={colors.searchPlaceholder}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            {!showCcBcc && (
-              <TouchableOpacity onPress={() => setShowCcBcc(true)} style={styles.ccBccButton}>
-                <Text style={[styles.ccBccText, { color: colors.primary }]}>{t('inlineReply.ccBccToggle')}</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          {showCcBcc && (
-            <>
-              <View style={styles.toRow}>
-                <Text style={[styles.toLabel, { color: colors.secondaryText }]}>{t('inlineReply.cc')}</Text>
-                <TextInput
-                  style={[styles.toInput, { color: colors.text }]}
-                  value={cc}
-                  onChangeText={setCc}
-                  placeholder=""
-                  placeholderTextColor={colors.searchPlaceholder}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-              <View style={styles.toRow}>
-                <Text style={[styles.toLabel, { color: colors.secondaryText }]}>{t('inlineReply.bcc')}</Text>
-                <TextInput
-                  style={[styles.toInput, { color: colors.text }]}
-                  value={bcc}
-                  onChangeText={setBcc}
-                  placeholder=""
-                  placeholderTextColor={colors.searchPlaceholder}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-            </>
-          )}
-        </View>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <MaterialCommunityIcons name="close" size={20} color={colors.icon} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Smart reply suggestions */}
-      {showSmartReplies && (
-        <SmartReplyChips message={message} onSelectReply={handleSmartReplySelect} />
-      )}
-
-      {/* Body editor */}
-      <View style={[styles.bodyContainer, { borderTopColor: colors.border }]}>
-        <RichTextEditor
-          ref={bodyRef}
-          value={body}
-          onChange={setBody}
-          placeholder={t('inlineReply.placeholder')}
-          autoFocus
-          style={styles.bodyEditor}
+    <MailComposeSurface
+      variant="sheet"
+      title={
+        mode === 'forward' ? t('compose.titleForward') : t('compose.titleReply')
+      }
+      onClose={onClose}
+      onSend={handleSend}
+      sending={sending}
+      onDiscard={onClose}
+      header={
+        <MailAddressFields
+          to={to}
+          onToChange={setTo}
+          cc={cc}
+          onCcChange={setCc}
+          bcc={bcc}
+          onBccChange={setBcc}
         />
-      </View>
-
-      {/* Quoted text indicator */}
-      <TouchableOpacity style={[styles.quotedIndicator, { borderTopColor: colors.border }]} activeOpacity={0.7}>
-        <View style={[styles.quotedDots, { backgroundColor: colors.secondaryText }]} />
-        <Text style={[styles.quotedLabel, { color: colors.secondaryText }]} numberOfLines={1}>
-          {quotedText.slice(0, 60).replace(/\n/g, ' ')}...
-        </Text>
-      </TouchableOpacity>
-
-      {/* Footer with send button */}
-      <View style={[styles.footer, { borderTopColor: colors.border }]}>
-        <TouchableOpacity
-          onPress={handleSend}
-          style={[styles.sendButton, { backgroundColor: colors.primary, opacity: sending ? 0.6 : 1 }]}
-          disabled={sending}
-        >
-          <Text style={styles.sendButtonText}>{t('inlineReply.send')}</Text>
-          <MaterialCommunityIcons name="send" size={16} color="#FFFFFF" />
-        </TouchableOpacity>
-
-        <View style={styles.footerActions}>
-          <TemplatePicker onSelect={handleTemplateSelect} />
-        </View>
-
-        <TouchableOpacity onPress={onClose} style={styles.footerAction}>
-          <MaterialCommunityIcons name="delete-outline" size={20} color={colors.icon} />
-        </TouchableOpacity>
-      </View>
-    </View>
+      }
+      footer={<TemplatePicker onSelect={handleTemplateSelect} />}
+      strings={{
+        send: t('inlineReply.send'),
+        close: t('common.close'),
+        discard: t('compose.actions.discard'),
+      }}
+    >
+      {showSmartReplies && (
+        <SmartReplyChips
+          message={message}
+          onSelectReply={handleSmartReplySelect}
+        />
+      )}
+      <RichTextEditor
+        ref={bodyRef}
+        value={body}
+        onChange={setBody}
+        placeholder={t('inlineReply.placeholder')}
+        autoFocus
+      />
+      <MailQuoteToggle>
+        <Text selectable>{quotedText}</Text>
+      </MailQuoteToggle>
+    </MailComposeSurface>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    marginHorizontal: 16,
-    marginBottom: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    ...Platform.select({
-      web: { boxShadow: '0 1px 3px rgba(0,0,0,0.12)' },
-      default: { elevation: 2 },
-    }),
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 12,
-    gap: 12,
-  },
-  headerContent: {
-    flex: 1,
-    gap: 4,
-  },
-  toRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  toLabel: {
-    fontSize: 13,
-    minWidth: 70,
-  },
-  toInput: {
-    flex: 1,
-    fontSize: 14,
-    paddingVertical: 2,
-  },
-  ccBccButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  ccBccText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  closeButton: {
-    padding: 4,
-  },
-  bodyContainer: {
-    minHeight: 120,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  bodyEditor: {
-    minHeight: 120,
-  },
-  quotedIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  quotedDots: {
-    width: 16,
-    height: 4,
-    borderRadius: 2,
-    opacity: 0.5,
-  },
-  quotedLabel: {
-    flex: 1,
-    fontSize: 12,
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    gap: 4,
-  },
-  sendButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  sendButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  footerActions: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    marginLeft: 8,
-    gap: 4,
-  },
-  footerAction: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 18,
-  },
-});

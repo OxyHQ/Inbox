@@ -445,6 +445,8 @@ const it: LocaleDict = {
   },
 
   selection: {
+    count: 'Selezionati: {{count}}',
+    select: 'Seleziona messaggio',
     archive: 'Archivia',
     delete: 'Elimina',
     star: 'Segna come speciale',

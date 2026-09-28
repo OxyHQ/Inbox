@@ -1,55 +1,62 @@
+import { useMailboxScrollRestoration } from '@/hooks/useMailboxScrollRestoration';
 /**
  * Search emails list with Gmail-style search bar and filter chips.
  */
 
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import { useSearchFocus } from '@/contexts/search-focus-context';
+import { useSearchSessionState } from '@/contexts/search-session-context';
+import { useGoBack } from '@/hooks/useGoBack';
+import { useTabBarClearance } from '@/hooks/useTabBarClearance';
+import { useTranslation } from '@/lib/i18n';
+import { Button, IconButton } from '@oxy.so/bloom/button';
+import { Chip } from '@oxy.so/bloom/chip';
+import { EmptyState } from '@oxy.so/bloom/empty-state';
+import { RiAttachmentLine, RiCloseLine, RiErrorWarningLine } from '@oxy.so/bloom/icons';
+import { Loading } from '@oxy.so/bloom/loading';
+import { TextFieldInput } from '@oxy.so/bloom/text-field';
+import { Text } from '@oxy.so/bloom/typography';
+import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
+  type FlatList,
   StyleSheet,
-  ActivityIndicator,
+  type TextInput,
+  View,
 } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { useMinimizeOnScroll } from '@oxy.so/bloom/tab-bar';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useSearchFocus } from '@/contexts/search-focus-context';
-import { useFloatingHeader } from '@/hooks/useFloatingHeader';
-import { useTabBarClearance } from '@/hooks/useTabBarClearance';
-import { useGoBack } from '@/hooks/useGoBack';
-import { useTranslation } from '@/lib/i18n';
 
-import { useColors } from '@/constants/theme';
-import { CONTENT_MAX_WIDTH, SPACING } from '@/constants/layout';
-import { useInboxDisplayPrefs } from '@/hooks/useInboxDisplayPrefs';
-import { SPECIAL_USE } from '@/constants/mailbox';
-import type { SavedEmailSearchFilters } from '@/services/emailApi';
-import { MessageRow } from '@/components/MessageRow';
-import { UnreadableMessageRow } from '@/components/UnreadableMessageRow';
-import { buildSearchItems, collectUnreadable, type SearchItem } from '@/utils/searchItems';
-import { SearchHeader } from '@/components/SearchHeader';
-import { SavedSearchBar } from '@/components/SavedSearchBar';
 import { EmptyIllustration } from '@/components/EmptyIllustration';
-import { useEmailStore } from '@/hooks/useEmail';
-import { useOxy } from '@oxy.so/services';
-import { useRecentSearches } from '@/hooks/useRecentSearches';
-import { recordInboxMetric } from '@/utils/inboxTelemetry';
-import { useSearchMessages } from '@/hooks/queries/useSearchMessages';
-import { useMessageActions } from '@/hooks/useMessageActions';
+import { MessageRow } from '@/components/MessageRow';
+import { SavedSearchBar } from '@/components/SavedSearchBar';
+import { SearchHeader } from '@/components/SearchHeader';
+import { UnreadableMessageRow } from '@/components/UnreadableMessageRow';
+import { CONTENT_MAX_WIDTH, SPACING } from '@/constants/layout';
+import { SPECIAL_USE } from '@/constants/mailbox';
+import { useColors } from '@/constants/theme';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
 import {
-  useNaturalLanguageSearch,
   quickParseSearch,
-  type ParsedSearchQuery,
+  useNaturalLanguageSearch,
 } from '@/hooks/queries/useNaturalLanguageSearch';
+import { useSearchMessages } from '@/hooks/queries/useSearchMessages';
+import { useEmailStore } from '@/hooks/useEmail';
+import { useInboxDisplayPrefs } from '@/hooks/useInboxDisplayPrefs';
+import { useMessageActions } from '@/hooks/useMessageActions';
+import { useRecentSearches } from '@/hooks/useRecentSearches';
+import type { SavedEmailSearchFilters } from '@/services/emailApi';
+import { recordInboxMetric } from '@/utils/inboxTelemetry';
+import {
+  buildSearchItems,
+  collectUnreadable,
+  type SearchItem,
+} from '@/utils/searchItems';
 import {
   collapseThreads,
   formatSearchInterpretation,
   parseSearchQuery,
 } from '@/utils/threadGrouping';
+import { useOxy } from '@oxy.so/services';
 
 interface SearchListProps {
   replaceNavigation?: boolean;
@@ -59,7 +66,6 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const tabBarClearance = useTabBarClearance();
-  const minimizeTabBarOnScroll = useMinimizeOnScroll();
   const colors = useColors();
   const { t } = useTranslation();
   const { density, showAvatars, showPreviews } = useInboxDisplayPrefs();
@@ -78,28 +84,39 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   );
   const selectedMessageId = useEmailStore((s) => s.selectedMessageId);
   const { user } = useOxy();
-  const { recentSearches, remember: rememberSearch, clear: clearRecentSearches } = useRecentSearches(user?.id);
+  const {
+    recentSearches,
+    remember: rememberSearch,
+    clear: clearRecentSearches,
+  } = useRecentSearches(user?.id);
   const messageActions = useMessageActions();
   const { data: mailboxes = [] } = useMailboxes();
 
-  const [query, setQuery] = useState('');
-  const [submittedQuery, setSubmittedQuery] = useState('');
-  const [filterFrom, setFilterFrom] = useState('');
-  const [filterHasAttachment, setFilterHasAttachment] = useState(false);
-  // Measured height of the floating header stack, reused as the list's top
-  // padding so the first result starts just below it.
-  const { headerHeight, onHeaderLayout, floatingHeaderStyle } = useFloatingHeader();
-  const [editingFilter, setEditingFilter] = useState<string | null>(null);
-  const [filterInput, setFilterInput] = useState('');
-  const [nlInterpretation, setNlInterpretation] = useState('');
-  const [nlParsedOptions, setNlParsedOptions] = useState<ParsedSearchQuery | null>(null);
+  const [query, setQuery] = useSearchSessionState('query');
+  const [submittedQuery, setSubmittedQuery] =
+    useSearchSessionState('submittedQuery');
+  const [filterFrom, setFilterFrom] = useSearchSessionState('filterFrom');
+  const [filterHasAttachment, setFilterHasAttachment] = useSearchSessionState(
+    'filterHasAttachment',
+  );
+  const [editingFilter, setEditingFilter] =
+    useSearchSessionState('editingFilter');
+  const [filterInput, setFilterInput] = useSearchSessionState('filterInput');
+  const [nlInterpretation, setNlInterpretation] =
+    useSearchSessionState('nlInterpretation');
+  const [nlParsedOptions, setNlParsedOptions] =
+    useSearchSessionState('nlParsedOptions');
   const searchRunIdRef = useRef(0);
 
   // Natural language search hook
-  const { parseQuery: parseNL, isLoading: nlParsing } = useNaturalLanguageSearch();
+  const { parseQuery: parseNL, isLoading: nlParsing } =
+    useNaturalLanguageSearch();
 
   // Parse the submitted query for Gmail-style operators
-  const parsedQuery = useMemo(() => parseSearchQuery(submittedQuery), [submittedQuery]);
+  const parsedQuery = useMemo(
+    () => parseSearchQuery(submittedQuery),
+    [submittedQuery],
+  );
   const requestedMailbox = nlParsedOptions?.mailbox ?? parsedQuery.mailbox;
 
   // Map mailbox name to mailbox ID
@@ -107,7 +124,9 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     if (!requestedMailbox) return undefined;
     // Saved searches persist the resolved mailbox id. Keep accepting the
     // human-readable special-use names used by the parser as well.
-    const existingMailbox = mailboxes.find((mailbox) => mailbox._id === requestedMailbox);
+    const existingMailbox = mailboxes.find(
+      (mailbox) => mailbox._id === requestedMailbox,
+    );
     if (existingMailbox) return existingMailbox._id;
     const specialUseMap: Record<string, string> = {
       inbox: SPECIAL_USE.INBOX,
@@ -124,26 +143,41 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       return mailbox?._id;
     }
     // Try to match by name
-    const mailbox = mailboxes.find((m) => m.name.toLowerCase() === requestedMailbox);
+    const mailbox = mailboxes.find(
+      (m) => m.name.toLowerCase() === requestedMailbox,
+    );
     return mailbox?._id;
   }, [requestedMailbox, mailboxes]);
 
-  const searchOptions = useMemo(() => ({
-    // NL parsed options take precedence, then Gmail-style operators, then filter chips.
-    q: nlParsedOptions?.q ?? (parsedQuery.text || undefined),
-    from: nlParsedOptions?.from ?? parsedQuery.from ?? (filterFrom || undefined),
-    to: nlParsedOptions?.to ?? parsedQuery.to,
-    subject: nlParsedOptions?.subject ?? parsedQuery.subject,
-    hasAttachment: nlParsedOptions?.hasAttachment ?? parsedQuery.hasAttachment ?? (filterHasAttachment || undefined),
-    dateAfter: nlParsedOptions?.after ?? parsedQuery.after,
-    dateBefore: nlParsedOptions?.before ?? parsedQuery.before,
-    mailbox: mailboxIdFromName,
-    starred: nlParsedOptions?.starred ?? parsedQuery.starred,
-    unread: nlParsedOptions?.unread ?? parsedQuery.unread,
-    // Labels are parsed from Gmail-style operators. The natural-language
-    // result type intentionally has no label field.
-    label: parsedQuery.label,
-  }), [nlParsedOptions, parsedQuery, filterFrom, filterHasAttachment, mailboxIdFromName]);
+  const searchOptions = useMemo(
+    () => ({
+      // NL parsed options take precedence, then Gmail-style operators, then filter chips.
+      q: nlParsedOptions?.q ?? (parsedQuery.text || undefined),
+      from:
+        nlParsedOptions?.from ?? parsedQuery.from ?? (filterFrom || undefined),
+      to: nlParsedOptions?.to ?? parsedQuery.to,
+      subject: nlParsedOptions?.subject ?? parsedQuery.subject,
+      hasAttachment:
+        nlParsedOptions?.hasAttachment ??
+        parsedQuery.hasAttachment ??
+        (filterHasAttachment || undefined),
+      dateAfter: nlParsedOptions?.after ?? parsedQuery.after,
+      dateBefore: nlParsedOptions?.before ?? parsedQuery.before,
+      mailbox: mailboxIdFromName,
+      starred: nlParsedOptions?.starred ?? parsedQuery.starred,
+      unread: nlParsedOptions?.unread ?? parsedQuery.unread,
+      // Labels are parsed from Gmail-style operators. The natural-language
+      // result type intentionally has no label field.
+      label: parsedQuery.label,
+    }),
+    [
+      nlParsedOptions,
+      parsedQuery,
+      filterFrom,
+      filterHasAttachment,
+      mailboxIdFromName,
+    ],
+  );
 
   const {
     data: searchData,
@@ -154,35 +188,38 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     fetchNextPage,
     refetch,
   } = useSearchMessages(searchOptions);
-  const messages = useMemo(
-    () => {
-      const seen = new Set<string>();
-      return (
-        searchData?.pages
-          .flatMap((page) => page.data)
-          .filter((message) => {
-            if (seen.has(message._id)) return false;
-            seen.add(message._id);
-            return true;
-          }) ?? []
-      );
-    },
-    [searchData],
-  );
+  const messages = useMemo(() => {
+    const seen = new Set<string>();
+    return (
+      searchData?.pages
+        .flatMap((page) => page.data)
+        .filter((message) => {
+          if (seen.has(message._id)) return false;
+          seen.add(message._id);
+          return true;
+        }) ?? []
+    );
+  }, [searchData]);
   // Search pages are grouped only after they are merged. This avoids one row
   // per page and lets a related message loaded later update the same row.
   // The API still needs a server-side threadId for authoritative cross-page
   // grouping when a result set is incomplete.
   const results = useMemo(() => collapseThreads(messages), [messages]);
-  const unreadable = useMemo(() => collectUnreadable(searchData?.pages ?? []), [searchData]);
-  const items = useMemo(() => buildSearchItems(results, unreadable), [results, unreadable]);
+  const unreadable = useMemo(
+    () => collectUnreadable(searchData?.pages ?? []),
+    [searchData],
+  );
+  const items = useMemo(
+    () => buildSearchItems(results, unreadable),
+    [results, unreadable],
+  );
   const total = searchData?.pages[0]?.pagination.total ?? 0;
   const hasSearched = Boolean(
     submittedQuery.trim() ||
-      nlParsedOptions ||
-      filterFrom ||
-      filterHasAttachment ||
-      requestedMailbox,
+    nlParsedOptions ||
+    filterFrom ||
+    filterHasAttachment ||
+    requestedMailbox,
   );
   const filterInterpretation = useMemo(
     () =>
@@ -192,11 +229,19 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           q: parsedQuery.text || undefined,
           from: parsedQuery.from || filterFrom || undefined,
           mailbox: requestedMailbox,
-          hasAttachment: parsedQuery.hasAttachment ?? (filterHasAttachment || undefined),
+          hasAttachment:
+            parsedQuery.hasAttachment ?? (filterHasAttachment || undefined),
         },
         t,
       ),
-    [filterFrom, filterHasAttachment, nlParsedOptions, parsedQuery, requestedMailbox, t],
+    [
+      filterFrom,
+      filterHasAttachment,
+      nlParsedOptions,
+      parsedQuery,
+      requestedMailbox,
+      t,
+    ],
   );
 
   /**
@@ -209,7 +254,10 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
    * value without waiting for React state to settle.
    */
   const runSearch = useCallback(
-    async (rawText: string, { allowAI }: { allowAI: boolean } = { allowAI: true }) => {
+    async (
+      rawText: string,
+      { allowAI }: { allowAI: boolean } = { allowAI: true },
+    ) => {
       const searchRunId = ++searchRunIdRef.current;
       const trimmed = rawText.trim();
       if (!trimmed) {
@@ -233,7 +281,11 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       const quickResult = quickParseSearch(trimmed);
       if (quickResult) {
         setNlParsedOptions(quickResult);
-        setNlInterpretation(t('search.nl.searching', { filters: formatSearchInterpretation(quickResult, t) }));
+        setNlInterpretation(
+          t('search.nl.searching', {
+            filters: formatSearchInterpretation(quickResult, t),
+          }),
+        );
         setSubmittedQuery('');
         return;
       }
@@ -267,7 +319,10 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         if (hasUsefulFilters) {
           setNlParsedOptions(parsed);
           setNlInterpretation(
-            result.interpretation || t('search.nl.searching', { filters: formatSearchInterpretation(parsed, t) }),
+            result.interpretation ||
+              t('search.nl.searching', {
+                filters: formatSearchInterpretation(parsed, t),
+              }),
           );
           setSubmittedQuery('');
         }
@@ -278,11 +333,20 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         // AI failed; plain text search is already in flight.
       }
     },
-    [parseNL, t],
+    [parseNL, t, setSubmittedQuery, setNlInterpretation, setNlParsedOptions],
   );
 
   // Debounced search-as-you-type. The user pressing Enter submits immediately.
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      // A list can move between the route and shell slots on resize. An old
+      // debounce/AI response must not overwrite a newer search in its successor.
+      searchRunIdRef.current += 1;
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    },
+    [],
+  );
 
   const handleQueryChange = useCallback(
     (text: string) => {
@@ -302,7 +366,13 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         runSearch(text, { allowAI: false });
       }, 300);
     },
-    [runSearch],
+    [
+      runSearch,
+      setQuery,
+      setSubmittedQuery,
+      setNlInterpretation,
+      setNlParsedOptions,
+    ],
   );
 
   const handleSubmit = useCallback(() => {
@@ -315,7 +385,9 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     rememberSearch(trimmed);
     recordInboxMetric('search_submitted', {
       hasQuery: true,
-      hasOperators: /\b(?:from|to|subject|in|is|has|label|after|before):/i.test(trimmed),
+      hasOperators: /\b(?:from|to|subject|in|is|has|label|after|before):/i.test(
+        trimmed,
+      ),
     });
     runSearch(query, { allowAI: true });
   }, [rememberSearch, runSearch, query]);
@@ -351,16 +423,26 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     setNlInterpretation('');
     setNlParsedOptions(null);
     inputRef.current?.focus();
-  }, []);
+  }, [
+    setQuery,
+    setSubmittedQuery,
+    setFilterFrom,
+    setFilterHasAttachment,
+    setNlInterpretation,
+    setNlParsedOptions,
+  ]);
 
-  const handleFilterChipPress = useCallback((filter: string) => {
-    if (filter === 'attachment') {
-      setFilterHasAttachment((v) => !v);
-    } else {
-      setEditingFilter(filter);
-      setFilterInput(filter === 'from' ? filterFrom : '');
-    }
-  }, [filterFrom]);
+  const handleFilterChipPress = useCallback(
+    (filter: string) => {
+      if (filter === 'attachment') {
+        setFilterHasAttachment((v) => !v);
+      } else {
+        setEditingFilter(filter);
+        setFilterInput(filter === 'from' ? filterFrom : '');
+      }
+    },
+    [filterFrom, setFilterHasAttachment, setEditingFilter, setFilterInput],
+  );
 
   const handleFilterSubmit = useCallback(() => {
     if (editingFilter === 'from') {
@@ -368,27 +450,43 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     }
     setEditingFilter(null);
     setFilterInput('');
-  }, [editingFilter, filterInput]);
+  }, [
+    editingFilter,
+    filterInput,
+    setFilterFrom,
+    setEditingFilter,
+    setFilterInput,
+  ]);
 
-  const handleApplySavedSearch = useCallback((saved: { query: string; filters: SavedEmailSearchFilters }) => {
-    setQuery(saved.query);
-    setFilterFrom(saved.filters.from ?? '');
-    setFilterHasAttachment(saved.filters.hasAttachment ?? false);
-    setSubmittedQuery('');
-    setNlParsedOptions({
-      q: saved.filters.q,
-      from: saved.filters.from,
-      to: saved.filters.to,
-      subject: saved.filters.subject,
-      hasAttachment: saved.filters.hasAttachment,
-      starred: saved.filters.starred,
-      unread: saved.filters.unread,
-      after: saved.filters.dateAfter,
-      before: saved.filters.dateBefore,
-      mailbox: saved.filters.mailbox,
-    });
-    setNlInterpretation('');
-  }, []);
+  const handleApplySavedSearch = useCallback(
+    (saved: { query: string; filters: SavedEmailSearchFilters }) => {
+      setQuery(saved.query);
+      setFilterFrom(saved.filters.from ?? '');
+      setFilterHasAttachment(saved.filters.hasAttachment ?? false);
+      setSubmittedQuery('');
+      setNlParsedOptions({
+        q: saved.filters.q,
+        from: saved.filters.from,
+        to: saved.filters.to,
+        subject: saved.filters.subject,
+        hasAttachment: saved.filters.hasAttachment,
+        starred: saved.filters.starred,
+        unread: saved.filters.unread,
+        after: saved.filters.dateAfter,
+        before: saved.filters.dateBefore,
+        mailbox: saved.filters.mailbox,
+      });
+      setNlInterpretation('');
+    },
+    [
+      setQuery,
+      setFilterFrom,
+      setFilterHasAttachment,
+      setSubmittedQuery,
+      setNlParsedOptions,
+      setNlInterpretation,
+    ],
+  );
 
   const listExtraData = useMemo(
     () => ({
@@ -398,14 +496,27 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       showPreviews,
       themeKey: `${colors.unread}|${colors.surface}|${colors.secondaryText}|${colors.primary}|${colors.border}`,
     }),
-    [selectedMessageId, density, showAvatars, showPreviews, colors.unread, colors.surface, colors.secondaryText, colors.primary, colors.border],
+    [
+      selectedMessageId,
+      density,
+      showAvatars,
+      showPreviews,
+      colors.unread,
+      colors.surface,
+      colors.secondaryText,
+      colors.primary,
+      colors.border,
+    ],
   );
 
   const renderItem = useCallback(
     ({ item }: { item: SearchItem }) =>
       item.kind === 'unreadable' ? (
         <View style={styles.unreadableItem}>
-          <UnreadableMessageRow message={item.row} onOpen={handleMessagePress} />
+          <UnreadableMessageRow
+            message={item.row}
+            onOpen={handleMessagePress}
+          />
         </View>
       ) : (
         <MessageRow
@@ -431,260 +542,235 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
 
   const renderEmpty = useCallback(() => {
     if (searching) {
-      return (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      );
+      return <Loading size="large" accessibilityLabel={t('common.loading')} style={styles.loadingContainer} />;
     }
     if (!hasSearched) {
       return (
-        <View style={styles.emptyContainer}>
-          <EmptyIllustration size={180} />
-          <Text style={[styles.emptyText, { color: colors.secondaryText }]}>
-            {t('search.empty.idle')}
-          </Text>
-          {recentSearches.length > 0 && (
+        <EmptyState
+          illustration={<EmptyIllustration size={180} />}
+          description={t('search.empty.idle')}
+          footer={recentSearches.length > 0 ? (
             <View style={styles.recentSearches}>
               {recentSearches.map((recent) => (
-                <TouchableOpacity
+                <Button
                   key={recent}
-                  accessibilityLabel={recent}
-                  accessibilityRole="button"
-                  style={[styles.recentSearch, { borderColor: colors.border, backgroundColor: colors.surface }]}
+                  appearance="outline"
                   onPress={() => {
                     setQuery(recent);
                     void runSearch(recent, { allowAI: false });
                   }}
                 >
-                  <Text style={[styles.recentSearchText, { color: colors.text }]} numberOfLines={1}>{recent}</Text>
-                </TouchableOpacity>
+                  {recent}
+                </Button>
               ))}
-              <TouchableOpacity accessibilityLabel={t('search.clear')} onPress={clearRecentSearches}>
-                <Text style={[styles.clearRecentText, { color: colors.primary }]}>{t('search.clear')}</Text>
-              </TouchableOpacity>
+              <Button appearance="plain" onPress={clearRecentSearches}>
+                {t('search.clear')}
+              </Button>
             </View>
-          )}
-        </View>
+          ) : undefined}
+        />
       );
     }
     if (searchFailed) {
       return (
-        <View style={styles.emptyContainer}>
-          <MaterialCommunityIcons name="alert-circle-outline" size={48} color={colors.secondaryText} />
-          <Text style={[styles.emptyText, { color: colors.secondaryText }]}>{t('common.error')}</Text>
-          <TouchableOpacity
-            style={[styles.retryButton, { borderColor: colors.border }]}
-            onPress={handleRetry}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.retryButtonText, { color: colors.primary }]}>{t('common.retry')}</Text>
-          </TouchableOpacity>
-        </View>
+        <EmptyState
+          icon={RiErrorWarningLine}
+          title={t('common.error')}
+          action={{ label: t('common.retry'), onPress: handleRetry }}
+        />
       );
     }
     return (
-      <View style={styles.emptyContainer}>
-        <EmptyIllustration size={180} />
-        <Text style={[styles.emptyText, { color: colors.secondaryText }]}>{t('search.empty.noResults')}</Text>
-      </View>
+      <EmptyState
+        illustration={<EmptyIllustration size={180} />}
+        description={t('search.empty.noResults')}
+      />
     );
-  }, [clearRecentSearches, colors, handleRetry, hasSearched, recentSearches, runSearch, searchFailed, searching, t]);
+  }, [
+    clearRecentSearches,
+    handleRetry,
+    hasSearched,
+    recentSearches,
+    runSearch,
+    searchFailed,
+    searching,
+    t,
+    setQuery,
+  ]);
 
   const renderFooter = useCallback(() => {
     if (isFetchingNextPage) {
-      return (
-        <View style={styles.footerLoading}>
-          <ActivityIndicator size="small" color={colors.primary} />
-        </View>
-      );
+      return <Loading size="small" accessibilityLabel={t('common.loading')} style={styles.footerLoading} />;
     }
     if (searchFailed && items.length > 0) {
       return (
-        <View style={styles.footerError}>
-          <Text style={[styles.footerErrorText, { color: colors.secondaryText }]}>{t('common.error')}</Text>
-          <TouchableOpacity accessibilityLabel={t('common.retry')} onPress={handleRetry} hitSlop={8}>
-            <Text style={[styles.retryButtonText, { color: colors.primary }]}>{t('common.retry')}</Text>
-          </TouchableOpacity>
-        </View>
+        <EmptyState
+          variant="compact"
+          description={t('common.error')}
+          action={{ label: t('common.retry'), onPress: handleRetry }}
+        />
       );
     }
     return null;
-  }, [colors, handleRetry, isFetchingNextPage, items.length, searchFailed, t]);
+  }, [handleRetry, isFetchingNextPage, items.length, searchFailed, t]);
 
-  const visibleInterpretation = nlInterpretation ||
-    (hasSearched && !nlParsing ? t('search.nl.searching', { filters: filterInterpretation }) : '');
+  const visibleInterpretation =
+    nlInterpretation ||
+    (hasSearched && !nlParsing
+      ? t('search.nl.searching', { filters: filterInterpretation })
+      : '');
+
+  const listRef = useRef<FlatList<SearchItem>>(null);
+  const onListScroll = useMailboxScrollRestoration(
+    listRef,
+    JSON.stringify([
+      'search',
+      user?.id,
+      submittedQuery,
+      filterFrom,
+      filterHasAttachment,
+      nlParsedOptions,
+    ]),
+    !searching && items.length > 0,
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Same scroll treatment as the inbox: the header (and the filter chips
-          under it) float over the results, which scroll behind the header's
-          gradient. The measured height becomes the list's top padding. */}
-      <View style={floatingHeaderStyle} onLayout={onHeaderLayout}
-      >
-      <SearchHeader
-        ref={setInputRef}
-        onLeftIcon={handleBack}
-        leftIcon="arrow-left"
-        placeholder={t('search.placeholder')}
-        value={query}
-        onChangeText={handleQueryChange}
-        onSubmitEditing={handleSubmit}
-        onClear={handleClear}
-        autoFocus
-      />
+      {/* Header and filters stay in flow above the virtualized results. */}
+      <View>
+        <SearchHeader
+          ref={setInputRef}
+          onLeftIcon={handleBack}
+          leftIcon="arrow-left"
+          placeholder={t('search.placeholder')}
+          value={query}
+          onChangeText={handleQueryChange}
+          onSubmitEditing={handleSubmit}
+          onClear={handleClear}
+          autoFocus
+        />
 
-      {/* Filter chips */}
-      <View
-        style={[
-          styles.filterBar,
-          { paddingLeft: 16 + insets.left, paddingRight: 16 + insets.right },
-        ]}
-      >
+        {/* Filter chips */}
         <View
           style={[
-            styles.filterChip,
-            { borderColor: colors.border },
-            filterFrom ? { backgroundColor: colors.primary + '15', borderColor: colors.primary } : undefined,
+            styles.filterBar,
+            { paddingLeft: 16 + insets.left, paddingRight: 16 + insets.right },
           ]}
         >
-          <TouchableOpacity
-            style={styles.filterChipMain}
+          <Chip
+            size="xl"
+            selected={Boolean(filterFrom)}
             onPress={() => handleFilterChipPress('from')}
-            accessibilityLabel={filterFrom ? t('search.filters.fromValue', { value: filterFrom }) : t('search.filters.from')}
-            accessibilityRole="button"
-            activeOpacity={0.7}
+            onClose={filterFrom ? () => setFilterFrom('') : undefined}
+            closeLabel={`${t('common.remove')} ${t('search.filters.from')}`}
           >
-            <Text style={[styles.filterChipText, { color: filterFrom ? colors.primary : colors.secondaryText }]}>
-              {filterFrom ? t('search.filters.fromValue', { value: filterFrom }) : t('search.filters.from')}
-            </Text>
-          </TouchableOpacity>
-          {filterFrom ? (
-            <TouchableOpacity
-              onPress={() => setFilterFrom('')}
-              accessibilityLabel={t('common.remove')}
-              accessibilityRole="button"
-              style={styles.filterChipRemove}
-              hitSlop={4}
-            >
-              <MaterialCommunityIcons name="close-circle" size={14} color={colors.primary} />
-            </TouchableOpacity>
-          ) : null}
-        </View>
-
-        <TouchableOpacity
-          style={[
-            styles.filterChip,
-            { borderColor: colors.border },
-            filterHasAttachment ? { backgroundColor: colors.primary + '15', borderColor: colors.primary } : undefined,
-          ]}
-          onPress={() => handleFilterChipPress('attachment')}
-          accessibilityLabel={t('search.filters.hasAttachment')}
-          accessibilityRole="button"
-          activeOpacity={0.7}
-        >
-          <MaterialCommunityIcons
-            name="paperclip"
-            size={14}
-            color={filterHasAttachment ? colors.primary : colors.secondaryText}
-          />
-          <Text style={[styles.filterChipText, { color: filterHasAttachment ? colors.primary : colors.secondaryText }]}>
+            {filterFrom
+              ? t('search.filters.fromValue', { value: filterFrom })
+              : t('search.filters.from')}
+          </Chip>
+          <Chip
+            size="xl"
+            role="checkbox"
+            checked={filterHasAttachment}
+            onCheckedChange={() => handleFilterChipPress('attachment')}
+            leadingIcon={RiAttachmentLine}
+          >
             {t('search.filters.hasAttachment')}
-          </Text>
-        </TouchableOpacity>
-      </View>
+          </Chip>
+        </View>
 
-      <SavedSearchBar
-        query={query}
-        filters={searchOptions}
-        enabled={hasSearched}
-        onApply={handleApplySavedSearch}
-      />
+        <SavedSearchBar
+          query={query}
+          filters={searchOptions}
+          enabled={hasSearched}
+          onApply={handleApplySavedSearch}
+        />
 
-      {/* Search interpretation display. AI is only requested on explicit submit;
+        {/* Search interpretation display. AI is only requested on explicit submit;
           normal operator searches are rendered from the same parsed options. */}
-      {(visibleInterpretation || nlParsing) && (
-        <View
-          style={[
-            styles.nlInterpretation,
-            {
-              backgroundColor: colors.surfaceVariant,
-              marginLeft: 16 + insets.left,
-              marginRight: 16 + insets.right,
-            },
-          ]}
-        >
-          <MaterialCommunityIcons
-            name={nlParsing ? 'robot-outline' : 'tune-variant'}
-            size={14}
-            color={colors.primary}
-            style={styles.nlIcon}
-          />
-          {nlParsing ? (
-            <View style={styles.nlParsingRow}>
-              <ActivityIndicator size="small" color={colors.primary} />
-              <Text style={[styles.nlText, { color: colors.secondaryText }]}>
-                {t('search.nl.understanding')}
+        {(visibleInterpretation || nlParsing) && (
+          <View
+            style={[
+              styles.nlInterpretation,
+              {
+                backgroundColor: colors.surfaceVariant,
+                marginLeft: 16 + insets.left,
+                marginRight: 16 + insets.right,
+              },
+            ]}
+          >
+            {nlParsing ? (
+              <Loading
+                variant="inline"
+                size="small"
+                text={t('search.nl.understanding')}
+                accessibilityLabel={t('search.nl.understanding')}
+                style={styles.nlParsingRow}
+              />
+            ) : (
+              <Text variant="body-2-regular" style={styles.nlText}>
+                {visibleInterpretation}
               </Text>
+            )}
+            {nlInterpretation && !nlParsing && (
+              <IconButton
+                icon={<RiCloseLine />}
+                accessibilityLabel={t('common.close')}
+                onPress={() => {
+                  setNlInterpretation('');
+                  setNlParsedOptions(null);
+                  setSubmittedQuery(query.trim());
+                }}
+              />
+            )}
+          </View>
+        )}
+
+        {/* Filter input overlay */}
+        {editingFilter && (
+          <View
+            style={[
+              styles.filterInputRow,
+              { backgroundColor: colors.surfaceVariant },
+            ]}
+          >
+            <View className="flex-1">
+              <TextFieldInput
+                label={editingFilter === 'from' ? t('search.filters.from') : editingFilter}
+                value={filterInput}
+                onChangeText={setFilterInput}
+                autoFocus
+                onSubmitEditing={handleFilterSubmit}
+                returnKeyType="done"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
             </View>
-          ) : (
-            <Text style={[styles.nlText, { color: colors.text }]}>
-              {visibleInterpretation}
+            <IconButton
+              icon={<RiCloseLine />}
+              accessibilityLabel={t('common.close')}
+              onPress={() => setEditingFilter(null)}
+            />
+          </View>
+        )}
+
+        {/* Result count */}
+        {hasSearched && !searching && items.length > 0 && (
+          <View style={styles.resultCount}>
+            <Text variant="caption-1-medium" style={{ color: colors.secondaryText }}>
+              {t('search.results', { count: total })}
             </Text>
-          )}
-          {nlInterpretation && !nlParsing && (
-            <TouchableOpacity
-              onPress={() => {
-                setNlInterpretation('');
-                setNlParsedOptions(null);
-                setSubmittedQuery(query.trim());
-              }}
-              hitSlop={8}
-            >
-              <MaterialCommunityIcons name="close" size={16} color={colors.icon} />
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
-
-      {/* Filter input overlay */}
-      {editingFilter && (
-        <View style={[styles.filterInputRow, { backgroundColor: colors.surfaceVariant }]}>
-          <Text style={[styles.filterInputLabel, { color: colors.secondaryText }]}>
-            {editingFilter === 'from' ? 'From:' : editingFilter}
-          </Text>
-          <TextInput
-            style={[styles.filterInputField, { color: colors.text }]}
-            value={filterInput}
-            onChangeText={setFilterInput}
-            autoFocus
-            onSubmitEditing={handleFilterSubmit}
-            returnKeyType="done"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <TouchableOpacity onPress={() => setEditingFilter(null)}>
-            <MaterialCommunityIcons name="close" size={20} color={colors.icon} />
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Result count */}
-      {hasSearched && !searching && items.length > 0 && (
-        <View style={styles.resultCount}>
-          <Text style={[styles.resultCountText, { color: colors.secondaryText }]}>
-            {t('search.results', { count: total })}
-          </Text>
-        </View>
-      )}
+          </View>
+        )}
       </View>
 
       {searching ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <Loading size="large" accessibilityLabel={t('common.loading')} />
         </View>
       ) : (
         <Animated.FlatList
+          ref={listRef}
           data={items}
           renderItem={renderItem}
           keyExtractor={(item) => item.key}
@@ -693,17 +779,19 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           ListFooterComponent={renderFooter}
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.4}
-          onScroll={minimizeTabBarOnScroll}
+          onScroll={onListScroll}
           scrollEventThrottle={16}
           contentContainerStyle={{
             ...(items.length === 0 ? styles.emptyListContent : null),
             ...styles.listContent,
-            paddingTop: headerHeight,
+            paddingTop: 0,
             paddingBottom: tabBarClearance,
           }}
           showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={() => (
-            <View style={[styles.separator, { backgroundColor: colors.border }]} />
+            <View
+              style={[styles.separator, { backgroundColor: colors.border }]}
+            />
           )}
         />
       )}
@@ -732,30 +820,6 @@ const styles = StyleSheet.create({
     gap: 8,
     flexWrap: 'wrap',
   },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  filterChipMain: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingLeft: 12,
-  },
-  filterChipRemove: {
-    paddingVertical: 6,
-    paddingRight: 8,
-    paddingLeft: 4,
-  },
-  filterChipText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
   filterInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -763,36 +827,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 8,
   },
-  filterInputLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  filterInputField: {
-    flex: 1,
-    fontSize: 14,
-    paddingVertical: 4,
-  },
   resultCount: {
     paddingHorizontal: 16,
     paddingBottom: 8,
-  },
-  resultCountText: {
-    fontSize: 12,
-    fontWeight: '500',
   },
   loadingContainer: {
     flex: 1,
     paddingTop: 40,
     alignItems: 'center',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 120,
-    gap: 12,
-  },
-  emptyText: {
-    fontSize: 16,
   },
   recentSearches: {
     width: '100%',
@@ -801,45 +843,12 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 24,
   },
-  recentSearch: {
-    minHeight: 40,
-    borderWidth: 1,
-    borderRadius: 20,
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-  },
-  recentSearchText: {
-    fontSize: 14,
-  },
-  clearRecentText: {
-    alignSelf: 'center',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  retryButton: {
-    borderWidth: 1,
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  retryButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
   emptyListContent: {
     flexGrow: 1,
   },
   footerLoading: {
     alignItems: 'center',
     paddingVertical: 18,
-  },
-  footerError: {
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 16,
-  },
-  footerErrorText: {
-    fontSize: 13,
   },
   separator: {
     height: StyleSheet.hairlineWidth,
@@ -856,12 +865,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 8,
   },
-  nlIcon: {
-    marginRight: 4,
-  },
   nlText: {
     flex: 1,
-    fontSize: 13,
   },
   nlParsingRow: {
     flex: 1,

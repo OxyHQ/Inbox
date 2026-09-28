@@ -73,8 +73,9 @@ HTML safety, account-scoped search retention, mailbox navigation, settings deep
 links/account handoff, bottom navigation and swipe action dispatch. Run
 `bun run test`, never `bun test`.
 
-Local browser fixtures use actual Bloom and Inbox UI components with mocked
-mail/account data. They verify 390/899/900/1440px layouts, light/dark modes,
+Local browser fixtures use the real `InboxList`/FlashList, Bloom shell and mail
+components with mocked mail/account hooks. The mailbox now has a Bloom PageHeader
+and one shared content width for its header, controls and rows. They verify 390/899/900/1440px layouts, light/dark modes,
 recipient/subject preservation on resize, and scroll restoration. These are
 UI checks, not authenticated mail-delivery end-to-end tests.
 

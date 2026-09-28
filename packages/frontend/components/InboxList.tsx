@@ -1,10 +1,11 @@
 import { useMailboxScrollRestoration } from '@/hooks/useMailboxScrollRestoration';
 import { useAppShell } from '@oxy.so/bloom/app-shell';
 import { Button, IconButton } from '@oxy.so/bloom/button';
-import { RiAddLine } from '@oxy.so/bloom/icons';
+import { RiAddLine, RiMenuLine, RiSearchLine } from '@oxy.so/bloom/icons';
+import { PageHeader } from '@oxy.so/bloom/page-header';
 /**
- * Inbox message list with search bar, FAB compose, and pull-to-refresh.
- * Used by the (inbox) layout on desktop (always visible) and by the index route on mobile.
+ * Routed mailbox list with Bloom page chrome and pull-to-refresh.
+ * The shell owns the content width on every platform.
  */
 
 import { toast } from '@oxy.so/bloom';
@@ -33,12 +34,11 @@ import { InboxGreeting } from '@/components/InboxGreeting';
 import { MessageRow, MessageRowExtras } from '@/components/MessageRow';
 import { OutboundQueueBanner } from '@/components/OutboundQueueBanner';
 import { ReminderRow } from '@/components/ReminderRow';
-import { SearchHeader } from '@/components/SearchHeader';
 import { SelectionToolbar } from '@/components/SelectionToolbar';
 import { SnoozeSheet } from '@/components/SnoozeSheet';
 import { SwipeableRow } from '@/components/SwipeableRow';
 import { UnreadableMessageRow } from '@/components/UnreadableMessageRow';
-import { CONTENT_MAX_WIDTH, SPACING } from '@/constants/layout';
+import { SPACING } from '@/constants/layout';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { useColors } from '@/constants/theme';
 import {
@@ -1063,16 +1063,44 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       ) : (
         // The shared header stays in flow above the virtualized message list.
         <View>
-          <SearchHeader
-            onLeftIcon={handleOpenDrawer}
-            hideLeftIcon={!drawerAvailable}
-            leftIcon="menu"
-            placeholder={t('inbox.searchInMailbox', {
-              mailbox: mailboxTitle.toLowerCase(),
-            })}
-            onPress={handleSearch}
+          <PageHeader
+            title={mailboxTitle}
+            presentation="bar"
+            sticky={false}
+            leading={drawerAvailable ? (
+              <IconButton
+                accessibilityLabel={t('search.openMenu')}
+                icon={<RiMenuLine />}
+                onPress={handleOpenDrawer}
+              />
+            ) : undefined}
+            actions={
+              <View className="flex-row items-center gap-1">
+                {isAuthenticated && (
+                  <>
+                    <IconButton
+                      size="sm"
+                      accessibilityLabel={t('reminder.create.title')}
+                      icon={<RiAddLine />}
+                      onPress={() => setCreateReminderVisible(true)}
+                    />
+                    <Button size="sm" appearance="subtle" onPress={handleAskAlia}>
+                      {t('inbox.askAlia')}
+                    </Button>
+                  </>
+                )}
+                <IconButton
+                  accessibilityLabel={t('inbox.searchInMailbox', {
+                    mailbox: mailboxTitle.toLowerCase(),
+                  })}
+                  icon={<RiSearchLine />}
+                  onPress={handleSearch}
+                />
+              </View>
+            }
           />
-          {isAuthenticated && (
+          {isAuthenticated &&
+            (prefs.aiBrief || (isInboxView && needsResponseCount + followUpCount > 0)) && (
             <View className="flex-row flex-wrap gap-1 px-3 pb-2">
               {isInboxView && needsResponseCount + followUpCount > 0 && (
                 <Button
@@ -1090,15 +1118,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
                   {t('home.todaysBrief')}
                 </Button>
               )}
-              <IconButton
-                size="sm"
-                accessibilityLabel={t('reminder.create.title')}
-                icon={<RiAddLine />}
-                onPress={() => setCreateReminderVisible(true)}
-              />
-              <Button size="sm" appearance="subtle" onPress={handleAskAlia}>
-                {t('inbox.askAlia')}
-              </Button>
             </View>
           )}
         </View>
@@ -1190,8 +1209,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     width: '100%',
-    maxWidth: CONTENT_MAX_WIDTH,
-    alignSelf: 'center',
   },
   listContainer: {
     flex: 1,

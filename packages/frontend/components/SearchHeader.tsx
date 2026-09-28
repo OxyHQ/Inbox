@@ -1,5 +1,4 @@
 /** App-specific search routing around Bloom's shared search field and buttons. */
-import { CONTENT_MAX_WIDTH } from '@/constants/layout';
 import { useTranslation } from '@/lib/i18n';
 import { Button, IconButton } from '@oxy.so/bloom/button';
 import { RiArrowLeftLine, RiMenuLine, RiSearchLine } from '@oxy.so/bloom/icons';
@@ -52,8 +51,6 @@ export const SearchHeader = forwardRef<TextInput, SearchHeaderProps>(
         <View
           style={{
             width: '100%',
-            maxWidth: CONTENT_MAX_WIDTH,
-            alignSelf: 'center',
             flexDirection: 'row',
             alignItems: 'center',
             gap: 8,

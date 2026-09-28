@@ -31,7 +31,7 @@ import { MessageRow } from '@/components/MessageRow';
 import { SavedSearchBar } from '@/components/SavedSearchBar';
 import { SearchHeader } from '@/components/SearchHeader';
 import { UnreadableMessageRow } from '@/components/UnreadableMessageRow';
-import { CONTENT_MAX_WIDTH, SPACING } from '@/constants/layout';
+import { SPACING } from '@/constants/layout';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { useColors } from '@/constants/theme';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
@@ -809,7 +809,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     width: '100%',
-    maxWidth: CONTENT_MAX_WIDTH,
     alignSelf: 'center',
   },
   // `paddingLeft` / `paddingRight` are applied inline so they can include

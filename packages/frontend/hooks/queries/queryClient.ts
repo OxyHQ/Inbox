@@ -39,7 +39,11 @@ import {
 
 const CACHE_KEY_PREFIX = 'inbox_query_cache_v2';
 const LEGACY_CACHE_KEY = 'inbox_query_cache_v1';
-const CACHE_BUSTER = 'inbox-scoped-v3';
+// Bump whenever the data shape under any PERSISTED_QUERY_ROOTS key changes.
+// A persisted cache is restored and served at once (offlineFirst), so an old
+// shape reaches components before any refetch. v4: #56 turned `thread` from
+// `Message[]` into `ThreadData`, and every returning user crashed on open.
+const CACHE_BUSTER = 'inbox-scoped-v4';
 const CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days
 const PERSIST_THROTTLE_MS = 1_000;
 

@@ -413,8 +413,8 @@ export function AdvancedSection() {
                 >
                   <Switch
                     accessibilityLabel={filter.name}
-                    value={filter.enabled}
-                    onValueChange={(v) => handleToggleFilter(filter._id, v)}
+                    checked={filter.enabled}
+                    onCheckedChange={(v) => handleToggleFilter(filter._id, v)}
                   />
                   <IconButton
                     accessibilityLabel={`Delete ${filter.name}`}
@@ -686,8 +686,8 @@ export function AdvancedSection() {
                         />
                         <Switch
                           accessibilityLabel={bundle.name}
-                          value={bundle.enabled}
-                          onValueChange={(v) =>
+                          checked={bundle.enabled}
+                          onCheckedChange={(v) =>
                             updateBundle.mutate({
                               bundleId: bundle._id,
                               enabled: v,

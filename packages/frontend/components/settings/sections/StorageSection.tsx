@@ -38,7 +38,7 @@ export function StorageSection() {
                 : undefined,
               control:
                 isLoading && !quota ? (
-                  <Loading variant="inline" size="small" />
+                  <Loading variant="inline" size="sm" />
                 ) : (
                   <SettingsValueField>
                     {quota ? `${quota.percentage}%` : '—'}

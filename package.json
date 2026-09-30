@@ -20,13 +20,13 @@
   "overrides": {
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "@oxy.so/bloom": "^5.4.0",
-    "@oxy.so/services": "^9.1.0",
+    "@oxy.so/bloom": "^6.3.0",
+    "@oxy.so/services": "^10.0.0",
     "@radix-ui/react-slot": "1.2.3",
     "lightningcss": "1.30.1",
     "markdown-it": "12.3.2",
     "@oxy.so/core": "^3.2.0",
-    "@oxy.so/contracts": "^4.1.0"
+    "@oxy.so/contracts": "^4.3.0"
   },
   "engines": {
     "node": ">=20"

@@ -44,6 +44,7 @@ minimumReleaseAgeExcludes = [
   "@oxy.so/bloom",
   "@oxy.so/contracts",
   "@oxy.so/core",
+  "@oxy.so/doctor",
   "@oxy.so/expo-splash",
   "@oxy.so/protocol",
   "@oxy.so/services",

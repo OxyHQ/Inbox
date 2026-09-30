@@ -42,10 +42,11 @@ Dependabot checks weekly and proposes every update (majors included) as ONE
 grouped pull request per ecosystem. Because this is a Bun workspace, every accepted manifest change
 must be followed by `bun install` and include the resulting `bun.lock` change.
 
-`bun run doctor:oxy` is read-only. It fails CI when direct Oxy dependencies are
-out of date or the lockfile contains duplicate Oxy versions — so it goes red on
-`main` on its own the moment the SDK publishes, and blocks every unrelated PR
-until someone bumps. That is the gate working, not a flake.
+`bun run doctor:oxy` (`oxy-doctor --ci`) is read-only. A direct Oxy range that
+misses the newest release is a warning for 14 days after that release was
+published, then an error that fails CI; duplicate Oxy versions in the lockfile
+fail it at once. A red doctor on `main` means the upgrade window closed — bump,
+that is the gate working, not a flake.
 
 The lockfile drifts on its own too: the CI step re-resolves with
 `bun install --minimum-release-age=0` and compares. When transitive packages age

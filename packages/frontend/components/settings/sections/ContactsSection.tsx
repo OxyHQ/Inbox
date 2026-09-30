@@ -253,8 +253,8 @@ export function ContactsSection() {
                 control: (
                   <Switch
                     accessibilityLabel={t('ui.settings.contacts.star')}
-                    value={starred}
-                    onValueChange={setStarred}
+                    checked={starred}
+                    onCheckedChange={setStarred}
                   />
                 ),
               },

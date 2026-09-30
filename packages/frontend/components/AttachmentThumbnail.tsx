@@ -19,7 +19,7 @@ export function AttachmentThumbnail({
       color="neutral"
       alt="Attachment preview"
       placeholderIcon={
-        isLoading ? <Loading size="small" /> : <RiFileImageLine />
+        isLoading ? <Loading size="sm" /> : <RiFileImageLine />
       }
     />
   );

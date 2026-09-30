@@ -538,7 +538,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     if (searching) {
       return (
         <Loading
-          size="large"
+          size="lg"
           accessibilityLabel={t('common.loading')}
           style={styles.loadingContainer}
         />
@@ -604,7 +604,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     if (isFetchingNextPage) {
       return (
         <Loading
-          size="small"
+          size="sm"
           accessibilityLabel={t('common.loading')}
           style={styles.footerLoading}
         />
@@ -698,7 +698,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
                 {nlParsing ? (
                   <Loading
                     variant="inline"
-                    size="small"
+                    size="sm"
                     text={t('search.nl.understanding')}
                     accessibilityLabel={t('search.nl.understanding')}
                     style={styles.nlParsingRow}
@@ -766,7 +766,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
 
       {searching ? (
         <View style={styles.loadingContainer}>
-          <Loading size="large" accessibilityLabel={t('common.loading')} />
+          <Loading size="lg" accessibilityLabel={t('common.loading')} />
         </View>
       ) : (
         <Animated.FlatList

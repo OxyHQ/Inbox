@@ -1042,7 +1042,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     if (!isFetchingNextPage) return null;
     return (
       <View style={styles.footer}>
-        <Loading variant="inline" size="small" />
+        <Loading variant="inline" size="sm" />
       </View>
     );
   }, [isFetchingNextPage]);

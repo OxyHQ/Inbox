@@ -22,8 +22,8 @@ export function AISection() {
           >
             <Switch
               accessibilityLabel={t('ui.settings.ai.recap')}
-              value={prefs.aiBrief}
-              onValueChange={(v) => setPref('aiBrief', v)}
+              checked={prefs.aiBrief}
+              onCheckedChange={(v) => setPref('aiBrief', v)}
             />
           </SettingsRow>
         </SettingsCard>
@@ -37,8 +37,8 @@ export function AISection() {
           >
             <Switch
               accessibilityLabel={t('ui.settings.ai.suggestions')}
-              value={prefs.aiSmartReply}
-              onValueChange={(v) => setPref('aiSmartReply', v)}
+              checked={prefs.aiSmartReply}
+              onCheckedChange={(v) => setPref('aiSmartReply', v)}
             />
           </SettingsRow>
         </SettingsCard>
@@ -52,8 +52,8 @@ export function AISection() {
           >
             <Switch
               accessibilityLabel={t('ui.settings.ai.priorityTitle')}
-              value={prefs.aiCategorization}
-              onValueChange={(v) => setPref('aiCategorization', v)}
+              checked={prefs.aiCategorization}
+              onCheckedChange={(v) => setPref('aiCategorization', v)}
             />
           </SettingsRow>
         </SettingsCard>

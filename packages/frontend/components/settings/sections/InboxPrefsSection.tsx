@@ -63,8 +63,8 @@ export function InboxPrefsSection() {
             control: (
               <Switch
                 accessibilityLabel={t(`ui.settings.inbox.${label}`)}
-                value={prefs[key]}
-                onValueChange={(v) => setPref(key, v)}
+                checked={prefs[key]}
+                onCheckedChange={(v) => setPref(key, v)}
               />
             ),
           })),

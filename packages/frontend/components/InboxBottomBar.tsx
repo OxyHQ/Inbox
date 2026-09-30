@@ -49,9 +49,8 @@ export function InboxBottomBar() {
         isAuthenticated && !selecting ? (
           <Fab
             accessibilityLabel={t('inbox.composeFab')}
-            icon={<RiEditLine />}
+            icon={RiEditLine}
             label={t('inbox.composeFabLabel')}
-            variant="tertiary"
             onPress={() => router.push('/compose')}
           />
         ) : undefined

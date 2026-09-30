@@ -30,7 +30,7 @@ export function TripCard({ data }: TripCardProps) {
     : null;
 
   return (
-    <Card variant="filled">
+    <Card appearance="subtle">
       <CardHeader>
         <CardTitle>Trip</CardTitle>
       </CardHeader>

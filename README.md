@@ -31,8 +31,10 @@ Inbox keeps product inference and agent conversation separate:
 
 - Compose assistance, daily brief, natural-language search, smart replies and
   thread summaries call the authenticated `/email/ai/*` routes on Oxy. Oxy
-  bounds the data and prompt, authorizes an exact routing profile and executes
-  it through Kaana.
+  bounds the data and prompt and executes it through Kaana at the `instant`
+  power level (routing profile `power-instant`, the cheapest), which Oxy owns:
+  this client never sends a model or routing profile. The concrete model that
+  ran is recorded by Oxy, not returned to the app.
 - “Ask Alia” and voice remain Alia agent capabilities through
   `@alia.onl/sdk` and `https://api.alia.onl`; they do not use the removed
   Oxy-to-Alia completion proxy.

@@ -95,6 +95,14 @@ this migration. Colors now come from semantic Bloom roles.
   day, matching the API's inclusive timestamps. Filters and saved searches scroll
   with the results so they cannot consume the whole height of a small viewport.
 - Inbox's locale scope also scopes Bloom's fixed strings and date controls.
+- Subscriptions uses one solid workspace surface, like the mailbox list. The
+  routed navigator stays in the same slot so switching to this full-width page
+  does not remount drafts. React Native Screens detaches inactive tabs on web
+  as well as native; transparent scenes cannot expose another tab beneath them.
+  Its PageHeader shares scroll metrics with the virtualized list, and Bloom's
+  Carousel owns horizontal scrolling, navigation arrows and first/last insets.
+  The carousel viewport spans the panel; the sender envelope piles remain
+  Inbox-specific content.
 - Search state lives above the route stack. Its lifetime is
   scoped to the SDK user ID; switching accounts or signing out clears it.
   Outstanding interpretation/debounce callbacks cannot update a new session.
@@ -134,7 +142,7 @@ it does not recalculate panel margins, surfaces or safe areas.
 
 ## Shared library dependency
 
-The integration uses Bloom **7.5.0**, Services **11.1.0**, Core **4.4.0** and
+The integration uses Bloom **7.6.0**, Services **11.1.0**, Core **4.4.0** and
 App Preset **3.0.0**. Bloom [#263](https://github.com/OxyHQ/Bloom/pull/263) owns
 full-width AppShell content, its safe-area option, the dashboard gutter fix,
 PageFooter, shared panel radius, and spaced message surfaces in both states.
@@ -145,21 +153,23 @@ mail/reply cards, provides plain ContentPanel appearance and removes the thread
 title divider.
 Bloom [#266](https://github.com/OxyHQ/Bloom/pull/266) adds shared scroll metrics,
 ScrollArea and automatic footer fades coordinated with PageHeader.
+Bloom [#267](https://github.com/OxyHQ/Bloom/pull/267) adds animated list bindings
+that compose scroll metrics, tab-bar minimization and restoration callbacks.
 
 Both manifests and the lockfile resolve the published library normally. There
 are no local Bloom copies or package patches. The shared Doctor CLI checks
 dependency health, retaining the current main branch's release-age policy.
 
 Services 11.1.0 still declares Bloom `>=7.1.2 <7.2.0` as its accepted 7.x
-peer range. Inbox's existing root override now resolves one Bloom 7.5.0 copy.
+peer range. Inbox's existing root override now resolves one Bloom 7.6.0 copy.
 This combination passes the consumer checks below, including the real SDK
 account dialog at 390px and 1440px, but the Services peer declaration still
-needs its upstream compatibility review before it can declare 7.5 support.
+needs its upstream compatibility review before it can declare 7.6 support.
 
 ## Validation
 
-The local validation run passed 37 Jest suites (180 tests), lint and TypeScript.
-The web export emits 86,734 bytes of CSS (above the 20 KB floor), and the
+The local validation run passed 37 Jest suites (181 tests), lint and TypeScript.
+The web export emits compiled layout CSS above the 20 KB floor, and the
 post-export TypeScript check also passed. The current-major integration export uses `--max-workers 2`.
 The previous layout revision was smoke-tested in a locally compiled
 Android client. This cleanup is checked by Android export and Bloom's simulated

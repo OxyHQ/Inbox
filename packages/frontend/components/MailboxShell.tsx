@@ -92,6 +92,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
   }, [openSettings, onClose]);
 
   const pathname = usePathname();
+  const isSubscriptions = pathname === '/subscriptions';
   const isDesktop = useIsDesktopLayout();
   const { width } = useWindowDimensions();
   const isMobile = width < BREAKPOINTS.md;
@@ -490,7 +491,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
           }
           detail={
             <ContentPanel
-              appearance="plain"
+              appearance={isSubscriptions ? 'solid' : 'plain'}
               framedFrom={BREAKPOINTS.md}
               chrome="none"
               fill
@@ -499,7 +500,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
               {children}
             </ContentPanel>
           }
-          showList={isDesktop && !pathname.startsWith('/subscriptions')}
+          showList={isDesktop && !isSubscriptions}
           showDetail
           listWidth={380}
           listMinWidth={320}

@@ -13,19 +13,11 @@
  * upward from a shared baseline.
  */
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import {
-  View,
-  Image,
-  ScrollView,
-  StyleSheet,
-  type LayoutChangeEvent,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-} from 'react-native';
-import { IconButton } from '@oxy.so/bloom/button';
+import React, { useCallback, useMemo } from 'react';
+import { View, Image, StyleSheet } from 'react-native';
 import { Card, CardHeader } from '@oxy.so/bloom/card';
-import { RiArrowLeftSLine, RiArrowRightSLine } from '@oxy.so/bloom/icons';
+import { Carousel, CarouselItem } from '@oxy.so/bloom/carousel';
+import { useTranslation } from '@/lib/i18n';
 import { Text } from '@oxy.so/bloom/typography';
 import { SPACING as BLOOM_SPACING } from '@oxy.so/bloom/design-tokens';
 
@@ -81,133 +73,34 @@ export function SubscriptionStacks({
   subscriptions,
   onSelect,
 }: SubscriptionStacksProps) {
-  const scrollRef = useRef<ScrollView>(null);
-
-  // Only what the arrows need: whether there is anywhere to go in each
-  // direction. The geometry itself lives in a ref — `scrollEventThrottle={16}`
-  // means a state write here would be a React commit on every frame of every
-  // drag, re-rendering the whole rail of piles.
-  const geometry = useRef({ offset: 0, viewport: 0, content: 0 });
-  const [edges, setEdges] = useState({ left: false, right: false });
-
+  const { t } = useTranslation();
   const ordered = useMemo(
     () => [...subscriptions].sort((a, b) => b.messageCount - a.messageCount),
     [subscriptions],
   );
 
-  const scrollBy = useCallback((direction: -1 | 1) => {
-    const { offset, viewport, content } = geometry.current;
-    // Move by most of a screenful, keeping a sliver of context on screen.
-    const step = Math.max(viewport * 0.8, 160);
-    const maxOffset = Math.max(0, content - viewport);
-    scrollRef.current?.scrollTo({
-      x: Math.min(Math.max(offset + direction * step, 0), maxOffset),
-      animated: true,
-    });
-  }, []);
-
-  /** Recompute which arrows apply; commit only when the answer changes. */
-  const syncEdges = useCallback(() => {
-    const { offset, viewport, content } = geometry.current;
-    const maxOffset = Math.max(0, content - viewport);
-    const next = { left: offset > 1, right: offset < maxOffset - 1 };
-    setEdges((prev) =>
-      prev.left === next.left && prev.right === next.right ? prev : next,
-    );
-  }, []);
-
-  const handleScroll = useCallback(
-    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      // The event already carries the viewport and content widths, so this is
-      // also what keeps them current — no onLayout/onContentSizeChange pair.
-      const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent;
-      geometry.current = {
-        offset: contentOffset.x,
-        viewport: layoutMeasurement.width,
-        content: contentSize.width,
-      };
-      syncEdges();
-    },
-    [syncEdges],
-  );
-
-  const handleLayout = useCallback(
-    (e: LayoutChangeEvent) => {
-      geometry.current.viewport = e.nativeEvent.layout.width;
-      syncEdges();
-    },
-    [syncEdges],
-  );
-
-  const handleContentSizeChange = useCallback(
-    (w: number) => {
-      geometry.current.content = w;
-      syncEdges();
-    },
-    [syncEdges],
-  );
-
   if (ordered.length === 0) return null;
 
   return (
-    <View onLayout={handleLayout}>
-      <ScrollView
-        ref={scrollRef}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.row}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        onContentSizeChange={handleContentSizeChange}
-      >
-        {ordered.map((sub) => (
-          <SubscriptionColumn
-            key={sub._id}
-            subscription={sub}
-            onSelect={onSelect}
-          />
-        ))}
-      </ScrollView>
-
-      {edges.left && (
-        <ScrollArrow direction="left" onPress={() => scrollBy(-1)} />
-      )}
-      {edges.right && (
-        <ScrollArrow direction="right" onPress={() => scrollBy(1)} />
-      )}
-    </View>
-  );
-}
-
-/**
- * A scroll affordance pinned to one edge of the row. Only rendered when there
- * is actually room to travel in that direction.
- */
-function ScrollArrow({
-  direction,
-  onPress,
-}: {
-  direction: 'left' | 'right';
-  onPress: () => void;
-}) {
-  return (
-    <View
-      style={[
-        styles.arrow,
-        direction === 'left' ? styles.arrowLeft : styles.arrowRight,
-      ]}
+    <Carousel
+      accessibilityLabel={t('drawer.subscriptions')}
+      testID="subscriptions-carousel"
+      inset={BLOOM_SPACING['space-16']}
+      gap={BLOOM_SPACING['space-12']}
+      showDots={false}
+      style={styles.carousel}
     >
-      <IconButton
-        onPress={onPress}
-        appearance="outline"
-        accessibilityLabel={
-          direction === 'left' ? 'Scroll left' : 'Scroll right'
-        }
-        icon={
-          direction === 'left' ? <RiArrowLeftSLine /> : <RiArrowRightSLine />
-        }
-      />
-    </View>
+      {ordered.map((sub) => (
+        <CarouselItem
+          key={sub._id}
+          width={ENVELOPE_WIDTH + BLOOM_SPACING['space-12']}
+          style={styles.slide}
+          accessibilityLabel={`${sub.name}, ${sub.messageCount}`}
+        >
+          <SubscriptionColumn subscription={sub} onSelect={onSelect} />
+        </CarouselItem>
+      ))}
+    </Carousel>
   );
 }
 
@@ -253,13 +146,13 @@ function SubscriptionColumn({
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    // Bottom-aligned so every pile grows from the same baseline.
-    alignItems: 'flex-end',
-    gap: BLOOM_SPACING['space-12'],
-    paddingHorizontal: BLOOM_SPACING['space-16'],
+  carousel: {
+    // The viewport fills the panel; Bloom keeps first/last spacing inside it.
     paddingTop: BLOOM_SPACING['space-32'],
+  },
+  slide: {
+    // Stretch the slide, then align its pile to the shared baseline.
+    justifyContent: 'flex-end',
   },
   column: {
     flexShrink: 0,
@@ -274,19 +167,5 @@ const styles = StyleSheet.create({
     left: 0,
     width: ENVELOPE_WIDTH,
     height: ENVELOPE_HEIGHT,
-  },
-  arrow: {
-    position: 'absolute',
-    // Centred against the rail's own height, which the tallest pile sets.
-    // `top: '50%'` puts the arrow's top edge on the midline, so it is pulled
-    // back up by half its height to sit ON the midline.
-    top: '50%',
-    transform: [{ translateY: -16 }],
-  },
-  arrowLeft: {
-    left: BLOOM_SPACING['space-4'],
-  },
-  arrowRight: {
-    right: BLOOM_SPACING['space-4'],
   },
 });

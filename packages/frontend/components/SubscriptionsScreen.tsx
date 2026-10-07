@@ -1,6 +1,15 @@
 import { BREAKPOINTS } from '@oxy.so/bloom/styles';
-import { useBottomEdgeInset } from '@oxy.so/bloom/layout';
+import {
+  ScrollMetricsProvider,
+  TopEdgeProvider,
+  useBottomEdgeInset,
+  useAnimatedScrollMetricsBinding,
+  useTopEdgeInset,
+} from '@oxy.so/bloom/layout';
 import { PageHeader } from '@oxy.so/bloom/page-header';
+import { ScrollRestorationProvider, useScrollRestoration } from '@oxy.so/bloom/scroll';
+import { expoRouterScrollAdapter } from '@oxy.so/bloom/scroll/expo-router';
+import { useOxy } from '@oxy.so/services';
 /**
  * Subscriptions management screen.
  *
@@ -43,12 +52,26 @@ const AnimatedSubscriptionsList = Animated.createAnimatedComponent(
 >;
 
 export function SubscriptionsScreen() {
+  return (
+    <ScrollRestorationProvider adapter={expoRouterScrollAdapter}>
+      <TopEdgeProvider>
+        <ScrollMetricsProvider>
+          <SubscriptionsContent />
+        </ScrollMetricsProvider>
+      </TopEdgeProvider>
+    </ScrollRestorationProvider>
+  );
+}
+
+function SubscriptionsContent() {
   const minimizeTabBarOnScroll = useMinimizeOnScroll();
+  const headerClearance = useTopEdgeInset();
   const shell = useAppShell();
   const occupiedBottom = useBottomEdgeInset();
   const { width: viewportWidth } = useWindowDimensions();
   const bottomClearance = viewportWidth < BREAKPOINTS.md ? occupiedBottom : 0;
   const { t } = useTranslation();
+  const { user } = useOxy();
 
   const {
     data,
@@ -107,6 +130,14 @@ export function SubscriptionsScreen() {
    * matching the header's "Scroll to <sender>" affordance.
    */
   const listRef = useRef<FlashListRef<Subscription>>(null);
+  const scrollRestoration = useScrollRestoration(listRef, {
+    key: JSON.stringify(['subscriptions', user?.id]),
+    enabled: subscriptions.length > 0,
+  });
+  const scrollBinding = useAnimatedScrollMetricsBinding({
+    handler: minimizeTabBarOnScroll,
+    onScroll: scrollRestoration.onScroll,
+  });
   const handleSelectSubscription = useCallback(
     (subscriptionId: string) => {
       const index = subscriptions.findIndex((s) => s._id === subscriptionId);
@@ -162,7 +193,9 @@ export function SubscriptionsScreen() {
         title={t('drawer.subscriptions')}
         onBack={handleBack}
         sticky={false}
-        scrim="none"
+        placement="overlay"
+        scrim="auto"
+        testID="subscriptions-header"
         safeArea={false}
         leading={
           shell.drawerAvailable ? (
@@ -178,9 +211,12 @@ export function SubscriptionsScreen() {
         }
       />
       {isLoading ? (
-        <Loading />
+        <View className="flex-1 justify-center" style={{ paddingTop: headerClearance }}>
+          <Loading />
+        </View>
       ) : (
         <AnimatedSubscriptionsList
+          testID="subscriptions-list"
           ref={listRef}
           data={subscriptions}
           renderItem={renderItem}
@@ -194,10 +230,12 @@ export function SubscriptionsScreen() {
               {/* Scrolls with the list rather than sitting in a fixed band:
                   only the header stays put, same as the inbox. */}
               {subscriptions.length > 0 && (
-                <Text variant="caption-1-regular">
-                  When you unsubscribe, it can take a few days to stop receiving
-                  messages
-                </Text>
+                <View className="px-4 py-3">
+                  <Text variant="caption-1-regular">
+                    When you unsubscribe, it can take a few days to stop receiving
+                    messages
+                  </Text>
+                </View>
               )}
             </>
           }
@@ -205,8 +243,7 @@ export function SubscriptionsScreen() {
           ListFooterComponent={renderFooter}
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.3}
-          onScroll={minimizeTabBarOnScroll}
-          scrollEventThrottle={16}
+          {...scrollBinding}
           refreshControl={
             <RefreshControl
               refreshing={isRefetching && !isFetchingNextPage}
@@ -215,6 +252,7 @@ export function SubscriptionsScreen() {
           }
           contentContainerStyle={{
             ...(subscriptions.length === 0 ? { flexGrow: 1 } : undefined),
+            paddingTop: headerClearance,
             paddingBottom: bottomClearance,
           }}
         />

@@ -1,5 +1,7 @@
 jest.mock('@/components/EmptyStateSticker', () => ({ EmptyStateSticker: () => null }));
-jest.mock('@/components/InboxList', () => ({ InboxList: () => null }));
+jest.mock('@/components/InboxList', () => ({
+  InboxList: () => <span>Mailbox list</span>,
+}));
 jest.mock('@/components/SearchList', () => ({ SearchList: () => null }));
 jest.mock('@/components/InboxBottomBar', () => ({
   InboxBottomBar: () => null,
@@ -7,6 +9,7 @@ jest.mock('@/components/InboxBottomBar', () => ({
 import { MailboxShell } from '@/components/MailboxShell';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import { useState } from 'react';
 
 jest.mock('@/components/settings/InboxSettings', () => ({
   useInboxSettings: () => jest.fn(),
@@ -44,7 +47,9 @@ jest.mock('expo-router', () => ({
   usePathname: () => mockPath,
 }));
 jest.mock('@oxy.so/bloom/content-panel', () => ({
-  ContentPanel: ({ children }: any) => <div>{children}</div>,
+  ContentPanel: ({ children, appearance = 'solid' }: any) => (
+    <div data-panel-appearance={appearance}>{children}</div>
+  ),
 }));
 jest.mock('@oxy.so/bloom/styles', () => ({ BREAKPOINTS: { md: 768 } }));
 jest.mock('@oxy.so/bloom/app-shell', () => ({
@@ -59,7 +64,9 @@ jest.mock('@oxy.so/bloom/app-shell', () => ({
       </div>
     );
   },
-  AppShellSplitPanes: ({ detail }: any) => <div>{detail}</div>,
+  AppShellSplitPanes: ({ list, detail, showList, showDetail }: any) => (
+    <div>{showList && list}{showDetail && detail}</div>
+  ),
 }));
 jest.mock(
   '@oxy.so/bloom/icons',
@@ -221,4 +228,31 @@ it('keeps the source mailbox selected while reading a conversation', () => {
   mockState.viewMode = { type: 'mailbox', mailbox: mockMailboxes[1] };
   render(<MailboxShell>{null}</MailboxShell>);
   expect(mockSidebar.selected).toBe('sent-id');
+});
+
+it('gives subscriptions one solid workspace while preserving the routed navigator state', () => {
+  function RetainedRoute() {
+    const [draft, setDraft] = useState('');
+    return (
+      <input
+        aria-label="Retained draft"
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+      />
+    );
+  }
+  const view = render(<MailboxShell><RetainedRoute /></MailboxShell>);
+  const draft = screen.getByLabelText('Retained draft');
+  fireEvent.change(draft, { target: { value: 'Keep my draft' } });
+  const appearance = () => draft.closest('[data-panel-appearance]')?.getAttribute('data-panel-appearance');
+  expect(appearance()).toBe('plain');
+  mockPath = '/subscriptions';
+  view.rerender(<MailboxShell><RetainedRoute /></MailboxShell>);
+  expect(screen.queryByText('Mailbox list')).toBeNull();
+  expect(screen.getByLabelText('Retained draft')).toBe(draft);
+  expect(appearance()).toBe('solid');
+  mockPath = '/';
+  view.rerender(<MailboxShell><RetainedRoute /></MailboxShell>);
+  expect(screen.getByText('Mailbox list')).toBeTruthy();
+  expect((screen.getByLabelText('Retained draft') as HTMLInputElement).value).toBe('Keep my draft');
 });

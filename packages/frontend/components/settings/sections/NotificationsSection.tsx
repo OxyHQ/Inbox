@@ -22,8 +22,8 @@ export function NotificationsSection() {
           >
             <Switch
               accessibilityLabel={t('ui.settings.notifications.push')}
-              value={prefs.pushNotifications}
-              onValueChange={(v) => setPref('pushNotifications', v)}
+              checked={prefs.pushNotifications}
+              onCheckedChange={(v) => setPref('pushNotifications', v)}
             />
           </SettingsRow>
           <SettingsRow
@@ -33,8 +33,8 @@ export function NotificationsSection() {
           >
             <Switch
               accessibilityLabel={t('ui.settings.notifications.digest')}
-              value={prefs.emailDigest}
-              onValueChange={(v) => setPref('emailDigest', v)}
+              checked={prefs.emailDigest}
+              onCheckedChange={(v) => setPref('emailDigest', v)}
             />
           </SettingsRow>
         </SettingsCard>
@@ -48,8 +48,8 @@ export function NotificationsSection() {
           >
             <Switch
               accessibilityLabel={t('ui.settings.notifications.playSound')}
-              value={prefs.notificationSound}
-              onValueChange={(v) => setPref('notificationSound', v)}
+              checked={prefs.notificationSound}
+              onCheckedChange={(v) => setPref('notificationSound', v)}
             />
           </SettingsRow>
         </SettingsCard>

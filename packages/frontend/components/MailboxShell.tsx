@@ -1,3 +1,4 @@
+import { EmptyStateSticker } from '@/components/EmptyStateSticker';
 import { InboxList } from '@/components/InboxList';
 import { SearchList } from '@/components/SearchList';
 import { InboxBottomBar } from '@/components/InboxBottomBar';
@@ -18,9 +19,13 @@ import { useEmailStore } from '@/hooks/useEmail';
 import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 import { useTranslation } from '@/lib/i18n';
 import type { Mailbox } from '@/services/emailApi';
-import { AiChatContainer, AiChatShell } from '@oxy.so/bloom/ai-chat';
-import { AppShellSplitPanes } from '@oxy.so/bloom/app-shell';
+import {
+  APP_SHELL_DEFAULTS,
+  AppShell,
+  AppShellSplitPanes,
+} from '@oxy.so/bloom/app-shell';
 import { Button } from '@oxy.so/bloom/button';
+import { ContentPanel } from '@oxy.so/bloom/content-panel';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
 import {
   RiAddLine,
@@ -40,16 +45,13 @@ import {
   RiStarLine,
   RiTimeLine,
 } from '@oxy.so/bloom/icons';
-import {
-  Sidebar,
-  type SidebarNavItem,
-  type SidebarProps,
-} from '@oxy.so/bloom/sidebar';
+import type { SidebarNavItem, SidebarProps } from '@oxy.so/bloom/sidebar';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { openAccountDialog, ProfileButton, useOxy } from '@oxy.so/services';
 import { usePathname, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
-import { View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
+import { BREAKPOINTS } from '@oxy.so/bloom/styles';
 
 const PRIMARY_SPECIAL_USE: Set<string> = new Set([
   SPECIAL_USE.INBOX,
@@ -91,6 +93,8 @@ export function MailboxShell({ children }: { children: ReactNode }) {
 
   const pathname = usePathname();
   const isDesktop = useIsDesktopLayout();
+  const { width } = useWindowDimensions();
+  const isMobile = width < BREAKPOINTS.md;
   const moreExpanded = useEmailStore((s) => s.moreExpanded);
   const toggleMore = useEmailStore((s) => s.toggleMore);
   const { data: mailboxes = [] } = useMailboxes();
@@ -382,7 +386,6 @@ export function MailboxShell({ children }: { children: ReactNode }) {
           )?._id ?? currentView);
 
   const sidebarProps: SidebarProps = {
-    size: 'md',
     items,
     selected,
     collapsed,
@@ -427,26 +430,53 @@ export function MailboxShell({ children }: { children: ReactNode }) {
 
   return (
     <MailScrollProvider>
-      <AiChatShell
+      <AppShell
         safeArea
-        scroll="container"
+        drawer="reveal"
+        scroll="fixed"
+        header={null}
+        contentMaxWidth="none"
+        gutter={isMobile ? 0 : APP_SHELL_DEFAULTS.dashboardGutter}
+        reserveBottomBarSpace={!isMobile}
         testID="mail-workspace"
-        navOpen={drawerOpen}
-        onNavOpenChange={setDrawerOpen}
-        sidebarCollapsed={collapsed}
-        sidebar={<Sidebar {...sidebarProps} />}
-        mobileSidebar={
-          <Sidebar {...sidebarProps} mobile surface="plain" onClose={onClose} />
-        }
-        labels={{
-          openNavigation: t('search.openMenu'),
-          closeNavigation: t('common.close'),
-        }}
+        drawerOpen={drawerOpen}
+        onDrawerOpenChange={setDrawerOpen}
+        sidebar={sidebarProps}
+        bottomBar={<InboxBottomBar />}
+        drawerOpenLabel={t('search.openMenu')}
+        drawerCloseLabel={t('common.close')}
       >
         <AppShellSplitPanes
           variant="separated"
+          listErrorBoundary={{
+            resetKey: pathname,
+            bottomInset: isMobile ? undefined : 0,
+            emptyState: {
+              variant: 'comfortable',
+              illustration: <EmptyStateSticker name="loadError" />,
+              title: t('empty.errorTitle'),
+              description: t('empty.errorDescription'),
+              action: { label: t('common.retry') },
+            },
+          }}
+          detailErrorBoundary={{
+            resetKey: pathname,
+            bottomInset: isMobile ? undefined : 0,
+            emptyState: {
+              variant: 'comfortable',
+              illustration: <EmptyStateSticker name="loadError" />,
+              title: t('empty.errorTitle'),
+              description: t('empty.errorDescription'),
+              action: { label: t('common.retry') },
+            },
+          }}
           list={
-            <AiChatContainer testID="mail-list-panel">
+            <ContentPanel
+              framedFrom={BREAKPOINTS.md}
+              chrome="none"
+              fill
+              overlaySizing="panel"
+            >
               {pathname.startsWith('/search') ? (
                 <SearchList
                   replaceNavigation={pathname.includes('/conversation/')}
@@ -456,15 +486,18 @@ export function MailboxShell({ children }: { children: ReactNode }) {
                   replaceNavigation={pathname.includes('/conversation/')}
                 />
               )}
-            </AiChatContainer>
+            </ContentPanel>
           }
           detail={
-            <AiChatContainer
-              testID="mail-detail-panel"
-              composer={!isDesktop ? <InboxBottomBar /> : undefined}
+            <ContentPanel
+              appearance="plain"
+              framedFrom={BREAKPOINTS.md}
+              chrome="none"
+              fill
+              overlaySizing="panel"
             >
               {children}
-            </AiChatContainer>
+            </ContentPanel>
           }
           showList={isDesktop && !pathname.startsWith('/subscriptions')}
           showDetail
@@ -475,7 +508,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
           resizeLabel={t('inbox.resizePanes')}
           testID="mail-workspace"
         />
-      </AiChatShell>
+      </AppShell>
       <Dialog
         control={createFolderControl}
         title={t('ui.drawer.newFolder')}

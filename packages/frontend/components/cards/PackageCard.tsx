@@ -22,7 +22,7 @@ export function PackageCard({ data }: PackageCardProps) {
     : null;
 
   return (
-    <Card variant="filled">
+    <Card appearance="subtle">
       <CardHeader>
         <CardTitle>Package</CardTitle>
       </CardHeader>

@@ -118,7 +118,6 @@ export function ImportanceBadge({ message, onPress }: ImportanceBadgeProps) {
         onPress={onPress}
         color={config.color}
         variant="subtle"
-        size="small"
       >
         {config.label}
       </Chip>

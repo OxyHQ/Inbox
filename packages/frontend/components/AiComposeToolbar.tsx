@@ -169,7 +169,6 @@ export function AiComposeToolbar({
     <View className="gap-2 px-4 py-2">
       <View className="flex-row flex-wrap gap-2">
         <Button
-          size="sm"
           appearance="subtle"
           onPress={handleDraft}
           disabled={isLoading}
@@ -177,7 +176,6 @@ export function AiComposeToolbar({
           {t('ai.toolbar.draft')}
         </Button>
         <Button
-          size="sm"
           appearance="subtle"
           onPress={handlePolish}
           disabled={isLoading || !hasBody}
@@ -185,7 +183,6 @@ export function AiComposeToolbar({
           {t('ai.toolbar.polish')}
         </Button>
         <Button
-          size="sm"
           appearance="subtle"
           onPress={handleShorter}
           disabled={isLoading || !hasBody}
@@ -193,7 +190,6 @@ export function AiComposeToolbar({
           {t('ai.toolbar.shorter')}
         </Button>
         <Button
-          size="sm"
           appearance="subtle"
           onPress={() => toneControl.open()}
           disabled={isLoading}
@@ -202,7 +198,6 @@ export function AiComposeToolbar({
         </Button>
         {hasBody && onSubjectSuggested && (
           <Button
-            size="sm"
             appearance="subtle"
             onPress={handleSuggestSubject}
             disabled={isLoading}

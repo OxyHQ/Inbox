@@ -9,12 +9,7 @@ let oldSearchCompletion: () => void;
 function SearchFixture() {
   const [query, setQuery] = useSearchSessionState('query');
   const [submitted, setSubmitted] = useSearchSessionState('submittedQuery');
-  const [from, setFrom] = useSearchSessionState('filterFrom');
-  const [attachment, setAttachment] = useSearchSessionState(
-    'filterHasAttachment',
-  );
-  const [editing, setEditing] = useSearchSessionState('editingFilter');
-  const [input, setInput] = useSearchSessionState('filterInput');
+  const [filters, setFilters] = useSearchSessionState('filters');
   const [interpretation, setInterpretation] =
     useSearchSessionState('nlInterpretation');
   const [parsed, setParsed] = useSearchSessionState('nlParsedOptions');
@@ -24,10 +19,7 @@ function SearchFixture() {
         {JSON.stringify({
           query,
           submitted,
-          from,
-          attachment,
-          editing,
-          input,
+          filters,
           interpretation,
           parsed,
         })}
@@ -36,10 +28,16 @@ function SearchFixture() {
         onClick={() => {
           setQuery('invoices from Sarah');
           setSubmitted('invoices');
-          setFrom('sarah@example.com');
-          setAttachment(true);
-          setEditing('from');
-          setInput('sarah');
+          setFilters({
+            from: 'sarah@example.com',
+            to: 'me@example.com',
+            hasAttachment: true,
+            unread: false,
+            mailbox: 'inbox-id',
+            label: 'Receipts',
+            dateAfter: '2026-10-01',
+            dateBefore: '2026-10-07',
+          });
           setInterpretation('Invoices from Sarah');
           setParsed({ from: 'sarah@example.com', hasAttachment: true });
           oldSearchCompletion = () => {
@@ -59,10 +57,7 @@ function read() {
 const empty = {
   query: '',
   submitted: '',
-  from: '',
-  attachment: false,
-  editing: null,
-  input: '',
+  filters: {},
   interpretation: '',
   parsed: null,
 };

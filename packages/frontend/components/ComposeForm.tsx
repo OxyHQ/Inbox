@@ -1,3 +1,5 @@
+import { BREAKPOINTS } from '@oxy.so/bloom/styles';
+import { useBottomEdgeInset } from '@oxy.so/bloom/layout';
 import { Text } from '@oxy.so/bloom/typography';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { MailAddressFields } from '@/components/MailAddressFields';
@@ -28,7 +30,7 @@ import { Admonition } from '@oxy.so/bloom/admonition';
 import type { FileMetadata } from '@oxy.so/core';
 import { useOxy } from '@oxy.so/services';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { useWindowDimensions, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 
 import { AiComposeToolbar } from '@/components/AiComposeToolbar';
 import { ReplyParentNotice } from '@/components/ReplyParentNotice';
@@ -113,6 +115,9 @@ export function ComposeForm({
 }: ComposeFormProps) {
   // Compose can be opened from a deep link, where there is no history to pop.
   const closeCompose = useGoBack();
+  const occupiedBottom = useBottomEdgeInset();
+  const { width: viewportWidth } = useWindowDimensions();
+  const bottomClearance = viewportWidth < BREAKPOINTS.md ? occupiedBottom : 0;
   const colors = useColors();
   const { t } = useTranslation();
 
@@ -707,7 +712,7 @@ export function ComposeForm({
           attach: t('compose.dropZone'),
           close: t('common.close'),
         }}
-        style={{ flex: 1 }}
+        style={{ flex: 1, paddingBottom: bottomClearance }}
       >
         <Dialog
           control={sendMenuControl}

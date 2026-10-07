@@ -21,7 +21,7 @@ export function PrivacySection() {
             control: (
               <Switch
                 accessibilityLabel={t(`ui.settings.privacy.${key}`)}
-                value
+                checked
                 disabled
               />
             ),
@@ -38,7 +38,7 @@ export function PrivacySection() {
               control: (
                 <Switch
                   accessibilityLabel={t('ui.settings.privacy.verification')}
-                  value
+                  checked
                   disabled
                 />
               ),

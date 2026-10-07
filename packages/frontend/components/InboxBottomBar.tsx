@@ -14,7 +14,7 @@ import { useOxy } from '@oxy.so/services';
 import { usePathname, useRouter } from 'expo-router';
 import { useKeyboardState } from 'react-native-keyboard-controller';
 
-/** Template composition: the shared container positions one BottomBar; its action owns the compose FAB. */
+/** Template composition: AppShell positions one BottomBar; its action owns the compose FAB. */
 export function InboxBottomBar() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -49,9 +49,9 @@ export function InboxBottomBar() {
         isAuthenticated && !selecting ? (
           <Fab
             accessibilityLabel={t('inbox.composeFab')}
-            icon={<RiEditLine />}
+            icon={RiEditLine}
             label={t('inbox.composeFabLabel')}
-            variant="tertiary"
+            tone="action"
             onPress={() => router.push('/compose')}
           />
         ) : undefined

@@ -20,7 +20,7 @@ export function PurchaseCard({ data }: PurchaseCardProps) {
       : null;
 
   return (
-    <Card variant="filled">
+    <Card appearance="subtle">
       <CardHeader>
         <CardTitle>Purchase</CardTitle>
       </CardHeader>

@@ -87,8 +87,7 @@ export function MailAddressFields(props: MailAddressFieldsProps) {
         trailing={
           !copies ? (
             <Button
-              size="xs"
-              variant="link"
+              appearance="plain"
               onPress={() => setRevealed(true)}
             >{`${t('compose.fields.cc')} / ${t('compose.fields.bcc')}`}</Button>
           ) : undefined

@@ -1,3 +1,4 @@
+jest.mock('@/components/EmptyStateSticker', () => ({ EmptyStateSticker: () => null }));
 /**
  * A message the client cannot read must never vanish from any view: the
  * conversation, search and bundled reads carry their unreadable rows, and the

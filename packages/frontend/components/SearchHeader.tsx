@@ -1,4 +1,4 @@
-import { useAiChatShell } from '@oxy.so/bloom/ai-chat';
+import { useAppShell } from '@oxy.so/bloom/app-shell';
 /** App-specific search routing around Bloom's shared search field and buttons. */
 import { useTranslation } from '@/lib/i18n';
 import { Button } from '@oxy.so/bloom/button';
@@ -39,7 +39,7 @@ export const SearchHeader = forwardRef<TextInput, SearchHeaderProps>(
     ref,
   ) {
     const { t } = useTranslation();
-    const shell = useAiChatShell();
+    const shell = useAppShell();
     const label = placeholder ?? t('search.placeholder');
     return (
       <PageHeader
@@ -51,13 +51,13 @@ export const SearchHeader = forwardRef<TextInput, SearchHeaderProps>(
         }
         backLabel={t('search.goBack')}
         leading={
-          shell?.navCollapsed && shell.hasNav ? (
+          shell.drawerAvailable ? (
             <ButtonGroup accessibilityLabel={t('search.openMenu')}>
               <ButtonGroupItem
                 iconOnly
                 leadingIcon={RiMenuLine}
                 accessibilityLabel={t('search.openMenu')}
-                onPress={shell.openNav}
+                onPress={shell.openDrawer}
               />
             </ButtonGroup>
           ) : undefined

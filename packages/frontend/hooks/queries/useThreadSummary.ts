@@ -29,7 +29,7 @@ export function useThreadSummary(
   options: UseThreadSummaryOptions = {},
 ) {
   const { oxyServices, user } = useOxy();
-  const { enabled = true, minMessages = 4 } = options;
+  const { enabled = true, minMessages = 1 } = options;
   const shouldFetch = enabled && !!user && !!messageId && !!messages && messages.length >= minMessages;
 
   const query = useQuery({

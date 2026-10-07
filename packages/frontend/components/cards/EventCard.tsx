@@ -165,7 +165,7 @@ export function EventCard({ data }: EventCardProps) {
   }, [data]);
 
   return (
-    <Card variant="filled">
+    <Card appearance="subtle">
       <CardHeader>
         <CardTitle>{t('cards.event.header')}</CardTitle>
       </CardHeader>

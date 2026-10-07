@@ -192,8 +192,8 @@ export function AccountSection() {
                 control: (
                   <Switch
                     accessibilityLabel="Vacation responder"
-                    value={autoReplyEnabled}
-                    onValueChange={(v) => setField('autoReplyEnabled', v)}
+                    checked={autoReplyEnabled}
+                    onCheckedChange={(v) => setField('autoReplyEnabled', v)}
                   />
                 ),
               },
@@ -258,8 +258,8 @@ export function AccountSection() {
                       control: (
                         <Switch
                           accessibilityLabel="Keep a copy in Inbox"
-                          value={autoForwardKeepCopy}
-                          onValueChange={(v) =>
+                          checked={autoForwardKeepCopy}
+                          onCheckedChange={(v) =>
                             setField('autoForwardKeepCopy', v)
                           }
                         />
@@ -279,7 +279,6 @@ export function AccountSection() {
                       label: 'Save changes',
                       control: (
                         <Button
-                          size="sm"
                           onPress={handleSave}
                           disabled={saving}
                           loading={saving}
@@ -302,7 +301,6 @@ export function AccountSection() {
                 description: t('ui.settings.account.signOutDevice'),
                 control: (
                   <Button
-                    size="sm"
                     appearance="subtle"
                     onPress={() => signOutDialog.open()}
                   >

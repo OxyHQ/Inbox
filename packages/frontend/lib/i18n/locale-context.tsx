@@ -1,3 +1,4 @@
+import { LocaleProvider as BloomLocaleProvider } from '@oxy.so/bloom/locale';
 import React, {
   createContext,
   useCallback,
@@ -8,11 +9,7 @@ import React, {
 import { I18nManager } from 'react-native';
 import { useOxy, useUpdateProfile } from '@oxy.so/services';
 import { coerceToSupportedLocale, isRTLLocale } from '@oxy.so/core';
-import {
-  DEFAULT_LOCALE,
-  SUPPORTED_LOCALES,
-  type Locale,
-} from './types';
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type Locale } from './types';
 
 // Allow RTL flipping system-wide once on module init. `allowRTL` is idempotent
 // and gates whether `forceRTL` takes effect.
@@ -28,7 +25,11 @@ I18nManager.allowRTL(true);
  * (see ADR 0022, `@oxy.so/services`' `OxyProvider.language`).
  */
 function coerceLocale(value: string | null | undefined): Locale {
-  return coerceToSupportedLocale(value, SUPPORTED_LOCALES, DEFAULT_LOCALE) as Locale;
+  return coerceToSupportedLocale(
+    value,
+    SUPPORTED_LOCALES,
+    DEFAULT_LOCALE,
+  ) as Locale;
 }
 
 interface LocaleContextValue {
@@ -44,7 +45,8 @@ interface LocaleProviderProps {
 }
 
 export function LocaleProvider({ children }: LocaleProviderProps) {
-  const { currentLanguage, currentLanguages, isAuthenticated, setLanguage } = useOxy();
+  const { currentLanguage, currentLanguages, isAuthenticated, setLanguage } =
+    useOxy();
   const updateProfile = useUpdateProfile();
 
   // The active locale is DERIVED from the SDK's centralized `currentLanguage`
@@ -87,7 +89,9 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
   );
 
   return (
-    <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>
+    <LocaleContext.Provider value={value}>
+      <BloomLocaleProvider locale={locale}>{children}</BloomLocaleProvider>
+    </LocaleContext.Provider>
   );
 }
 

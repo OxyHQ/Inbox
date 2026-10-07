@@ -31,7 +31,7 @@ export function BillCard({ data }: BillCardProps) {
   const isOverdue = data.dueDate ? new Date(data.dueDate) < new Date() : false;
 
   return (
-    <Card variant="filled">
+    <Card appearance="subtle">
       <CardHeader>
         <CardTitle>Bill</CardTitle>
       </CardHeader>

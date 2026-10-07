@@ -279,7 +279,6 @@ export function AccountSection() {
                       label: 'Save changes',
                       control: (
                         <Button
-                          size="sm"
                           onPress={handleSave}
                           disabled={saving}
                           loading={saving}
@@ -302,7 +301,6 @@ export function AccountSection() {
                 description: t('ui.settings.account.signOutDevice'),
                 control: (
                   <Button
-                    size="sm"
                     appearance="subtle"
                     onPress={() => signOutDialog.open()}
                   >

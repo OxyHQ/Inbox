@@ -48,6 +48,7 @@ minimumReleaseAgeExcludes = [
   "@oxy.so/expo-splash",
   "@oxy.so/protocol",
   "@oxy.so/services",
+  "@oxy.so/stickers",
   "@oxy.so/telemetry",
 ]
 

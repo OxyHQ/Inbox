@@ -1,3 +1,4 @@
+jest.mock('@/components/EmptyStateSticker', () => ({ EmptyStateSticker: () => null }));
 jest.mock('@/components/InboxList', () => ({ InboxList: () => null }));
 jest.mock('@/components/SearchList', () => ({ SearchList: () => null }));
 jest.mock('@/components/InboxBottomBar', () => ({
@@ -35,29 +36,30 @@ const mockMailboxes = [
   { _id: 'custom-id', name: 'Invoices', unseenMessages: 2 },
 ];
 jest.mock('react-native', () => ({
+  useWindowDimensions: () => ({ width: 1440, height: 900 }),
   View: ({ children }: any) => <div>{children}</div>,
 }));
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush }),
   usePathname: () => mockPath,
 }));
-jest.mock('@oxy.so/bloom/ai-chat', () => ({
-  AiChatShell: ({ children, sidebar }: any) => (
-    <div>
-      {sidebar}
-      {children}
-    </div>
-  ),
-  AiChatContainer: ({ children }: any) => <div>{children}</div>,
+jest.mock('@oxy.so/bloom/content-panel', () => ({
+  ContentPanel: ({ children }: any) => <div>{children}</div>,
 }));
+jest.mock('@oxy.so/bloom/styles', () => ({ BREAKPOINTS: { md: 768 } }));
 jest.mock('@oxy.so/bloom/app-shell', () => ({
-  AppShellSplitPanes: ({ detail }: any) => <div>{detail}</div>,
-}));
-jest.mock('@oxy.so/bloom/sidebar', () => ({
-  Sidebar: (props: any) => {
-    mockSidebar = props;
-    return <div>{props.footer({ collapsed: false })}</div>;
+  APP_SHELL_DEFAULTS: { dashboardGutter: 12 },
+  AppShell: ({ children, sidebar, bottomBar }: any) => {
+    mockSidebar = sidebar;
+    return (
+      <div>
+        {sidebar.footer({ collapsed: false })}
+        {children}
+        {bottomBar}
+      </div>
+    );
   },
+  AppShellSplitPanes: ({ detail }: any) => <div>{detail}</div>,
 }));
 jest.mock(
   '@oxy.so/bloom/icons',

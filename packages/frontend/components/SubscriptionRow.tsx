@@ -97,7 +97,6 @@ export function SubscriptionRow({
         <Button
           appearance={isBlockOnly ? 'solid' : 'outline'}
           tone={isBlockOnly ? 'danger' : 'neutral'}
-          size="sm"
           onPress={handlePress}
           disabled={isUnsubscribing}
           loading={isUnsubscribing}

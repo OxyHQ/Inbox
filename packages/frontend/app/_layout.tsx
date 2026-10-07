@@ -3,7 +3,7 @@ import '../global.css';
 import { Stack, ThemeProvider } from 'expo-router';
 import Head from 'expo-router/head';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { Platform } from 'react-native';
 import 'react-native-reanimated';
@@ -13,10 +13,13 @@ import { toast } from '@oxy.so/bloom';
 import { ImageResolverProvider } from '@oxy.so/bloom/image-resolver';
 import type { ImageResolver } from '@oxy.so/bloom/image-resolver';
 import { BloomProvider } from '@oxy.so/bloom/provider';
+import { BloomScope } from '@oxy.so/bloom/appearance';
 import { useNavigationTheme } from '@oxy.so/bloom/theme';
 import type { ThemeMode } from '@oxy.so/bloom/theme';
 import { PortalProvider, PortalOutlet } from '@oxy.so/bloom/portal';
 import { ConnectionStatusToasts } from '@oxy.so/bloom/connection-status';
+import { createStickersClient } from '@oxy.so/stickers';
+import { StickersProvider } from '@oxy.so/stickers/react';
 
 import {
   INBOX_ACCOUNT_QUERIES,
@@ -38,7 +41,10 @@ import { removeLegacyQueryCache } from '@/utils/removeLegacyQueryCache';
 import { registerServiceWorker } from '@/utils/registerServiceWorker';
 import { clearQueue } from '@/utils/offlineQueue';
 import { OXY_CLIENT_ID, OXY_AUTH_REDIRECT_URI } from '@/constants/oxy';
+import { configureLottieWeb } from '@/lib/lottieWeb';
 import * as SplashScreen from 'expo-splash-screen';
+
+configureLottieWeb();
 
 SplashScreen.hideAsync().catch(() => {
   // Already hidden during a fast-refresh re-import.
@@ -63,7 +69,9 @@ function ThemedRoot() {
   const themeMode = themePreference as ThemeMode;
   return (
     <BloomProvider mode={themeMode} colorPreset={colorPreset}>
-      <RootLayoutContent />
+      <BloomScope size="md">
+        <RootLayoutContent />
+      </BloomScope>
     </BloomProvider>
   );
 }
@@ -81,7 +89,7 @@ function RootLayoutContent() {
         accountQueries={INBOX_ACCOUNT_QUERIES}
       >
         <ScopedInboxPrefsProvider>
-          <BloomImageResolver>
+          <InboxMediaProvider>
             <LocaleProvider>
               <PortalProvider>
                 <ThemeProvider value={navTheme}>
@@ -93,7 +101,7 @@ function RootLayoutContent() {
                 <PortalOutlet />
               </PortalProvider>
             </LocaleProvider>
-          </BloomImageResolver>
+          </InboxMediaProvider>
         </ScopedInboxPrefsProvider>
       </OxyProvider>
     </KeyboardProvider>
@@ -138,14 +146,20 @@ function ScopedInboxPrefsProvider({ children }: { children: ReactNode }) {
   );
 }
 
-function BloomImageResolver({ children }: { children: ReactNode }) {
+function InboxMediaProvider({ children }: { children: ReactNode }) {
   const { oxyServices } = useOxy();
+  const stickersClient = useMemo(
+    () => createStickersClient(oxyServices),
+    [oxyServices],
+  );
   const resolve = useCallback<ImageResolver>(
     (id, variant) => oxyServices.assets.publicUrl(id, variant),
     [oxyServices],
   );
   return (
-    <ImageResolverProvider value={resolve}>{children}</ImageResolverProvider>
+    <ImageResolverProvider value={resolve}>
+      <StickersProvider client={stickersClient}>{children}</StickersProvider>
+    </ImageResolverProvider>
   );
 }
 

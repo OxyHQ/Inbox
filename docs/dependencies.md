@@ -71,3 +71,7 @@ TypeScript 6 until the transformer/compiler migration is validated together.
 The Jest 30 upgrade itself is retained and passes the suite. Clarity 0.4's
 favicon endpoint is also retained; its security test checks the new domain-only
 URL rather than the old Google fallback.
+
+`htmlparser2` parses quoted mail consistently on web and native without a DOM.
+The 10.x range provides both ESM (Metro) and CommonJS (Jest) entries; the reader
+uses its DOM utilities, while HtmlBody continues to own sanitization.

@@ -1,3 +1,4 @@
+import { EmptyStateSticker } from '@/components/EmptyStateSticker';
 import {
   useCreateContact,
   useDeleteContact,
@@ -10,8 +11,8 @@ import { Button, IconButton } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
 import { RiDeleteBin6Line, RiEditLine } from '@oxy.so/bloom/icons';
 import {
-  SettingsProfilePage,
   SettingsTextField,
+  SettingsProfilePage,
 } from '@oxy.so/bloom/settings-modal';
 import { Switch } from '@oxy.so/bloom/switch';
 import { Textarea } from '@oxy.so/bloom/textarea';
@@ -152,14 +153,24 @@ export function ContactsSection() {
           },
           {
             key: 'contacts',
+            emptyState: {
+              variant: 'compact',
+              illustration: <EmptyStateSticker name="conversation" size={80} />,
+              title: t(
+                search.trim()
+                  ? 'ui.settings.contacts.noMatch'
+                  : 'empty.contactsTitle',
+              ),
+              description: t(
+                search.trim()
+                  ? 'empty.contactsNoMatchDescription'
+                  : 'empty.contactsDescription',
+              ),
+              action: search.trim()
+                ? { label: t('search.clear'), onPress: () => setSearch('') }
+                : undefined,
+            },
             label: t('ui.settings.contacts.your'),
-            description: contacts.length
-              ? undefined
-              : t(
-                  search.trim()
-                    ? 'ui.settings.contacts.noMatch'
-                    : 'ui.settings.contacts.empty',
-                ),
             rows: contacts.map((contact) => ({
               key: contact._id,
               label: `${contact.starred ? '★ ' : ''}${contact.name}`,
@@ -268,7 +279,6 @@ export function ContactsSection() {
                 control: (
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     <Button
-                      size="sm"
                       onPress={handleSubmit}
                       disabled={!formValid || submitting}
                       loading={submitting}
@@ -280,7 +290,7 @@ export function ContactsSection() {
                       )}
                     </Button>
                     {editingId ? (
-                      <Button size="sm" appearance="subtle" onPress={resetForm}>
+                      <Button appearance="subtle" onPress={resetForm}>
                         {t('common.cancel')}
                       </Button>
                     ) : null}

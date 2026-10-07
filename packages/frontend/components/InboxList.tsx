@@ -1,7 +1,9 @@
+import { BREAKPOINTS } from '@oxy.so/bloom/styles';
+import { useBottomEdgeInset } from '@oxy.so/bloom/layout';
 import { EmptyState } from '@oxy.so/bloom/empty-state';
 import { Text } from '@oxy.so/bloom/typography';
 import { useMailboxScrollRestoration } from '@/hooks/useMailboxScrollRestoration';
-import { useAiChatShell } from '@oxy.so/bloom/ai-chat';
+import { useAppShell } from '@oxy.so/bloom/app-shell';
 import { ButtonGroup, ButtonGroupItem } from '@oxy.so/bloom/button-group';
 import { Button } from '@oxy.so/bloom/button';
 import { RiAddLine, RiMenuLine, RiSearchLine } from '@oxy.so/bloom/icons';
@@ -27,12 +29,12 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { RefreshControl, StyleSheet, View } from 'react-native';
+import { useWindowDimensions, RefreshControl, StyleSheet, View } from 'react-native';
 import Animated, { type AnimatedProps } from 'react-native-reanimated';
 
 import { BundleRow } from '@/components/BundleRow';
 import { CreateReminderSheet } from '@/components/CreateReminderSheet';
-import { EmptyIllustration } from '@/components/EmptyIllustration';
+import { EmptyStateSticker } from '@/components/EmptyStateSticker';
 import { InboxGreeting } from '@/components/InboxGreeting';
 import { MessageRow, MessageRowExtras } from '@/components/MessageRow';
 import { OutboundQueueBanner } from '@/components/OutboundQueueBanner';
@@ -186,8 +188,11 @@ const TRIAGE_LIMIT = 3;
 
 export function InboxList({ replaceNavigation }: InboxListProps) {
   const router = useRouter();
-  const shell = useAiChatShell();
-  const drawerAvailable = shell?.navCollapsed && shell.hasNav;
+  const shell = useAppShell();
+  const occupiedBottom = useBottomEdgeInset();
+  const { width: viewportWidth } = useWindowDimensions();
+  const bottomClearance = viewportWidth < BREAKPOINTS.md ? occupiedBottom : 0;
+  const drawerAvailable = shell.drawerAvailable;
   const colors = useColors();
   const { t } = useTranslation();
   const aliaChatRef = useRef<AliaChatSheetRef>(null);
@@ -672,7 +677,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     [router, replaceNavigation],
   );
 
-  const handleOpenDrawer = shell?.openNav;
+  const handleOpenDrawer = shell.openDrawer;
 
   const handleAskAlia = useCallback(() => {
     aliaChatRef.current?.present();
@@ -1026,7 +1031,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     if (isLoading) return null;
     return (
       <EmptyState
-        illustration={<EmptyIllustration size={180} />}
+        illustration={<EmptyStateSticker name="inbox" />}
         title={t('inbox.emptyTitle')}
         description={
           isAuthenticated ? t('inbox.emptyAllCaught') : t('inbox.emptySignIn')
@@ -1110,14 +1115,12 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
               <View className="flex-row flex-wrap gap-1 px-3 pb-2">
                 {isInboxView && needsResponseCount + followUpCount > 0 && (
                   <Button
-                    size="sm"
                     appearance={showTriage ? 'solid' : 'subtle'}
                     onPress={() => setShowTriage((value) => !value)}
                   >{`${t('home.needsResponse')} · ${needsResponseCount + followUpCount}`}</Button>
                 )}
                 {prefs.aiBrief && (
                   <Button
-                    size="sm"
                     appearance="subtle"
                     onPress={() => setShowBrief((value) => !value)}
                   >
@@ -1166,6 +1169,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
               ...(listItems.length === 0 ? styles.emptyListContent : null),
               ...styles.listContent,
               paddingTop: 0,
+              paddingBottom: bottomClearance,
             }}
             showsVerticalScrollIndicator={false}
           />

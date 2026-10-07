@@ -9,10 +9,10 @@ import Constants from 'expo-constants';
 import { useCallback } from 'react';
 import { Linking, Platform } from 'react-native';
 const LINKS = {
-  terms: 'https://oxy.so/terms',
-  privacy: 'https://oxy.so/privacy',
-  help: 'https://help.oxy.so',
-  status: 'https://status.oxy.so',
+  terms: 'https://oxy.so/transparency/legal/terms/',
+  privacy: 'https://oxy.so/transparency/legal/privacy/',
+  help: 'https://oxy.so/help/',
+  status: 'https://oxy.so/status/',
 };
 
 function getAppVersion(): string {
@@ -75,7 +75,6 @@ export function AboutSection() {
             label: t(`ui.settings.about.${key}`),
             control: (
               <Button
-                size="sm"
                 appearance="subtle"
                 onPress={() => openLink(LINKS[key])}
               >
@@ -86,9 +85,7 @@ export function AboutSection() {
         },
         {
           key: 'credits',
-          description: t('ui.settings.about.madeBy', {
-            year: new Date().getFullYear(),
-          }),
+          description: t('ui.settings.about.madeBy'),
           rows: [],
         },
       ]}

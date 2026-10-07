@@ -1,13 +1,19 @@
+import { BREAKPOINTS, tokens } from '@oxy.so/bloom/styles';
+import { TopEdgeProvider, useBottomEdgeInset, useTopEdgeInset } from '@oxy.so/bloom/layout';
+import { useTheme } from '@oxy.so/bloom/theme';
+import {
+  PageFooter,
+  PageFooterProvider,
+  usePageFooterInset,
+} from '@oxy.so/bloom/page-footer';
 import {
   Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
   CardBody,
 } from '@oxy.so/bloom/card';
 import { EmptyState } from '@oxy.so/bloom/empty-state';
+import { EmptyStateSticker } from '@/components/EmptyStateSticker';
 import { Text } from '@oxy.so/bloom/typography';
-import { useAiChatShell } from '@oxy.so/bloom/ai-chat';
+import { useAppShell } from '@oxy.so/bloom/app-shell';
 import { ButtonGroup, ButtonGroupItem } from '@oxy.so/bloom/button-group';
 import { Button, IconButton } from '@oxy.so/bloom/button';
 import { Checkbox } from '@oxy.so/bloom/checkbox';
@@ -40,8 +46,7 @@ import { PageHeader } from '@oxy.so/bloom/page-header';
  * - embedded: inline panel without back button (desktop split-view)
  */
 
-import { Dialog, toast, useDialogControl } from '@oxy.so/bloom';
-import { Chip } from '@oxy.so/bloom/chip';
+import { Dialog, ScrollArea, ScrollMetricsProvider, toast, useDialogControl } from '@oxy.so/bloom';
 import { Loading } from '@oxy.so/bloom/loading';
 import { useOxy } from '@oxy.so/services';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -49,14 +54,13 @@ import * as Print from 'expo-print';
 import { usePathname } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useMemo, useState } from 'react';
-import { Linking, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { useWindowDimensions, Linking, Platform, StyleSheet, View } from 'react-native';
 
 import { HtmlBody } from '@/components/HtmlBody';
 import { InlineReply } from '@/components/InlineReply';
-import { SentimentIndicator } from '@/components/SentimentIndicator';
 import { SnoozeSheet } from '@/components/SnoozeSheet';
 import { StaleThreadBanner } from '@/components/StaleThreadBanner';
-import { ThreadSummary } from '@/components/ThreadSummary';
+import { ThreadOverview } from '@/components/ThreadOverview';
 import { UnreadableThreadEntry } from '@/components/UnreadableThreadEntry';
 import { CardRenderer } from '@/components/cards/CardRenderer';
 import { SPECIAL_USE } from '@/constants/mailbox';
@@ -84,6 +88,7 @@ import type { Message } from '@/services/emailApi';
 import { safeDownloadFilename } from '@/utils/downloadFilename';
 import { emlFilename, saveEmlFile } from '@/utils/saveEml';
 import { buildThreadEntries } from '@/utils/threadEntries';
+import { splitHtmlQuote, splitTextQuote } from '@/utils/messageQuotes';
 
 function formatFullDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -139,11 +144,25 @@ interface MessageDetailProps {
  * (no manual reset effect required).
  */
 export function MessageDetail(props: MessageDetailProps) {
-  return <MessageDetailInner key={props.messageId} {...props} />;
+  return (
+    <PageFooterProvider key={props.messageId}>
+      <TopEdgeProvider>
+        <ScrollMetricsProvider>
+          <MessageDetailInner {...props} />
+        </ScrollMetricsProvider>
+      </TopEdgeProvider>
+    </PageFooterProvider>
+  );
 }
 
 function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
-  const shell = useAiChatShell();
+  const shell = useAppShell();
+  const occupiedBottom = useBottomEdgeInset();
+  const footerClearance = usePageFooterInset();
+  const headerClearance = useTopEdgeInset();
+  const { colors: bloomColors } = useTheme();
+  const { width: viewportWidth } = useWindowDimensions();
+  const bottomClearance = viewportWidth < BREAKPOINTS.md ? occupiedBottom : 0;
   const pathname = usePathname();
   const colors = useColors();
   const { t } = useTranslation();
@@ -184,7 +203,6 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     new Set([messageId]),
   );
   const [messageMenuId, setMessageMenuId] = useState<string | null>(null);
-  const [threadSummaryRequested, setThreadSummaryRequested] = useState(false);
 
   const moreMenuControl = useDialogControl();
   const labelPickerControl = useDialogControl();
@@ -359,6 +377,15 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
   // Resolve CID inline image references to signed File Manager URLs
   const resolvedHtmlMap = useCidResolver(sortedThread, oxyServices, messageId);
+  const messageParts = useMemo(
+    () => new Map(sortedThread.map((message) => [
+      message._id,
+      message.html
+        ? splitHtmlQuote(resolvedHtmlMap[message._id] ?? message.html)
+        : splitTextQuote(message.text ?? ''),
+    ])),
+    [sortedThread, resolvedHtmlMap],
+  );
 
   const handleAttachment = useCallback(
     async (fileId: string, filename: string) => {
@@ -583,6 +610,9 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
       <View className="flex-1">
         {standaloneToolbar}
         <EmptyState
+          illustration={
+            <EmptyStateSticker name={isError ? 'loadError' : 'notFound'} />
+          }
           title={t(isError ? 'ui.message.loadError' : 'ui.message.notFound')}
           description={t(
             isError
@@ -609,58 +639,61 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     replyAll: t('message.actions.replyAll'),
     forward: t('message.actions.forward'),
   };
-  const toThreadMessage = (msg: Message): MailThreadMessage => ({
-    id: msg._id,
-    sender: {
-      ...msg.from,
-      name: msg.from.name ?? undefined,
-      avatar: msg.senderAvatarPath
-        ? `${process.env.EXPO_PUBLIC_API_URL ?? 'https://api.oxy.so'}${msg.senderAvatarPath}`
-        : undefined,
-    },
-    to: msg.to.map((address) => ({
-      ...address,
-      name: address.name ?? undefined,
-    })),
-    cc: msg.cc?.map((address) => ({
-      ...address,
-      name: address.name ?? undefined,
-    })),
-    date: formatFullDate(msg.date),
-    time: formatShortDate(msg.date),
-    preview: getSnippet(msg.text),
-    unread: !msg.flags.seen,
-    starred: msg.flags.starred,
-    onStarredChange: (starred) => {
-      if (!toggleStar.isPending)
-        toggleStar.mutate({ messageId: msg._id, starred });
-    },
-    onReply: () => handleReply(msg._id),
-    onReplyAll: () => handleReplyAll(msg._id),
-    onForward: () => handleForward(msg._id),
-    attachments: msg.attachments.map((attachment) => ({
-      id: attachment.fileId,
-      name: attachment.name,
-      onPress: () => handleAttachment(attachment.fileId, attachment.name),
-    })),
-    menu: (
-      <IconButton
-        accessibilityLabel={t('message.actions.more')}
-        icon={<RiMoreLine />}
-        onPress={() => {
-          setMessageMenuId(msg._id);
-          messageMenuControl.open();
-        }}
-      />
-    ),
-    children: msg.html ? (
-      <HtmlBody html={resolvedHtmlMap[msg._id] ?? msg.html} />
-    ) : (
-      <Text selectable style={{ color: colors.text }}>
-        {msg.text || t('message.detail.emptyMessage')}
-      </Text>
-    ),
-  });
+  const toThreadMessage = (msg: Message): MailThreadMessage => {
+    const parts = messageParts.get(msg._id)!;
+    const renderBody = (content: string) => msg.html
+      ? <HtmlBody html={content} />
+      : <Text selectable>{content}</Text>;
+    return {
+      id: msg._id,
+      sender: {
+        ...msg.from,
+        name: msg.from.name ?? undefined,
+        avatar: msg.senderAvatarPath
+          ? `${process.env.EXPO_PUBLIC_API_URL ?? 'https://api.oxy.so'}${msg.senderAvatarPath}`
+          : undefined,
+      },
+      to: msg.to.map((address) => ({
+        ...address,
+        name: address.name ?? undefined,
+      })),
+      cc: msg.cc?.map((address) => ({
+        ...address,
+        name: address.name ?? undefined,
+      })),
+      date: formatFullDate(msg.date),
+      time: formatShortDate(msg.date),
+      preview: getSnippet(msg.text),
+      unread: !msg.flags.seen,
+      starred: msg.flags.starred,
+      onStarredChange: (starred) => {
+        if (!toggleStar.isPending)
+          toggleStar.mutate({ messageId: msg._id, starred });
+      },
+      onReply: () => handleReply(msg._id),
+      onReplyAll: () => handleReplyAll(msg._id),
+      onForward: () => handleForward(msg._id),
+      attachments: msg.attachments.map((attachment) => ({
+        id: attachment.fileId,
+        name: attachment.name,
+        onPress: () => handleAttachment(attachment.fileId, attachment.name),
+      })),
+      menu: (
+        <IconButton
+          accessibilityLabel={t('message.actions.more')}
+          icon={<RiMoreLine />}
+          onPress={() => {
+            setMessageMenuId(msg._id);
+            messageMenuControl.open();
+          }}
+        />
+      ),
+      children: parts.body.trim()
+        ? renderBody(parts.body)
+        : parts.quoted ? undefined : <Text>{t('message.detail.emptyMessage')}</Text>,
+      trimmed: parts.quoted ? renderBody(parts.quoted) : undefined,
+    };
+  };
 
   return (
     <View style={styles.container}>
@@ -668,19 +701,22 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         onBack={handleBack}
         backLabel={t('common.back')}
         leading={
-          shell?.navCollapsed && shell.hasNav ? (
+          shell.drawerAvailable ? (
             <ButtonGroup accessibilityLabel={t('search.openMenu')}>
               <ButtonGroupItem
                 iconOnly
                 leadingIcon={RiMenuLine}
                 accessibilityLabel={t('search.openMenu')}
-                onPress={shell.openNav}
+                onPress={shell.openDrawer}
               />
             </ButtonGroup>
           ) : undefined
         }
         sticky={false}
-        scrim="none"
+        placement="overlay"
+        scrim="auto"
+        scrimColor={bloomColors.card}
+        testID="message-header"
         safeArea={false}
         actions={
           <ButtonGroup>
@@ -791,11 +827,12 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           {t('message.labelPicker.title')}
         </Text>
         {labels.length === 0 && (
-          <Text
-            style={[styles.labelPickerEmpty, { color: colors.secondaryText }]}
-          >
-            {t('message.labelPicker.empty')}
-          </Text>
+          <EmptyState
+            variant="compact"
+            illustration={<EmptyStateSticker name="conversation" size={80} />}
+            title={t('message.labelPicker.empty')}
+            description={t('empty.labelsDescription')}
+          />
         )}
         {labels.map((label) => (
           <Checkbox
@@ -807,78 +844,26 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         ))}
       </Dialog>
 
-      <ScrollView
+      <ScrollArea
+        testID="message-scroll"
         style={styles.body}
-        contentContainerStyle={styles.bodyContent}
+        contentContainerStyle={{
+          paddingTop: headerClearance + tokens.space.md,
+          paddingBottom: Math.max(bottomClearance, footerClearance),
+        }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Subject and metadata - with horizontal padding */}
-        <View style={styles.contentPadded}>
-          <View style={styles.subjectRow}>
-            <Text style={[styles.subject, { color: colors.text }]}>
-              {currentMessage.subject || t('message.detail.noSubject')}
-            </Text>
-            {sentiment && (
-              <SentimentIndicator
-                sentiment={sentiment}
-                size="medium"
-                showLabel
-              />
-            )}
-          </View>
-
-          {/* Label chips */}
-          {assignedLabels.length > 0 && (
-            <View style={styles.labelChips}>
-              {assignedLabels.map((lbl) => (
-                <Chip
-                  key={lbl._id}
-                  variant="subtle"
-                  size="small"
-                  onClose={() => handleToggleLabel(lbl.name)}
-                >
-                  {lbl.name}
-                </Chip>
-              ))}
-            </View>
-          )}
-
-          {/* Thread count indicator */}
-          {threadEntries.length > 1 && (
-            <Chip>
-              {t(
-                threadEntries.length === 1
-                  ? 'ui.message.conversationMessages_one'
-                  : 'ui.message.conversationMessages_other',
-                { count: threadEntries.length },
-              )}
-            </Chip>
-          )}
-
-          {/* AI Thread Summary - explicit opt-in before Oxy processes bounded thread content. */}
-          {sortedThread.length >= 4 &&
-            (threadSummaryRequested ? (
-              <ThreadSummary
-                messageId={messageId}
-                messages={sortedThread}
-                minMessages={4}
-              />
-            ) : (
-              <Card
-                appearance="outline"
-                onPress={() => setThreadSummaryRequested(true)}
-                accessibilityLabel={t('ui.message.summaryTitle')}
-              >
-                <CardHeader>
-                  <CardTitle>{t('ui.message.summaryTitle')}</CardTitle>
-                  <CardDescription>
-                    {t('ui.message.summaryDescription')}
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            ))}
-        </View>
+        <ThreadOverview
+          key={messageId}
+          messageId={messageId}
+          subject={currentMessage.subject || t('message.detail.noSubject')}
+          messages={sortedThread}
+          count={threadEntries.length}
+          labels={assignedLabels}
+          sentiment={sentiment}
+          onRemoveLabel={handleToggleLabel}
+        />
 
         {/* Rich card for structured data (flights, orders, etc.) */}
         {currentMessage.card && (
@@ -926,31 +911,35 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
             strings={threadStrings}
           />
         ) : (
-          threadEntries.map((entry) =>
-            entry.kind === 'unreadable' ? (
-              <UnreadableThreadEntry
-                key={entry.key}
-                row={entry.row}
-                onRetry={() => void refetchThread()}
-                onOpenRaw={handleOpenRaw}
-              />
-            ) : (
-              <MailMessage
-                key={entry.message._id}
-                {...toThreadMessage(entry.message)}
-                expanded={expandedMessages.has(entry.message._id)}
-                onExpandedChange={() =>
-                  toggleMessageExpanded(entry.message._id)
-                }
-                strings={threadStrings}
-              />
-            ),
-          )
+          <View style={{ gap: tokens.space.md }}>
+            {threadEntries.map((entry) =>
+              entry.kind === 'unreadable' ? (
+                <UnreadableThreadEntry
+                  key={entry.key}
+                  row={entry.row}
+                  onRetry={() => void refetchThread()}
+                  onOpenRaw={handleOpenRaw}
+                />
+              ) : (
+                <MailMessage
+                  key={entry.message._id}
+                  {...toThreadMessage(entry.message)}
+                  expanded={expandedMessages.has(entry.message._id)}
+                  onExpandedChange={() =>
+                    toggleMessageExpanded(entry.message._id)
+                  }
+                  strings={threadStrings}
+                />
+              ),
+            )}
+          </View>
         )}
 
         {/* Inline reply - appears at bottom of thread, inside scroll area */}
         {replyMode && (
-          <View style={[styles.inlineReplyWrapper, { marginTop: 16 }]}>
+          <View
+            style={[styles.inlineReplyWrapper, { marginTop: tokens.space.md }]}
+          >
             <InlineReply
               key={`${replyMode}:${replyTargetId ?? currentMessage._id}`}
               message={
@@ -964,7 +953,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
             />
           </View>
         )}
-      </ScrollView>
+      </ScrollArea>
 
       {/* Snooze sheet */}
       <SnoozeSheet
@@ -1011,29 +1000,39 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           </Button>
         </View>
       </Dialog>
+
       {!replyMode && (
-        <View className="flex-row flex-wrap gap-2 p-3">
-          <Button
-            leading={<RiCornerUpLeftLine />}
-            onPress={() => handleReply()}
-          >
-            {t('message.actions.reply')}
-          </Button>
-          <Button
-            appearance="subtle"
-            leading={<RiArrowGoBackLine />}
-            onPress={() => handleReplyAll()}
-          >
-            {t('message.actions.replyAll')}
-          </Button>
-          <Button
-            appearance="subtle"
-            leading={<RiShareForwardLine />}
-            onPress={() => handleForward()}
-          >
-            {t('message.actions.forward')}
-          </Button>
-        </View>
+        <PageFooter
+          scrim="auto"
+          scrimColor={bloomColors.card}
+          bottomInset={bottomClearance}
+          safeArea={false}
+          testID="message-reply-footer"
+          actions={
+            <>
+              <Button
+                leadingIcon={RiCornerUpLeftLine}
+                onPress={() => handleReply()}
+              >
+                {t('message.actions.reply')}
+              </Button>
+              <Button
+                appearance="subtle"
+                leadingIcon={RiArrowGoBackLine}
+                onPress={() => handleReplyAll()}
+              >
+                {t('message.actions.replyAll')}
+              </Button>
+              <Button
+                appearance="subtle"
+                leadingIcon={RiShareForwardLine}
+                onPress={() => handleForward()}
+              >
+                {t('message.actions.forward')}
+              </Button>
+            </>
+          }
+        />
       )}
     </View>
   );
@@ -1049,11 +1048,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingBottom: 6,
   },
-  labelPickerEmpty: {
-    fontSize: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
@@ -1063,31 +1057,6 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
-  },
-  bodyContent: {
-    paddingTop: 16,
-  },
-  contentPadded: {
-    paddingHorizontal: 16,
-  },
-  subjectRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 8,
-  },
-  subject: {
-    fontSize: 22,
-    fontWeight: '400',
-    lineHeight: 30,
-    flex: 1,
-  },
-  labelChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 12,
   },
   cardSection: {
     paddingHorizontal: 16,

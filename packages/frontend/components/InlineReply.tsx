@@ -1,5 +1,6 @@
 import { MailAddressFields } from '@/components/MailAddressFields';
 import { stripHtml } from '@/utils/stripHtml';
+import { Card } from '@oxy.so/bloom/card';
 import { MailComposeSurface } from '@oxy.so/bloom/mail-compose';
 import { MailQuoteToggle } from '@oxy.so/bloom/mail-thread';
 /**
@@ -264,48 +265,50 @@ export function InlineReply({
   );
 
   return (
-    <MailComposeSurface
-      variant="sheet"
-      title={
-        mode === 'forward' ? t('compose.titleForward') : t('compose.titleReply')
-      }
-      onClose={onClose}
-      onSend={handleSend}
-      sending={sending}
-      onDiscard={onClose}
-      header={
-        <MailAddressFields
-          to={to}
-          onToChange={setTo}
-          cc={cc}
-          onCcChange={setCc}
-          bcc={bcc}
-          onBccChange={setBcc}
+    <Card radius="panel" clipContent>
+      <MailComposeSurface
+        variant="sheet"
+        title={
+          mode === 'forward' ? t('compose.titleForward') : t('compose.titleReply')
+        }
+        onClose={onClose}
+        onSend={handleSend}
+        sending={sending}
+        onDiscard={onClose}
+        header={
+          <MailAddressFields
+            to={to}
+            onToChange={setTo}
+            cc={cc}
+            onCcChange={setCc}
+            bcc={bcc}
+            onBccChange={setBcc}
+          />
+        }
+        footer={<TemplatePicker onSelect={handleTemplateSelect} />}
+        strings={{
+          send: t('inlineReply.send'),
+          close: t('common.close'),
+          discard: t('compose.actions.discard'),
+        }}
+      >
+        {showSmartReplies && (
+          <SmartReplyChips
+            message={message}
+            onSelectReply={handleSmartReplySelect}
+          />
+        )}
+        <RichTextEditor
+          ref={bodyRef}
+          value={body}
+          onChange={setBody}
+          placeholder={t('inlineReply.placeholder')}
+          autoFocus
         />
-      }
-      footer={<TemplatePicker onSelect={handleTemplateSelect} />}
-      strings={{
-        send: t('inlineReply.send'),
-        close: t('common.close'),
-        discard: t('compose.actions.discard'),
-      }}
-    >
-      {showSmartReplies && (
-        <SmartReplyChips
-          message={message}
-          onSelectReply={handleSmartReplySelect}
-        />
-      )}
-      <RichTextEditor
-        ref={bodyRef}
-        value={body}
-        onChange={setBody}
-        placeholder={t('inlineReply.placeholder')}
-        autoFocus
-      />
-      <MailQuoteToggle>
-        <Text selectable>{quotedText}</Text>
-      </MailQuoteToggle>
-    </MailComposeSurface>
+        <MailQuoteToggle>
+          <Text selectable>{quotedText}</Text>
+        </MailQuoteToggle>
+      </MailComposeSurface>
+    </Card>
   );
 }

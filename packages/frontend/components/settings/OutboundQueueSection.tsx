@@ -68,7 +68,6 @@ export function OutboundQueueSection() {
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 {item.status === 'failed' || item.status === 'cancelled' ? (
                   <Button
-                    size="sm"
                     appearance="subtle"
                     accessibilityLabel="Retry queued message"
                     onPress={() => retry.mutate(item.id)}
@@ -79,7 +78,6 @@ export function OutboundQueueSection() {
                 ) : null}
                 {item.status === 'pending' || item.status === 'failed' ? (
                   <Button
-                    size="sm"
                     appearance="subtle"
                     accessibilityLabel="Cancel queued message"
                     onPress={() => cancel.mutate(item.id)}

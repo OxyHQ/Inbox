@@ -1,3 +1,5 @@
+import { BREAKPOINTS } from '@oxy.so/bloom/styles';
+import { useBottomEdgeInset } from '@oxy.so/bloom/layout';
 import { PageHeader } from '@oxy.so/bloom/page-header';
 /**
  * Subscriptions management screen.
@@ -13,7 +15,7 @@ import {
   type FlashListRef,
 } from '@shopify/flash-list';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { RefreshControl, View } from 'react-native';
+import { useWindowDimensions, RefreshControl, View } from 'react-native';
 import Animated, { type AnimatedProps } from 'react-native-reanimated';
 
 import { SubscriptionRow } from '@/components/SubscriptionRow';
@@ -22,11 +24,12 @@ import { useUnsubscribe } from '@/hooks/mutations/useUnsubscribe';
 import { useSubscriptions } from '@/hooks/queries/useSubscriptions';
 import { useGoBack } from '@/hooks/useGoBack';
 import type { Subscription } from '@/services/emailApi';
-import { useAiChatShell } from '@oxy.so/bloom/ai-chat';
+import { useAppShell } from '@oxy.so/bloom/app-shell';
 import { ButtonGroup, ButtonGroupItem } from '@oxy.so/bloom/button-group';
 import { Divider } from '@oxy.so/bloom/divider';
 import { EmptyState } from '@oxy.so/bloom/empty-state';
-import { RiMailLine, RiMenuLine } from '@oxy.so/bloom/icons';
+import { EmptyStateSticker } from '@/components/EmptyStateSticker';
+import { RiMenuLine } from '@oxy.so/bloom/icons';
 import { Loading } from '@oxy.so/bloom/loading';
 import { Text } from '@oxy.so/bloom/typography';
 import { useTranslation } from '@/lib/i18n';
@@ -41,7 +44,10 @@ const AnimatedSubscriptionsList = Animated.createAnimatedComponent(
 
 export function SubscriptionsScreen() {
   const minimizeTabBarOnScroll = useMinimizeOnScroll();
-  const shell = useAiChatShell();
+  const shell = useAppShell();
+  const occupiedBottom = useBottomEdgeInset();
+  const { width: viewportWidth } = useWindowDimensions();
+  const bottomClearance = viewportWidth < BREAKPOINTS.md ? occupiedBottom : 0;
   const { t } = useTranslation();
 
   const {
@@ -138,12 +144,12 @@ export function SubscriptionsScreen() {
   const renderEmpty = useCallback(
     () => (
       <EmptyState
-        icon={RiMailLine}
-        title="No subscriptions found"
-        description="Senders who email you frequently will appear here."
+        illustration={<EmptyStateSticker name="subscriptions" />}
+        title={t('subscriptions.empty.title')}
+        description={t('subscriptions.empty.subtitle')}
       />
     ),
-    [],
+    [t],
   );
   const renderFooter = useCallback(
     () => (isFetchingNextPage ? <Loading /> : null),
@@ -159,13 +165,13 @@ export function SubscriptionsScreen() {
         scrim="none"
         safeArea={false}
         leading={
-          shell?.navCollapsed && shell.hasNav ? (
+          shell.drawerAvailable ? (
             <ButtonGroup accessibilityLabel={t('search.openMenu')}>
               <ButtonGroupItem
                 iconOnly
                 leadingIcon={RiMenuLine}
                 accessibilityLabel={t('search.openMenu')}
-                onPress={shell.openNav}
+                onPress={shell.openDrawer}
               />
             </ButtonGroup>
           ) : undefined
@@ -207,9 +213,10 @@ export function SubscriptionsScreen() {
               onRefresh={refetch}
             />
           }
-          contentContainerStyle={
-            subscriptions.length === 0 ? { flexGrow: 1 } : undefined
-          }
+          contentContainerStyle={{
+            ...(subscriptions.length === 0 ? { flexGrow: 1 } : undefined),
+            paddingBottom: bottomClearance,
+          }}
         />
       )}
     </View>

@@ -1,3 +1,4 @@
+import type { SearchFilters } from '@/utils/searchFilters';
 import type { ParsedSearchQuery } from '@/hooks/queries/useNaturalLanguageSearch';
 import { useOxy } from '@oxy.so/services';
 import {
@@ -14,20 +15,14 @@ import {
 interface SearchSession {
   query: string;
   submittedQuery: string;
-  filterFrom: string;
-  filterHasAttachment: boolean;
-  editingFilter: string | null;
-  filterInput: string;
+  filters: SearchFilters;
   nlInterpretation: string;
   nlParsedOptions: ParsedSearchQuery | null;
 }
 const initialState: SearchSession = {
   query: '',
   submittedQuery: '',
-  filterFrom: '',
-  filterHasAttachment: false,
-  editingFilter: null,
-  filterInput: '',
+  filters: {},
   nlInterpretation: '',
   nlParsedOptions: null,
 };

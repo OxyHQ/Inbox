@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import { EmptyState } from '@oxy.so/bloom/empty-state';
-import { RiErrorWarningLine } from '@oxy.so/bloom/icons';
+import { EmptyStateSticker } from './EmptyStateSticker';
 import { useTranslation } from '@/lib/i18n';
 import type { UnreadableMessage } from '@/services/emailApi';
 
@@ -22,9 +22,14 @@ export function UnreadableThreadEntry({
     <View accessibilityRole="alert">
       <EmptyState
         variant="compact"
-        icon={RiErrorWarningLine}
+        illustration={<EmptyStateSticker name="loadError" size={64} />}
         title={t('inbox.unreadable.title')}
-        description={[row.from, row.subject].filter(Boolean).join(' · ')}
+        description={[
+          t('empty.unreadableDescription'),
+          [row.from, row.subject].filter(Boolean).join(' · '),
+        ]
+          .filter(Boolean)
+          .join('\n')}
         action={{ label: t('inbox.unreadable.retry'), onPress: onRetry }}
         secondaryAction={
           id && onOpenRaw

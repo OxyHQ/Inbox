@@ -368,7 +368,7 @@ function MessageRowExtrasInner({
           <SentimentIndicator sentiment={sentiment ?? null} size="small" />
           {message.labels.slice(0, 3).map((labelName) => {
             return (
-              <Chip key={labelName} variant="subtle" size="small">
+              <Chip key={labelName} variant="subtle">
                 {labelName}
               </Chip>
             );

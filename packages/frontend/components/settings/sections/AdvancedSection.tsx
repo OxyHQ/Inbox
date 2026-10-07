@@ -1,3 +1,4 @@
+import { EmptyStateSticker } from '@/components/EmptyStateSticker';
 import { OutboundQueueSection } from '@/components/settings/OutboundQueueSection';
 import {
   useReorderBundle,
@@ -31,8 +32,8 @@ import {
   RiEditLine,
 } from '@oxy.so/bloom/icons';
 import {
-  SettingsProfilePage,
   SettingsTextField,
+  SettingsProfilePage,
 } from '@oxy.so/bloom/settings-modal';
 import { Switch } from '@oxy.so/bloom/switch';
 import { Textarea } from '@oxy.so/bloom/textarea';
@@ -399,10 +400,13 @@ export function AdvancedSection() {
         sections={[
           {
             key: 'filters',
+            emptyState: {
+              variant: 'compact',
+              illustration: <EmptyStateSticker name="conversation" size={80} />,
+              title: t('empty.filtersTitle'),
+              description: t('empty.filtersDescription'),
+            },
             label: t('ui.settings.advanced.filters'),
-            description: filters.length
-              ? undefined
-              : t('ui.settings.advanced.noFilters'),
             rows: filters.map((filter) => ({
               key: filter._id,
               label: filter.name,
@@ -507,7 +511,6 @@ export function AdvancedSection() {
                 label: t('ui.settings.advanced.addFilter'),
                 control: (
                   <Button
-                    size="sm"
                     onPress={handleCreateFilter}
                     disabled={!filterValid || createFilter.isPending}
                     loading={createFilter.isPending}
@@ -520,6 +523,12 @@ export function AdvancedSection() {
           },
           {
             key: 'templates',
+            emptyState: {
+              variant: 'compact',
+              illustration: <EmptyStateSticker name="conversation" size={80} />,
+              title: t('empty.templatesTitle'),
+              description: t('empty.templatesDescription'),
+            },
             label: t('ui.settings.advanced.templates'),
             rows: templates.map((template) => ({
               key: template._id,
@@ -609,7 +618,6 @@ export function AdvancedSection() {
                 control: (
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     <Button
-                      size="sm"
                       onPress={handleSubmitTemplate}
                       disabled={
                         !templateName.trim() ||
@@ -625,11 +633,7 @@ export function AdvancedSection() {
                       )}
                     </Button>
                     {editingTemplateId ? (
-                      <Button
-                        size="sm"
-                        appearance="subtle"
-                        onPress={resetTemplateForm}
-                      >
+                      <Button appearance="subtle" onPress={resetTemplateForm}>
                         {t('common.cancel')}
                       </Button>
                     ) : null}
@@ -714,7 +718,6 @@ export function AdvancedSection() {
                       label: t('ui.settings.advanced.importButton'),
                       control: (
                         <Button
-                          size="sm"
                           onPress={handleImportFiles}
                           disabled={importing}
                           loading={importing}

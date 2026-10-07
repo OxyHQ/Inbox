@@ -1,3 +1,4 @@
+import { EmptyStateSticker } from '@/components/EmptyStateSticker';
 import {
   useCreateLabel,
   useDeleteLabel,
@@ -9,8 +10,8 @@ import { Button, IconButton } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
 import { RiDeleteBin6Line, RiEditLine } from '@oxy.so/bloom/icons';
 import {
-  SettingsProfilePage,
   SettingsValueField,
+  SettingsProfilePage,
 } from '@oxy.so/bloom/settings-modal';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { toast } from '@oxy.so/bloom/toast';
@@ -119,10 +120,13 @@ export function LabelsSection() {
         sections={[
           {
             key: 'labels',
+            emptyState: {
+              variant: 'compact',
+              illustration: <EmptyStateSticker name="conversation" size={80} />,
+              title: t('empty.labelsTitle'),
+              description: t('empty.labelsDescription'),
+            },
             label: t('ui.settings.labels.your'),
-            description: labels.length
-              ? undefined
-              : t('ui.settings.labels.empty'),
             rows: labels.map((label) => ({
               key: label._id,
               label: label.name,
@@ -144,7 +148,6 @@ export function LabelsSection() {
                         onSubmitEditing={() => handleUpdateName(label._id)}
                       />
                       <Button
-                        size="sm"
                         onPress={() => handleUpdateName(label._id)}
                         disabled={updateLabel.isPending}
                       >
@@ -228,7 +231,6 @@ export function LabelsSection() {
                 label: t('ui.settings.labels.add'),
                 control: (
                   <Button
-                    size="sm"
                     onPress={handleCreate}
                     disabled={!newLabelName.trim() || createLabel.isPending}
                     loading={createLabel.isPending}

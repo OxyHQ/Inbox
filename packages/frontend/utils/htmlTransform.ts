@@ -6,6 +6,7 @@
  */
 
 import { resolveFaviconForImageUrl } from '@clarity.surf/sdk';
+import { DomUtils, parseDocument } from 'htmlparser2';
 
 const DANGEROUS_TAGS = [
   'script',
@@ -20,12 +21,15 @@ const DANGEROUS_TAGS = [
   'button',
   'textarea',
   'select',
+  'link',
+  'template',
+  'noscript',
+  'foreignobject',
+  'animate',
+  'animatetransform',
+  'set',
 ];
 const DANGEROUS_URL_SCHEMES = /^(?:javascript|data|vbscript|file):/i;
-
-function escapeAttributeValue(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-}
 
 function isSafeEmailUrl(value: string): boolean {
   const trimmed = value.trim().replace(/[\u0000-\u001f\u007f\s]+/g, '');
@@ -54,42 +58,44 @@ function isSafeSrcset(value: string): boolean {
 export function sanitizeEmailHtml(html: string): string {
   if (!html) return '';
 
-  let sanitized = html;
-
-  for (const tag of DANGEROUS_TAGS) {
-    sanitized = sanitized.replace(new RegExp(`<${tag}\\b[^>]*>[\\s\\S]*?<\\/${tag}\\s*>`, 'gi'), '');
-    sanitized = sanitized.replace(new RegExp(`<${tag}\\b[^>]*\\/?>`, 'gi'), '');
-  }
-
-  sanitized = sanitized.replace(/\s+on[a-z0-9_-]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
-
-  sanitized = sanitized.replace(
-    /\s+(srcset|imagesrcset)\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/gi,
-    (_match, attr: string, _raw: string, doubleQuoted?: string, singleQuoted?: string, unquoted?: string) => {
-      const value = doubleQuoted ?? singleQuoted ?? unquoted ?? '';
-      return isSafeSrcset(value) ? ` ${attr}="${escapeAttributeValue(value)}"` : '';
-    },
-  );
-
-  sanitized = sanitized.replace(
-    /\s+(href|src|xlink:href|action|formaction|poster)\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/gi,
-    (_match, attr: string, _raw: string, doubleQuoted?: string, singleQuoted?: string, unquoted?: string) => {
-      const value = doubleQuoted ?? singleQuoted ?? unquoted ?? '';
-      return isSafeEmailUrl(value) ? ` ${attr}="${escapeAttributeValue(value)}"` : '';
-    },
-  );
-
+  // Parse before filtering: regexes cannot distinguish an attribute value from
+  // markup, or decode character references in URLs. The same parser runs on web
+  // and native, and serialization escapes text/attributes before the browser
+  // parses the document again. The iframe still disallows script execution.
+  const document = parseDocument(html);
+  const blockedTags = new Set(DANGEROUS_TAGS);
+  const visit = (nodes: typeof document.children) => {
+    for (const node of [...nodes]) {
+      if (node.type === 'comment') {
+        DomUtils.removeElement(node);
+        continue;
+      }
+      if (!('attribs' in node)) continue;
+      if (blockedTags.has(node.name.toLowerCase())) {
+        DomUtils.removeElement(node);
+        continue;
+      }
+      for (const [name, value] of Object.entries(node.attribs)) {
+        if (/^on/i.test(name) || name === 'srcdoc') {
+          delete node.attribs[name];
+        } else if (['srcset', 'imagesrcset'].includes(name)) {
+          if (!isSafeSrcset(value)) delete node.attribs[name];
+        } else if (['href', 'src', 'xlink:href', 'action', 'formaction', 'poster', 'background'].includes(name)) {
+          if (!isSafeEmailUrl(value)) delete node.attribs[name];
+        }
+      }
+      visit(node.children);
+    }
+  };
+  visit(document.children);
+  let sanitized = DomUtils.getOuterHTML(document);
   sanitized = sanitized.replace(
     /url\(\s*(['"]?)([^)'"]+)\1\s*\)/gi,
     (match, _quote, url: string) => (isSafeEmailUrl(url) ? match : 'url(about:blank)'),
   );
-
-  // Drop remote webfonts. Each one is a request to the sender's server the
-  // moment the mail is opened — the same read receipt a tracking pixel gives
-  // them, dressed as typography. The message renders in the reader's own font
-  // instead. (`@font-face` never nests, so a flat block match is exact.)
+  // Email uses system fonts; remote stylesheets/fonts must not act as beacons.
   sanitized = sanitized.replace(/@font-face\s*\{[^}]*\}/gi, '');
-
+  sanitized = sanitized.replace(/@import\s+(?:url\([^)]*\)|["'][^"']*["'])[^;]*;?/gi, '');
   return sanitized;
 }
 
@@ -140,7 +146,8 @@ function proxySrcset(srcset: string, proxyBaseUrl: string): string {
   return srcset
     .split(',')
     .map((entry: string) => {
-      const [url, ...rest] = entry.trim().split(/\s+/);
+      const [rawUrl, ...rest] = entry.trim().split(/\s+/);
+      const url = rawUrl.startsWith('//') ? `https:${rawUrl}` : rawUrl;
       if (proxyableImageUrl(url)) {
         return rest.length
           ? `${buildProxyUrl(url, proxyBaseUrl)} ${rest.join(' ')}`
@@ -157,35 +164,40 @@ function proxySrcset(srcset: string, proxyBaseUrl: string): string {
 export function proxyExternalImages(html: string, proxyBaseUrl: string): string {
   if (!html || !proxyBaseUrl) return html;
 
-  // Transform <img src="...">
-  let result = html.replace(
-    /(<img[^>]+src\s*=\s*["'])([^"']+)(["'])/gi,
-    (match, prefix, src, suffix) => {
-      const faviconUrl = resolveFaviconForImageUrl(src);
-      return faviconUrl
-        ? `${prefix}${faviconUrl}${suffix}`
-        : isMalformedRemoteImageUrl(src)
-          ? `${prefix}${TRANSPARENT_PIXEL}${suffix}`
-        : proxyableImageUrl(src)
-          ? `${prefix}${buildProxyUrl(src, proxyBaseUrl)}${suffix}`
-          : match;
-    }
-  );
-
-  // Transform responsive image sources on both <img> and <source>. Without
-  // this, an image could bypass the privacy proxy through img[srcset].
-  result = result.replace(
-    /(<(?:img|source)[^>]+(?:srcset|imagesrcset)\s*=\s*["'])([^"']+)(["'])/gi,
-    (match, prefix, srcset, suffix) => `${prefix}${proxySrcset(srcset, proxyBaseUrl)}${suffix}`,
-  );
-
-  // Transform url(...) in CSS
-  result = result.replace(
+  const document = parseDocument(html);
+  const rewriteImage = (value: string): string => {
+    const src = value.startsWith('//') ? `https:${value}` : value;
+    if (!/^https?:/i.test(src)) return src;
+    const faviconUrl = resolveFaviconForImageUrl(src);
+    return faviconUrl ?? (isMalformedRemoteImageUrl(src)
+      ? TRANSPARENT_PIXEL
+      : proxyableImageUrl(src) ? buildProxyUrl(src, proxyBaseUrl) : src);
+  };
+  const rewriteCss = (value: string): string => value.replace(
     /url\(\s*["']?([^"')]+)["']?\s*\)/gi,
-    (match, url) => (proxyableImageUrl(url) ? `url("${buildProxyUrl(url, proxyBaseUrl)}")` : match)
+    (_match, url: string) => `url("${rewriteImage(url)}")`,
   );
-
-  return result;
+  const visit = (nodes: typeof document.children) => {
+    for (const node of nodes) {
+      if (!('attribs' in node)) continue;
+      if (node.name === 'img' && node.attribs.src) node.attribs.src = rewriteImage(node.attribs.src);
+      if (['img', 'source'].includes(node.name)) {
+        for (const name of ['srcset', 'imagesrcset']) {
+          if (node.attribs[name]) node.attribs[name] = proxySrcset(node.attribs[name], proxyBaseUrl);
+        }
+      }
+      if (node.attribs.background) node.attribs.background = rewriteImage(node.attribs.background);
+      if (node.attribs.style) node.attribs.style = rewriteCss(node.attribs.style);
+      if (node.name === 'style') {
+        for (const child of node.children) {
+          if (child.type === 'text') child.data = rewriteCss(child.data);
+        }
+      }
+      visit(node.children);
+    }
+  };
+  visit(document.children);
+  return DomUtils.getOuterHTML(document);
 }
 
 /**

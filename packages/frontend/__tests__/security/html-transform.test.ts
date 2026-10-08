@@ -20,6 +20,26 @@ describe('email HTML security boundary', () => {
     expect(html).not.toContain('data:text/html');
   });
 
+  it('filters browser-parsed attributes, including slash separators and encoded URLs', () => {
+    const html = sanitizeEmailHtml(
+      '<img/onerror="alert(1)" src="missing"><a href="java&#x73;cript:alert(1)">link</a>',
+    );
+    const document = new DOMParser().parseFromString(html, 'text/html');
+    expect(document.querySelector('img')?.hasAttribute('onerror')).toBe(false);
+    expect(document.querySelector('a')?.hasAttribute('href')).toBe(false);
+  });
+
+  it('removes nested active documents and preserves encoded text and query strings', () => {
+    const html = sanitizeEmailHtml(
+      '<noscript><img src=x onerror=alert(1)></noscript><iframe srcdoc="&lt;script&gt;alert(1)&lt;/script&gt;"></iframe>' +
+      '<p>&lt;script&gt; is text</p><a href="https://example.com/?a=1&amp;b=2">link</a>',
+    );
+    const document = new DOMParser().parseFromString(html, 'text/html');
+    expect(document.querySelector('noscript, iframe, script')).toBeNull();
+    expect(document.querySelector('p')?.textContent).toBe('<script> is text');
+    expect(document.querySelector('a')?.getAttribute('href')).toBe('https://example.com/?a=1&b=2');
+  });
+
   it('rejects an entire responsive image source when one candidate is unsafe', () => {
     const html = sanitizeEmailHtml(
       '<img srcset="https://images.example/a.jpg 1x, javascript:alert(1) 2x">',
@@ -58,6 +78,16 @@ describe('email HTML security boundary', () => {
 
     expect(html).toContain('data:image/gif;base64,');
     expect(html).not.toContain('/email/proxy');
+  });
+
+  it('preserves query parameters and proxies protocol-relative resources after serialization', () => {
+    const html = proxyExternalImages(sanitizeEmailHtml(
+      '<img src="//images.example/a.png?x=1&amp;y=2"><div style="background-image:url(//images.example/b.png)"></div>',
+    ), 'https://api.example/email/proxy');
+    const document = new DOMParser().parseFromString(html, 'text/html');
+    const url = new URL(document.querySelector('img')!.getAttribute('src')!);
+    expect(atob(url.searchParams.get('url')!)).toBe('https://images.example/a.png?x=1&y=2');
+    expect(document.querySelector('div')?.getAttribute('style')).toContain('https://api.example/email/proxy');
   });
 
   it('resolves only known CID attachments', () => {

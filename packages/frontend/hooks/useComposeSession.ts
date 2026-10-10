@@ -220,8 +220,9 @@ export function useComposeSession({
 
   // The exact signature this composer wrote, so a body holding only it is not
   // "content" — it used to be, and every composer opened by a user with a
-  // signature autosaved a junk draft and asked "Save draft?" on close.
-  const signatureRef = useRef<string | null>(null);
+  // signature autosaved a junk draft and asked "Save draft?" on close. State,
+  // not a ref: `hasContent` and `ownText` are derived from it during render.
+  const [signature, setSignature] = useState<string | null>(null);
 
   const draftIdRef = useRef<string | null>(draft?._id ?? null);
   const draftRevisionRef = useRef<number | null>(draft?.draftRevision ?? null);
@@ -286,7 +287,7 @@ export function useComposeSession({
     addressListKey(bcc) !== addressListKey(seed.bcc) ||
     subject.trim() !== seed.subject.trim() ||
     attachmentsKey(attachments) !== attachmentsKey(seed.attachments) ||
-    writtenText(body, signatureRef.current) !== writtenText(seed.body, null);
+    writtenText(body, signature) !== writtenText(seed.body, null);
   const isDirty = contentKey !== savedContentKey;
   // What closing keeps: unsaved edits of the user's — or a reopened draft put
   // back as it was opened after an autosave had already changed it on the server.
@@ -373,7 +374,7 @@ export function useComposeSession({
         if (cancelled || !settings.signature) return;
         if (!isBodyBlank(bodyValueRef.current, null, isWeb)) return;
         const block = signatureBlock(settings.signature, isWeb);
-        signatureRef.current = block;
+        setSignature(block);
         updateBody(block);
         // The signature is where the session starts, not something to save.
         setSavedContentKey((saved) =>
@@ -390,8 +391,10 @@ export function useComposeSession({
   }, [api]);
 
   // ── Server draft ──────────────────────────────────────────────────
+  // The last COMMITTED render's values, for the unmount save and a queued send.
+  // Written after each commit (below `deleteServerDraft`), never during render:
+  // a render React throws away must not leave its values here.
   const latest = useRef({ snapshot, contentKey, hasContent, hasUnsavedWork });
-  latest.current = { snapshot, contentKey, hasContent, hasUnsavedWork };
 
   const saveToServer = useCallback(
     (current: ComposeDraftSnapshot, key: string): Promise<boolean> => {
@@ -472,7 +475,6 @@ export function useComposeSession({
   // thread closed under an inline reply — keeps what was written as a draft.
   // Everything written and then erased again leaves no draft behind either.
   const saveToServerRef = useRef(saveToServer);
-  saveToServerRef.current = saveToServer;
   const deleteServerDraftRef = useRef<() => Promise<void>>(async () => undefined);
   useEffect(
     () => () => {
@@ -507,7 +509,6 @@ export function useComposeSession({
   const insertText = useCallback(
     (text: string) => {
       const current = bodyValueRef.current;
-      const signature = signatureRef.current;
       if (isBodyBlank(current, signature, isWeb)) {
         const lead = textToEditorContent(text, isWeb);
         updateBody(signature && !isBodyBlank(current, null, isWeb) ? `${lead}${current}` : lead);
@@ -515,7 +516,7 @@ export function useComposeSession({
       }
       updateBody(appendTextToBody(current, text, isWeb));
     },
-    [updateBody],
+    [signature, updateBody],
   );
 
   /**
@@ -523,19 +524,21 @@ export function useComposeSession({
    * put under it — while that signature is still intact at the end. Once the
    * user has edited into it, it is their text like the rest.
    */
-  const splitSignature = useCallback((content: string) => {
-    const signature = signatureRef.current;
-    if (signature && content.endsWith(signature)) {
-      return { own: content.slice(0, -signature.length), signature };
-    }
-    return { own: content, signature: '' };
-  }, []);
+  const splitSignature = useCallback(
+    (content: string) => {
+      if (signature && content.endsWith(signature)) {
+        return { own: content.slice(0, -signature.length), signature };
+      }
+      return { own: content, signature: '' };
+    },
+    [signature],
+  );
 
   /** Replace what the user wrote with plain text (an AI rewrite), keeping the signature. */
   const replaceOwnText = useCallback(
     (text: string) => {
-      const { signature } = splitSignature(bodyValueRef.current);
-      updateBody(`${textToEditorContent(text, isWeb)}${signature}`);
+      const kept = splitSignature(bodyValueRef.current).signature;
+      updateBody(`${textToEditorContent(text, isWeb)}${kept}`);
     },
     [splitSignature, updateBody],
   );
@@ -714,7 +717,12 @@ export function useComposeSession({
     }
   }, [discardDraftAsync, recoveryKey, settleSaves, t]);
 
-  deleteServerDraftRef.current = deleteServerDraft;
+  // Every commit: what the unmount save above and a queued send read.
+  useEffect(() => {
+    latest.current = { snapshot, contentKey, hasContent, hasUnsavedWork };
+    saveToServerRef.current = saveToServer;
+    deleteServerDraftRef.current = deleteServerDraft;
+  });
 
   /** Save now and close. Nothing to save closes at once. */
   const saveAndClose = useCallback(async () => {

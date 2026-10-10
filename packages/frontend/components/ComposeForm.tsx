@@ -2,15 +2,6 @@ import { BREAKPOINTS } from '@oxy.so/bloom/styles';
 import { useBottomEdgeInset } from '@oxy.so/bloom/layout';
 import { Text } from '@oxy.so/bloom/typography';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
-import { MailAddressFields } from '@/components/MailAddressFields';
-import {
-  buildComposeDraftPayload,
-  createDraftSaveQueue,
-  parseComposeRecipients,
-  type ComposeDraftSaveState,
-  type ComposeDraftSnapshot,
-} from '@/utils/composeDraft';
-import { stripHtml } from '@/utils/stripHtml';
 import { Button, IconButton } from '@oxy.so/bloom/button';
 import {
   RiArrowDownSLine,
@@ -19,70 +10,59 @@ import {
   RiTimeLine,
 } from '@oxy.so/bloom/icons';
 import { MailComposeSurface } from '@oxy.so/bloom/mail-compose';
+import { MailQuoteToggle } from '@oxy.so/bloom/mail-thread';
+import { EmptyState } from '@oxy.so/bloom/empty-state';
+import { Loading } from '@oxy.so/bloom/loading';
 /**
- * Reusable compose / reply / forward form.
+ * The full composer: a new message, a reply, a forward, or a saved draft
+ * reopened to finish and send.
  *
- * Supports attachments, Cc/Bcc toggle, and discard confirmation.
+ * What is being composed is loaded first — the draft, or the message being
+ * forwarded — and only then is the session (`useComposeSession`) started from
+ * it, so its fields are seeded once from real data rather than patched in after.
  */
 
-import { Dialog, toast, useDialogControl } from '@oxy.so/bloom';
+import { Dialog, useDialogControl } from '@oxy.so/bloom';
 import { Admonition } from '@oxy.so/bloom/admonition';
 import type { FileMetadata } from '@oxy.so/core';
 import { useOxy } from '@oxy.so/services';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useWindowDimensions, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import { AiComposeToolbar } from '@/components/AiComposeToolbar';
+import { EmptyStateSticker } from '@/components/EmptyStateSticker';
+import { MailAddressFields } from '@/components/MailAddressFields';
 import { ReplyParentNotice } from '@/components/ReplyParentNotice';
-import {
-  RichTextEditor,
-  type RichTextEditorHandle,
-} from '@/components/RichTextEditor';
+import { RichTextEditor } from '@/components/RichTextEditor';
 import { ScheduleSendSheet } from '@/components/ScheduleSendSheet';
 import { TemplatePicker } from '@/components/TemplatePicker';
 import { useColors } from '@/constants/theme';
-import {
-  useSaveDraft,
-  useSendMessage,
-  useSendMessageWithUndo,
-} from '@/hooks/mutations/useMessageMutations';
-import { useEmailStore } from '@/hooks/useEmail';
+import { useMessage } from '@/hooks/queries/useMessage';
+import { useComposeSession } from '@/hooks/useComposeSession';
 import { useGoBack } from '@/hooks/useGoBack';
 import { useReplyParent } from '@/hooks/useReplyParent';
 import { useTranslation } from '@/lib/i18n';
-import type { EmailTemplate } from '@/services/emailApi';
+import type { EmailTemplate, Message } from '@/services/emailApi';
 import {
-  clearComposeRecovery,
-  composeRecoveryStorageKey,
-  loadComposeRecovery,
-  saveComposeRecovery,
-} from '@/utils/composeRecovery';
-import { newSendIdempotencyKey } from '@/utils/sendIdempotency';
-
-/**
- * Local composer representation of an attachment. Just enough to render the
- * chip and to map onto the API `{ fileId }` payload — every attachment is a
- * reference into the user's Oxy File Manager.
- */
-interface ComposerAttachment {
-  fileId: string;
-  name: string;
-  contentType: string;
-  size: number;
-}
-
-function fileMetadataToAttachment(file: FileMetadata): ComposerAttachment {
-  return {
-    fileId: file.id,
-    name: file.filename || file.id,
-    contentType: file.contentType || 'application/octet-stream',
-    size: file.length,
-  };
-}
+  editorContentToText,
+  forwardedBody,
+  textToEditorContent,
+} from '@/utils/composeBody';
+import { formatQuoteDate } from '@/utils/quoteDate';
+import { draftReplyHeaders } from '@/utils/replyHeaders';
 
 const isWeb = Platform.OS === 'web';
 
 interface ComposeFormProps {
+  /** Row id of a saved draft to reopen. */
+  draftId?: string;
   replyTo?: string;
   forward?: string;
   to?: string;
@@ -91,349 +71,149 @@ interface ComposeFormProps {
   body?: string;
 }
 
-function isDraftConflict(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false;
-  const candidate = error as {
-    status?: number;
-    statusCode?: number;
-    response?: { status?: number };
-  };
+export function ComposeForm({ draftId, forward, ...props }: ComposeFormProps) {
+  const closeCompose = useGoBack();
+  const { t } = useTranslation();
+  // Compose by draft id wins: a draft already holds its recipients, its body
+  // and — for a reply — its threading headers.
+  const draftQuery = useMessage(draftId);
+  const forwardQuery = useMessage(draftId ? undefined : forward);
+  const source = draftId ? draftQuery : forward ? forwardQuery : null;
+
+  if (source && !source.data) {
+    if (source.isError || (source.isFetched && !source.isFetching)) {
+      return (
+        <ComposeLoadError
+          onRetry={() => void source.refetch()}
+          onClose={closeCompose}
+          title={t(draftId ? 'compose.draftLoadError' : 'ui.message.loadError')}
+        />
+      );
+    }
+    return (
+      <View style={styles.centered}>
+        <Loading />
+      </View>
+    );
+  }
+
+  if (draftId && draftQuery.data && !draftQuery.data.flags.draft) {
+    // Sent or moved out of Drafts since the link to it was made.
+    return (
+      <ComposeLoadError onClose={closeCompose} title={t('compose.draftGone')} />
+    );
+  }
+
   return (
-    candidate.status === 409 ||
-    candidate.statusCode === 409 ||
-    candidate.response?.status === 409
+    <ComposeSessionForm
+      {...props}
+      draft={draftId ? (draftQuery.data ?? undefined) : undefined}
+      forwarded={!draftId && forward ? (forwardQuery.data ?? undefined) : undefined}
+      closeCompose={closeCompose}
+    />
   );
 }
 
-export function ComposeForm({
+function ComposeLoadError({
+  title,
+  onRetry,
+  onClose,
+}: {
+  title: string;
+  onRetry?: () => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <View className="flex-1">
+      <EmptyState
+        illustration={<EmptyStateSticker name={onRetry ? 'loadError' : 'notFound'} />}
+        title={title}
+        action={
+          onRetry
+            ? { label: t('common.retry'), onPress: onRetry }
+            : { label: t('common.close'), onPress: onClose }
+        }
+      />
+    </View>
+  );
+}
+
+function ComposeSessionForm({
   replyTo,
-  forward,
   to: initialTo,
   cc: initialCc,
   subject: initialSubject,
   body: initialBody,
-}: ComposeFormProps) {
-  // Compose can be opened from a deep link, where there is no history to pop.
-  const closeCompose = useGoBack();
+  draft,
+  forwarded,
+  closeCompose,
+}: Omit<ComposeFormProps, 'draftId' | 'forward'> & {
+  draft?: Message;
+  forwarded?: Message;
+  closeCompose: () => void;
+}) {
   const occupiedBottom = useBottomEdgeInset();
   const { width: viewportWidth } = useWindowDimensions();
   const bottomClearance = viewportWidth < BREAKPOINTS.md ? occupiedBottom : 0;
   const colors = useColors();
   const { t } = useTranslation();
-
   const { user, showBottomSheet } = useOxy();
-  const api = useEmailStore((s) => s._api);
-  const { sendWithUndo, isPending: sendPending } = useSendMessageWithUndo();
-  const sendMessageMutation = useSendMessage();
-  const saveDraftMutation = useSaveDraft();
-  const bodyRef = useRef<RichTextEditorHandle>(null);
 
-  // The parent is loaded by its row id only to read its RFC headers; until they
-  // are known, nothing that carries them (send, schedule, server draft) runs.
-  const replyParent = useReplyParent(replyTo);
-  const replyHeaders = replyParent.headers;
-  const awaitingReplyHeaders = replyParent.blocksSend;
+  // A reply's parent is loaded by its row id only to read its RFC headers. A
+  // reopened draft already carries them.
+  const replyParent = useReplyParent(draft ? undefined : replyTo);
+  const replyHeaders = draft ? draftReplyHeaders(draft) : replyParent.headers;
 
-  // One key per compose session (see utils/sendIdempotency.ts); replaced by the
-  // recovered one when this composer resumes an earlier session.
-  const [idempotencyKey, setIdempotencyKey] = useState(newSendIdempotencyKey);
-  const [alreadyQueued, setAlreadyQueued] = useState(false);
-
-  const [to, setTo] = useState(initialTo || '');
-  const [cc, setCc] = useState(initialCc || '');
-  const [bcc, setBcc] = useState('');
-  const [subject, setSubject] = useState(initialSubject || '');
-  const [body, setBody] = useState(initialBody || '');
-  const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
-  const [signatureLoaded, setSignatureLoaded] = useState(false);
-  const [draftSaveState, setDraftSaveState] =
-    useState<ComposeDraftSaveState>('idle');
-  const [savedDraftKey, setSavedDraftKey] = useState<string | null>(null);
-  const [recoveryLoaded, setRecoveryLoaded] = useState(false);
-  const [draftSaveQueue] = useState(createDraftSaveQueue);
-  const bodyValueRef = useRef(initialBody || '');
-  const updateBody = useCallback((nextBody: string) => {
-    bodyValueRef.current = nextBody;
-    setBody(nextBody);
-  }, []);
-
-  const recoveryKey = useMemo(
+  // The forwarded message follows the editable body, read-only, as it is sent.
+  const trailer = useMemo(
     () =>
-      composeRecoveryStorageKey(
-        user?.id,
-        replyTo ? `reply:${replyTo}` : forward ? `forward:${forward}` : 'new',
-      ),
-    [forward, replyTo, user?.id],
+      forwarded
+        ? forwardedBody(
+            forwarded,
+            t('inlineReply.forwardHeader', {
+              from: forwarded.from.name || forwarded.from.address,
+              date: formatQuoteDate(forwarded.date),
+              subject: forwarded.subject,
+              to: forwarded.to.map((a) => a.name || a.address).join(', '),
+            }),
+            isWeb,
+          )
+        : '',
+    [forwarded, t],
   );
 
-  useEffect(() => {
-    let cancelled = false;
-    const hasServerDraft = Boolean(
-      initialTo || initialCc || initialSubject || initialBody,
-    );
-
-    void loadComposeRecovery(recoveryKey).then((record) => {
-      if (cancelled) return;
-      if (record && !hasServerDraft) {
-        if (record.snapshot.idempotencyKey)
-          setIdempotencyKey(record.snapshot.idempotencyKey);
-        setAlreadyQueued(record.snapshot.queued === true);
-        setTo(record.snapshot.to);
-        setCc(record.snapshot.cc);
-        setBcc(record.snapshot.bcc);
-        setSubject(record.snapshot.subject);
-        updateBody(record.snapshot.body);
-        setAttachments(
-          (record.snapshot.attachments ?? []).map(({ fileId }) => ({
-            fileId,
-            name: fileId,
-            contentType: 'application/octet-stream',
-            size: 0,
-          })),
-        );
-      }
-      setRecoveryLoaded(true);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    initialBody,
-    initialCc,
-    initialSubject,
-    initialTo,
-    recoveryKey,
-    updateBody,
-  ]);
-
-  // Auto-insert signature from settings
-  useEffect(() => {
-    if (!api || signatureLoaded) return;
-
-    const loadSignature = async () => {
-      try {
-        const settings = await api.getSettings();
-        if (settings.signature && !bodyValueRef.current.trim()) {
-          // Add signature with separator
-          updateBody(`\n\n--\n${settings.signature}`);
-        }
-      } catch (err: unknown) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : t('compose.toast.signatureFailed');
-        toast.error(message);
-      }
-      setSignatureLoaded(true);
-    };
-
-    loadSignature();
-  }, [api, signatureLoaded, t, updateBody]);
-
-  const draftIdRef = useRef<string | null>(null);
-  const draftRevisionRef = useRef<number | null>(null);
-  const sentRef = useRef(false);
-  const mountedRef = useRef(true);
+  const session = useComposeSession({
+    recoveryIdentity: draft
+      ? `draft:${draft._id}`
+      : replyTo
+        ? `reply:${replyTo}`
+        : forwarded
+          ? `forward:${forwarded._id}`
+          : 'new',
+    draft,
+    initial: {
+      to: initialTo,
+      cc: initialCc,
+      subject:
+        initialSubject ??
+        (forwarded
+          ? forwarded.subject.startsWith('Fwd:')
+            ? forwarded.subject
+            : `Fwd: ${forwarded.subject}`
+          : undefined),
+      body: initialBody ? textToEditorContent(initialBody, isWeb) : undefined,
+    },
+    replyTo,
+    replyHeaders,
+    awaitingReplyHeaders: replyParent.blocksSend,
+    trailer,
+    insertSignature: !draft,
+    onFinished: closeCompose,
+  });
 
   const fromAddress = user?.username ? `${user.username}@oxy.so` : '';
-  const sending = sendPending || sendMessageMutation.isPending;
-  const sendDisabled = sending || awaitingReplyHeaders;
-  const hasContent = Boolean(
-    to.trim() || subject.trim() || body.trim() || attachments.length > 0,
-  );
-  const draftSnapshot = useMemo<ComposeDraftSnapshot>(
-    () => ({
-      to,
-      cc,
-      bcc,
-      subject,
-      body,
-      attachments: attachments.map((attachment) => ({
-        fileId: attachment.fileId,
-      })),
-      replyTo,
-      idempotencyKey,
-      ...(alreadyQueued ? { queued: true } : {}),
-    }),
-    [
-      to,
-      cc,
-      bcc,
-      subject,
-      body,
-      attachments,
-      replyTo,
-      idempotencyKey,
-      alreadyQueued,
-    ],
-  );
-  const draftSnapshotKey = useMemo(
-    () => JSON.stringify(draftSnapshot),
-    [draftSnapshot],
-  );
-  const saveDraftAsync = saveDraftMutation.mutateAsync;
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  const saveDraftSnapshot = useCallback(
-    (snapshot: ComposeDraftSnapshot, snapshotKey: string): Promise<boolean> => {
-      const save = async (): Promise<boolean> => {
-        // A server draft of a reply without its threading headers would be sent
-        // unthreaded later. The local recovery snapshot still keeps the text.
-        if (!api || sentRef.current || awaitingReplyHeaders) return false;
-        if (mountedRef.current) setDraftSaveState('saving');
-        try {
-          const draft = await saveDraftAsync({
-            ...buildComposeDraftPayload(
-              snapshot,
-              draftIdRef.current ?? undefined,
-              isWeb,
-              replyHeaders,
-            ),
-            ...(draftIdRef.current && draftRevisionRef.current
-              ? { expectedRevision: draftRevisionRef.current }
-              : {}),
-          });
-          draftIdRef.current = draft._id;
-          draftRevisionRef.current = draft.draftRevision;
-          if (mountedRef.current) {
-            setSavedDraftKey(snapshotKey);
-            setDraftSaveState('saved');
-          }
-          void clearComposeRecovery(recoveryKey);
-          return true;
-        } catch (error) {
-          if (isDraftConflict(error)) {
-            // Do not overwrite the other device's version. The next autosave
-            // creates a new draft copy from the edits still open in this
-            // composer, while the user can continue working uninterrupted.
-            draftIdRef.current = null;
-            draftRevisionRef.current = null;
-            if (mountedRef.current) {
-              toast.error(t('common.notSaved'));
-            }
-          }
-          if (mountedRef.current) setDraftSaveState('error');
-          return false;
-        }
-      };
-
-      return draftSaveQueue.enqueue(save);
-    },
-    [
-      api,
-      awaitingReplyHeaders,
-      draftSaveQueue,
-      recoveryKey,
-      replyHeaders,
-      saveDraftAsync,
-      t,
-    ],
-  );
-
-  useEffect(() => {
-    if (!api || !hasContent || sending || sentRef.current) return;
-    const timer = setTimeout(() => {
-      void saveDraftSnapshot(draftSnapshot, draftSnapshotKey);
-    }, 8_000);
-    return () => clearTimeout(timer);
-  }, [
-    api,
-    hasContent,
-    sending,
-    draftSnapshot,
-    draftSnapshotKey,
-    saveDraftSnapshot,
-  ]);
-
-  useEffect(() => {
-    if (!recoveryLoaded || !hasContent || sending || sentRef.current) return;
-    const timer = setTimeout(() => {
-      void saveComposeRecovery(recoveryKey, draftSnapshot);
-    }, 750);
-    return () => clearTimeout(timer);
-  }, [draftSnapshot, hasContent, recoveryKey, recoveryLoaded, sending]);
-
-  const visibleDraftSaveState =
-    draftSaveState === 'saved' && savedDraftKey !== draftSnapshotKey
-      ? 'idle'
-      : draftSaveState;
-  const draftStatusLabel =
-    visibleDraftSaveState === 'saving'
-      ? t('common.saving')
-      : visibleDraftSaveState === 'saved'
-        ? t('common.saved')
-        : visibleDraftSaveState === 'error'
-          ? t('common.notSaved')
-          : null;
-
-  // Recipient parsing + validation is centralised in the Zod-backed
-  // `parseRecipientList` (schemas/emailSchemas.ts) so the composer and any
-  // future caller share one definition of a valid address.
-  const getValidatedRecipients = useCallback(() => {
-    if (!to.trim()) {
-      toast.error(t('compose.toast.addRecipient'));
-      return null;
-    }
-
-    const fields = [
-      { label: 'To', value: to },
-      { label: 'Cc', value: cc },
-      { label: 'Bcc', value: bcc },
-    ];
-    const parsed = fields.map((field) => ({
-      ...field,
-      result: parseComposeRecipients(field.value),
-    }));
-    const invalidField = parsed.find(
-      (field) => field.result.invalid.length > 0,
-    );
-    if (invalidField) {
-      toast.error(
-        `${t('compose.toast.invalidEmail')} (${invalidField.result.invalid.join(', ')})`,
-      );
-      return null;
-    }
-
-    if (parsed[0].result.addresses.length === 0) {
-      toast.error(t('compose.toast.invalidEmail'));
-      return null;
-    }
-
-    return {
-      to: parsed[0].result.addresses,
-      cc:
-        parsed[1].result.addresses.length > 0
-          ? parsed[1].result.addresses
-          : undefined,
-      bcc:
-        parsed[2].result.addresses.length > 0
-          ? parsed[2].result.addresses
-          : undefined,
-    };
-  }, [to, cc, bcc, t]);
-
-  // Append a selected file to the attachment list, de-duplicating by fileId so
-  // that picking the same Cloud file twice doesn't create a duplicate chip.
-  const appendAttachments = useCallback((files: FileMetadata[]) => {
-    if (files.length === 0) return;
-    setAttachments((prev) => {
-      const seen = new Set(prev.map((a) => a.fileId));
-      const next = [...prev];
-      for (const file of files) {
-        if (seen.has(file.id)) continue;
-        seen.add(file.id);
-        next.push(fileMetadataToAttachment(file));
-      }
-      return next;
-    });
-  }, []);
+  const isReply = Boolean(replyTo || (draft && replyHeaders));
 
   const handleAttachFile = useCallback(() => {
     if (!showBottomSheet) return;
@@ -443,223 +223,37 @@ export function ComposeForm({
         selectMode: true,
         multiSelect: true,
         afterSelect: 'back',
-        onSelect: (file: FileMetadata) => {
-          appendAttachments([file]);
-        },
-        onConfirmSelection: (files: FileMetadata[]) => {
-          appendAttachments(files);
-        },
+        onSelect: (file: FileMetadata) => session.addFiles([file]),
+        onConfirmSelection: (files: FileMetadata[]) => session.addFiles(files),
       },
     });
-  }, [showBottomSheet, appendAttachments]);
-
-  const handleRemoveAttachment = useCallback((index: number) => {
-    setAttachments((prev) => prev.filter((_, i) => i !== index));
-  }, []);
-
-  const handleSend = useCallback(() => {
-    if (awaitingReplyHeaders) return;
-    const recipients = getValidatedRecipients();
-    if (!recipients) return;
-
-    sentRef.current = true;
-    sendWithUndo(
-      {
-        to: recipients.to,
-        cc: recipients.cc,
-        bcc: recipients.bcc,
-        subject,
-        text: isWeb ? stripHtml(body) : body,
-        html: isWeb ? body : undefined,
-        ...(replyHeaders ?? {}),
-        attachments:
-          attachments.length > 0
-            ? attachments.map((a) => ({ fileId: a.fileId }))
-            : undefined,
-        idempotencyKey,
-      },
-      {
-        onSuccess: () => {
-          void clearComposeRecovery(recoveryKey);
-          closeCompose();
-        },
-        // Accepted but NOT delivered. Close the composer — the server holds the
-        // message and the delivery queue tracks it — but keep the local
-        // crash-recovery snapshot, because `queued` includes the case where
-        // delivery never happens and the text would otherwise be gone.
-        //
-        // The snapshot is marked queued and keeps the session key, so reopening
-        // it says so, and pressing Send again is the same message to the API.
-        onQueued: () => {
-          void saveComposeRecovery(recoveryKey, {
-            ...draftSnapshot,
-            queued: true,
-          });
-          closeCompose();
-        },
-        onError: () => {
-          sentRef.current = false;
-        },
-      },
-    );
-  }, [
-    attachments,
-    awaitingReplyHeaders,
-    body,
-    closeCompose,
-    draftSnapshot,
-    getValidatedRecipients,
-    idempotencyKey,
-    recoveryKey,
-    replyHeaders,
-    sendWithUndo,
-    subject,
-  ]);
-
-  const handleSaveDraft = useCallback(() => {
-    if (!hasContent) {
-      void clearComposeRecovery(recoveryKey);
-      closeCompose();
-      return;
-    }
-    void saveDraftSnapshot(draftSnapshot, draftSnapshotKey).then((saved) => {
-      if (saved) {
-        closeCompose();
-      } else {
-        toast.error(t('common.notSaved'));
-      }
-    });
-  }, [
-    closeCompose,
-    draftSnapshot,
-    draftSnapshotKey,
-    hasContent,
-    recoveryKey,
-    saveDraftSnapshot,
-    t,
-  ]);
+  }, [showBottomSheet, session]);
 
   const saveDraftDialog = useDialogControl();
+  const discardDialog = useDialogControl();
+  const sendMenuControl = useDialogControl();
+  const [showScheduleSheet, setShowScheduleSheet] = useState(false);
 
   const handleClose = useCallback(() => {
-    if (hasContent) {
-      void saveComposeRecovery(recoveryKey, draftSnapshot);
+    // Nothing unsaved: close. Otherwise ask whether to keep it.
+    if (session.hasContent && session.isDirty) {
       saveDraftDialog.open();
     } else {
-      void clearComposeRecovery(recoveryKey);
-      closeCompose();
+      void session.saveAndClose();
     }
-  }, [closeCompose, draftSnapshot, hasContent, recoveryKey, saveDraftDialog]);
+  }, [saveDraftDialog, session]);
 
-  const formatSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
-
-  // Handle AI-suggested subject line
-  const handleSubjectSuggested = useCallback((suggestedSubject: string) => {
-    setSubject(suggestedSubject);
-  }, []);
-
-  // Handle template selection — insert into compose fields
   const handleTemplateSelect = useCallback(
     (template: EmailTemplate) => {
-      if (!subject.trim() && template.subject) {
-        setSubject(template.subject);
+      if (!session.subject.trim() && template.subject) {
+        session.setSubject(template.subject);
       }
-      if (!body.trim()) {
-        if (isWeb && bodyRef.current) {
-          bodyRef.current.setContent(template.body);
-        } else {
-          updateBody(template.body);
-        }
-      } else {
-        // Append template body
-        const newBody = body + '\n' + template.body;
-        if (isWeb && bodyRef.current) {
-          bodyRef.current.setContent(newBody);
-        } else {
-          updateBody(newBody);
-        }
-      }
+      session.insertText(template.body);
     },
-    [subject, body, updateBody],
+    [session],
   );
 
-  // Handle body changes from AI toolbar — on web, insert into contentEditable
-  const handleAiBodyChange = useCallback(
-    (text: string) => {
-      if (isWeb && bodyRef.current) {
-        bodyRef.current.setContent(text);
-      } else {
-        updateBody(text);
-      }
-    },
-    [updateBody],
-  );
-
-  // Schedule Send state
-  const [showScheduleSheet, setShowScheduleSheet] = useState(false);
-  const sendMenuControl = useDialogControl();
-
-  const handleScheduleSend = useCallback(
-    (scheduledDate: Date) => {
-      if (awaitingReplyHeaders) return;
-      const recipients = getValidatedRecipients();
-      if (!recipients) return;
-
-      sentRef.current = true;
-      sendMessageMutation.mutate(
-        {
-          to: recipients.to,
-          cc: recipients.cc,
-          bcc: recipients.bcc,
-          subject,
-          text: isWeb ? stripHtml(body) : body,
-          html: isWeb ? body : undefined,
-          ...(replyHeaders ?? {}),
-          attachments:
-            attachments.length > 0
-              ? attachments.map((a) => ({ fileId: a.fileId }))
-              : undefined,
-          scheduledAt: scheduledDate.toISOString(),
-          idempotencyKey,
-        },
-        {
-          onSuccess: () => {
-            const timeStr = scheduledDate.toLocaleString(undefined, {
-              weekday: 'short',
-              month: 'short',
-              day: 'numeric',
-              hour: 'numeric',
-              minute: '2-digit',
-            });
-            toast.success(`Email scheduled for ${timeStr}`);
-            void clearComposeRecovery(recoveryKey);
-            closeCompose();
-          },
-          onError: (err: Error) => {
-            sentRef.current = false;
-            toast.error(err.message || t('compose.toast.scheduleFailed'));
-          },
-        },
-      );
-    },
-    [
-      attachments,
-      awaitingReplyHeaders,
-      body,
-      closeCompose,
-      getValidatedRecipients,
-      idempotencyKey,
-      recoveryKey,
-      replyHeaders,
-      sendMessageMutation,
-      subject,
-      t,
-    ],
-  );
+  const plainBody = editorContentToText(session.body, isWeb);
 
   return (
     <KeyboardAvoidingView
@@ -669,39 +263,38 @@ export function ComposeForm({
       <MailComposeSurface
         variant="sheet"
         title={
-          replyTo
+          isReply
             ? t('compose.titleReply')
-            : forward
+            : forwarded
               ? t('compose.titleForward')
-              : t('compose.titleCompose')
+              : draft
+                ? t('compose.titleDraft')
+                : t('compose.titleCompose')
         }
         onClose={handleClose}
-        onSend={handleSend}
-        sending={sending}
-        sendDisabled={sendDisabled}
+        onSend={() => void session.send()}
+        sending={session.sending}
+        sendDisabled={session.sendDisabled}
+        onDiscard={() => discardDialog.open()}
         onAttach={handleAttachFile}
-        attachments={attachments.map((item) => ({
+        attachments={session.attachments.map((item) => ({
           id: item.fileId,
           name: item.name,
           caption: formatSize(item.size),
         }))}
-        onAttachmentRemove={(id) =>
-          handleRemoveAttachment(
-            attachments.findIndex((item) => item.fileId === id),
-          )
-        }
+        onAttachmentRemove={session.removeAttachment}
         footer={
           <View className="flex-row items-center gap-1">
             <TemplatePicker onSelect={handleTemplateSelect} />
             <IconButton
               accessibilityLabel={t('compose.actions.saveDraft')}
-              onPress={handleSaveDraft}
+              onPress={() => void session.saveAndClose()}
               icon={<RiSaveLine />}
             />
             <IconButton
               accessibilityLabel={t('compose.actions.moreSendOptions')}
               onPress={() => sendMenuControl.open()}
-              disabled={sendDisabled}
+              disabled={session.sendDisabled}
               icon={<RiArrowDownSLine />}
             />
           </View>
@@ -711,27 +304,25 @@ export function ComposeForm({
           sending: t('common.sending'),
           attach: t('compose.dropZone'),
           close: t('common.close'),
+          discard: t('compose.actions.discardDraft'),
         }}
         style={{ flex: 1, paddingBottom: bottomClearance }}
       >
-        <Dialog
-          control={sendMenuControl}
-          label={t('compose.actions.sendOptions')}
-        >
+        <Dialog control={sendMenuControl} label={t('compose.actions.sendOptions')}>
           <View style={{ gap: 8 }}>
             <Button
-              disabled={sendDisabled}
+              disabled={session.sendDisabled}
               appearance="subtle"
               leading={<RiSendPlaneLine />}
               onPress={() => {
                 sendMenuControl.close();
-                handleSend();
+                void session.send();
               }}
             >
               {t('compose.actions.sendNow')}
             </Button>
             <Button
-              disabled={sendDisabled}
+              disabled={session.sendDisabled}
               appearance="subtle"
               leading={<RiTimeLine />}
               onPress={() => {
@@ -745,9 +336,9 @@ export function ComposeForm({
         </Dialog>
 
         <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
-          <ReplyParentNotice state={replyParent} />
+          {!draft && <ReplyParentNotice state={replyParent} />}
 
-          {alreadyQueued && (
+          {session.alreadyQueued && (
             <View>
               <Admonition type="info">{t('compose.queuedNotice')}</Admonition>
             </View>
@@ -760,70 +351,78 @@ export function ComposeForm({
           />
 
           <MailAddressFields
-            to={to}
-            onToChange={setTo}
-            cc={cc}
-            onCcChange={setCc}
-            bcc={bcc}
-            onBccChange={setBcc}
-            subject={subject}
-            onSubjectChange={setSubject}
+            to={session.to}
+            onToChange={session.setTo}
+            cc={session.cc}
+            onCcChange={session.setCc}
+            bcc={session.bcc}
+            onBccChange={session.setBcc}
+            subject={session.subject}
+            onSubjectChange={session.setSubject}
           />
-          {draftStatusLabel && (
+          {session.draftStatusLabel && (
             <Text
               accessibilityLiveRegion="polite"
               style={{
-                color:
-                  visibleDraftSaveState === 'error'
-                    ? colors.error
-                    : colors.secondaryText,
+                color: session.draftSaveError ? colors.error : colors.secondaryText,
               }}
             >
-              {draftStatusLabel}
+              {session.draftStatusLabel}
             </Text>
           )}
 
-          {/* AI Compose Toolbar */}
           <AiComposeToolbar
-            body={body}
-            onBodyChange={handleAiBodyChange}
-            onSubjectSuggested={
-              !subject.trim() ? handleSubjectSuggested : undefined
-            }
+            body={plainBody}
+            onBodyChange={(text) => session.updateBody(textToEditorContent(text, isWeb))}
+            onSubjectSuggested={!session.subject.trim() ? session.setSubject : undefined}
           />
 
-          {/* Body */}
           <RichTextEditor
-            ref={bodyRef}
-            value={body}
-            onChange={updateBody}
+            value={session.body}
+            onChange={session.updateBody}
             placeholder={t('compose.placeholders.body')}
           />
+
+          {trailer ? (
+            <MailQuoteToggle>
+              <Text selectable>{editorContentToText(trailer, isWeb)}</Text>
+            </MailQuoteToggle>
+          ) : null}
         </ScrollView>
       </MailComposeSurface>
 
-      {/* Schedule Send Sheet */}
       <ScheduleSendSheet
         visible={showScheduleSheet}
         onClose={() => setShowScheduleSheet(false)}
-        onSchedule={handleScheduleSend}
+        onSchedule={(date) => void session.schedule(date)}
       />
 
-      {/* Save as draft confirmation */}
       <Dialog
         control={saveDraftDialog}
         onClose={() => saveDraftDialog.close()}
         title={t('compose.saveDraftPrompt.title')}
         description={t('compose.saveDraftPrompt.description')}
         actions={[
-          { label: t('common.save'), onPress: handleSaveDraft },
+          { label: t('common.save'), onPress: () => void session.saveAndClose() },
           {
             label: t('compose.actions.discard'),
             color: 'destructive',
-            onPress: () => {
-              void clearComposeRecovery(recoveryKey);
-              closeCompose();
-            },
+            onPress: () => void session.discardChanges(),
+          },
+          { label: t('common.cancel'), color: 'cancel' },
+        ]}
+      />
+
+      <Dialog
+        control={discardDialog}
+        onClose={() => discardDialog.close()}
+        title={t('compose.discardDraftPrompt.title')}
+        description={t('compose.discardDraftPrompt.description')}
+        actions={[
+          {
+            label: t('compose.actions.discardDraft'),
+            color: 'destructive',
+            onPress: () => void session.discardDraft(),
           },
           { label: t('common.cancel'), color: 'cancel' },
         ]}
@@ -831,3 +430,17 @@ export function ComposeForm({
     </KeyboardAvoidingView>
   );
 }
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+const styles = StyleSheet.create({
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

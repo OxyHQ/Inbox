@@ -196,6 +196,8 @@ const de: LocaleDict = {
   },
 
   message: {
+    draftLabel: 'Entwurf',
+    draftTo: 'Entwurf an {{recipients}}',
     detail: {
       noSubject: '(kein Betreff)',
       emptyMessage: '(leere Nachricht)',
@@ -205,6 +207,7 @@ const de: LocaleDict = {
       ccRecipients: ', cc: {{recipients}}',
     },
     actions: {
+      editDraft: 'Entwurf bearbeiten',
       archive: 'Archivieren',
       delete: 'Löschen',
       markUnread: 'Als ungelesen markieren',
@@ -316,6 +319,13 @@ const de: LocaleDict = {
   },
 
   compose: {
+    titleDraft: 'Entwurf',
+    draftLoadError: 'Dieser Entwurf konnte nicht geladen werden.',
+    draftGone: 'Dieser Entwurf wurde bereits gesendet oder gelöscht.',
+    discardDraftPrompt: {
+      title: 'Diesen Entwurf verwerfen?',
+      description: 'Der Entwurf wird gelöscht. Das kann nicht rückgängig gemacht werden.',
+    },
     replyParentError: "Die Nachricht, auf die du antwortest, konnte nicht geladen werden. Die Antwort kann noch nicht gesendet werden, ohne die Unterhaltung zu trennen.",
     queuedNotice: "Diese Nachricht ist bereits in der Sendewarteschlange. Erneutes Senden erzeugt kein Duplikat.",
     titleCompose: 'Verfassen',
@@ -342,6 +352,7 @@ const de: LocaleDict = {
       scheduleSend: 'Senden planen',
       saveDraft: 'Entwurf speichern',
       discard: 'Verwerfen',
+      discardDraft: 'Entwurf verwerfen',
     },
     saveDraftPrompt: {
       title: 'Entwurf speichern?',
@@ -356,6 +367,8 @@ const de: LocaleDict = {
       scheduled: 'E-Mail geplant für {{time}}',
       uploadFailed: 'Anhang konnte nicht hochgeladen werden.',
       signatureFailed: 'Signatur konnte nicht geladen werden.',
+      draftSaved: 'Entwurf gespeichert.',
+      draftConflict: 'Dieser Entwurf wurde auf einem anderen Gerät geändert, gesendet oder gelöscht. Deine Version wird als neuer Entwurf gespeichert.',
     },
   },
 

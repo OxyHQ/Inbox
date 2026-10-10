@@ -5,6 +5,10 @@ const MAX_RECOVERY_BODY_LENGTH = 250_000;
 
 export interface ComposeRecoveryAttachment {
   fileId: string;
+  /** What the chip shows. Older snapshots carry only the id. */
+  name?: string;
+  contentType?: string;
+  size?: number;
 }
 
 export interface ComposeRecoverySnapshot {
@@ -53,13 +57,18 @@ function normalizeSnapshot(value: unknown): ComposeRecoverySnapshot | null {
   const body = candidate.body as string;
   if (body.length > MAX_RECOVERY_BODY_LENGTH) return null;
 
-  const attachments = Array.isArray(candidate.attachments)
-    ? candidate.attachments.filter(
-        (attachment): attachment is ComposeRecoveryAttachment =>
-          !!attachment &&
-          typeof attachment === 'object' &&
-          typeof (attachment as { fileId?: unknown }).fileId === 'string',
-      )
+  const attachments: ComposeRecoveryAttachment[] = Array.isArray(candidate.attachments)
+    ? candidate.attachments.flatMap((attachment: unknown) => {
+        if (!attachment || typeof attachment !== 'object') return [];
+        const { fileId, name, contentType, size } = attachment as Record<string, unknown>;
+        if (typeof fileId !== 'string') return [];
+        return [{
+          fileId,
+          ...(typeof name === 'string' ? { name } : {}),
+          ...(typeof contentType === 'string' ? { contentType } : {}),
+          ...(typeof size === 'number' && Number.isFinite(size) ? { size } : {}),
+        }];
+      })
     : [];
 
   return {

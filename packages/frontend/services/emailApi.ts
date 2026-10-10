@@ -326,6 +326,11 @@ export function createEmailApi(http: HttpService) {
       references?: string[];
       attachments?: { fileId: string; contentId?: string; isInline?: boolean }[];
       scheduledAt?: string;
+      /**
+       * Row id of the draft this message was composed from. The API removes the
+       * draft once the message is sent or scheduled.
+       */
+      draftId?: string;
       /** Required: one per compose session, see `utils/sendIdempotency.ts`. */
       idempotencyKey: string;
     }): Promise<{ messageId: string; queued?: boolean; scheduledAt?: string; message: string }> {

@@ -198,6 +198,8 @@ const ca: LocaleDict = {
   },
 
   message: {
+    draftLabel: 'Esborrany',
+    draftTo: 'Esborrany per a {{recipients}}',
     detail: {
       noSubject: '(sense assumpte)',
       emptyMessage: '(missatge buit)',
@@ -207,6 +209,7 @@ const ca: LocaleDict = {
       ccRecipients: ', cc: {{recipients}}',
     },
     actions: {
+      editDraft: 'Edita l\'esborrany',
       archive: 'Arxiva',
       delete: 'Elimina',
       markUnread: 'Marca com a no llegit',
@@ -319,6 +322,13 @@ const ca: LocaleDict = {
   },
 
   compose: {
+    titleDraft: 'Esborrany',
+    draftLoadError: 'No s\'ha pogut carregar aquest esborrany.',
+    draftGone: 'Aquest esborrany ja s\'ha enviat o eliminat.',
+    discardDraftPrompt: {
+      title: 'Vols descartar aquest esborrany?',
+      description: 'L\'esborrany s\'eliminarà. No es pot desfer.',
+    },
     replyParentError: "No s'ha pogut carregar el missatge al qual respons, així que aquesta resposta encara no es pot enviar sense trencar la conversa.",
     queuedNotice: "Aquest missatge ja és a la cua d'enviament. Tornar-lo a enviar no crearà un duplicat.",
     titleCompose: 'Redacta',
@@ -345,6 +355,7 @@ const ca: LocaleDict = {
       scheduleSend: "Programa l'enviament",
       saveDraft: "Desa l'esborrany",
       discard: 'Descarta',
+      discardDraft: 'Descarta l\'esborrany',
     },
     saveDraftPrompt: {
       title: "Desar l'esborrany?",
@@ -359,6 +370,8 @@ const ca: LocaleDict = {
       scheduled: 'Correu programat per al {{time}}',
       uploadFailed: "No s'ha pogut pujar l'adjunt.",
       signatureFailed: "No s'ha pogut carregar la signatura.",
+      draftSaved: 'Esborrany desat.',
+      draftConflict: 'Aquest esborrany ha canviat en un altre dispositiu, o s\'hi ha enviat o eliminat. La teva versió es desarà com un esborrany nou.',
     },
   },
 

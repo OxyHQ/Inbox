@@ -196,6 +196,8 @@ const pt: LocaleDict = {
   },
 
   message: {
+    draftLabel: 'Rascunho',
+    draftTo: 'Rascunho para {{recipients}}',
     detail: {
       noSubject: '(sem assunto)',
       emptyMessage: '(mensagem vazia)',
@@ -205,6 +207,7 @@ const pt: LocaleDict = {
       ccRecipients: ', cc: {{recipients}}',
     },
     actions: {
+      editDraft: 'Editar rascunho',
       archive: 'Arquivar',
       delete: 'Eliminar',
       markUnread: 'Marcar como não lido',
@@ -316,6 +319,13 @@ const pt: LocaleDict = {
   },
 
   compose: {
+    titleDraft: 'Rascunho',
+    draftLoadError: 'Não foi possível carregar este rascunho.',
+    draftGone: 'Este rascunho já foi enviado ou excluído.',
+    discardDraftPrompt: {
+      title: 'Descartar este rascunho?',
+      description: 'O rascunho será excluído. Isso não pode ser desfeito.',
+    },
     replyParentError: "Não foi possível carregar a mensagem a que respondes, por isso esta resposta ainda não pode ser enviada sem partir a conversa.",
     queuedNotice: "Esta mensagem já está na fila de envio. Enviá-la de novo não cria um duplicado.",
     titleCompose: 'Escrever',
@@ -342,6 +352,7 @@ const pt: LocaleDict = {
       scheduleSend: 'Agendar envio',
       saveDraft: 'Guardar rascunho',
       discard: 'Descartar',
+      discardDraft: 'Descartar rascunho',
     },
     saveDraftPrompt: {
       title: 'Guardar rascunho?',
@@ -356,6 +367,8 @@ const pt: LocaleDict = {
       scheduled: 'Email agendado para {{time}}',
       uploadFailed: 'Não foi possível carregar o anexo.',
       signatureFailed: 'Não foi possível carregar a assinatura.',
+      draftSaved: 'Rascunho salvo.',
+      draftConflict: 'Este rascunho foi alterado em outro dispositivo, ou foi enviado ou excluído lá. Sua versão será salva como um novo rascunho.',
     },
   },
 

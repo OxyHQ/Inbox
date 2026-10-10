@@ -23,6 +23,7 @@ import {
   joinAddresses,
   type ReplyMode,
 } from '@/utils/replyRecipients';
+import { messageRoute } from '@/utils/messageRoute';
 
 export default function InboxLayout() {
   const router = useRouter();
@@ -66,6 +67,11 @@ export default function InboxLayout() {
   const openReply = useCallback(
     (mode: ReplyMode) => {
       if (!selectedMessageId || !currentMessage || !isDesktop) return;
+      // Replying to your own unsent draft is not a reply: finish the draft.
+      if (currentMessage.flags.draft) {
+        router.push(messageRoute(currentMessage));
+        return;
+      }
       const { to, cc } = buildReplyRecipients(currentMessage, mode, {
         username: user?.username,
         email: user?.email,
@@ -100,6 +106,10 @@ export default function InboxLayout() {
   const handleForward = useCallback(() => {
     if (selectedMessageId && currentMessage) {
       if (isDesktop) {
+        if (currentMessage.flags.draft) {
+          router.push(messageRoute(currentMessage));
+          return;
+        }
         router.push({
           pathname: '/compose',
           params: {
@@ -145,7 +155,9 @@ export default function InboxLayout() {
     if (currentIndex < messages.length - 1) {
       const nextMessage = messages[currentIndex + 1];
       useEmailStore.setState({ selectedMessageId: nextMessage._id });
-      if (isDesktop) {
+      // A draft is selected but not opened: opening it means the composer,
+      // which is not where stepping through the list should land.
+      if (isDesktop && !nextMessage.flags.draft) {
         router.replace(`/conversation/${nextMessage._id}`);
       }
     }
@@ -155,7 +167,9 @@ export default function InboxLayout() {
     if (currentIndex > 0) {
       const prevMessage = messages[currentIndex - 1];
       useEmailStore.setState({ selectedMessageId: prevMessage._id });
-      if (isDesktop) {
+      // A draft is selected but not opened: opening it means the composer,
+      // which is not where stepping through the list should land.
+      if (isDesktop && !prevMessage.flags.draft) {
         router.replace(`/conversation/${prevMessage._id}`);
       }
     }

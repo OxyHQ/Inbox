@@ -40,3 +40,17 @@ export function buildReplyHeaders(parent: Pick<Message, 'messageId' | 'reference
     references: [...new Set(chain)],
   };
 }
+
+/**
+ * The threading headers a saved reply draft already carries. They were written
+ * from its parent when the draft was saved, so sending it later needs no
+ * parent lookup; anything that is not a msg-id is left out, as above.
+ */
+export function draftReplyHeaders(draft: Pick<Message, 'inReplyTo' | 'references'>): ReplyHeaders | undefined {
+  const inReplyTo = toRfcMessageId(draft.inReplyTo);
+  const references = (draft.references ?? [])
+    .map(toRfcMessageId)
+    .filter((id): id is string => id !== null);
+  if (!inReplyTo && references.length === 0) return undefined;
+  return { ...(inReplyTo ? { inReplyTo } : {}), references: [...new Set(references)] };
+}

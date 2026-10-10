@@ -82,6 +82,7 @@ import type {
   Reminder,
   UnreadableMessage,
 } from '@/services/emailApi';
+import { messageRoute } from '@/utils/messageRoute';
 import { collapseThreads } from '@/utils/threadGrouping';
 import { AliaChatSheet, type AliaChatSheetRef } from '@alia.onl/sdk';
 import { VoiceSession } from '@alia.onl/sdk/voice';
@@ -653,12 +654,19 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   );
 
   const handleMessagePress = useCallback(
-    (messageId: string) => {
-      messageActions.prepareOpenMessage(messageId);
+    (message: Message) => {
+      const route = messageRoute(message);
+      if (message.flags.draft) {
+        // The composer is pushed over the list rather than replacing the
+        // reading pane, so closing it returns to where the user was.
+        router.push(route);
+        return;
+      }
+      messageActions.prepareOpenMessage(message._id);
       if (replaceNavigation) {
-        router.replace(`/conversation/${messageId}`);
+        router.replace(route);
       } else {
-        router.push(`/conversation/${messageId}`);
+        router.push(route);
       }
     },
     [router, replaceNavigation, messageActions],

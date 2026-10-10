@@ -221,11 +221,24 @@ export function useSendMessage() {
       // re-sends the same key rather than minting a second message.
       return api.sendMessage(params);
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: emailKeys.messages.root });
-      queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
+    onSettled: (_data, _error, params) => {
+      invalidateAfterSend(queryClient, params.draftId);
     },
   });
+}
+
+/**
+ * A send changes the lists and the mailbox counts, and a send of a draft also
+ * removes that draft — so its own detail and any thread it was shown in are
+ * stale too.
+ */
+function invalidateAfterSend(queryClient: ReturnType<typeof useQueryClient>, draftId: string | undefined) {
+  queryClient.invalidateQueries({ queryKey: emailKeys.messages.root });
+  queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
+  if (draftId) {
+    queryClient.invalidateQueries({ queryKey: emailKeys.message.byId(draftId) });
+    queryClient.invalidateQueries({ queryKey: emailKeys.thread.root });
+  }
 }
 
 const UNDO_SEND_DELAY_MS = 5000;
@@ -245,12 +258,14 @@ export function useSendMessageWithUndo() {
         onSuccess?: () => void;
         /**
          * The server accepted the message but has not delivered it yet. The
-         * composer may close — the draft is on the server — but the local
+         * composer may close — the server holds the message — but the local
          * crash-recovery snapshot MUST survive, because "queued" includes the
          * case where delivery never happens.
          */
         onQueued?: () => void;
         onError?: (err: unknown) => void;
+        /** Undo was pressed: nothing was sent and the composer is live again. */
+        onCancel?: () => void;
       },
     ) => {
       if (!api) {
@@ -277,6 +292,7 @@ export function useSendMessageWithUndo() {
             }
             setIsPending(false);
             toast('Message cancelled.');
+            options?.onCancel?.();
           },
         },
       } as Record<string, unknown>);
@@ -288,8 +304,7 @@ export function useSendMessageWithUndo() {
 
         try {
           const result = await api.sendMessage(params);
-          queryClient.invalidateQueries({ queryKey: emailKeys.messages.root });
-          queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
+          invalidateAfterSend(queryClient, params.draftId);
 
           if (result.queued) {
             // `queued` is NOT `sent`. It means the relay refused the message
@@ -577,14 +592,35 @@ export function useSaveDraft() {
       if (!api) throw new Error('Email API not initialized');
       return api.saveDraft(params);
     },
-    onSuccess: () => {
-      toast('Draft saved.');
-    },
+    // No toast here: this runs for every autosave. The composer shows the save
+    // state beside the subject, and says "saved" itself when the user asked.
     onSettled: () => {
       // Refetch the Drafts list (the saved draft appears) and mailbox badges
       // (the Drafts unseen count) so the sidebar reflects the new draft.
       queryClient.invalidateQueries({ queryKey: emailKeys.messages.root });
       queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
+    },
+  });
+}
+
+/**
+ * Throw a draft away for good. A discarded draft is not mail: moving it to
+ * Trash would keep it a draft there, editable and sendable from the bin.
+ */
+export function useDiscardDraft() {
+  const api = useEmailStore((s) => s._api);
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (draftId: string) => {
+      if (!api) throw new Error('Email API not initialized');
+      await api.deleteMessage(draftId, true);
+    },
+    onSettled: (_data, _error, draftId) => {
+      queryClient.invalidateQueries({ queryKey: emailKeys.messages.root });
+      queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
+      queryClient.invalidateQueries({ queryKey: emailKeys.message.byId(draftId) });
+      queryClient.invalidateQueries({ queryKey: emailKeys.thread.root });
     },
   });
 }

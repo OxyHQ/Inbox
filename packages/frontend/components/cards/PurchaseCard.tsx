@@ -1,4 +1,5 @@
 import { useColors } from '@/constants/theme';
+import { formatMoney } from '@/utils/cardFormat';
 import type { CardData } from '@/services/emailApi';
 import { Card, CardBody, CardHeader, CardTitle } from '@oxy.so/bloom/card';
 import { Text } from '@oxy.so/bloom/typography';
@@ -13,10 +14,7 @@ export function PurchaseCard({ data }: PurchaseCardProps) {
 
   const formattedAmount =
     data.amount != null
-      ? new Intl.NumberFormat(undefined, {
-          style: 'currency',
-          currency: data.currency || 'USD',
-        }).format(data.amount)
+      ? formatMoney(data.amount, data.currency)
       : null;
 
   return (

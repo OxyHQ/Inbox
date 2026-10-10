@@ -29,11 +29,12 @@
  * client, and no gate of our own to get wrong.
  */
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { toast } from '@oxy.so/bloom';
 import { useOxy, useOxyEvent } from '@oxy.so/services';
 
+import { SPECIAL_USE } from '@/constants/mailbox';
 import { useEmailStore } from '@/hooks/useEmail';
 import { invalidateMailViews } from '@/hooks/queries/invalidateMailViews';
 import { emailKeys } from '@/hooks/queries/queryKeys';
@@ -75,6 +76,9 @@ export interface EmailChangedEvent {
 }
 
 type MessagesInfinite = InfiniteData<MessagesPage>;
+
+/** How long a burst of `email:changed` events is gathered before one reconcile. */
+const CHANGED_COALESCE_MS = 300;
 
 /**
  * Build a Message-shaped placeholder from an `EmailNewEvent` so the optimistic
@@ -278,9 +282,18 @@ export function useInboxSocket() {
 
       // 4. Toast only when the user is looking somewhere else. When they are
       //    already on the folder it landed in, the new row IS the notification.
+      //    Never for mail filed as spam: every spam message used to pop a
+      //    toast naming its sender.
       const isViewingTargetMailbox =
         viewMode?.type === 'mailbox' && viewMode.mailbox._id === payload.mailboxId;
-      if (!isViewingTargetMailbox) {
+      const target = queryClient
+        .getQueryData<Mailbox[]>(emailKeys.mailboxes.list(userId))
+        ?.find((mb) => mb._id === payload.mailboxId);
+      const isQuietFolder =
+        target?.specialUse === SPECIAL_USE.SPAM ||
+        target?.specialUse === SPECIAL_USE.TRASH ||
+        /^(spam|junk|trash)$/i.test(payload.folder);
+      if (!isViewingTargetMailbox && !isQuietFolder) {
         toast.info(t('inbox.toast.newEmail', { sender: payload.from.name ?? payload.from.address }));
       }
 
@@ -306,6 +319,14 @@ export function useInboxSocket() {
    * device, or a server-side filter. The event carries no body on purpose:
    * invalidate and re-read through the ordinary authorised path.
    */
+  const reconcileTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (reconcileTimer.current) clearTimeout(reconcileTimer.current);
+    },
+    [],
+  );
+
   const onEmailChanged = useCallback(
     (payload: unknown) => {
       if (!userId) return;
@@ -316,7 +337,15 @@ export function useInboxSocket() {
       // Not only the lists of the mailboxes it names: the message may be open,
       // in a conversation on screen, in search results or in a bundle — a draft
       // sent from another device stayed open here as a draft.
-      invalidateMailViews(queryClient);
+      //
+      // Coalesced: the server sends one event per message changed, so a bulk
+      // action on 100 messages arrived as 100 events and re-read every view
+      // 100 times. A burst is reconciled once, after it settles.
+      if (reconcileTimer.current) clearTimeout(reconcileTimer.current);
+      reconcileTimer.current = setTimeout(() => {
+        reconcileTimer.current = null;
+        invalidateMailViews(queryClient);
+      }, CHANGED_COALESCE_MS);
       recordInboxMetric('realtime_email_changed');
     },
     [queryClient, userId],

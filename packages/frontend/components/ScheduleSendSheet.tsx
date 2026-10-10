@@ -1,4 +1,5 @@
 import { useTranslation } from '@/lib/i18n';
+import { presetsThatMakeSense } from '@/utils/timePresets';
 import { Button } from '@oxy.so/bloom/button';
 import { Text as BloomText } from '@oxy.so/bloom/typography';
 /**
@@ -58,7 +59,7 @@ function getScheduleOptions(): ScheduleOption[] {
       day: 'numeric',
     });
 
-  return [
+  const options: ScheduleOption[] = [
     {
       label: 'schedule.options.laterToday',
       sublabel: formatTime(laterToday),
@@ -84,6 +85,7 @@ function getScheduleOptions(): ScheduleOption[] {
       getDate: () => monday,
     },
   ];
+  return presetsThatMakeSense(options, now);
 }
 
 interface ScheduleSendSheetProps {

@@ -1,4 +1,5 @@
 import { useTranslation } from '@/lib/i18n';
+import { presetsThatMakeSense } from '@/utils/timePresets';
 import { Button } from '@oxy.so/bloom/button';
 import { Text as BloomText } from '@oxy.so/bloom/typography';
 /**
@@ -59,7 +60,7 @@ function getSnoozeOptions(): SnoozeOption[] {
       day: 'numeric',
     });
 
-  return [
+  const options: SnoozeOption[] = [
     {
       label: 'snooze.options.laterToday',
       sublabel: formatTime(laterToday),
@@ -85,6 +86,7 @@ function getSnoozeOptions(): SnoozeOption[] {
       getDate: () => monday,
     },
   ];
+  return presetsThatMakeSense(options, now);
 }
 
 interface SnoozeSheetProps {

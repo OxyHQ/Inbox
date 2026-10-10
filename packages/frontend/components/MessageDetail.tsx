@@ -235,7 +235,6 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
   // Get current user for stale thread detection
   const { user, oxyServices } = useOxy();
-  const userEmail = user?.email;
 
   // Reading a conversation marks it read — here, once per conversation opened,
   // whatever opened it. It used to be the list tap, which marked only the row's
@@ -426,7 +425,10 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   );
 
   // Detect stale threads that need a response
-  const staleInfo = useStaleThread(sortedThread, userEmail);
+  const staleInfo = useStaleThread(sortedThread, {
+    username: user?.username,
+    email: user?.email,
+  });
 
   // Resolve CID inline image references to signed File Manager URLs
   const resolvedHtmlMap = useCidResolver(sortedThread, oxyServices, messageId);

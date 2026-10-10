@@ -1,3 +1,4 @@
+import { formatCardDate } from '@/utils/cardFormat';
 import { useColors } from '@/constants/theme';
 import type { CardData } from '@/services/emailApi';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -13,20 +14,20 @@ export function TripCard({ data }: TripCardProps) {
   const colors = useColors();
 
   const departureTime = data.departureTime
-    ? new Date(data.departureTime).toLocaleString(undefined, {
+    ? formatCardDate(data.departureTime, {
         weekday: 'short',
         month: 'short',
         day: 'numeric',
         hour: 'numeric',
         minute: '2-digit',
-      })
+      }, true)
     : null;
 
   const arrivalTime = data.arrivalTime
-    ? new Date(data.arrivalTime).toLocaleString(undefined, {
+    ? formatCardDate(data.arrivalTime, {
         hour: 'numeric',
         minute: '2-digit',
-      })
+      }, true)
     : null;
 
   return (
@@ -84,12 +85,12 @@ export function TripCard({ data }: TripCardProps) {
               </Text>
               {data.checkIn && (
                 <Text style={[styles.time, { color: colors.secondaryText }]}>
-                  {new Date(data.checkIn).toLocaleDateString(undefined, {
+                  {formatCardDate(data.checkIn, {
                     month: 'short',
                     day: 'numeric',
                   })}
                   {data.checkOut
-                    ? ` – ${new Date(data.checkOut).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+                    ? ` – ${formatCardDate(data.checkOut, { month: 'short', day: 'numeric' })}`
                     : ''}
                 </Text>
               )}

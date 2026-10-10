@@ -17,8 +17,8 @@ import { searchDateBound } from '@/utils/searchFilters';
 
 describe('cards', () => {
   it('formats an amount whose "currency" is a symbol instead of throwing', () => {
-    expect(() => formatMoney(12.5, '$')).not.toThrow();
-    expect(formatMoney(12.5, '$')).toContain('12.50');
+    expect(() => formatMoney('en-US', 12.5, '$')).not.toThrow();
+    expect(formatMoney('en-US', 12.5, '$')).toContain('12.50');
   });
 
   it('reads a date-only value as that local day', () => {

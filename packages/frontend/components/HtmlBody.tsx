@@ -82,6 +82,40 @@ export function isUserInitiatedNativeNavigation(request: {
   return request.isTopFrame !== false && isAllowedType;
 }
 
+/** The in-memory document the WebView renders, and in-page `#anchor` jumps within it. */
+const INITIAL_DOCUMENT = /^about:blank(?:[?#]|$)/i;
+
+/**
+ * Every navigation the native WebView attempts, decided in one place.
+ *
+ * `originWhitelist` is `['*']` so that this runs for EVERY URL.
+ * react-native-webview checks its whitelist first and hands any URL that
+ * fails it straight to `Linking.openURL` — unvalidated, whatever its scheme,
+ * tapped or not — and never calls `onShouldStartLoadWithRequest`. With the
+ * old `['about:blank']` that was every link in every mail: the protocol
+ * allowlist below never ran.
+ *
+ * The WebView itself never leaves the in-memory document. A safe link, on a
+ * real top-frame tap, is opened OUTSIDE it, and only then.
+ */
+export function decideNativeNavigation(request: {
+  url: string;
+  navigationType?: string | null;
+  isTopFrame?: boolean;
+}): { allow: boolean; open: string | null } {
+  if (INITIAL_DOCUMENT.test(request.url)) return { allow: true, open: null };
+  const safeUrl = getSafeExternalUrl(request.url);
+  return {
+    allow: false,
+    open: safeUrl && isUserInitiatedNativeNavigation(request) ? safeUrl : null,
+  };
+}
+
+interface WrapStrings {
+  videoLinkLabel: string;
+  audioLinkLabel: string;
+}
+
 /**
  * Wrap email HTML with styling and proxy external resources.
  *
@@ -108,6 +142,7 @@ function wrapHtml(
   html: string,
   isDark: boolean,
   colors: ReturnType<typeof useTheme>['colors'],
+  strings: WrapStrings,
 ): string {
   const bgColor = 'transparent';
   const textColor = colors.text;
@@ -120,7 +155,7 @@ function wrapHtml(
   // iframe and the native WebView.
   const proxyBaseUrl = getProxyBaseUrl();
   const sanitizedHtml = sanitizeEmailHtml(html);
-  const proxiedHtml = proxyExternalImages(sanitizedHtml, proxyBaseUrl);
+  const proxiedHtml = proxyExternalImages(sanitizedHtml, proxyBaseUrl, strings);
 
   return `
     <!DOCTYPE html>
@@ -165,10 +200,12 @@ function HtmlBodyWeb({ html }: HtmlBodyProps) {
   const [height, setHeight] = useState<number | null>(null);
   const { mode, colors } = useTheme();
   const isDark = mode === 'dark';
+  const videoLinkLabel = t('message.detail.openVideo');
+  const audioLinkLabel = t('message.detail.openAudio');
 
   const wrappedHtml = useMemo(
-    () => wrapHtml(html, isDark, colors),
-    [html, isDark, colors],
+    () => wrapHtml(html, isDark, colors, { videoLinkLabel, audioLinkLabel }),
+    [html, isDark, colors, videoLinkLabel, audioLinkLabel],
   );
 
   useEffect(() => {
@@ -252,15 +289,18 @@ if (Platform.OS !== 'web') {
   const { WebView } = require('react-native-webview');
 
   HtmlBodyNative = function HtmlBodyNativeComponent({ html }: HtmlBodyProps) {
+    const { t } = useTranslation();
     const { mode, colors } = useTheme();
     const isDark = mode === 'dark';
+    const videoLinkLabel = t('message.detail.openVideo');
+    const audioLinkLabel = t('message.detail.openAudio');
 
     // JavaScript is disabled in the WebView (see props below), so the email body
     // is rendered statically. No height-measuring script is injected; the WebView
     // owns its own scroll instead of growing to fit.
     const wrappedHtml = useMemo(
-      () => wrapHtml(html, isDark, colors),
-      [html, isDark, colors],
+      () => wrapHtml(html, isDark, colors, { videoLinkLabel, audioLinkLabel }),
+      [html, isDark, colors, videoLinkLabel, audioLinkLabel],
     );
 
     // Open user-clicked safe links in the system browser instead of navigating the WebView.
@@ -270,32 +310,17 @@ if (Platform.OS !== 'web') {
         navigationType?: string | null;
         isTopFrame?: boolean;
       }) => {
-        const { url } = request;
-        // Allow only the initial in-memory HTML load. Everything else is a user
-        // navigation that must leave the WebView. `data:` is intentionally NOT
-        // allowed here — `originWhitelist` is locked to `about:blank` and the
-        // source is delivered as inline `html`, so the document boots from
-        // `about:blank` without ever loading a `data:` URL.
-        if (url === 'about:blank' || url.startsWith('about:')) {
-          return true;
-        }
-
-        // Only follow validated external schemes (http/https/mailto) on a real,
-        // top-frame, user-initiated tap. Android reports navigationType as
-        // 'other' (or omits it) for link taps, so the guard intentionally accepts
-        // 'click' | 'other' | null while the protocol allowlist stays strict.
-        const safeUrl = getSafeExternalUrl(url);
-        if (safeUrl && isUserInitiatedNativeNavigation(request)) {
-          Linking.openURL(safeUrl);
-        }
-        return false; // Block navigation inside WebView
+        const { allow, open } = decideNativeNavigation(request);
+        if (open) Linking.openURL(open).catch(() => undefined);
+        return allow;
       },
       [],
     );
 
     return (
       <WebView
-        originWhitelist={['about:blank']}
+        // Every URL must reach handleNavigation — see decideNativeNavigation.
+        originWhitelist={['*']}
         source={{ html: wrappedHtml }}
         style={styles.webView}
         scalesPageToFit={false}

@@ -17,9 +17,21 @@ function addressLine(list: { name?: string | null; address: string }[]): string 
   return list.map((a) => (a.name ? `${a.name} <${a.address}>` : a.address)).join(', ');
 }
 
+export interface PrintStrings {
+  noSubject: string;
+  /** The message's date, already formatted in the app's locale. */
+  date: string;
+  /** Translated field labels, punctuation included ("From:", "De :", "差出人:"). */
+  labels: { from: string; to: string; cc: string; date: string };
+}
+
+/**
+ * `message.html` must be the reader's HTML — with `cid:` references already
+ * resolved by `useCidResolver` — or every inline image prints broken.
+ */
 export function buildPrintHtml(
   message: Pick<Message, 'subject' | 'from' | 'to' | 'cc' | 'html' | 'text'>,
-  { noSubject, date }: { noSubject: string; date: string },
+  { noSubject, date, labels }: PrintStrings,
 ): string {
   const subject = escapeHtml(message.subject || noSubject);
   const from = escapeHtml(addressLine([message.from]));
@@ -48,10 +60,10 @@ export function buildPrintHtml(
 <body>
 <div class="header">
   <h1 class="subject">${subject}</h1>
-  <div class="field"><span class="label">From:</span> ${from}</div>
-  <div class="field"><span class="label">To:</span> ${to}</div>
-  ${cc ? `<div class="field"><span class="label">Cc:</span> ${cc}</div>` : ''}
-  <div class="field"><span class="label">Date:</span> ${escapeHtml(date)}</div>
+  <div class="field"><span class="label">${escapeHtml(labels.from)}</span> ${from}</div>
+  <div class="field"><span class="label">${escapeHtml(labels.to)}</span> ${to}</div>
+  ${cc ? `<div class="field"><span class="label">${escapeHtml(labels.cc)}</span> ${cc}</div>` : ''}
+  <div class="field"><span class="label">${escapeHtml(labels.date)}</span> ${escapeHtml(date)}</div>
 </div>
 <div class="body">${body}</div>
 </body>

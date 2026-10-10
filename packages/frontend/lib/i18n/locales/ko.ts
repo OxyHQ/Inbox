@@ -289,6 +289,14 @@ const ko: LocaleDict = {
       messagesInConversation_other: '이 대화의 메시지 {{count}}개',
       toRecipients: '받는 사람: {{recipients}}',
       ccRecipients: ', 참조: {{recipients}}',
+      openVideo: '동영상 열기',
+      openAudio: '오디오 열기',
+    },
+    print: {
+      from: '보낸 사람:',
+      to: '받는 사람:',
+      cc: '참조:',
+      date: '날짜:',
     },
     actions: {
       editDraft: '임시보관 메일 편집',

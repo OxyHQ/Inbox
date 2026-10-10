@@ -284,6 +284,14 @@ const es: LocaleDict = {
       messagesInConversation_other: '{{count}} mensajes en esta conversación',
       toRecipients: 'a {{recipients}}',
       ccRecipients: ', cc: {{recipients}}',
+      openVideo: 'Abrir vídeo',
+      openAudio: 'Abrir audio',
+    },
+    print: {
+      from: 'De:',
+      to: 'Para:',
+      cc: 'Cc:',
+      date: 'Fecha:',
     },
     actions: {
       editDraft: 'Editar borrador',

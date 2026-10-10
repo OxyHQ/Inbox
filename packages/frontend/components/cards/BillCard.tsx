@@ -12,16 +12,16 @@ interface BillCardProps {
 }
 
 export function BillCard({ data }: BillCardProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const colors = useColors();
 
   const formattedAmount =
     data.amount != null
-      ? formatMoney(data.amount, data.currency)
+      ? formatMoney(locale, data.amount, data.currency)
       : null;
 
   const dueDate = data.dueDate
-    ? formatCardDate(data.dueDate, {
+    ? formatCardDate(locale, data.dueDate, {
         weekday: 'short',
         month: 'short',
         day: 'numeric',

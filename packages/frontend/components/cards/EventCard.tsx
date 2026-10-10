@@ -18,11 +18,12 @@ interface EventCardProps {
 
 export function EventCard({ data }: EventCardProps) {
   const colors = useColors();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   const times = useMemo(() => calendarTimes(data), [data]);
   const startTime = times
     ? formatCardDate(
+        locale,
         data.startTime,
         times.allDay
           ? { weekday: 'short', month: 'short', day: 'numeric' }
@@ -32,7 +33,7 @@ export function EventCard({ data }: EventCardProps) {
     : null;
   const endTime =
     times && !times.allDay
-      ? formatCardDate(data.endTime, { hour: 'numeric', minute: '2-digit' }, true)
+      ? formatCardDate(locale, data.endTime, { hour: 'numeric', minute: '2-digit' }, true)
       : null;
 
   const handleAddToCalendar = useCallback(async () => {

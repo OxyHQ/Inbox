@@ -19,19 +19,23 @@ interface ReminderRowProps {
   onDelete: (reminderId: string) => void;
 }
 
-function formatReminderTime(dateStr: string, t: TranslateFn): string {
+/** Exported for tests. */
+export function formatReminderTime(
+  dateStr: string,
+  t: TranslateFn,
+  locale: string,
+  now = new Date(),
+): string {
   const date = new Date(dateStr);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const reminderDay = new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate(),
+  // Calendar days apart, counted on the calendar. Subtracting local midnights
+  // and flooring was off by one across a DST change: the day after
+  // spring-forward is 23 hours away, 0.96 of a day — "Today".
+  const diffDays = Math.round(
+    (Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) -
+      Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) /
+      86_400_000,
   );
-  const diffDays = Math.floor(
-    (reminderDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-  );
-  const time = date.toLocaleTimeString(undefined, {
+  const time = date.toLocaleTimeString(locale, {
     hour: 'numeric',
     minute: '2-digit',
   });
@@ -40,13 +44,13 @@ function formatReminderTime(dateStr: string, t: TranslateFn): string {
   // "Today, 9:00 AM" at noon instead of overdue.
   if (date.getTime() < now.getTime())
     return t('time.overdueAt', {
-      day: diffDays === 0 ? t('time.today') : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+      day: diffDays === 0 ? t('time.today') : date.toLocaleDateString(locale, { month: 'short', day: 'numeric' }),
       time,
     });
   if (diffDays === 0) return t('time.todayAt', { time });
   if (diffDays === 1) return t('time.tomorrowAt', { time });
   return t('time.dayAt', {
-    day: date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }),
+    day: date.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' }),
     time,
   });
 }
@@ -57,7 +61,7 @@ export function ReminderRow({
   onPress,
   onDelete,
 }: ReminderRowProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   return (
     <Item
       leading={
@@ -73,7 +77,7 @@ export function ReminderRow({
         </Button>
       }
       subtitle={
-        reminder.remindAt ? formatReminderTime(reminder.remindAt, t) : undefined
+        reminder.remindAt ? formatReminderTime(reminder.remindAt, t, locale) : undefined
       }
       trailing={
         <IconButton

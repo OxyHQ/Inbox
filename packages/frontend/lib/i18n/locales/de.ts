@@ -412,6 +412,7 @@ const de: LocaleDict = {
   },
 
   threadSummary: {
+    summarize: 'Zusammenfassen',
     title: 'Konversations-Zusammenfassung',
     messages_one: '{{count}} Nachricht',
     messages_other: '{{count}} Nachrichten',
@@ -693,7 +694,7 @@ const de: LocaleDict = {
         your: 'Your contacts', search: 'Search contacts', edit: 'Edit {{name}}', delete: 'Delete {{name}}', editContact: 'Edit contact', addContact: 'Add contact', name: 'Name', email: 'Email', company: 'Company (optional)', notes: 'Notes (optional)', star: 'Star this contact', saving: 'Saving…', adding: 'Adding…', saveChanges: 'Save changes', deleteTitle: 'Delete contact?', deleteDescription: '"{{name}}" will be removed from your contacts.', noMatch: 'No contacts match your search.', empty: 'No contacts yet. Add your frequent recipients below for faster composing.',
       },
       ai: {
-        dailyBrief: 'Daily Brief', recap: 'Inbox recap', recapDescription: "A short summary generated from your inbox counts (unread, starred, attachments). It doesn't read message contents.", smartReply: 'Smart Reply', suggestions: 'One-tap suggestions', suggestionsDescription: 'Three context-aware reply chips above the message, generated through Oxy and Kaana.', priority: 'Priority flags', priorityTitle: 'Highlight likely-urgent mail', priorityDescription: 'Flag messages as Urgent, Action needed, or Important using on-device keyword heuristics — not a full AI model.', tip: 'Priority flags run on-device from keyword heuristics. Daily Brief and Smart Reply use bounded Oxy inference through Kaana; Ask Alia remains the separate agent.',
+        dailyBrief: 'Daily Brief', recap: 'Inbox recap', recapDescription: "A short summary generated from your inbox counts (unread, starred, attachments). It doesn't read message contents.", smartReply: 'Smart Reply', summary: 'Conversation summary', summaryTitle: 'Offer a summary', summaryDescription: 'Shows a Summarize button on conversations. A conversation is sent to Oxy and Kaana only when you press it.', suggestions: 'One-tap suggestions', suggestionsDescription: 'Three context-aware reply chips above the message, generated through Oxy and Kaana.', priority: 'Priority flags', priorityTitle: 'Highlight likely-urgent mail', priorityDescription: 'Flag messages as Urgent, Action needed, or Important using on-device keyword heuristics — not a full AI model.', tip: 'Priority flags run on-device from keyword heuristics. Daily Brief, Smart Reply and conversation summaries use bounded Oxy inference through Kaana; Ask Alia remains the separate agent.',
       },
       storage: {
         usage: 'Mailbox usage', local: 'Local cache', nearlyFull: "You're nearly out of space. Old messages will start to bounce when the quota is full.", localDescription: "The most recent 100 messages are cached on this device for fast offline access. Attachments are downloaded on demand and cleaned up automatically — there's nothing to manage manually today.", free: '{{value}} free',

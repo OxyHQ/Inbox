@@ -87,6 +87,7 @@ import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from '@/lib/i18n';
 import type { Message } from '@/services/emailApi';
 import { messageRoute } from '@/utils/messageRoute';
+import { buildPrintHtml, printHtmlOnWeb } from '@/utils/printMessage';
 import { safeDownloadFilename } from '@/utils/downloadFilename';
 import { emlFilename, saveEmlFile } from '@/utils/saveEml';
 import { buildThreadEntries } from '@/utils/threadEntries';
@@ -187,7 +188,6 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const emailApi = useEmailStore((s) => s._api);
   const { data: mailboxes = [] } = useMailboxes();
   const { data: labels = [] } = useLabels();
-  const currentMailbox = useEmailStore((s) => s.currentMailbox);
   const toggleStar = useToggleStar();
   const toggleRead = useToggleRead();
   const archiveMutation = useArchiveMessage();
@@ -260,14 +260,17 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const handleDelete = useCallback(() => {
     if (!messageId) return;
     const trashBox = mailboxes.find((m) => m.specialUse === SPECIAL_USE.TRASH);
-    const isInTrash = currentMailbox?.specialUse === SPECIAL_USE.TRASH;
+    // Where the MESSAGE is, not the folder last browsed: opened from a
+    // notification while Trash was the last folder, an Inbox message was
+    // deleted for good instead of moved to Trash.
+    const isInTrash = !!trashBox && currentMessage?.mailboxId === trashBox._id;
     deleteMutation.mutate({
       messageId,
       trashMailboxId: trashBox?._id,
       isInTrash,
     });
     if (mode === 'standalone') handleBack();
-  }, [messageId, mailboxes, currentMailbox, deleteMutation, handleBack, mode]);
+  }, [messageId, mailboxes, currentMessage?.mailboxId, deleteMutation, handleBack, mode]);
 
   const handleMarkUnread = useCallback(() => {
     if (!messageId) return;
@@ -279,10 +282,12 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const handleMarkSpam = useCallback(() => {
     if (!messageId) return;
     const spamBox = mailboxes.find((m) => m.specialUse === SPECIAL_USE.SPAM);
-    if (spamBox) {
-      archiveMutation.mutate({ messageId, archiveMailboxId: spamBox._id });
-    }
     moreMenuControl.close();
+    if (!spamBox) {
+      toast.error(t('message.toast.spamUnavailable'));
+      return;
+    }
+    archiveMutation.mutate({ messageId, archiveMailboxId: spamBox._id });
     if (mode === 'standalone') handleBack();
   }, [
     messageId,
@@ -291,6 +296,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     handleBack,
     mode,
     moreMenuControl,
+    t,
   ]);
 
   const handleReply = useCallback(
@@ -375,14 +381,17 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     [sortedThread, threadUnreadable],
   );
 
-  /** The server's raw source of a message this client could not read. */
-  const handleOpenRaw = useCallback(
-    async (rawMessageId: string) => {
+  /**
+   * Save a message's source as `.eml`: the server's raw RFC 5322 export, with
+   * its attachments and its original encodings. It is also how a message this
+   * client could not read is opened.
+   */
+  const downloadSource = useCallback(
+    async (sourceId: string, subject: string | null | undefined) => {
       if (!emailApi) return;
-      const row = threadUnreadable.find((entry) => entry._id === rawMessageId);
       try {
-        const { content } = await emailApi.exportMessage(rawMessageId);
-        await saveEmlFile(content, emlFilename(row?.subject), t);
+        const { content } = await emailApi.exportMessage(sourceId);
+        await saveEmlFile(content, emlFilename(subject), t);
       } catch (err: unknown) {
         toast.error(
           err instanceof Error
@@ -391,7 +400,16 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         );
       }
     },
-    [emailApi, t, threadUnreadable],
+    [emailApi, t],
+  );
+
+  const handleOpenRaw = useCallback(
+    (rawMessageId: string) =>
+      downloadSource(
+        rawMessageId,
+        threadUnreadable.find((entry) => entry._id === rawMessageId)?.subject,
+      ),
+    [downloadSource, threadUnreadable],
   );
 
   // Detect stale threads that need a response
@@ -462,57 +480,13 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
   const handlePrint = useCallback(() => {
     if (!currentMessage) return;
-    const subject = currentMessage.subject || '(no subject)';
-    const fromStr = currentMessage.from.name
-      ? `${currentMessage.from.name} <${currentMessage.from.address}>`
-      : currentMessage.from.address;
-    const toStr = currentMessage.to
-      .map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
-      .join(', ');
-    const ccStr =
-      currentMessage.cc
-        ?.map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
-        .join(', ') || '';
-    const dateStr = formatFullDate(currentMessage.date);
-    const bodyHtml =
-      currentMessage.html || `<pre>${currentMessage.text || ''}</pre>`;
-
-    const printHtml = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>${subject}</title>
-<style>
-  body { margin: 0; padding: 24px; background: #fff; color: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; line-height: 1.5; }
-  .header { border-bottom: 1px solid #ddd; padding-bottom: 16px; margin-bottom: 16px; }
-  .subject { font-size: 20px; font-weight: 400; margin: 0 0 12px 0; }
-  .field { margin: 2px 0; }
-  .label { font-weight: 600; display: inline-block; min-width: 50px; }
-  .body { margin-top: 16px; }
-  img { max-width: 100%; height: auto; }
-  @media print { body { padding: 0; } }
-</style>
-</head>
-<body>
-<div class="header">
-  <h1 class="subject">${subject}</h1>
-  <div class="field"><span class="label">From:</span> ${fromStr}</div>
-  <div class="field"><span class="label">To:</span> ${toStr}</div>
-  ${ccStr ? `<div class="field"><span class="label">Cc:</span> ${ccStr}</div>` : ''}
-  <div class="field"><span class="label">Date:</span> ${dateStr}</div>
-</div>
-<div class="body">${bodyHtml}</div>
-</body>
-</html>`;
+    const printHtml = buildPrintHtml(currentMessage, {
+      noSubject: t('message.detail.noSubject'),
+      date: formatFullDate(currentMessage.date),
+    });
 
     if (Platform.OS === 'web') {
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(printHtml);
-        printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
-      }
+      printHtmlOnWeb(printHtml);
     } else {
       (async () => {
         try {
@@ -526,78 +500,14 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     }
   }, [currentMessage, t]);
 
+  // It used to assemble the file itself: bodies declared quoted-printable but
+  // written raw (so every `=` in the HTML was decoded into garbage), no
+  // attachments, and unencoded non-ASCII headers.
   const handleDownloadEml = useCallback(() => {
     if (!currentMessage) return;
     moreMenuControl.close();
-
-    const subject = currentMessage.subject || '(no subject)';
-    const fromStr = currentMessage.from.name
-      ? `${currentMessage.from.name} <${currentMessage.from.address}>`
-      : currentMessage.from.address;
-    const toStr = currentMessage.to
-      .map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
-      .join(', ');
-    const ccStr =
-      currentMessage.cc
-        ?.map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
-        .join(', ') || '';
-    const dateStr = new Date(currentMessage.date).toUTCString();
-    const msgId =
-      currentMessage.messageId || `<${currentMessage._id}@inbox.oxy.so>`;
-    const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-
-    const textBody = currentMessage.text || '';
-    const htmlBody = currentMessage.html || '';
-
-    let mimeBody: string;
-    if (htmlBody && textBody) {
-      mimeBody = [
-        `Content-Type: multipart/alternative; boundary="${boundary}"`,
-        '',
-        `--${boundary}`,
-        'Content-Type: text/plain; charset=UTF-8',
-        'Content-Transfer-Encoding: quoted-printable',
-        '',
-        textBody,
-        '',
-        `--${boundary}`,
-        'Content-Type: text/html; charset=UTF-8',
-        'Content-Transfer-Encoding: quoted-printable',
-        '',
-        htmlBody,
-        '',
-        `--${boundary}--`,
-      ].join('\r\n');
-    } else if (htmlBody) {
-      mimeBody = [
-        'Content-Type: text/html; charset=UTF-8',
-        'Content-Transfer-Encoding: quoted-printable',
-        '',
-        htmlBody,
-      ].join('\r\n');
-    } else {
-      mimeBody = [
-        'Content-Type: text/plain; charset=UTF-8',
-        'Content-Transfer-Encoding: quoted-printable',
-        '',
-        textBody || '',
-      ].join('\r\n');
-    }
-
-    const headers = [
-      `From: ${fromStr}`,
-      `To: ${toStr}`,
-      ...(ccStr ? [`Cc: ${ccStr}`] : []),
-      `Subject: ${subject}`,
-      `Date: ${dateStr}`,
-      `Message-ID: ${msgId}`,
-      'MIME-Version: 1.0',
-    ].join('\r\n');
-
-    const emlContent = `${headers}\r\n${mimeBody}`;
-
-    void saveEmlFile(emlContent, emlFilename(subject), t);
-  }, [currentMessage, moreMenuControl, t]);
+    void downloadSource(currentMessage._id, currentMessage.subject);
+  }, [currentMessage, downloadSource, moreMenuControl]);
 
   // Label data for assigned labels (backend stores label names, not IDs)
   const assignedLabels = useMemo(() => {

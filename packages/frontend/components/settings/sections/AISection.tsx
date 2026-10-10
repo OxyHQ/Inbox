@@ -43,6 +43,21 @@ export function AISection() {
           </SettingsRow>
         </SettingsCard>
       </SettingsSection>
+      <SettingsSection label={t('ui.settings.ai.summary')}>
+        <SettingsCard>
+          <SettingsRow
+            key="aiThreadSummary"
+            label={t('ui.settings.ai.summaryTitle')}
+            description={t('ui.settings.ai.summaryDescription')}
+          >
+            <Switch
+              accessibilityLabel={t('ui.settings.ai.summaryTitle')}
+              checked={prefs.aiThreadSummary}
+              onCheckedChange={(v) => setPref('aiThreadSummary', v)}
+            />
+          </SettingsRow>
+        </SettingsCard>
+      </SettingsSection>
       <SettingsSection label={t('ui.settings.ai.priority')}>
         <SettingsCard>
           <SettingsRow

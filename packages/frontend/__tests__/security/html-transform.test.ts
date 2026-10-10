@@ -2,6 +2,7 @@ import { TextEncoder as NodeTextEncoder } from 'node:util';
 
 import {
   proxyExternalImages,
+  normalizeContentId,
   resolveCidImages,
   sanitizeEmailHtml,
 } from '@/utils/htmlTransform';
@@ -88,6 +89,35 @@ describe('email HTML security boundary', () => {
     const url = new URL(document.querySelector('img')!.getAttribute('src')!);
     expect(atob(url.searchParams.get('url')!)).toBe('https://images.example/a.png?x=1&y=2');
     expect(document.querySelector('div')?.getAttribute('style')).toContain('https://api.example/email/proxy');
+  });
+
+  it('drops foreign content, where <style> hides markup from the sanitizer', () => {
+    const html = sanitizeEmailHtml('<svg><style><img src=https://tracker.example/p.gif></style></svg><p>hi</p>');
+    expect(html).not.toMatch(/svg|tracker/);
+    expect(html).toContain('<p>hi</p>');
+  });
+
+  it('proxies every remote media URL a browser would load, whatever its case or padding', () => {
+    const html = proxyExternalImages(
+      '<img src=" HTTPS://tracker.example/a.gif"><video poster="https://tracker.example/b.gif"><source src="https://tracker.example/c.mp4"></video>' +
+        '<div style="background-image:image-set(\'https://tracker.example/d.png\' 1x)"></div><a href="https://site.example/">link</a>',
+      'https://api.example/email/proxy',
+    );
+    expect(html).not.toMatch(/(["'(\s])https?:\/\/tracker\.example/i);
+    expect(html).toContain('href="https://site.example/"');
+  });
+
+  it('matches a stored <Content-ID> to its bare, encoded or CSS cid: reference', () => {
+    // The API stores the header as written, brackets included.
+    const map = { [normalizeContentId('<Logo@Example.com>')]: 'https://files.example/logo' };
+    expect(
+      resolveCidImages(
+        '<img src=cid:logo%40example.com><img src="cid:logo@example.com"><td style="background:url(cid:logo@example.com)">',
+        map,
+      ),
+    ).toBe(
+      '<img src=https://files.example/logo><img src="https://files.example/logo"><td style="background:url(https://files.example/logo)">',
+    );
   });
 
   it('resolves only known CID attachments', () => {

@@ -279,6 +279,7 @@ const ja: LocaleDict = {
   },
 
   message: {
+    unreadState: '未読',
     draftLabel: '下書き',
     draftTo: '{{recipients}} 宛ての下書き',
     detail: {
@@ -497,6 +498,7 @@ const ja: LocaleDict = {
       placeholder: '例: 会議を丁寧に断り、代わりに来週を提案する',
     },
     toast: {
+      failed: 'AI は今これを実行できませんでした。テキストは変更されていません。',
       keptYourEdits: '入力が続いたため、テキストはそのままにしました。',
       applied: 'AI で書き直しました。',
     },

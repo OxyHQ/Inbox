@@ -274,6 +274,7 @@ const es: LocaleDict = {
   },
 
   message: {
+    unreadState: 'No leído',
     draftLabel: 'Borrador',
     draftTo: 'Borrador para {{recipients}}',
     detail: {
@@ -493,6 +494,7 @@ const es: LocaleDict = {
       placeholder: 'p. ej., rechaza la reunión con educación y propón la semana que viene',
     },
     toast: {
+      failed: 'La IA no ha podido hacerlo ahora. Tu texto no ha cambiado.',
       keptYourEdits: 'Seguiste escribiendo, así que tu texto se ha dejado como estaba.',
       applied: 'Reescrito con IA.',
     },

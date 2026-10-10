@@ -31,10 +31,20 @@ export function escapeHtml(text: string): string {
     .replace(/'/g, '&#39;');
 }
 
+/**
+ * Text escaped for a text node — the way the browser itself serializes one.
+ * Quotes stay literal: escaping them (as an attribute needs) made a signature
+ * with an apostrophe differ from what the editor reports back, so it no longer
+ * matched once the user typed, and an AI rewrite dropped it.
+ */
+function escapeTextNode(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 /** Plain text as the editor holds it: escaped HTML on the web, as-is on native. */
 export function textToEditorContent(text: string, web: boolean): string {
   if (!web) return text;
-  return escapeHtml(text).replace(/\r?\n/g, '<br>');
+  return escapeTextNode(text).replace(/\r?\n/g, '<br>');
 }
 
 /** The editor's content as plain text — what the `text` part is built from. */
@@ -74,7 +84,7 @@ export function quotedReply(message: Pick<Message, 'text'>, attribution: string,
   if (!web) return `\n\n${attribution}\n${quoted}`;
   // A cite blockquote after an attribution is what `splitHtmlQuote` folds, here
   // and in other clients.
-  return `<br><br><div>${escapeHtml(attribution)}</div><blockquote type="cite">${textToEditorContent(message.text ?? '', true)}</blockquote>`;
+  return `<br><br><div>${escapeTextNode(attribution)}</div><blockquote type="cite">${textToEditorContent(message.text ?? '', true)}</blockquote>`;
 }
 
 /** The body of a forward: the header block, then the original's text. */

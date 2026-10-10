@@ -280,6 +280,7 @@ const de: LocaleDict = {
   },
 
   message: {
+    unreadState: 'Ungelesen',
     draftLabel: 'Entwurf',
     draftTo: 'Entwurf an {{recipients}}',
     detail: {
@@ -498,6 +499,7 @@ const de: LocaleDict = {
       placeholder: 'z. B. Termin höflich absagen und stattdessen nächste Woche vorschlagen',
     },
     toast: {
+      failed: 'Die KI konnte das gerade nicht. Dein Text ist unverändert.',
       keptYourEdits: 'Du hast weitergeschrieben, daher wurde dein Text nicht geändert.',
       applied: 'Von KI umgeschrieben.',
     },

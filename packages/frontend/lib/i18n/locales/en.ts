@@ -278,6 +278,7 @@ const en: LocaleDict = {
   },
 
   message: {
+    unreadState: 'Unread',
     draftLabel: 'Draft',
     draftTo: 'Draft to {{recipients}}',
     detail: {
@@ -496,6 +497,7 @@ const en: LocaleDict = {
       title: 'Draft with AI',
     },
     toast: {
+      failed: 'AI couldn\'t do that right now. Your text is unchanged.',
       keptYourEdits: 'You kept typing, so your text was left as it is.',
       applied: 'Rewritten by AI.',
     },

@@ -282,6 +282,7 @@ const ca: LocaleDict = {
   },
 
   message: {
+    unreadState: 'No llegit',
     draftLabel: 'Esborrany',
     draftTo: 'Esborrany per a {{recipients}}',
     detail: {
@@ -501,6 +502,7 @@ const ca: LocaleDict = {
       placeholder: 'p. ex., declina la reunió amb educació i proposa la setmana vinent',
     },
     toast: {
+      failed: 'La IA no ho ha pogut fer ara. El teu text no ha canviat.',
       keptYourEdits: 'Has continuat escrivint, així que el teu text s\'ha deixat com estava.',
       applied: 'Reescrit amb IA.',
     },

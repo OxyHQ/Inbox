@@ -71,6 +71,8 @@ import { useBatchSentimentAnalysis } from '@/hooks/queries/useSentimentAnalysis'
 import { useEmailStore } from '@/hooks/useEmail';
 import { useInboxDisplayPrefs } from '@/hooks/useInboxDisplayPrefs';
 import { useMessageActions } from '@/hooks/useMessageActions';
+import { useLeaveRemovedRows } from '@/hooks/useLeaveRemovedRows';
+import { calendarDaysBetween } from '@/utils/calendarDays';
 import { useTranslation, type TranslateFn } from '@/lib/i18n';
 import type {
   Bundle,
@@ -118,13 +120,7 @@ const AnimatedInboxList = Animated.createAnimatedComponent(
 
 /** Section title for a message: one card per calendar bucket. */
 function getDateCategory(dateStr: string, t: TranslateFn): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const msgDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const diffDays = Math.floor(
-    (today.getTime() - msgDay.getTime()) / (1000 * 60 * 60 * 24),
-  );
+  const diffDays = calendarDaysBetween(new Date(dateStr), new Date());
 
   if (diffDays === 0) return t('inbox.sections.today');
   if (diffDays === 1) return t('inbox.sections.yesterday');
@@ -228,13 +224,16 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const enterSelectionMode = useEmailStore((s) => s.enterSelectionMode);
   const clearSelection = useEmailStore((s) => s.clearSelection);
 
-  const { data: mailboxes = [] } = useMailboxes();
+  const {
+    data: mailboxes = [],
+    isError: mailboxesFailed,
+    refetch: refetchMailboxes,
+  } = useMailboxes();
 
   const {
     query: {
       isLoading,
       isError,
-      isRefetching,
       isFetchingNextPage,
       refetch,
       fetchNextPage,
@@ -245,7 +244,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     messages,
     unreadable,
     rows: displayMessages,
-    conversationOf,
+    conversationOf: listConversationOf,
   } = useCurrentList();
   const bundleView = useEmailStore((s) => s.bundleView);
   const expandedBundles = useEmailStore((s) => s.expandedBundles);
@@ -294,6 +293,27 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   } = useFollowUp(isInboxView ? displayMessages : undefined, TRIAGE_LIMIT, {
     enabled: isInboxView,
   });
+
+  /**
+   * A row and everything it stands for. The triage sections show messages the
+   * list does not hold — a follow-up is a message in Sent — and acting on one
+   * found nothing to act on: every button and swipe on it did nothing.
+   */
+  const triageRow = useCallback(
+    (rowId: string) =>
+      followUpMessages.find((m) => m._id === rowId) ??
+      needsResponseMessages.find((m) => m._id === rowId),
+    [followUpMessages, needsResponseMessages],
+  );
+  const conversationOf = useCallback(
+    (rowId: string): Message[] => {
+      const members = listConversationOf(rowId);
+      if (members.length > 0) return members;
+      const row = triageRow(rowId);
+      return row ? [row] : [];
+    },
+    [listConversationOf, triageRow],
+  );
 
   // Sentiment is an inexpensive local heuristic, and is additionally gated by
   // the existing user-facing categorization preference. It is not an AI call.
@@ -530,8 +550,12 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     clearSelection();
   }, [viewKey, clearSelection]);
 
+  // The spinner is the pull's, not every refetch's: background polls, socket
+  // events and mutations refetch too, and the spinner popped up for each.
+  const [pulling, setPulling] = useState(false);
   const handleRefresh = useCallback(() => {
-    refetch();
+    setPulling(true);
+    void refetch().finally(() => setPulling(false));
   }, [refetch]);
 
   const handleLoadMore = useCallback(() => {
@@ -544,7 +568,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const handlePin = useCallback(
     (rowId: string) => {
       if (togglePin.isPending) return;
-      const row = displayMessages.find((m) => m._id === rowId);
+      const row = displayMessages.find((m) => m._id === rowId) ?? triageRow(rowId);
       if (!row) return;
       if (row.flags.pinned) {
         for (const m of conversationOf(rowId)) {
@@ -554,7 +578,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
         togglePin.mutate({ messageId: rowId, pinned: true });
       }
     },
-    [displayMessages, conversationOf, togglePin],
+    [displayMessages, conversationOf, togglePin, triageRow],
   );
 
   const handleToggleRead = useCallback(
@@ -562,23 +586,34 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     [conversationOf, messageActions],
   );
 
+  // Off the conversation first if it is the one open, so the reading pane
+  // follows the selection to its neighbour.
+  const leaveRemovedRows = useLeaveRemovedRows();
+  const removing = useCallback(
+    (conversation: Message[]) => {
+      leaveRemovedRows(conversation.map((m) => m._id));
+      return conversation;
+    },
+    [leaveRemovedRows],
+  );
+
   const handleArchiveRow = useCallback(
-    (rowId: string) => messageActions.archive(conversationOf(rowId)),
-    [conversationOf, messageActions],
+    (rowId: string) => messageActions.archive(removing(conversationOf(rowId))),
+    [conversationOf, messageActions, removing],
   );
 
   const handleDeleteRow = useCallback(
-    (rowId: string) => messageActions.deleteConversation(conversationOf(rowId)),
-    [conversationOf, messageActions],
+    (rowId: string) => messageActions.deleteConversation(removing(conversationOf(rowId))),
+    [conversationOf, messageActions, removing],
   );
 
   const handleSnooze = useCallback(
     (until: Date) => {
       if (!snoozeTargetId) return;
-      messageActions.snooze(conversationOf(snoozeTargetId), until.toISOString());
+      messageActions.snooze(removing(conversationOf(snoozeTargetId)), until.toISOString());
       setSnoozeTargetId(null);
     },
-    [snoozeTargetId, conversationOf, messageActions],
+    [snoozeTargetId, conversationOf, messageActions, removing],
   );
 
   const handleCreateReminder = useCallback(
@@ -696,18 +731,18 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   );
 
   const handleBulkArchive = useCallback(() => {
-    messageActions.archive(selectedConversations());
+    messageActions.archive(removing(selectedConversations()));
     clearSelection();
-  }, [messageActions, selectedConversations, clearSelection]);
+  }, [messageActions, selectedConversations, clearSelection, removing]);
 
   const handleBulkDelete = useCallback(() => {
     if (!mailboxes.some((m) => m.specialUse === SPECIAL_USE.TRASH)) {
       toast.error(t('inbox.toast.trashUnavailable'));
       return;
     }
-    messageActions.deleteConversation(selectedConversations());
+    messageActions.deleteConversation(removing(selectedConversations()));
     clearSelection();
-  }, [messageActions, selectedConversations, clearSelection, mailboxes, t]);
+  }, [messageActions, selectedConversations, clearSelection, mailboxes, t, removing]);
 
   const handleBulkStar = useCallback(() => {
     const shouldStar = selectedRows().some((m) => !m.flags.starred);
@@ -1013,18 +1048,27 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   );
 
   const renderEmpty = useCallback(() => {
+    // The list waits for the mailboxes to know which folder to read. If those
+    // failed, it would wait forever on a blank screen: say so, and retry both.
+    const mailboxesUnavailable = isAuthenticated && !listReady && mailboxesFailed;
     // Not "loading" to React Query while the list is still waiting for a
     // mailbox id — but not empty either.
-    if (isLoading || (isAuthenticated && !listReady)) return null;
+    if (isLoading || (isAuthenticated && !listReady && !mailboxesUnavailable)) return null;
     // A failed load is not "all caught up": with no cache, offline or on a
     // server error, that is what the user used to be told.
-    if (isError) {
+    if (isError || mailboxesUnavailable) {
       return (
         <EmptyState
           illustration={<EmptyStateSticker name="loadError" />}
           title={t('inbox.loadErrorTitle')}
           description={t('ui.message.loadErrorDescription')}
-          action={{ label: t('common.retry'), onPress: () => void refetch() }}
+          action={{
+            label: t('common.retry'),
+            onPress: () => {
+              if (mailboxesUnavailable) void refetchMailboxes();
+              else void refetch();
+            },
+          }}
         />
       );
     }
@@ -1040,7 +1084,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
         }
       />
     );
-  }, [isAuthenticated, isLoading, isError, listReady, refetch, t]);
+  }, [isAuthenticated, isLoading, isError, listReady, mailboxesFailed, refetch, refetchMailboxes, t]);
 
   const renderFooter = useCallback(() => {
     if (!isFetchingNextPage) return null;
@@ -1158,7 +1202,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
             extraData={listExtraData}
             refreshControl={
               <RefreshControl
-                refreshing={isRefetching && !isFetchingNextPage}
+                refreshing={pulling}
                 onRefresh={handleRefresh}
                 tintColor={colors.primary}
                 colors={[colors.primary]}

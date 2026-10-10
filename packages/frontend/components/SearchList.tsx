@@ -16,6 +16,7 @@ import { useMailboxScrollRestoration } from '@/hooks/useMailboxScrollRestoration
 import { useSearchFocus } from '@/contexts/search-focus-context';
 import { useSearchSessionState } from '@/contexts/search-session-context';
 import { useGoBack } from '@/hooks/useGoBack';
+import { useLabels } from '@/hooks/queries/useLabels';
 import { useTranslation } from '@/lib/i18n';
 import { Button, IconButton } from '@oxy.so/bloom/button';
 import { EmptyState } from '@oxy.so/bloom/empty-state';
@@ -152,6 +153,17 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
 
   const mailboxUnresolved = !!requestedMailbox && !mailboxIdFromName;
 
+  // `label:work` names the label "Work": labels are matched as the user wrote
+  // them, but the API compares exactly, so the operator is resolved to the
+  // label's own name. One that names no label is passed on unchanged.
+  const { data: labels = [] } = useLabels();
+  const requestedLabel = parsedQuery.label ?? filters.label;
+  const resolvedLabel = useMemo(() => {
+    if (!requestedLabel) return undefined;
+    const target = requestedLabel.toLowerCase();
+    return labels.find((l) => l.name.toLowerCase() === target)?.name ?? requestedLabel;
+  }, [requestedLabel, labels]);
+
   const searchOptions = useMemo(
     () => ({
       // NL parsed options take precedence, then Gmail-style operators, then filter chips.
@@ -176,9 +188,9 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       unread: nlParsedOptions?.unread ?? parsedQuery.unread ?? filters.unread,
       // Labels are parsed from Gmail-style operators. The natural-language
       // result type intentionally has no label field.
-      label: parsedQuery.label ?? filters.label,
+      label: resolvedLabel,
     }),
-    [nlParsedOptions, parsedQuery, filters, mailboxIdFromName],
+    [nlParsedOptions, parsedQuery, filters, mailboxIdFromName, resolvedLabel],
   );
 
   const {

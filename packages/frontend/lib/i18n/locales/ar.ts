@@ -324,6 +324,7 @@ const ar: LocaleDict = {
   },
 
   message: {
+    unreadState: 'غير مقروءة',
     draftLabel: 'مسودة',
     draftTo: 'مسودة إلى {{recipients}}',
     detail: {
@@ -550,6 +551,7 @@ const ar: LocaleDict = {
       placeholder: 'مثلًا: اعتذر عن الاجتماع بلطف واقترح الأسبوع القادم بدلًا منه',
     },
     toast: {
+      failed: 'تعذّر على الذكاء الاصطناعي تنفيذ ذلك الآن. لم يتغيّر نصك.',
       keptYourEdits: 'واصلت الكتابة، لذا تُرك نصك كما هو.',
       applied: 'أُعيدت الكتابة بالذكاء الاصطناعي.',
     },

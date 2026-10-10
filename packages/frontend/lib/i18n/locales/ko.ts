@@ -279,6 +279,7 @@ const ko: LocaleDict = {
   },
 
   message: {
+    unreadState: '읽지 않음',
     draftLabel: '임시보관',
     draftTo: '{{recipients}}에게 보낼 임시보관 메일',
     detail: {
@@ -497,6 +498,7 @@ const ko: LocaleDict = {
       placeholder: '예: 회의를 정중히 거절하고 대신 다음 주를 제안',
     },
     toast: {
+      failed: '지금은 AI가 이 작업을 할 수 없습니다. 텍스트는 그대로입니다.',
       keptYourEdits: '계속 입력하셔서 텍스트를 그대로 두었습니다.',
       applied: 'AI로 다시 작성했습니다.',
     },

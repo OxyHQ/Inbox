@@ -280,6 +280,7 @@ const fr: LocaleDict = {
   },
 
   message: {
+    unreadState: 'Non lu',
     draftLabel: 'Brouillon',
     draftTo: 'Brouillon pour {{recipients}}',
     detail: {
@@ -498,6 +499,7 @@ const fr: LocaleDict = {
       placeholder: 'ex. Décline poliment la réunion et propose plutôt la semaine prochaine',
     },
     toast: {
+      failed: 'L\'IA n\'a pas pu le faire pour l\'instant. Ton texte n\'a pas changé.',
       keptYourEdits: 'Tu as continué à écrire, ton texte a donc été conservé.',
       applied: 'Réécrit par l\'IA.',
     },

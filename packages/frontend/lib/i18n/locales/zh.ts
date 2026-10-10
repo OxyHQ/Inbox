@@ -277,6 +277,7 @@ const zh: LocaleDict = {
   },
 
   message: {
+    unreadState: '未读',
     draftLabel: '草稿',
     draftTo: '发给 {{recipients}} 的草稿',
     detail: {
@@ -495,6 +496,7 @@ const zh: LocaleDict = {
       placeholder: '例如：礼貌地拒绝会议，建议改到下周',
     },
     toast: {
+      failed: 'AI 暂时无法完成此操作。你的文本未更改。',
       keptYourEdits: '你仍在输入，因此保留了你的文本。',
       applied: '已由 AI 改写。',
     },

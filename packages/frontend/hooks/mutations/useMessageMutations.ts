@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@oxy.so/bloom';
 import { useOxy } from '@oxy.so/services';
@@ -6,7 +6,7 @@ import { useEmailStore } from '@/hooks/useEmail';
 import { useTranslation } from '@/lib/i18n';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import { invalidateMailViews } from '@/hooks/queries/invalidateMailViews';
-import { INBOX_MUTATION_KEYS } from '@/hooks/queries/queryClient';
+import { INBOX_MUTATION_KEYS, RETRY_IDEMPOTENT } from '@/hooks/queries/queryClient';
 import type { Message } from '@/services/emailApi';
 import { recordInboxMetric } from '@/utils/inboxTelemetry';
 import {
@@ -138,20 +138,15 @@ export function useArchiveMessage() {
     },
     onMutate: async ({ messageId }) => {
       await cancelMessageQueries(queryClient, messageId);
-      const prevSelectedMessageId = useEmailStore.getState().selectedMessageId;
       const snapshot = snapshotForRollback(queryClient, messageId, null);
-      advanceSelectionPastMessage(queryClient, messageId);
       removeMessageFromList(queryClient, messageId);
-      return { snapshot, prevSelectedMessageId };
+      return { snapshot };
     },
     onSuccess: () => {
       toast.success(t('ui.mutations.archived'));
     },
     onError: (_err, _vars, context) => {
-      if (context) {
-        restoreSnapshot(queryClient, context.snapshot);
-        useEmailStore.setState({ selectedMessageId: context.prevSelectedMessageId });
-      }
+      if (context) restoreSnapshot(queryClient, context.snapshot);
       toast.error(t('ui.mutations.archiveFailed'));
     },
     onSettled: () => {
@@ -190,20 +185,15 @@ export function useDeleteMessage() {
     },
     onMutate: async ({ messageId }) => {
       await cancelMessageQueries(queryClient, messageId);
-      const prevSelectedMessageId = useEmailStore.getState().selectedMessageId;
       const snapshot = snapshotForRollback(queryClient, messageId, null);
-      advanceSelectionPastMessage(queryClient, messageId);
       removeMessageFromList(queryClient, messageId);
-      return { snapshot, prevSelectedMessageId };
+      return { snapshot };
     },
     onSuccess: (_data, { isInTrash }) => {
       toast.success(isInTrash ? t('ui.mutations.deletedForever') : t('ui.mutations.trashed'));
     },
     onError: (_err, _vars, context) => {
-      if (context) {
-        restoreSnapshot(queryClient, context.snapshot);
-        useEmailStore.setState({ selectedMessageId: context.prevSelectedMessageId });
-      }
+      if (context) restoreSnapshot(queryClient, context.snapshot);
       toast.error(t('ui.mutations.deleteFailed'));
     },
     onSettled: () => {
@@ -241,16 +231,23 @@ function invalidateAfterSend(queryClient: ReturnType<typeof useQueryClient>) {
 
 const UNDO_SEND_DELAY_MS = 5000;
 
+/** A send waiting out its undo window. */
+export interface PendingSend {
+  /**
+   * Call the send off. True when it was still waiting; false once it has gone
+   * to the server, when nothing can stop it any more.
+   */
+  cancel: () => boolean;
+}
+
 export function useSendMessageWithUndo() {
   const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
   const [isPending, setIsPending] = useState(false);
-  const cancelledRef = useRef(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sendWithUndo = useCallback(
-    async (
+    (
       params: Parameters<NonNullable<typeof api>['sendMessage']>[0],
       options?: {
         /** The message LEFT. Safe to discard the local recovery snapshot. */
@@ -266,40 +263,43 @@ export function useSendMessageWithUndo() {
         /** Undo was pressed: nothing was sent and the composer is live again. */
         onCancel?: () => void;
       },
-    ) => {
+    ): PendingSend => {
       if (!api) {
         options?.onError?.(new Error('Email API not initialized'));
-        return;
+        return { cancel: () => false };
       }
 
-      cancelledRef.current = false;
+      // Each send owns its window. The window is the timer's, not the toast's:
+      // a toast pauses while hovered or while the page is hidden, so it can
+      // still offer Undo after the timer has sent the message. Once the send
+      // has fired the toast is dismissed and Undo does nothing.
+      let state: 'waiting' | 'cancelled' | 'fired' = 'waiting';
       setIsPending(true);
 
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+      const cancel = (): boolean => {
+        if (state !== 'waiting') return false;
+        state = 'cancelled';
+        clearTimeout(timer);
+        toast.dismiss(toastId);
+        setIsPending(false);
+        options?.onCancel?.();
+        return true;
+      };
 
-      toast(t('ui.mutations.sending'), {
+      const toastId = toast(t('ui.mutations.sending'), {
         duration: UNDO_SEND_DELAY_MS,
         action: {
           label: t('common.undo'),
           onClick: () => {
-            cancelledRef.current = true;
-            if (timeoutRef.current) {
-              clearTimeout(timeoutRef.current);
-              timeoutRef.current = null;
-            }
-            setIsPending(false);
-            toast(t('ui.mutations.sendCancelled'));
-            options?.onCancel?.();
+            if (cancel()) toast(t('ui.mutations.sendCancelled'));
           },
         },
       } as Record<string, unknown>);
 
-      timeoutRef.current = setTimeout(async () => {
-        if (cancelledRef.current) {
-          return;
-        }
+      const timer = setTimeout(async () => {
+        if (state !== 'waiting') return;
+        state = 'fired';
+        toast.dismiss(toastId);
 
         try {
           const result = await api.sendMessage(params);
@@ -335,6 +335,8 @@ export function useSendMessageWithUndo() {
           setIsPending(false);
         }
       }, UNDO_SEND_DELAY_MS);
+
+      return { cancel };
     },
     [api, queryClient, t],
   );
@@ -353,6 +355,7 @@ export function useUpdateMessageLabels() {
   const userId = user?.id ?? null;
 
   return useMutation({
+    ...RETRY_IDEMPOTENT,
     mutationFn: async ({ messageId, add, remove }: { messageId: string; add: string[]; remove: string[] }) => {
       if (!api) throw new Error('Email API not initialized');
       return await api.updateLabels(messageId, add, remove);
@@ -390,6 +393,7 @@ export function useTogglePin() {
   const userId = user?.id ?? null;
 
   return useMutation({
+    ...RETRY_IDEMPOTENT,
     mutationFn: async ({ messageId, pinned }: { messageId: string; pinned: boolean }) => {
       if (!api) throw new Error('Email API not initialized');
       return await api.updateFlags(messageId, { pinned });
@@ -405,8 +409,10 @@ export function useTogglePin() {
       toast.error(t('ui.mutations.pinFailed'));
     },
     onSettled: () => {
-      // The pin flag is already patched optimistically everywhere but search.
-      invalidateMailViews(queryClient, { views: 'stale' });
+      // Re-read, not just marked stale: a pin MOVES the message — the API lists
+      // pinned messages first — and the optimistic flag cannot. An unpinned
+      // message sat on top of the list under its date heading until the poll.
+      invalidateMailViews(queryClient);
     },
   });
 }
@@ -419,14 +425,21 @@ export function useSnoozeMessage() {
   const userId = user?.id ?? null;
 
   return useMutation({
-    mutationFn: async ({ messageId, until }: { messageId: string; until: string }) => {
+    ...RETRY_IDEMPOTENT,
+    // A conversation is one mutation: one toast, and one rollback that covers
+    // exactly its messages. Snoozed message by message, it showed a toast per
+    // message, and one failure's rollback brought back the ones that had
+    // snoozed.
+    mutationFn: async ({ messageIds, until }: { messageIds: string[]; until: string }) => {
       if (!api) throw new Error('Email API not initialized');
-      return await api.snoozeMessage(messageId, until);
+      const results = await Promise.allSettled(messageIds.map((id) => api.snoozeMessage(id, until)));
+      const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected');
+      if (failed) throw failed.reason;
     },
-    onMutate: async ({ messageId }) => {
-      await cancelMessageQueries(queryClient, messageId);
-      const snapshot = snapshotForRollback(queryClient, messageId, userId);
-      removeMessageFromList(queryClient, messageId);
+    onMutate: async ({ messageIds }) => {
+      await cancelMessageQueries(queryClient);
+      const snapshot = snapshotForRollback(queryClient, messageIds, userId);
+      for (const messageId of messageIds) removeMessageFromList(queryClient, messageId);
       return { snapshot };
     },
     onSuccess: () => {
@@ -451,6 +464,7 @@ export function useUnsnoozeMessage() {
   const userId = user?.id ?? null;
 
   return useMutation({
+    ...RETRY_IDEMPOTENT,
     mutationFn: async ({ messageId }: { messageId: string }) => {
       if (!api) throw new Error('Email API not initialized');
       return await api.unsnoozeMessage(messageId);
@@ -487,6 +501,7 @@ export function useBulkUpdateFlags() {
   const userId = user?.id ?? null;
 
   return useMutation({
+    ...RETRY_IDEMPOTENT,
     mutationFn: async ({
       messageIds,
       flags,
@@ -502,7 +517,7 @@ export function useBulkUpdateFlags() {
     onMutate: async ({ messageIds, flags }) => {
       await queryClient.cancelQueries({ queryKey: emailKeys.messages.root });
 
-      const snapshots = messageIds.map((messageId) => snapshotForRollback(queryClient, messageId, userId));
+      const snapshot = snapshotForRollback(queryClient, messageIds, userId);
       const prevMessages = queryClient.getQueriesData<MessagesInfinite>({ queryKey: emailKeys.messages.root });
 
       if (flags.seen !== undefined) {
@@ -532,10 +547,10 @@ export function useBulkUpdateFlags() {
         patchMessageFlags(queryClient, messageId, userId, flags);
       }
 
-      return { snapshots };
+      return { snapshot };
     },
     onError: (_err, _vars, context) => {
-      context?.snapshots.forEach((snapshot) => restoreSnapshot(queryClient, snapshot));
+      if (context) restoreSnapshot(queryClient, context.snapshot);
       toast.error(t('ui.mutations.bulkFailed'));
     },
     onSuccess: (_data, { quiet }) => {
@@ -553,23 +568,19 @@ export function useBulkMoveMessages() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    ...RETRY_IDEMPOTENT,
     mutationFn: async ({ messageIds, mailboxId }: { messageIds: string[]; mailboxId: string }) => {
       if (!api) throw new Error('Email API not initialized');
       return api.bulkMoveMessages(messageIds, mailboxId);
     },
     onMutate: async ({ messageIds }) => {
       await queryClient.cancelQueries({ queryKey: emailKeys.messages.root });
-      const prevMessages = queryClient.getQueriesData<MessagesInfinite>({ queryKey: emailKeys.messages.root });
-      const prevSelectedMessageId = useEmailStore.getState().selectedMessageId;
-      for (const messageId of messageIds) advanceSelectionPastMessage(queryClient, messageId);
+      const snapshot = snapshotForRollback(queryClient, messageIds, null);
       removeMessagesFromLists(queryClient, messageIds);
-      return { prevMessages, prevSelectedMessageId };
+      return { snapshot };
     },
     onError: (_err, _vars, context) => {
-      if (context) {
-        context.prevMessages.forEach(([key, data]) => queryClient.setQueryData(key, data));
-        useEmailStore.setState({ selectedMessageId: context.prevSelectedMessageId });
-      }
+      if (context) restoreSnapshot(queryClient, context.snapshot);
       toast.error(t('ui.mutations.moveFailed'));
     },
     onSettled: () => {
@@ -613,20 +624,15 @@ export function useBulkDeleteMessages() {
     onMutate: async ({ toTrash, permanent }) => {
       await queryClient.cancelQueries({ queryKey: emailKeys.messages.root });
       const ids = [...toTrash, ...permanent];
-      const prevMessages = queryClient.getQueriesData<MessagesInfinite>({ queryKey: emailKeys.messages.root });
-      const prevSelectedMessageId = useEmailStore.getState().selectedMessageId;
-      for (const messageId of ids) advanceSelectionPastMessage(queryClient, messageId);
+      const snapshot = snapshotForRollback(queryClient, ids, null);
       removeMessagesFromLists(queryClient, ids);
-      return { prevMessages, prevSelectedMessageId };
+      return { snapshot };
     },
     onSuccess: (_data, { permanent }) => {
       toast.success(permanent.length > 0 ? t('ui.mutations.deletedForever') : t('ui.mutations.trashed'));
     },
     onError: (_err, _vars, context) => {
-      if (context) {
-        context.prevMessages.forEach(([key, data]) => queryClient.setQueryData(key, data));
-        useEmailStore.setState({ selectedMessageId: context.prevSelectedMessageId });
-      }
+      if (context) restoreSnapshot(queryClient, context.snapshot);
       toast.error(t('ui.mutations.deleteFailed'));
     },
     onSettled: () => {
@@ -685,34 +691,4 @@ export function useDiscardDraft() {
       invalidateMailViews(queryClient);
     },
   });
-}
-
-// ─── Internal helpers ────────────────────────────────────────────
-
-/**
- * When the currently-selected message is about to be removed from the list
- * (archive/delete), advance the selection to the neighbouring message so the
- * desktop split-view doesn't land on an empty pane.
- */
-function advanceSelectionPastMessage(
-  queryClient: ReturnType<typeof useQueryClient>,
-  messageId: string,
-): void {
-  const { selectedMessageId } = useEmailStore.getState();
-  if (selectedMessageId !== messageId) return;
-
-  // The messages cache is keyed by [mailboxId, starred, label, userId], so
-  // match by the mailbox prefix and take the first populated variant.
-  const data = queryClient
-    .getQueriesData<MessagesInfinite>({
-      queryKey: emailKeys.messages.mailboxScope(useEmailStore.getState().currentMailbox?._id),
-    })
-    .find(([, cached]) => !!cached)?.[1];
-  const messages = flatMessages(data);
-  const idx = messages.findIndex((m) => m._id === messageId);
-  // Not in this list (another view's cache): select nothing rather than the
-  // first message of an unrelated list.
-  const nextId =
-    idx === -1 ? null : idx < messages.length - 1 ? messages[idx + 1]._id : idx > 0 ? messages[idx - 1]._id : null;
-  useEmailStore.setState({ selectedMessageId: nextId });
 }

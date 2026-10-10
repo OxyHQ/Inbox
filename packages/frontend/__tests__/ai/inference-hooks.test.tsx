@@ -16,6 +16,14 @@ import {
   streamInboxDraft,
 } from '@/services/inboxInferenceApi';
 
+const mockToast = Object.assign(jest.fn(), { error: jest.fn() });
+jest.mock('@oxy.so/bloom', () => ({
+  get toast() {
+    return mockToast;
+  },
+}));
+jest.mock('@/lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+
 jest.mock('@/services/inboxInferenceApi', () => ({
   inboxLocalDayWindow: jest.fn(),
   runInboxCompose: jest.fn(),
@@ -59,6 +67,26 @@ describe('Inbox inference hooks', () => {
       configurable: true,
       value: (handle: number) => window.clearTimeout(handle),
     });
+  });
+
+  it('says when a rewrite fails, rather than doing nothing visible', async () => {
+    __setOxyState({
+      user: { id: 'user-1', username: 'nate' },
+      isAuthenticated: true,
+      canUsePrivateApi: true,
+      oxyServices: { ...makeMockOxyServices(), httpService: {} },
+    });
+    mockRunInboxCompose.mockRejectedValue(new Error('service_unavailable'));
+    mockToast.error.mockClear();
+
+    const queryClient = new QueryClient();
+    const rendered = renderHook(() => useAiCompose(), { wrapper: wrapper(queryClient) });
+    await act(async () => {
+      await rendered.result.current.polish('hello').catch(() => undefined);
+    });
+
+    expect(mockToast.error).toHaveBeenCalledWith('ai.toast.failed');
+    queryClient.clear();
   });
 
   it('aborts compose streaming on unmount and stops chunk callbacks', async () => {

@@ -280,6 +280,7 @@ const pt: LocaleDict = {
   },
 
   message: {
+    unreadState: 'Não lido',
     draftLabel: 'Rascunho',
     draftTo: 'Rascunho para {{recipients}}',
     detail: {
@@ -498,6 +499,7 @@ const pt: LocaleDict = {
       placeholder: 'ex. Recusa a reunião com educação e sugere a próxima semana',
     },
     toast: {
+      failed: 'A IA não conseguiu fazer isso agora. O teu texto não foi alterado.',
       keptYourEdits: 'Você continuou digitando, então seu texto foi mantido.',
       applied: 'Reescrito com IA.',
     },

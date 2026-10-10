@@ -85,6 +85,7 @@ import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from '@/lib/i18n';
 import type { Message } from '@/services/emailApi';
 import { messageRoute } from '@/utils/messageRoute';
+import { toRfcMessageId } from '@/utils/replyHeaders';
 import { buildPrintHtml, printHtmlOnWeb } from '@/utils/printMessage';
 import { safeDownloadFilename } from '@/utils/downloadFilename';
 import { emlFilename, saveEmlFile } from '@/utils/saveEml';
@@ -318,24 +319,41 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     t,
   ]);
 
-  const handleReply = useCallback(
-    (targetMsgId?: string) => {
-      if (!currentMessage) return;
-      setReplyTargetId(targetMsgId || null);
-      setReplyMode('reply');
-      setMessageMenuId(null);
-    },
-    [currentMessage],
-  );
+  const router = useRouter();
 
-  const handleReplyAll = useCallback(
-    (targetMsgId?: string) => {
+  /**
+   * Reply or reply all. A reply to this message that is already saved as a
+   * draft is reopened in the composer: starting a fresh one beside it left two
+   * drafts of the same reply, and sending one kept the other in Drafts.
+   */
+  const openReply = useCallback(
+    (mode: 'reply' | 'reply-all', targetMsgId?: string) => {
       if (!currentMessage) return;
-      setReplyTargetId(targetMsgId || null);
-      setReplyMode('reply-all');
       setMessageMenuId(null);
+      const target =
+        (targetMsgId ? sortedThread.find((m) => m._id === targetMsgId) : undefined) ??
+        (currentMessage.flags.draft
+          ? [...sortedThread].reverse().find((m) => !m.flags.draft)
+          : currentMessage);
+      const parentId = toRfcMessageId(target?.messageId);
+      const existing = parentId
+        ? [...sortedThread]
+            .reverse()
+            .find((m) => m.flags.draft && toRfcMessageId(m.inReplyTo) === parentId)
+        : undefined;
+      if (existing) {
+        router.push(messageRoute(existing));
+        return;
+      }
+      setReplyTargetId(targetMsgId || null);
+      setReplyMode(mode);
     },
-    [currentMessage],
+    [currentMessage, router, sortedThread],
+  );
+  const handleReply = useCallback((targetMsgId?: string) => openReply('reply', targetMsgId), [openReply]);
+  const handleReplyAll = useCallback(
+    (targetMsgId?: string) => openReply('reply-all', targetMsgId),
+    [openReply],
   );
 
   const handleForward = useCallback(
@@ -381,7 +399,6 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     () => [...sortedThread].reverse().find((m) => m.flags.draft) ?? null,
     [sortedThread],
   );
-  const router = useRouter();
   const handleEditDraft = useCallback(
     (draft: Message) => router.push(messageRoute(draft)),
     [router],

@@ -37,6 +37,8 @@ import { AttachmentThumbnail } from './AttachmentThumbnail';
 import { CardPreview } from './cards/CardPreview';
 import { ImportanceBadge } from './ImportanceBadge';
 import { SentimentIndicator } from './SentimentIndicator';
+import { calendarDaysBetween } from '@/utils/calendarDays';
+import { dateFormatter } from '@/utils/dateFormat';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://api.oxy.so';
 
@@ -51,50 +53,25 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://api.oxy.so';
  *   this year  → Jul 22
  *   older      → Jul 22, 24
  */
-/**
- * Built once and reused. `toLocaleTimeString(undefined, {...})` constructs a
- * new `Intl.DateTimeFormat` on every call — the options path defeats the
- * engine's format cache — and a list mounts one row per message.
- */
-const TIME_FORMAT = new Intl.DateTimeFormat(undefined, {
-  hour: 'numeric',
-  minute: '2-digit',
-});
-const WEEKDAY_FORMAT = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
-const MONTH_DAY_FORMAT = new Intl.DateTimeFormat(undefined, {
-  month: 'short',
-  day: 'numeric',
-});
-const MONTH_DAY_YEAR_FORMAT = new Intl.DateTimeFormat(undefined, {
-  month: 'short',
-  day: 'numeric',
-  year: '2-digit',
-});
-const WEEKDAY_MONTH_DAY_FORMAT = new Intl.DateTimeFormat(undefined, {
-  weekday: 'short',
-  month: 'short',
-  day: 'numeric',
-});
+const TIME: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' };
+const WEEKDAY: Intl.DateTimeFormatOptions = { weekday: 'short' };
+const MONTH_DAY: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+const MONTH_DAY_YEAR: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: '2-digit' };
+const WEEKDAY_MONTH_DAY: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric' };
 
-function formatDate(dateStr: string, yesterdayLabel: string): string {
+function formatDate(dateStr: string, yesterdayLabel: string, locale: string): string {
   const date = new Date(dateStr);
   const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const msgDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const diffDays = Math.floor(
-    (today.getTime() - msgDay.getTime()) / (1000 * 60 * 60 * 24),
-  );
+  const diffDays = calendarDaysBetween(date, now);
 
-  if (diffDays === 0) {
-    return TIME_FORMAT.format(date);
-  }
+  if (diffDays === 0) return dateFormatter(locale, TIME).format(date);
   if (diffDays === 1) return yesterdayLabel;
-  if (diffDays < 7) return WEEKDAY_FORMAT.format(date);
+  if (diffDays < 7) return dateFormatter(locale, WEEKDAY).format(date);
 
   if (date.getFullYear() === now.getFullYear()) {
-    return MONTH_DAY_FORMAT.format(date);
+    return dateFormatter(locale, MONTH_DAY).format(date);
   }
-  return MONTH_DAY_YEAR_FORMAT.format(date);
+  return dateFormatter(locale, MONTH_DAY_YEAR).format(date);
 }
 
 function displayName(address: { name?: string | null; address: string }): string {
@@ -202,23 +179,14 @@ function getAttachmentInfo(
   };
 }
 
-function formatSnoozeTime(dateStr: string, t: TranslateFn): string {
+function formatSnoozeTime(dateStr: string, t: TranslateFn, locale: string): string {
   const date = new Date(dateStr);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const snoozeDay = new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate(),
-  );
-  const diffDays = Math.floor(
-    (snoozeDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-  );
-  const time = TIME_FORMAT.format(date);
+  const diffDays = calendarDaysBetween(new Date(), date);
+  const time = dateFormatter(locale, TIME).format(date);
 
   if (diffDays === 0) return t('time.todayAt', { time });
   if (diffDays === 1) return t('time.tomorrowAt', { time });
-  return t('time.dayAt', { day: WEEKDAY_MONTH_DAY_FORMAT.format(date), time });
+  return t('time.dayAt', { day: dateFormatter(locale, WEEKDAY_MONTH_DAY).format(date), time });
 }
 
 interface MessageRowProps {
@@ -257,7 +225,7 @@ function MessageRowInner({
   density = 'comfortable',
   showPreviews = true,
 }: MessageRowProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const actions: MailAction[] = [];
   if (onToggleSelect)
     actions.push({
@@ -313,8 +281,8 @@ function MessageRowInner({
       snippet={showPreviews ? getPreview(message) : undefined}
       time={
         showSnoozeTime && message.snoozedUntil
-          ? formatSnoozeTime(message.snoozedUntil, t)
-          : formatDate(message.date, t('inbox.sections.yesterday'))
+          ? formatSnoozeTime(message.snoozedUntil, t, locale)
+          : formatDate(message.date, t('inbox.sections.yesterday'), locale)
       }
       unread={!message.flags.seen}
       starred={message.flags.starred}
@@ -343,7 +311,7 @@ function MessageRowInner({
         starred: t('drawer.starred'),
         threadCount: (count) =>
           t('ui.message.conversationMessages', { count }),
-        unread: t('message.actions.markUnread'),
+        unread: t('message.unreadState'),
       }}
     />
   );

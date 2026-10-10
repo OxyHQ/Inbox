@@ -11,6 +11,7 @@ import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
  * The route owns the list at every width; Bloom owns its surrounding panel.
  */
 
+import { useIsFocused } from 'expo-router';
 import Head from 'expo-router/head';
 import { useEffect, useMemo } from 'react';
 
@@ -75,9 +76,14 @@ export function MailboxView({ view }: { view: string }) {
     return `${viewLabel} ${suffix}`;
   }, [unreadCount, viewLabel, t]);
 
-  // Sync route to Zustand state
+  // The route decides what the shared list shows — but only the route on
+  // screen. A stack keeps the screens behind it mounted, and their effects
+  // still ran: back from Sent showed Sent's mail under Inbox, and any change to
+  // the unread counts (a new message, a message read) switched a label's list
+  // to the folder behind it.
+  const isFocused = useIsFocused();
   useEffect(() => {
-    if (!view || mailboxes.length === 0) return;
+    if (!isFocused || !view || mailboxes.length === 0) return;
 
     const viewLower = view.toLowerCase();
 
@@ -100,7 +106,7 @@ export function MailboxView({ view }: { view: string }) {
     if (customMailbox) {
       selectMailbox(customMailbox);
     }
-  }, [view, mailboxes, selectMailbox, selectStarred]);
+  }, [isFocused, view, mailboxes, selectMailbox, selectStarred]);
 
   return (
     <>

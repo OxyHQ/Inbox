@@ -53,7 +53,18 @@ export function useCurrentList() {
   const query = useMessages(options);
   const { data } = query;
 
-  const messages = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
+  // Each message once. Pages are cursor-based, so a message that moved up the
+  // list after its page was fetched (unpinned, a flag changed the order) comes
+  // back on the next page too — and a duplicated id is a duplicated row key and
+  // a conversation counted twice.
+  const messages = useMemo(() => {
+    const seen = new Set<string>();
+    return (data?.pages.flatMap((p) => p.data) ?? []).filter((m) => {
+      if (seen.has(m._id)) return false;
+      seen.add(m._id);
+      return true;
+    });
+  }, [data]);
   const unreadable = useMemo(() => data?.pages.flatMap((p) => p.unreadable ?? []) ?? [], [data]);
 
   // Thread grouping is a post-process over the fetched list (single query, no
@@ -79,5 +90,25 @@ export function useCurrentList() {
   /** Something to list: false while the view's mailbox id is still unknown. */
   const listReady = Boolean(options.mailboxId || options.starred || options.label);
 
-  return { query, options, listReady, messages, unreadable, rows, conversationOf };
+  /** The route of this list, for leaving a conversation back to it. */
+  const viewHref = useMemo(() => {
+    if (viewMode?.type === 'starred') return '/starred';
+    if (viewMode?.type === 'label') return `/label/${encodeURIComponent(viewMode.labelName)}`;
+    const mailbox = viewMode?.type === 'mailbox' ? viewMode.mailbox : currentMailbox;
+    if (!mailbox || mailbox.specialUse === SPECIAL_USE.INBOX) return '/';
+    const view = SPECIAL_USE_TO_VIEW[mailbox.specialUse ?? ''];
+    return `/${view ?? mailbox._id}`;
+  }, [viewMode, currentMailbox]);
+
+  return { query, options, listReady, messages, unreadable, rows, conversationOf, viewHref };
 }
+
+/** The `[view]` route segment of each system mailbox. */
+const SPECIAL_USE_TO_VIEW: Record<string, string> = {
+  [SPECIAL_USE.SENT]: 'sent',
+  [SPECIAL_USE.DRAFTS]: 'drafts',
+  [SPECIAL_USE.TRASH]: 'trash',
+  [SPECIAL_USE.SPAM]: 'spam',
+  [SPECIAL_USE.ARCHIVE]: 'archive',
+  [SPECIAL_USE.SNOOZED]: 'snoozed',
+};

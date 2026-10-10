@@ -51,11 +51,8 @@ import {
   type SwipeAction,
 } from '@/contexts/inbox-prefs-context';
 import {
-  useBulkMoveMessages,
   useBulkUpdateFlags,
-  useSnoozeMessage,
   useTogglePin,
-  useToggleRead,
 } from '@/hooks/mutations/useMessageMutations';
 import {
   useCreateReminder,
@@ -65,7 +62,6 @@ import {
 import { useBundles } from '@/hooks/queries/useBundles';
 import { useFollowUp } from '@/hooks/queries/useFollowUp';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
-import { useMessages } from '@/hooks/queries/useMessages';
 import {
   useNeedsResponse,
   type NeedsResponseReason,
@@ -83,7 +79,7 @@ import type {
   UnreadableMessage,
 } from '@/services/emailApi';
 import { messageRoute } from '@/utils/messageRoute';
-import { collapseThreads } from '@/utils/threadGrouping';
+import { useCurrentList } from '@/hooks/useCurrentList';
 import { AliaChatSheet, type AliaChatSheetRef } from '@alia.onl/sdk';
 import { VoiceSession } from '@alia.onl/sdk/voice';
 
@@ -219,7 +215,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   );
   const { isAuthenticated, user } = useOxy();
   const { prefs } = useInboxPrefs();
-  const { conversationView, density, showPreviews } =
+  const { density, showPreviews } =
     useInboxDisplayPrefs();
   const messageActions = useMessageActions();
 
@@ -234,50 +230,29 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
 
   const { data: mailboxes = [] } = useMailboxes();
 
-  /**
-   * Falls back to the Inbox when nothing has been selected yet.
-   *
-   * The route→store sync lives in `MailboxView`, which renders inside the
-   * detail `<Slot/>`. On desktop that Slot is only mounted when a message is
-   * open, so without this fallback the list would sit empty on first load —
-   * `useMessages` is gated on `enabled: hasFilter`, and no mailbox id means no
-   * request at all.
-   */
-  const inboxMailboxId = useMemo(
-    () => mailboxes.find((m) => m.specialUse === SPECIAL_USE.INBOX)?._id,
-    [mailboxes],
-  );
-
-  const messagesOptions = useMemo(() => {
-    if (!viewMode) return { mailboxId: currentMailbox?._id ?? inboxMailboxId };
-    switch (viewMode.type) {
-      case 'mailbox':
-        return { mailboxId: viewMode.mailbox._id };
-      case 'starred':
-        return { starred: true };
-      case 'label':
-        return { label: viewMode.labelName };
-    }
-  }, [viewMode, currentMailbox, inboxMailboxId]);
-
   const {
-    data,
-    isLoading,
-    isRefetching,
-    isFetchingNextPage,
-    refetch,
-    fetchNextPage,
-    hasNextPage,
-  } = useMessages(messagesOptions);
+    query: {
+      isLoading,
+      isError,
+      isRefetching,
+      isFetchingNextPage,
+      refetch,
+      fetchNextPage,
+      hasNextPage,
+    },
+    options: messagesOptions,
+    listReady,
+    messages,
+    unreadable,
+    rows: displayMessages,
+    conversationOf,
+  } = useCurrentList();
   const bundleView = useEmailStore((s) => s.bundleView);
   const expandedBundles = useEmailStore((s) => s.expandedBundles);
   const toggleBundle = useEmailStore((s) => s.toggleBundle);
 
-  const toggleRead = useToggleRead();
   const togglePin = useTogglePin();
-  const snoozeMutation = useSnoozeMessage();
   const bulkFlags = useBulkUpdateFlags();
-  const bulkMove = useBulkMoveMessages();
   const { data: bundles = [] } = useBundles();
 
   const [snoozeTargetId, setSnoozeTargetId] = useState<string | null>(null);
@@ -295,28 +270,12 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const updateReminderMutation = useUpdateReminder();
   const deleteReminderMutation = useDeleteReminder();
 
-  const messages = useMemo(
-    () => data?.pages.flatMap((p) => p.data) ?? [],
-    [data],
-  );
-  const unreadable = useMemo(
-    () => data?.pages.flatMap((p) => p.unreadable ?? []) ?? [],
-    [data],
-  );
-
-  // Thread grouping is a post-process over the fetched list (single query, no
-  // duplicate list): collapse to one row per conversation when the pref is on.
-  const displayMessages = useMemo(
-    () => (conversationView ? collapseThreads(messages) : messages),
-    [messages, conversationView],
-  );
-
   const isInboxView =
     viewMode?.type === 'mailbox'
       ? viewMode.mailbox.specialUse === SPECIAL_USE.INBOX
-      : !viewMode &&
-        (currentMailbox?.specialUse === SPECIAL_USE.INBOX ||
-          Boolean(inboxMailboxId));
+      : // No view chosen yet: the list falls back to the Inbox (useCurrentList).
+        !viewMode &&
+        (currentMailbox ? currentMailbox.specialUse === SPECIAL_USE.INBOX : true);
   const isSnoozedView =
     viewMode?.type === 'mailbox'
       ? viewMode.mailbox.specialUse === SPECIAL_USE.SNOOZED
@@ -557,10 +516,19 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     unreadable,
   ]);
 
-  // Clear selection when view changes
+  // Clear the selection when the user goes to another view. Keyed by WHICH
+  // view, not by the view object: that is rebuilt whenever the mailboxes are
+  // refetched (every new mail bumps an unread count), and each rebuild wiped a
+  // selection the user was in the middle of making.
+  const viewKey =
+    viewMode?.type === 'mailbox'
+      ? `mailbox:${viewMode.mailbox._id}`
+      : viewMode?.type === 'label'
+        ? `label:${viewMode.labelId}`
+        : (viewMode?.type ?? 'none');
   useEffect(() => {
     clearSelection();
-  }, [viewMode, clearSelection]);
+  }, [viewKey, clearSelection]);
 
   const handleRefresh = useCallback(() => {
     refetch();
@@ -571,32 +539,46 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     fetchNextPage();
   }, [fetchNextPage, isFetchingNextPage, hasNextPage]);
 
+  // Pin state is the conversation's, as the row shows it: unpinning unpins
+  // every pinned message in it, pinning pins the row's own message.
   const handlePin = useCallback(
-    (messageId: string) => {
+    (rowId: string) => {
       if (togglePin.isPending) return;
-      const msg = messages.find((m) => m._id === messageId);
-      if (msg) togglePin.mutate({ messageId, pinned: !msg.flags.pinned });
+      const row = displayMessages.find((m) => m._id === rowId);
+      if (!row) return;
+      if (row.flags.pinned) {
+        for (const m of conversationOf(rowId)) {
+          if (m.flags.pinned) togglePin.mutate({ messageId: m._id, pinned: false });
+        }
+      } else {
+        togglePin.mutate({ messageId: rowId, pinned: true });
+      }
     },
-    [messages, togglePin],
+    [displayMessages, conversationOf, togglePin],
   );
 
   const handleToggleRead = useCallback(
-    (messageId: string, seen: boolean) => {
-      toggleRead.mutate({ messageId, seen });
-    },
-    [toggleRead],
+    (rowId: string, seen: boolean) => messageActions.setRead(conversationOf(rowId), seen),
+    [conversationOf, messageActions],
+  );
+
+  const handleArchiveRow = useCallback(
+    (rowId: string) => messageActions.archive(conversationOf(rowId)),
+    [conversationOf, messageActions],
+  );
+
+  const handleDeleteRow = useCallback(
+    (rowId: string) => messageActions.deleteConversation(conversationOf(rowId)),
+    [conversationOf, messageActions],
   );
 
   const handleSnooze = useCallback(
     (until: Date) => {
       if (!snoozeTargetId) return;
-      snoozeMutation.mutate({
-        messageId: snoozeTargetId,
-        until: until.toISOString(),
-      });
+      messageActions.snooze(conversationOf(snoozeTargetId), until.toISOString());
       setSnoozeTargetId(null);
     },
-    [snoozeTargetId, snoozeMutation],
+    [snoozeTargetId, conversationOf, messageActions],
   );
 
   const handleCreateReminder = useCallback(
@@ -702,54 +684,48 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     [enterSelectionMode],
   );
 
-  // Bulk actions — single API call per operation
+  // Bulk actions act on every conversation selected, all of its messages.
+  const selectedConversations = useCallback(
+    () => [...selectedMessageIds].flatMap(conversationOf),
+    [selectedMessageIds, conversationOf],
+  );
+  /** The rows as shown: a row is unread when any message in it is. */
+  const selectedRows = useCallback(
+    () => displayMessages.filter((m) => selectedMessageIds.has(m._id)),
+    [displayMessages, selectedMessageIds],
+  );
+
   const handleBulkArchive = useCallback(() => {
-    const archiveBox = mailboxes.find(
-      (m) => m.specialUse === SPECIAL_USE.ARCHIVE,
-    );
-    if (!archiveBox) {
-      toast.error(t('inbox.toast.archiveUnavailable'));
-      return;
-    }
-    bulkMove.mutate({
-      messageIds: [...selectedMessageIds],
-      mailboxId: archiveBox._id,
-    });
+    messageActions.archive(selectedConversations());
     clearSelection();
-  }, [bulkMove, clearSelection, mailboxes, selectedMessageIds, t]);
+  }, [messageActions, selectedConversations, clearSelection]);
 
   const handleBulkDelete = useCallback(() => {
-    const trashBox = mailboxes.find((m) => m.specialUse === SPECIAL_USE.TRASH);
-    if (!trashBox) {
+    if (!mailboxes.some((m) => m.specialUse === SPECIAL_USE.TRASH)) {
       toast.error(t('inbox.toast.trashUnavailable'));
       return;
     }
-    bulkMove.mutate({
-      messageIds: [...selectedMessageIds],
-      mailboxId: trashBox._id,
-    });
+    messageActions.deleteConversation(selectedConversations());
     clearSelection();
-  }, [bulkMove, clearSelection, mailboxes, selectedMessageIds, t]);
+  }, [messageActions, selectedConversations, clearSelection, mailboxes, t]);
 
   const handleBulkStar = useCallback(() => {
-    const selected = messages.filter((m) => selectedMessageIds.has(m._id));
-    const shouldStar = selected.some((m) => !m.flags.starred);
+    const shouldStar = selectedRows().some((m) => !m.flags.starred);
     bulkFlags.mutate({
-      messageIds: [...selectedMessageIds],
+      messageIds: selectedConversations().map((m) => m._id),
       flags: { starred: shouldStar },
     });
     clearSelection();
-  }, [selectedMessageIds, messages, bulkFlags, clearSelection]);
+  }, [selectedRows, selectedConversations, bulkFlags, clearSelection]);
 
   const handleBulkMarkRead = useCallback(() => {
-    const selected = messages.filter((m) => selectedMessageIds.has(m._id));
-    const shouldMarkRead = selected.some((m) => !m.flags.seen);
-    bulkFlags.mutate({
-      messageIds: [...selectedMessageIds],
-      flags: { seen: shouldMarkRead },
-    });
+    // Decided from the rows as displayed. It used to read the raw messages, in
+    // which a conversation row's own message is often already read, and so
+    // "Mark read" on an unread conversation marked it UNREAD.
+    const shouldMarkRead = selectedRows().some((m) => !m.flags.seen);
+    messageActions.setRead(selectedConversations(), shouldMarkRead);
     clearSelection();
-  }, [selectedMessageIds, messages, bulkFlags, clearSelection]);
+  }, [selectedRows, selectedConversations, messageActions, clearSelection]);
 
   // Derive title from view mode
   const mailboxTitle = useMemo(() => {
@@ -778,13 +754,13 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     (action: SwipeAction, messageId: string) => {
       switch (action) {
         case 'archive':
-          messageActions.archive(messageId);
+          handleArchiveRow(messageId);
           break;
         case 'delete':
-          messageActions.deleteMessage(messageId);
+          handleDeleteRow(messageId);
           break;
         case 'mark-read':
-          messageActions.markAsRead(messageId);
+          handleToggleRead(messageId, true);
           break;
         case 'snooze':
           setSnoozeTargetId(messageId);
@@ -793,7 +769,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
           break;
       }
     },
-    [messageActions],
+    [handleArchiveRow, handleDeleteRow, handleToggleRead],
   );
 
   /** One message row, shared by the flat items and the grouped panels. */
@@ -845,8 +821,8 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
           message={msg}
           onPin={handlePin}
           onSelect={handleMessagePress}
-          onArchive={messageActions.archive}
-          onDelete={messageActions.deleteMessage}
+          onArchive={handleArchiveRow}
+          onDelete={handleDeleteRow}
           onToggleRead={handleToggleRead}
           isSelected={msg._id === selectedMessageId}
           isSelectionMode={isSelectionMode}
@@ -867,7 +843,8 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       handleSwipeAction,
       handlePin,
       handleMessagePress,
-      messageActions,
+      handleArchiveRow,
+      handleDeleteRow,
       handleToggleRead,
       selectedMessageId,
       isSelectionMode,
@@ -1036,7 +1013,21 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   );
 
   const renderEmpty = useCallback(() => {
-    if (isLoading) return null;
+    // Not "loading" to React Query while the list is still waiting for a
+    // mailbox id — but not empty either.
+    if (isLoading || (isAuthenticated && !listReady)) return null;
+    // A failed load is not "all caught up": with no cache, offline or on a
+    // server error, that is what the user used to be told.
+    if (isError) {
+      return (
+        <EmptyState
+          illustration={<EmptyStateSticker name="loadError" />}
+          title={t('inbox.loadErrorTitle')}
+          description={t('ui.message.loadErrorDescription')}
+          action={{ label: t('common.retry'), onPress: () => void refetch() }}
+        />
+      );
+    }
     return (
       <EmptyState
         illustration={<EmptyStateSticker name="inbox" />}
@@ -1049,7 +1040,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
         }
       />
     );
-  }, [isAuthenticated, isLoading, t]);
+  }, [isAuthenticated, isLoading, isError, listReady, refetch, t]);
 
   const renderFooter = useCallback(() => {
     if (!isFetchingNextPage) return null;

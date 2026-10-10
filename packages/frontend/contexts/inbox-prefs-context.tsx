@@ -41,15 +41,13 @@ export interface InboxPrefs {
 
   /** Enable push notifications. */
   pushNotifications: boolean;
-  /** Enable email-digest summary notifications. */
-  emailDigest: boolean;
-  /** Play a sound when a new message arrives. */
-  notificationSound: boolean;
 
   /** Enable Inbox's bounded daily brief feature. */
   aiBrief: boolean;
   /** Enable Smart Reply suggestions. */
   aiSmartReply: boolean;
+  /** Offer an on-demand AI summary of the open conversation. */
+  aiThreadSummary: boolean;
   /** Enable automatic categorization of messages. */
   aiCategorization: boolean;
 }
@@ -62,11 +60,11 @@ export const DEFAULT_INBOX_PREFS: InboxPrefs = {
   leftSwipeAction: 'archive',
   rightSwipeAction: 'delete',
   pushNotifications: true,
-  emailDigest: false,
-  notificationSound: true,
   // The brief is an explicit opt-in and is collapsed even after enabling it.
   aiBrief: false,
   aiSmartReply: true,
+  // Only offers a button: nothing is summarized until the user asks.
+  aiThreadSummary: true,
   aiCategorization: true,
 };
 
@@ -94,10 +92,9 @@ export function mergeInboxPrefs(value: unknown): InboxPrefs {
     leftSwipeAction: isSwipeAction(stored.leftSwipeAction) ? stored.leftSwipeAction : DEFAULT_INBOX_PREFS.leftSwipeAction,
     rightSwipeAction: isSwipeAction(stored.rightSwipeAction) ? stored.rightSwipeAction : DEFAULT_INBOX_PREFS.rightSwipeAction,
     pushNotifications: readBoolean(stored.pushNotifications, DEFAULT_INBOX_PREFS.pushNotifications),
-    emailDigest: readBoolean(stored.emailDigest, DEFAULT_INBOX_PREFS.emailDigest),
-    notificationSound: readBoolean(stored.notificationSound, DEFAULT_INBOX_PREFS.notificationSound),
     aiBrief: readBoolean(stored.aiBrief, DEFAULT_INBOX_PREFS.aiBrief),
     aiSmartReply: readBoolean(stored.aiSmartReply, DEFAULT_INBOX_PREFS.aiSmartReply),
+    aiThreadSummary: readBoolean(stored.aiThreadSummary, DEFAULT_INBOX_PREFS.aiThreadSummary),
     aiCategorization: readBoolean(stored.aiCategorization, DEFAULT_INBOX_PREFS.aiCategorization),
   };
 }

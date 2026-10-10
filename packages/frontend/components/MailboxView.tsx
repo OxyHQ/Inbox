@@ -17,7 +17,6 @@ import { useEffect, useMemo } from 'react';
 import { InboxList } from '@/components/InboxList';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
-import { useMessages } from '@/hooks/queries/useMessages';
 import { useEmailStore } from '@/hooks/useEmail';
 import { useTranslation } from '@/lib/i18n';
 
@@ -52,10 +51,6 @@ export function MailboxView({ view }: { view: string }) {
   const selectStarred = useEmailStore((s) => s.selectStarred);
   const currentMailbox = useEmailStore((s) => s.currentMailbox);
 
-  const { data: messagesData } = useMessages({
-    mailboxId: currentMailbox?._id,
-  });
-
   const viewLabel = useMemo(() => {
     if (!view) return t('drawer.mailboxes.Inbox');
     const viewLower = view.toLowerCase();
@@ -67,10 +62,12 @@ export function MailboxView({ view }: { view: string }) {
     return view.charAt(0).toUpperCase() + view.slice(1);
   }, [view, t, mailboxes]);
 
-  const unreadCount = useMemo(() => {
-    const messages = messagesData?.pages.flatMap((p) => p.data) ?? [];
-    return messages.filter((m) => !m.flags?.seen).length;
-  }, [messagesData]);
+  // The folder's own count, not the unread messages that happen to be loaded
+  // (one page of them, at most).
+  const unreadCount = useMemo(
+    () => mailboxes.find((m) => m._id === currentMailbox?._id)?.unseenMessages ?? 0,
+    [mailboxes, currentMailbox?._id],
+  );
 
   const pageTitle = useMemo(() => {
     const suffix = t('app.titleSuffix');

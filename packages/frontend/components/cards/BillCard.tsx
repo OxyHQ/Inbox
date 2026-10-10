@@ -1,4 +1,5 @@
 import { useColors } from '@/constants/theme';
+import { formatMoney, formatCardDate, isPastDue } from '@/utils/cardFormat';
 import type { CardData } from '@/services/emailApi';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Card, CardBody, CardHeader, CardTitle } from '@oxy.so/bloom/card';
@@ -14,21 +15,18 @@ export function BillCard({ data }: BillCardProps) {
 
   const formattedAmount =
     data.amount != null
-      ? new Intl.NumberFormat(undefined, {
-          style: 'currency',
-          currency: data.currency || 'USD',
-        }).format(data.amount)
+      ? formatMoney(data.amount, data.currency)
       : null;
 
   const dueDate = data.dueDate
-    ? new Date(data.dueDate).toLocaleDateString(undefined, {
+    ? formatCardDate(data.dueDate, {
         weekday: 'short',
         month: 'short',
         day: 'numeric',
       })
     : null;
 
-  const isOverdue = data.dueDate ? new Date(data.dueDate) < new Date() : false;
+  const isOverdue = isPastDue(data.dueDate);
 
   return (
     <Card appearance="subtle">

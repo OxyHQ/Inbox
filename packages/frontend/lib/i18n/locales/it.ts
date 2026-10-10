@@ -7,7 +7,17 @@ import type { LocaleDict } from '../types';
  * Punctuation and capitalization mirror the source EN strings.
  */
 const it: LocaleDict = {
+  notifications: {
+    push: {
+      channel: {
+        description: 'Notifiche di nuove email',
+        name: 'Email',
+      },
+    },
+  },
   common: {
+    undo: 'Annulla',
+    sending: 'Invio in corso…',
     cancel: 'Annulla',
     save: 'Salva',
     ok: 'OK',
@@ -138,7 +148,13 @@ const it: LocaleDict = {
   },
 
 
+  label: {
+    notFound: 'Etichetta non trovata',
+  },
+
   inbox: {
+    resizePanes: 'Ridimensiona i pannelli',
+    loadErrorTitle: 'Impossibile caricare la posta',
     unreadable: {
       section: "Impossibile visualizzare",
       title: "Impossibile visualizzare questo messaggio",
@@ -233,6 +249,7 @@ const it: LocaleDict = {
       empty: 'Ancora nessuna etichetta',
     },
     toast: {
+      spamUnavailable: 'Non c\'è una cartella Spam in cui spostarlo.',
       attachmentFailed: 'Impossibile scaricare l\'allegato.',
       fileSystemUnavailable: 'File system non disponibile su questo dispositivo.',
       sharingUnavailable: 'Condivisione non disponibile su questo dispositivo.',
@@ -392,6 +409,10 @@ const it: LocaleDict = {
   },
 
   ai: {
+    toast: {
+      keptYourEdits: 'Hai continuato a scrivere, quindi il tuo testo è rimasto com\'era.',
+      applied: 'Riscritto con l\'IA.',
+    },
     toolbar: {
       draft: 'Bozza',
       polish: 'Rifinisci',
@@ -412,6 +433,7 @@ const it: LocaleDict = {
   },
 
   threadSummary: {
+    summarize: 'Riassumi',
     title: 'Riepilogo conversazione',
     messages_one: '{{count}} messaggio',
     messages_other: '{{count}} messaggi',
@@ -626,6 +648,10 @@ const it: LocaleDict = {
   },
 
   ui: {
+    error: {
+      description: 'Impossibile mostrare questa parte di Inbox. La tua posta è al sicuro.',
+      title: 'Qualcosa è andato storto',
+    },
     me: 'Me',
     settings: {
       landing: {
@@ -650,6 +676,7 @@ const it: LocaleDict = {
         },
       },
       account: {
+        saveFailed: 'Impossibile salvare le impostazioni.',
         signature: 'Signature', signaturePlaceholder: 'Appended to every outgoing message',
         autoReply: 'Auto-reply', autoReplyEnable: 'Enable auto-reply',
         subjectPlaceholder: 'Subject', messagePlaceholder: "Message — explain when you'll be back.",
@@ -664,6 +691,7 @@ const it: LocaleDict = {
         accentColor: 'Accent color',
       },
       notifications: {
+        deviceNotice: 'I permessi di notifica del sistema si gestiscono nelle impostazioni del dispositivo.',
         alerts: 'Alerts', push: 'Push notifications', pushDescription: 'Get notified when new messages arrive.',
         digest: 'Daily email digest', digestDescription: 'A summary of unread messages, once per day.',
         sound: 'Sound', playSound: 'Play sound', soundDescription: 'A short chime on new messages.',
@@ -693,12 +721,13 @@ const it: LocaleDict = {
         your: 'Your contacts', search: 'Search contacts', edit: 'Edit {{name}}', delete: 'Delete {{name}}', editContact: 'Edit contact', addContact: 'Add contact', name: 'Name', email: 'Email', company: 'Company (optional)', notes: 'Notes (optional)', star: 'Star this contact', saving: 'Saving…', adding: 'Adding…', saveChanges: 'Save changes', deleteTitle: 'Delete contact?', deleteDescription: '"{{name}}" will be removed from your contacts.', noMatch: 'No contacts match your search.', empty: 'No contacts yet. Add your frequent recipients below for faster composing.',
       },
       ai: {
-        dailyBrief: 'Daily Brief', recap: 'Inbox recap', recapDescription: "A short summary generated from your inbox counts (unread, starred, attachments). It doesn't read message contents.", smartReply: 'Smart Reply', suggestions: 'One-tap suggestions', suggestionsDescription: 'Three context-aware reply chips above the message, generated through Oxy and Kaana.', priority: 'Priority flags', priorityTitle: 'Highlight likely-urgent mail', priorityDescription: 'Flag messages as Urgent, Action needed, or Important using on-device keyword heuristics — not a full AI model.', tip: 'Priority flags run on-device from keyword heuristics. Daily Brief and Smart Reply use bounded Oxy inference through Kaana; Ask Alia remains the separate agent.',
+        dailyBrief: 'Daily Brief', recap: 'Inbox recap', recapDescription: "A short summary generated from your inbox counts (unread, starred, attachments). It doesn't read message contents.", smartReply: 'Smart Reply', summary: 'Conversation summary', summaryTitle: 'Offer a summary', summaryDescription: 'Shows a Summarize button on conversations. A conversation is sent to Oxy and Kaana only when you press it.', suggestions: 'One-tap suggestions', suggestionsDescription: 'Three context-aware reply chips above the message, generated through Oxy and Kaana.', priority: 'Priority flags', priorityTitle: 'Highlight likely-urgent mail', priorityDescription: 'Flag messages as Urgent, Action needed, or Important using on-device keyword heuristics — not a full AI model.', tip: 'Priority flags run on-device from keyword heuristics. Daily Brief, Smart Reply and conversation summaries use bounded Oxy inference through Kaana; Ask Alia remains the separate agent.',
       },
       storage: {
         usage: 'Mailbox usage', local: 'Local cache', nearlyFull: "You're nearly out of space. Old messages will start to bounce when the quota is full.", localDescription: "The most recent 100 messages are cached on this device for fast offline access. Attachments are downloaded on demand and cleaned up automatically — there's nothing to manage manually today.", free: '{{value}} free',
       },
       advanced: {
+        sizePlaceholder: 'es. 5 MB',
         contains: 'contains', equals: 'equals', notContains: "doesn't contain", startsWith: 'starts with', endsWith: 'ends with', largerThan: 'larger than (bytes)', smallerThan: 'smaller than (bytes)',
         filters: 'Filters & rules', noFilters: 'No filters yet. Filters automatically apply actions like archiving, starring, or marking read to incoming messages.', filterName: 'Filter name', whenMessage: "When a message's", sizeBytes: 'Size in bytes', value: 'Value', then: 'then', creating: 'Creating…', addFilter: 'Add filter', editingTemplate: 'Editing template', templates: 'Templates', templateName: 'Template name', subjectOptional: 'Subject (optional)', templateBody: 'Template body', saveChanges: 'Save changes', addTemplate: 'Add template', bundles: 'Bundles', bundleHint: 'Bundles group related mail automatically. Toggle to enable and reorder how they stack in your inbox.', import: 'Import', importDescription: 'Import emails from .eml files. Imported messages land in your Inbox and can be moved or labelled like any other mail.', importing: 'Importing…', importButton: 'Choose .eml files', imported: 'Imported {{imported}} of {{total}} email(s).', conditions: '{{conditions}} condition(s) · {{actions}} action(s)', deleteFilter: 'Delete {{name}}', editTemplate: 'Edit {{name}}', deleteTemplate: 'Delete {{name}}', moveUp: 'Move {{name}} up', moveDown: 'Move {{name}} down',
       },
@@ -707,7 +736,7 @@ const it: LocaleDict = {
     drawer: { unread: '{{name}}, {{count}} unread', labels: 'Labels', folders: 'Folders', createFolder: 'Create folder', folderHint: 'Tap + to create a folder. Long-press a folder to delete it.', signedOutTitle: 'Sign in to manage your email', signedOutSubtitle: 'Access your mailboxes, labels, and compose new messages.', notSignedIn: 'Not signed in', newFolder: 'New folder', folderName: 'Folder name', creatingFolder: 'Creating…', createFolderButton: 'Create folder', deleteFolderTitle: 'Delete folder?', deleteFolderDescription: '"{{name}}" and its organization will be removed. Messages inside are not deleted.' },
     event: { sharingUnavailable: 'Sharing is unavailable. Try "Google Calendar" instead.', openFailed: 'Could not open the calendar file.' },
     message: { loadError: "Couldn't load this message", loadErrorDescription: 'Check your connection and try again.', notFound: 'Message not found', notFoundDescription: 'This message may have been deleted or moved.', conversationMessages_one: '{{count}} message in this conversation', conversationMessages_other: '{{count}} messages in this conversation', summaryTitle: 'Generate AI thread summary', summaryDescription: 'Oxy sends bounded conversation context to Kaana for summarization.' },
-    mutations: { bundleUpdateFailed: 'Failed to update bundle.', bundleReorderFailed: 'Failed to reorder bundle.', contactCreateFailed: 'Failed to create contact', contactUpdateFailed: 'Failed to update contact', contactDeleteFailed: 'Failed to delete contact', filterCreateFailed: 'Failed to create filter', filterUpdateFailed: 'Failed to update filter', filterDeleteFailed: 'Failed to delete filter', mailboxCreated: 'Folder created.', mailboxCreateFailed: 'Failed to create folder.', mailboxDeleted: 'Folder deleted.', mailboxDeleteFailed: 'Failed to delete folder.', reminderCreateFailed: 'Failed to create reminder', reminderUpdateFailed: 'Failed to update reminder', reminderDeleteFailed: 'Failed to delete reminder', templateCreateFailed: 'Failed to create template', templateUpdateFailed: 'Failed to update template', templateDeleteFailed: 'Failed to delete template', labelCreateFailed: 'Failed to create label.', labelUpdateFailed: 'Failed to update label.', labelDeleteFailed: 'Failed to delete label.', unsubscribeFailed: 'Failed to unsubscribe' },
+    mutations: { starFailed: 'Impossibile aggiornare la stella.', readFailed: 'Impossibile aggiornare lo stato di lettura.', archived: 'Conversazione archiviata.', archiveFailed: 'Impossibile archiviare la conversazione.', deleteFailed: 'Impossibile eliminare la conversazione.', deletedForever: 'Conversazione eliminata definitivamente.', trashed: 'Conversazione spostata nel cestino.', sending: 'Invio del messaggio…', sendCancelled: 'Messaggio annullato.', labelsFailed: 'Impossibile aggiornare le etichette.', pinFailed: 'Impossibile fissare.', snoozed: 'Messaggio posticipato.', snoozeFailed: 'Impossibile posticipare il messaggio.', unsnoozed: 'Posticipo rimosso.', unsnoozeFailed: 'Impossibile rimuovere il posticipo.', bulkFailed: 'Impossibile aggiornare i messaggi.', bulkUpdated: 'Messaggi aggiornati.', moveFailed: 'Impossibile spostare i messaggi.', queuedDescription: 'Non è ancora stato consegnato. Seguilo in Impostazioni → Avanzate → Coda di consegna.', retryQueued: 'Messaggio in coda per un nuovo tentativo.', retryFailed: 'Impossibile riprovare il messaggio.', queuedCancelled: 'Messaggio in coda annullato.', cancelFailed: 'Impossibile annullare il messaggio.', bundleUpdateFailed: 'Failed to update bundle.', bundleReorderFailed: 'Failed to reorder bundle.', contactCreateFailed: 'Failed to create contact', contactUpdateFailed: 'Failed to update contact', contactDeleteFailed: 'Failed to delete contact', filterCreateFailed: 'Failed to create filter', filterUpdateFailed: 'Failed to update filter', filterDeleteFailed: 'Failed to delete filter', mailboxCreated: 'Folder created.', mailboxCreateFailed: 'Failed to create folder.', mailboxDeleted: 'Folder deleted.', mailboxDeleteFailed: 'Failed to delete folder.', reminderCreateFailed: 'Failed to create reminder', reminderUpdateFailed: 'Failed to update reminder', reminderDeleteFailed: 'Failed to delete reminder', templateCreateFailed: 'Failed to create template', templateUpdateFailed: 'Failed to update template', templateDeleteFailed: 'Failed to delete template', labelCreateFailed: 'Failed to create label.', labelUpdateFailed: 'Failed to update label.', labelDeleteFailed: 'Failed to delete label.', unsubscribeFailed: 'Failed to unsubscribe' },
   },
 
   auth: {

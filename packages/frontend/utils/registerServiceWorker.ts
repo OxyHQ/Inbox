@@ -11,11 +11,17 @@ import { Platform } from 'react-native';
  *
  * @param onUpdate - Called when a new SW version is waiting to activate.
  */
+let registrationStarted = false;
+
 export function registerServiceWorker(onUpdate?: () => void): void {
   if (Platform.OS !== 'web') return;
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
 
-  window.addEventListener('load', async () => {
+  // Once per page: the caller is a React effect, which may run again.
+  if (registrationStarted) return;
+  registrationStarted = true;
+
+  const register = async () => {
     try {
       const registration = await navigator.serviceWorker.register('/sw.js');
 
@@ -42,7 +48,12 @@ export function registerServiceWorker(onUpdate?: () => void): void {
     } catch {
       // SW registration failure is non-fatal; the app still works without it.
     }
-  });
+  };
+
+  // The app hydrates after `load` has usually fired, and a `load` listener
+  // added then never runs — the worker was simply never registered.
+  if (document.readyState === 'complete') void register();
+  else window.addEventListener('load', () => void register(), { once: true });
 }
 
 /**

@@ -54,7 +54,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Print from 'expo-print';
 import { usePathname, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWindowDimensions, Linking, Platform, StyleSheet, View } from 'react-native';
 
 import { HtmlBody } from '@/components/HtmlBody';
@@ -67,14 +67,12 @@ import { CardRenderer } from '@/components/cards/CardRenderer';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { useColors } from '@/constants/theme';
 import {
-  useArchiveMessage,
-  useDeleteMessage,
-  useSnoozeMessage,
   useTogglePin,
-  useToggleRead,
   useToggleStar,
   useUpdateMessageLabels,
 } from '@/hooks/mutations/useMessageMutations';
+import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
+import { useMessageActions } from '@/hooks/useMessageActions';
 import { useLabels } from '@/hooks/queries/useLabels';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
 import { useMessage } from '@/hooks/queries/useMessage';
@@ -87,6 +85,7 @@ import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from '@/lib/i18n';
 import type { Message } from '@/services/emailApi';
 import { messageRoute } from '@/utils/messageRoute';
+import { buildPrintHtml, printHtmlOnWeb } from '@/utils/printMessage';
 import { safeDownloadFilename } from '@/utils/downloadFilename';
 import { emlFilename, saveEmlFile } from '@/utils/saveEml';
 import { buildThreadEntries } from '@/utils/threadEntries';
@@ -175,7 +174,11 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     isError,
     refetch,
   } = useMessage(messageId);
-  const { data: threadData, refetch: refetchThread } = useThread(messageId);
+  const {
+    data: threadData,
+    refetch: refetchThread,
+    isPending: threadLoading,
+  } = useThread(messageId);
   const threadMessages = useMemo(
     () => threadData?.messages ?? [],
     [threadData],
@@ -184,17 +187,34 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     () => threadData?.unreadable ?? [],
     [threadData],
   );
+  const sortedThread = useMemo(() => {
+    if (threadMessages.length === 0)
+      return currentMessage ? [currentMessage] : [];
+    return [...threadMessages].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
+  }, [threadMessages, currentMessage]);
+
+  // What Archive, Delete, Spam and Snooze act on: the conversation's messages
+  // in the opened message's folder. Not the replies the user sent (they live in
+  // Sent) and not unsent drafts. It used to be the opened message alone, so
+  // archiving a conversation left the rest of it in the Inbox.
+  const folderConversation = useMemo(() => {
+    if (!currentMessage) return [];
+    const members = sortedThread.filter(
+      (m) => m.mailboxId === currentMessage.mailboxId && !m.flags.draft,
+    );
+    return members.some((m) => m._id === currentMessage._id) ? members : [...members, currentMessage];
+  }, [sortedThread, currentMessage]);
+
   const emailApi = useEmailStore((s) => s._api);
   const { data: mailboxes = [] } = useMailboxes();
   const { data: labels = [] } = useLabels();
-  const currentMailbox = useEmailStore((s) => s.currentMailbox);
   const toggleStar = useToggleStar();
-  const toggleRead = useToggleRead();
-  const archiveMutation = useArchiveMessage();
-  const deleteMutation = useDeleteMessage();
+  const messageActions = useMessageActions();
+  const { prefs } = useInboxPrefs();
   const updateLabels = useUpdateMessageLabels();
   const togglePin = useTogglePin();
-  const snoozeMutation = useSnoozeMessage();
 
   const [snoozeVisible, setSnoozeVisible] = useState(false);
   const [replyMode, setReplyMode] = useState<
@@ -215,11 +235,18 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
   // Get current user for stale thread detection
   const { user, oxyServices } = useOxy();
-  const userEmail = user?.email;
 
-  // Marking read is handled by the list tap (see InboxList.handleMessagePress),
-  // driven by the markReadOnOpen preference. The detail view intentionally does
-  // not mark read on open — a single, predictable path avoids double writes.
+  // Reading a conversation marks it read — here, once per conversation opened,
+  // whatever opened it. It used to be the list tap, which marked only the row's
+  // own message, and nothing at all for a search result or a notification.
+  const markedReadFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!prefs.markReadOnOpen || !currentMessage || markedReadFor.current === messageId) return;
+    // Wait for the conversation, or only the opened message would be marked.
+    if (threadLoading) return;
+    markedReadFor.current = messageId;
+    messageActions.setRead(sortedThread, true, { quiet: true });
+  }, [prefs.markReadOnOpen, currentMessage, messageId, threadLoading, sortedThread, messageActions]);
 
   const backFallback = pathname.startsWith('/search') ? '/search' : '/';
   const handleBack = useGoBack(backFallback);
@@ -237,60 +264,58 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const handleSnooze = useCallback(
     (until: Date) => {
       if (!messageId) return;
-      snoozeMutation.mutate({ messageId, until: until.toISOString() });
+      messageActions.snooze(folderConversation, until.toISOString());
       setSnoozeVisible(false);
       if (mode === 'standalone') handleBack();
     },
-    [messageId, snoozeMutation, handleBack, mode],
+    [messageId, messageActions, folderConversation, handleBack, mode],
   );
 
   const handleArchive = useCallback(() => {
     if (!messageId) return;
-    const archiveBox = mailboxes.find(
-      (m) => m.specialUse === SPECIAL_USE.ARCHIVE,
-    );
-    if (!archiveBox) {
+    if (!mailboxes.some((m) => m.specialUse === SPECIAL_USE.ARCHIVE)) {
       toast.error(t('inbox.toast.archiveUnavailable'));
       return;
     }
-    archiveMutation.mutate({ messageId, archiveMailboxId: archiveBox._id });
+    messageActions.archive(folderConversation);
     if (mode === 'standalone') handleBack();
-  }, [messageId, mailboxes, archiveMutation, handleBack, mode, t]);
+  }, [messageId, mailboxes, messageActions, folderConversation, handleBack, mode, t]);
 
   const handleDelete = useCallback(() => {
     if (!messageId) return;
-    const trashBox = mailboxes.find((m) => m.specialUse === SPECIAL_USE.TRASH);
-    const isInTrash = currentMailbox?.specialUse === SPECIAL_USE.TRASH;
-    deleteMutation.mutate({
-      messageId,
-      trashMailboxId: trashBox?._id,
-      isInTrash,
-    });
+    // Permanently or to Trash is decided per message from where it IS (see
+    // useMessageActions). It was decided from the folder last browsed: opened
+    // from a notification after visiting Trash, an Inbox message was destroyed.
+    messageActions.deleteConversation(folderConversation);
     if (mode === 'standalone') handleBack();
-  }, [messageId, mailboxes, currentMailbox, deleteMutation, handleBack, mode]);
+  }, [messageId, messageActions, folderConversation, handleBack, mode]);
 
   const handleMarkUnread = useCallback(() => {
-    if (!messageId) return;
-    toggleRead.mutate({ messageId, seen: false });
+    if (!currentMessage) return;
+    messageActions.setRead([currentMessage], false);
     moreMenuControl.close();
     if (mode === 'standalone') handleBack();
-  }, [messageId, toggleRead, handleBack, mode, moreMenuControl]);
+  }, [currentMessage, messageActions, handleBack, mode, moreMenuControl]);
 
   const handleMarkSpam = useCallback(() => {
     if (!messageId) return;
     const spamBox = mailboxes.find((m) => m.specialUse === SPECIAL_USE.SPAM);
-    if (spamBox) {
-      archiveMutation.mutate({ messageId, archiveMailboxId: spamBox._id });
-    }
     moreMenuControl.close();
+    if (!spamBox) {
+      toast.error(t('message.toast.spamUnavailable'));
+      return;
+    }
+    messageActions.moveTo(folderConversation, spamBox._id);
     if (mode === 'standalone') handleBack();
   }, [
     messageId,
     mailboxes,
-    archiveMutation,
+    messageActions,
+    folderConversation,
     handleBack,
     mode,
     moreMenuControl,
+    t,
   ]);
 
   const handleReply = useCallback(
@@ -341,13 +366,6 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   }, []);
 
   // Sort thread messages by date (oldest first for conversation view)
-  const sortedThread = useMemo(() => {
-    if (threadMessages.length === 0)
-      return currentMessage ? [currentMessage] : [];
-    return [...threadMessages].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-    );
-  }, [threadMessages, currentMessage]);
 
   // A reply answers the newest message that was actually sent or received —
   // never one of the user's own unsent drafts, which is what the footer's
@@ -375,14 +393,17 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     [sortedThread, threadUnreadable],
   );
 
-  /** The server's raw source of a message this client could not read. */
-  const handleOpenRaw = useCallback(
-    async (rawMessageId: string) => {
+  /**
+   * Save a message's source as `.eml`: the server's raw RFC 5322 export, with
+   * its attachments and its original encodings. It is also how a message this
+   * client could not read is opened.
+   */
+  const downloadSource = useCallback(
+    async (sourceId: string, subject: string | null | undefined) => {
       if (!emailApi) return;
-      const row = threadUnreadable.find((entry) => entry._id === rawMessageId);
       try {
-        const { content } = await emailApi.exportMessage(rawMessageId);
-        await saveEmlFile(content, emlFilename(row?.subject), t);
+        const { content } = await emailApi.exportMessage(sourceId);
+        await saveEmlFile(content, emlFilename(subject), t);
       } catch (err: unknown) {
         toast.error(
           err instanceof Error
@@ -391,11 +412,23 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         );
       }
     },
-    [emailApi, t, threadUnreadable],
+    [emailApi, t],
+  );
+
+  const handleOpenRaw = useCallback(
+    (rawMessageId: string) =>
+      downloadSource(
+        rawMessageId,
+        threadUnreadable.find((entry) => entry._id === rawMessageId)?.subject,
+      ),
+    [downloadSource, threadUnreadable],
   );
 
   // Detect stale threads that need a response
-  const staleInfo = useStaleThread(sortedThread, userEmail);
+  const staleInfo = useStaleThread(sortedThread, {
+    username: user?.username,
+    email: user?.email,
+  });
 
   // Resolve CID inline image references to signed File Manager URLs
   const resolvedHtmlMap = useCidResolver(sortedThread, oxyServices, messageId);
@@ -411,37 +444,46 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
   const handleAttachment = useCallback(
     async (fileId: string, filename: string) => {
-      try {
-        const url = await oxyServices.assets.url(fileId);
-        if (Platform.OS === 'web') {
-          window.open(url, '_blank', 'noopener,noreferrer');
-        } else {
-          const documentDirectory = FileSystem.documentDirectory;
-          if (!documentDirectory) {
-            await Linking.openURL(url);
-            return;
-          }
-          const localUri = documentDirectory + safeDownloadFilename(filename);
-          const { uri } = await FileSystem.downloadAsync(url, localUri);
-          if (await Sharing.isAvailableAsync()) {
-            await Sharing.shareAsync(uri);
-          } else {
-            await Linking.openURL(url);
-          }
-        }
-      } catch (error: unknown) {
+      if (Platform.OS === 'web') {
+        // The window is opened IN the tap, then pointed at the file once its
+        // signed URL arrives: opened after the await, it is a popup that
+        // Safari and strict blockers refuse — and nothing said so.
+        const tab = window.open('', '_blank');
         try {
           const url = await oxyServices.assets.url(fileId);
-          await Linking.openURL(url);
-        } catch (err: unknown) {
-          const message =
-            err instanceof Error
-              ? err.message
-              : error instanceof Error
-                ? error.message
-                : t('message.toast.attachmentFailed');
-          toast.error(message);
+          if (tab) {
+            tab.opener = null;
+            tab.location.href = url;
+          } else {
+            window.location.assign(url);
+          }
+        } catch (error: unknown) {
+          tab?.close();
+          toast.error(error instanceof Error ? error.message : t('message.toast.attachmentFailed'));
         }
+        return;
+      }
+      try {
+        const url = await oxyServices.assets.url(fileId);
+        // A cache file: the OS may reclaim it, nothing piles up in Documents.
+        const cacheDirectory = FileSystem.cacheDirectory;
+        if (!cacheDirectory) {
+          await Linking.openURL(url);
+          return;
+        }
+        const download = await FileSystem.downloadAsync(url, cacheDirectory + safeDownloadFilename(filename));
+        // An expired link or a refusal downloads an error page; never hand
+        // that to the share sheet as the user's file.
+        if (download.status < 200 || download.status >= 300) {
+          throw new Error(t('message.toast.attachmentFailed'));
+        }
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(download.uri);
+        } else {
+          await Linking.openURL(url);
+        }
+      } catch (error: unknown) {
+        toast.error(error instanceof Error ? error.message : t('message.toast.attachmentFailed'));
       }
     },
     [oxyServices, t],
@@ -462,57 +504,13 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
   const handlePrint = useCallback(() => {
     if (!currentMessage) return;
-    const subject = currentMessage.subject || '(no subject)';
-    const fromStr = currentMessage.from.name
-      ? `${currentMessage.from.name} <${currentMessage.from.address}>`
-      : currentMessage.from.address;
-    const toStr = currentMessage.to
-      .map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
-      .join(', ');
-    const ccStr =
-      currentMessage.cc
-        ?.map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
-        .join(', ') || '';
-    const dateStr = formatFullDate(currentMessage.date);
-    const bodyHtml =
-      currentMessage.html || `<pre>${currentMessage.text || ''}</pre>`;
-
-    const printHtml = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>${subject}</title>
-<style>
-  body { margin: 0; padding: 24px; background: #fff; color: #000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; line-height: 1.5; }
-  .header { border-bottom: 1px solid #ddd; padding-bottom: 16px; margin-bottom: 16px; }
-  .subject { font-size: 20px; font-weight: 400; margin: 0 0 12px 0; }
-  .field { margin: 2px 0; }
-  .label { font-weight: 600; display: inline-block; min-width: 50px; }
-  .body { margin-top: 16px; }
-  img { max-width: 100%; height: auto; }
-  @media print { body { padding: 0; } }
-</style>
-</head>
-<body>
-<div class="header">
-  <h1 class="subject">${subject}</h1>
-  <div class="field"><span class="label">From:</span> ${fromStr}</div>
-  <div class="field"><span class="label">To:</span> ${toStr}</div>
-  ${ccStr ? `<div class="field"><span class="label">Cc:</span> ${ccStr}</div>` : ''}
-  <div class="field"><span class="label">Date:</span> ${dateStr}</div>
-</div>
-<div class="body">${bodyHtml}</div>
-</body>
-</html>`;
+    const printHtml = buildPrintHtml(currentMessage, {
+      noSubject: t('message.detail.noSubject'),
+      date: formatFullDate(currentMessage.date),
+    });
 
     if (Platform.OS === 'web') {
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(printHtml);
-        printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
-      }
+      printHtmlOnWeb(printHtml);
     } else {
       (async () => {
         try {
@@ -526,78 +524,14 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     }
   }, [currentMessage, t]);
 
+  // It used to assemble the file itself: bodies declared quoted-printable but
+  // written raw (so every `=` in the HTML was decoded into garbage), no
+  // attachments, and unencoded non-ASCII headers.
   const handleDownloadEml = useCallback(() => {
     if (!currentMessage) return;
     moreMenuControl.close();
-
-    const subject = currentMessage.subject || '(no subject)';
-    const fromStr = currentMessage.from.name
-      ? `${currentMessage.from.name} <${currentMessage.from.address}>`
-      : currentMessage.from.address;
-    const toStr = currentMessage.to
-      .map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
-      .join(', ');
-    const ccStr =
-      currentMessage.cc
-        ?.map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
-        .join(', ') || '';
-    const dateStr = new Date(currentMessage.date).toUTCString();
-    const msgId =
-      currentMessage.messageId || `<${currentMessage._id}@inbox.oxy.so>`;
-    const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-
-    const textBody = currentMessage.text || '';
-    const htmlBody = currentMessage.html || '';
-
-    let mimeBody: string;
-    if (htmlBody && textBody) {
-      mimeBody = [
-        `Content-Type: multipart/alternative; boundary="${boundary}"`,
-        '',
-        `--${boundary}`,
-        'Content-Type: text/plain; charset=UTF-8',
-        'Content-Transfer-Encoding: quoted-printable',
-        '',
-        textBody,
-        '',
-        `--${boundary}`,
-        'Content-Type: text/html; charset=UTF-8',
-        'Content-Transfer-Encoding: quoted-printable',
-        '',
-        htmlBody,
-        '',
-        `--${boundary}--`,
-      ].join('\r\n');
-    } else if (htmlBody) {
-      mimeBody = [
-        'Content-Type: text/html; charset=UTF-8',
-        'Content-Transfer-Encoding: quoted-printable',
-        '',
-        htmlBody,
-      ].join('\r\n');
-    } else {
-      mimeBody = [
-        'Content-Type: text/plain; charset=UTF-8',
-        'Content-Transfer-Encoding: quoted-printable',
-        '',
-        textBody || '',
-      ].join('\r\n');
-    }
-
-    const headers = [
-      `From: ${fromStr}`,
-      `To: ${toStr}`,
-      ...(ccStr ? [`Cc: ${ccStr}`] : []),
-      `Subject: ${subject}`,
-      `Date: ${dateStr}`,
-      `Message-ID: ${msgId}`,
-      'MIME-Version: 1.0',
-    ].join('\r\n');
-
-    const emlContent = `${headers}\r\n${mimeBody}`;
-
-    void saveEmlFile(emlContent, emlFilename(subject), t);
-  }, [currentMessage, moreMenuControl, t]);
+    void downloadSource(currentMessage._id, currentMessage.subject);
+  }, [currentMessage, downloadSource, moreMenuControl]);
 
   // Label data for assigned labels (backend stores label names, not IDs)
   const assignedLabels = useMemo(() => {
@@ -701,7 +635,11 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
             onReplyAll: () => handleReplyAll(msg._id),
             onForward: () => handleForward(msg._id),
           }),
-      attachments: msg.attachments.map((attachment) => ({
+      // An inline image is part of an HTML body, not a file the sender
+      // attached. Without an HTML body it has nowhere else to appear.
+      attachments: msg.attachments
+        .filter((attachment) => !(msg.html && attachment.isInline && attachment.contentId))
+        .map((attachment) => ({
         id: attachment.fileId,
         name: attachment.name,
         onPress: () => handleAttachment(attachment.fileId, attachment.name),

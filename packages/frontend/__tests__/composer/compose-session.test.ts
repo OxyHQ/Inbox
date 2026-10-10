@@ -365,6 +365,17 @@ describe('the signature', () => {
     expect(result.current.body).toBe('Thanks!\n\n--\nNate');
   });
 
+  it('is left out of what AI reads and kept when AI rewrites the text above it', async () => {
+    getSettings.mockResolvedValue({ signature: 'Nate' });
+    const { result } = renderHook(() => useComposeSession(options({ insertSignature: true })));
+    await settle();
+    act(() => result.current.insertText('hey can u send it'));
+
+    expect(result.current.ownText).toBe('hey can u send it');
+    act(() => result.current.replaceOwnText('Could you send it, please?'));
+    expect(result.current.body).toBe('Could you send it, please?\n\n--\nNate');
+  });
+
   it('is not inserted into a reopened draft', async () => {
     getSettings.mockResolvedValue({ signature: 'Nate' });
     const { result } = renderHook(() =>

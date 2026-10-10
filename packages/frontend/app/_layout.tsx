@@ -174,15 +174,21 @@ function RootEffects() {
   useEffect(() => {
     void removeLegacyQueryCache();
   }, []);
+  // Read at the moment an update is found, so the toast is in the language
+  // the user has by then — without re-running the registration for it.
+  const tRef = useRef(t);
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
   useEffect(() => {
     if (Platform.OS !== 'web') return;
 
     registerServiceWorker(() => {
-      toast.info(t('inbox.toast.newVersionAvailable'));
+      toast.info(tRef.current('inbox.toast.newVersionAvailable'));
     });
 
     void clearQueue();
-  }, [t]);
+  }, []);
 
   return null;
 }

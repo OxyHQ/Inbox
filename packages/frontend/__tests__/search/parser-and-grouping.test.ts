@@ -1,6 +1,7 @@
 import type { Message } from '@/services/emailApi';
 import {
   collapseThreads,
+  groupThreads,
   formatSearchInterpretation,
   parseSearchQuery,
 } from '@/utils/threadGrouping';
@@ -102,5 +103,38 @@ describe('collapseThreads', () => {
     });
 
     expect(collapseThreads([baseMessage, second])).toHaveLength(2);
+  });
+});
+
+describe('groupThreads', () => {
+  it('keeps every message of a conversation, so an action on the row reaches them all', () => {
+    const olderUnread = message({ ...baseMessage, flags: { seen: false } });
+    const newerRead = message({
+      _id: 'message-2',
+      messageId: '<message-2@example.test>',
+      inReplyTo: '<message-1@example.test>',
+      date: '2026-01-03T00:00:00.000Z',
+      flags: { seen: true },
+    });
+
+    const [group] = groupThreads([newerRead, olderUnread]);
+
+    // The row is the newest message, shown unread because an older one is.
+    expect(group.row._id).toBe('message-2');
+    expect(group.row.flags.seen).toBe(false);
+    expect(group.members.map((m) => m._id).sort()).toEqual([baseMessage._id, 'message-2'].sort());
+  });
+});
+
+describe('groupThreads pin state', () => {
+  it('pins a conversation that holds a pinned message', () => {
+    const olderPinned = message({ ...baseMessage, flags: { pinned: true } });
+    const newer = message({
+      _id: 'message-2',
+      messageId: '<message-2@example.test>',
+      inReplyTo: '<message-1@example.test>',
+      date: '2026-01-03T00:00:00.000Z',
+    });
+    expect(groupThreads([olderPinned, newer])[0].row.flags.pinned).toBe(true);
   });
 });

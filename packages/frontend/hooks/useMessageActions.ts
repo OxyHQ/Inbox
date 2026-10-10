@@ -5,32 +5,36 @@
  * instead of wiring up individual mutations and resolving mailbox ids inline.
  * All cache logic lives in `utils/messageCache.ts` and the mutation hooks; this
  * layer only orchestrates.
+ *
+ * Actions take a CONVERSATION — every message it holds in the list or folder
+ * acted on (see `groupThreads`). A row in conversation view stands for all of
+ * them, and acting on the row's own message alone left the rest behind: the
+ * row came straight back after Archive, and a row shown unread because of an
+ * older message could not be marked read.
  */
 
 import { useCallback, useMemo } from 'react';
-import { useOxy } from '@oxy.so/services';
 import { toast } from '@oxy.so/bloom';
-import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
 import { useEmailStore } from '@/hooks/useEmail';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
 import { SPECIAL_USE } from '@/constants/mailbox';
-import { findCachedMessage } from '@/utils/messageCache';
-import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from '@/lib/i18n';
+import type { Message } from '@/services/emailApi';
 import {
-  useToggleRead,
-  useToggleStar,
-  useTogglePin,
   useArchiveMessage,
+  useBulkDeleteMessages,
+  useBulkMoveMessages,
+  useBulkUpdateFlags,
   useDeleteMessage,
   useSnoozeMessage,
+  useTogglePin,
+  useToggleRead,
+  useToggleStar,
   useUnsnoozeMessage,
 } from '@/hooks/mutations/useMessageMutations';
 
 export function useMessageActions() {
-  const { user } = useOxy();
-  const userId = user?.id ?? null;
-  const { prefs } = useInboxPrefs();
-  const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const { data: mailboxes = [] } = useMailboxes();
 
   const toggleRead = useToggleRead();
@@ -40,38 +44,31 @@ export function useMessageActions() {
   const deleteMutation = useDeleteMessage();
   const snoozeMutation = useSnoozeMessage();
   const unsnoozeMutation = useUnsnoozeMessage();
+  const bulkFlags = useBulkUpdateFlags();
+  const bulkMove = useBulkMoveMessages();
+  const bulkDelete = useBulkDeleteMessages();
 
-  const markAsRead = useCallback(
-    (messageId: string) => toggleRead.mutate({ messageId, seen: true }),
-    [toggleRead],
-  );
-
-  const markAsUnread = useCallback(
-    (messageId: string) => toggleRead.mutate({ messageId, seen: false }),
-    [toggleRead],
-  );
-
-  /** Mark read only if the cached message is currently unread. */
-  const markReadIfUnread = useCallback(
-    (messageId: string) => {
-      const cached = findCachedMessage(queryClient, messageId, userId);
-      if (cached && !cached.flags.seen) {
-        toggleRead.mutate({ messageId, seen: true });
+  /**
+   * Mark a conversation read or unread. Only the messages whose state changes
+   * are sent; `quiet` is for marking read on open, which needs no toast.
+   */
+  const setRead = useCallback(
+    (conversation: Message[], seen: boolean, { quiet = false }: { quiet?: boolean } = {}) => {
+      const changed = conversation.filter((m) => m.flags.seen !== seen && !m.flags.draft);
+      if (changed.length === 0) return;
+      if (changed.length === 1) {
+        toggleRead.mutate({ messageId: changed[0]._id, seen });
+        return;
       }
+      bulkFlags.mutate({ messageIds: changed.map((m) => m._id), flags: { seen }, quiet });
     },
-    [queryClient, userId, toggleRead],
+    [toggleRead, bulkFlags],
   );
 
-  /** Mark read (when pref is on) and set split-view selection before navigation. */
-  const prepareOpenMessage = useCallback(
-    (messageId: string) => {
-      if (prefs.markReadOnOpen) {
-        markReadIfUnread(messageId);
-      }
-      useEmailStore.setState({ selectedMessageId: messageId });
-    },
-    [prefs.markReadOnOpen, markReadIfUnread],
-  );
+  /** Set the split-view selection before navigation. Reading marks read (MessageDetail). */
+  const prepareOpenMessage = useCallback((messageId: string) => {
+    useEmailStore.setState({ selectedMessageId: messageId });
+  }, []);
 
   const star = useCallback(
     (messageId: string, starred: boolean) => toggleStar.mutate({ messageId, starred }),
@@ -83,29 +80,60 @@ export function useMessageActions() {
     [togglePin],
   );
 
-  const archive = useCallback(
-    (messageId: string) => {
-      const archiveBox = mailboxes.find((m) => m.specialUse === SPECIAL_USE.ARCHIVE);
-      if (!archiveBox) {
-        toast.error('Archive folder not available.');
+  const moveTo = useCallback(
+    (conversation: Message[], mailboxId: string) => {
+      if (conversation.length === 0) return;
+      if (conversation.length === 1) {
+        archiveMutation.mutate({ messageId: conversation[0]._id, archiveMailboxId: mailboxId });
         return;
       }
-      archiveMutation.mutate({ messageId, archiveMailboxId: archiveBox._id });
+      bulkMove.mutate({ messageIds: conversation.map((m) => m._id), mailboxId });
     },
-    [mailboxes, archiveMutation],
+    [archiveMutation, bulkMove],
   );
 
-  const deleteMessage = useCallback(
-    (messageId: string) => {
-      const trashBox = mailboxes.find((m) => m.specialUse === SPECIAL_USE.TRASH);
-      const isInTrash = useEmailStore.getState().currentMailbox?.specialUse === SPECIAL_USE.TRASH;
-      deleteMutation.mutate({ messageId, trashMailboxId: trashBox?._id, isInTrash });
+  const archive = useCallback(
+    (conversation: Message[]) => {
+      const archiveBox = mailboxes.find((m) => m.specialUse === SPECIAL_USE.ARCHIVE);
+      if (!archiveBox) {
+        toast.error(t('inbox.toast.archiveUnavailable'));
+        return;
+      }
+      moveTo(conversation, archiveBox._id);
     },
-    [mailboxes, deleteMutation],
+    [mailboxes, moveTo, t],
+  );
+
+  /**
+   * To Trash; a message already in Trash is deleted for good. Decided per
+   * message from where it IS, never from the folder last browsed.
+   */
+  const deleteConversation = useCallback(
+    (conversation: Message[]) => {
+      if (conversation.length === 0) return;
+      const trashBox = mailboxes.find((m) => m.specialUse === SPECIAL_USE.TRASH);
+      const inTrash = (m: Message) => !!trashBox && m.mailboxId === trashBox._id;
+      if (conversation.length === 1) {
+        deleteMutation.mutate({
+          messageId: conversation[0]._id,
+          trashMailboxId: trashBox?._id,
+          isInTrash: inTrash(conversation[0]),
+        });
+        return;
+      }
+      bulkDelete.mutate({
+        toTrash: conversation.filter((m) => !inTrash(m)).map((m) => m._id),
+        permanent: conversation.filter(inTrash).map((m) => m._id),
+        trashMailboxId: trashBox?._id,
+      });
+    },
+    [mailboxes, deleteMutation, bulkDelete],
   );
 
   const snooze = useCallback(
-    (messageId: string, until: string) => snoozeMutation.mutate({ messageId, until }),
+    (conversation: Message[], until: string) => {
+      for (const message of conversation) snoozeMutation.mutate({ messageId: message._id, until });
+    },
     [snoozeMutation],
   );
 
@@ -116,14 +144,13 @@ export function useMessageActions() {
 
   return useMemo(
     () => ({
-      markAsRead,
-      markAsUnread,
-      markReadIfUnread,
+      setRead,
       prepareOpenMessage,
       star,
       pin,
+      moveTo,
       archive,
-      deleteMessage,
+      deleteConversation,
       snooze,
       unsnooze,
       // Expose underlying mutations for pending/variables introspection.
@@ -135,17 +162,19 @@ export function useMessageActions() {
         deleteMutation,
         snoozeMutation,
         unsnoozeMutation,
+        bulkFlags,
+        bulkMove,
+        bulkDelete,
       },
     }),
     [
-      markAsRead,
-      markAsUnread,
-      markReadIfUnread,
+      setRead,
       prepareOpenMessage,
       star,
       pin,
+      moveTo,
       archive,
-      deleteMessage,
+      deleteConversation,
       snooze,
       unsnooze,
       toggleRead,
@@ -155,6 +184,9 @@ export function useMessageActions() {
       deleteMutation,
       snoozeMutation,
       unsnoozeMutation,
+      bulkFlags,
+      bulkMove,
+      bulkDelete,
     ],
   );
 }

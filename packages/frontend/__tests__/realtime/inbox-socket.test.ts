@@ -35,9 +35,11 @@ jest.mock('@oxy.so/bloom', () => ({ toast }));
 const setQueriesData = jest.fn();
 const setQueryData = jest.fn();
 const invalidateQueries = jest.fn();
+let cachedMailboxes: unknown[] = [];
+const getQueryData = jest.fn(() => cachedMailboxes);
 jest.mock('@tanstack/react-query', () => ({
   ...jest.requireActual('@tanstack/react-query'),
-  useQueryClient: () => ({ setQueriesData, setQueryData, invalidateQueries }),
+  useQueryClient: () => ({ setQueriesData, setQueryData, invalidateQueries, getQueryData }),
 }));
 
 let viewMode: unknown = null;
@@ -172,11 +174,19 @@ describe('email:unread_count', () => {
 });
 
 describe('email:changed', () => {
-  it('reconciles every view that shows mail, not only the mailbox lists', () => {
+  it('reconciles every view that shows mail, not only the mailbox lists, once per burst', () => {
+    jest.useFakeTimers();
     mount();
     // A draft sent from another device: it is deleted, and it may be open here,
     // in a conversation, in search results or in a bundle.
-    handlers.get('email:changed')!({ id: 'draft-1', mailboxIds: ['mb-drafts'], reason: 'deleted' });
+    for (let i = 0; i < 50; i++) {
+      handlers.get('email:changed')!({ id: `row-${i}`, mailboxIds: ['mb-drafts'], reason: 'deleted' });
+    }
+    expect(invalidateQueries).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(300);
+    jest.useRealTimers();
+    // One reconcile for the whole burst: six roots, once each.
+    expect(invalidateQueries).toHaveBeenCalledTimes(6);
     const keys = invalidateQueries.mock.calls.map(([filters]) => (filters as { queryKey: unknown[] }).queryKey[0]);
     expect(keys).toEqual(
       expect.arrayContaining(['messages', 'message', 'thread', 'search', 'bundles', 'mailboxes']),
@@ -188,5 +198,16 @@ describe('email:changed', () => {
     handlers.get('email:changed')!({ id: 'row-1', mailboxIds: 'not-an-array', reason: 'moved' });
     expect(invalidateQueries).not.toHaveBeenCalled();
     expect(recordInboxMetric).toHaveBeenCalledWith('realtime_malformed_event');
+  });
+});
+
+describe('email:new into spam', () => {
+  it('does not toast a sender whose mail was filed as spam', () => {
+    cachedMailboxes = [{ _id: 'mb-junk', specialUse: '\\Junk' }];
+    viewMode = null;
+    mount();
+    handlers.get('email:new')!({ ...emailNew, mailboxId: 'mb-junk', folder: 'spam' });
+    expect(toast.info).not.toHaveBeenCalled();
+    cachedMailboxes = [];
   });
 });

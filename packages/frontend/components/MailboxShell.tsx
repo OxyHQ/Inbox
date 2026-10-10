@@ -208,11 +208,23 @@ export function MailboxShell({ children }: { children: ReactNode }) {
 
   const handleConfirmDeleteFolder = useCallback(() => {
     if (!folderPendingDelete) return;
+    const deletedId = folderPendingDelete.id;
     deleteMailbox.mutate(
-      { mailboxId: folderPendingDelete.id },
-      { onSettled: () => setFolderPendingDelete(null) },
+      { mailboxId: deletedId },
+      {
+        onSuccess: () => {
+          // Deleting the folder on screen left the user on a dead view that
+          // then failed to load. Go to the Inbox instead.
+          const { viewMode } = useEmailStore.getState();
+          if (viewMode?.type === 'mailbox' && viewMode.mailbox._id === deletedId) {
+            useEmailStore.setState({ viewMode: null, currentMailbox: null, selectedMessageId: null });
+            router.replace('/');
+          }
+        },
+        onSettled: () => setFolderPendingDelete(null),
+      },
     );
-  }, [folderPendingDelete, deleteMailbox]);
+  }, [folderPendingDelete, deleteMailbox, router]);
 
   const handleSelect = useCallback(
     (mailbox: Mailbox & { specialUse: string }) => {

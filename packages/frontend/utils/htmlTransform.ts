@@ -28,6 +28,12 @@ const DANGEROUS_TAGS = [
   'animate',
   'animatetransform',
   'set',
+  // Foreign content. Inside <svg>/<math> a browser parses <style> as MARKUP,
+  // while this parser treats it as raw text: `<svg><style><img src=…>` reaches
+  // the page as a real <img> neither the sanitizer nor the image proxy saw.
+  // Mail clients (Gmail among them) do not render inline SVG either.
+  'svg',
+  'math',
 ];
 const DANGEROUS_URL_SCHEMES = /^(?:javascript|data|vbscript|file):/i;
 
@@ -121,7 +127,9 @@ function isExternalUrl(url: string): boolean {
     return false;
   }
 
-  if (url.startsWith('http://') || url.startsWith('https://')) {
+  // Case-insensitive: `HTTPS://tracker/p.gif` is a remote URL to a browser,
+  // and used to be left unproxied because it did not start with `https://`.
+  if (/^https?:\/\//i.test(url)) {
     try {
       const { hostname } = new URL(url);
       return !INTERNAL_DOMAINS.some((d) => hostname === d || hostname.endsWith(`.${d}`));
@@ -158,6 +166,9 @@ function proxySrcset(srcset: string, proxyBaseUrl: string): string {
     .join(', ');
 }
 
+/** Elements whose `src` the browser loads as soon as it is rendered. */
+const MEDIA_SRC_TAGS = new Set(['img', 'video', 'audio', 'source', 'track', 'image']);
+
 /**
  * Transform email HTML to route external images and fonts through our proxy.
  */
@@ -166,21 +177,38 @@ export function proxyExternalImages(html: string, proxyBaseUrl: string): string 
 
   const document = parseDocument(html);
   const rewriteImage = (value: string): string => {
-    const src = value.startsWith('//') ? `https:${value}` : value;
+    // Browsers trim URL attributes, so `src=" https://…"` loads a remote image.
+    const trimmed = value.trim();
+    const src = trimmed.startsWith('//') ? `https:${trimmed}` : trimmed;
     if (!/^https?:/i.test(src)) return src;
     const faviconUrl = resolveFaviconForImageUrl(src);
     return faviconUrl ?? (isMalformedRemoteImageUrl(src)
       ? TRANSPARENT_PIXEL
       : proxyableImageUrl(src) ? buildProxyUrl(src, proxyBaseUrl) : src);
   };
-  const rewriteCss = (value: string): string => value.replace(
-    /url\(\s*["']?([^"')]+)["']?\s*\)/gi,
-    (_match, url: string) => `url("${rewriteImage(url)}")`,
-  );
+  const rewriteCss = (value: string): string => value
+    .replace(
+      /url\(\s*["']?([^"')]+)["']?\s*\)/gi,
+      (_match, url: string) => `url("${rewriteImage(url)}")`,
+    )
+    // `image-set("https://…" 1x)` names images without `url()`.
+    .replace(/image-set\(([^)]*)\)/gi, (_match, inner: string) =>
+      `image-set(${inner.replace(
+        /(["'])((?:https?:)?\/\/[^"']+)\1/gi,
+        (_m: string, quote: string, url: string) => `${quote}${rewriteImage(url)}${quote}`,
+      )})`,
+    );
   const visit = (nodes: typeof document.children) => {
     for (const node of nodes) {
       if (!('attribs' in node)) continue;
-      if (node.name === 'img' && node.attribs.src) node.attribs.src = rewriteImage(node.attribs.src);
+      // Every attribute a browser fetches media from without a click.
+      if (MEDIA_SRC_TAGS.has(node.name) && node.attribs.src) node.attribs.src = rewriteImage(node.attribs.src);
+      if (node.attribs.poster) node.attribs.poster = rewriteImage(node.attribs.poster);
+      for (const name of ['href', 'xlink:href']) {
+        if (node.name !== 'a' && node.name !== 'area' && node.attribs[name]) {
+          node.attribs[name] = rewriteImage(node.attribs[name]);
+        }
+      }
       if (['img', 'source'].includes(node.name)) {
         for (const name of ['srcset', 'imagesrcset']) {
           if (node.attribs[name]) node.attribs[name] = proxySrcset(node.attribs[name], proxyBaseUrl);
@@ -201,17 +229,34 @@ export function proxyExternalImages(html: string, proxyBaseUrl: string): string 
 }
 
 /**
- * Replace cid: references in email HTML with actual attachment URLs.
+ * The form a Content-ID is compared in. The API stores the header as written,
+ * angle brackets included (`<logo@example.com>`), while the HTML references it
+ * bare and sometimes URL-encoded (`cid:logo%40example.com`); compared as given,
+ * the two never matched and every inline image in received mail was broken.
+ */
+export function normalizeContentId(value: string): string {
+  let id = value.trim();
+  if (id.toLowerCase().startsWith('cid:')) id = id.slice(4);
+  id = id.replace(/^<|>$/g, '');
+  try {
+    id = decodeURIComponent(id);
+  } catch {
+    // Not percent-encoded after all; compare as written.
+  }
+  return id.toLowerCase();
+}
+
+/**
+ * Replace cid: references in email HTML with actual attachment URLs: quoted
+ * and unquoted attributes, and CSS `url(cid:…)`. `cidMap` is keyed by
+ * `normalizeContentId`.
  */
 export function resolveCidImages(html: string, cidMap: Record<string, string>): string {
   if (!html || Object.keys(cidMap).length === 0) return html;
-  return html.replace(
-    /(['"])cid:([^'"]+)(['"])/gi,
-    (match, q1, cid, q2) => {
-      const url = cidMap[cid];
-      return url ? `${q1}${url}${q2}` : match;
-    },
-  );
+  return html.replace(/cid:([^\s"'()<>]+)/gi, (match, cid: string) => {
+    const url = cidMap[normalizeContentId(cid)];
+    return url ?? match;
+  });
 }
 
 /**

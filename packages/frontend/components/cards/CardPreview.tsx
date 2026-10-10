@@ -1,3 +1,4 @@
+import { formatMoney, formatCardDate } from '@/utils/cardFormat';
 /**
  * Compact single-line card preview for the inbox list.
  * Shows an icon + short summary text below the message snippet.
@@ -33,75 +34,35 @@ const CARD_CONFIG: Record<
 
 function getSummary(card: MessageCard): string {
   const d = card.data;
+  // A value the extractor got wrong is left out, never shown as "Invalid Date".
+  const day = (value: string | null | undefined) =>
+    formatCardDate(value, { month: 'short', day: 'numeric' });
+  const join = (parts: (string | null | undefined | false)[], fallback: string) =>
+    parts.filter(Boolean).join(' · ') || fallback;
   switch (card.type) {
-    case 'trip': {
-      const parts: string[] = [];
-      if (d.airline) parts.push(d.airline);
-      if (d.departure && d.arrival) parts.push(`${d.departure} → ${d.arrival}`);
-      if (d.departureTime) {
-        parts.push(
-          new Date(d.departureTime).toLocaleDateString(undefined, {
-            month: 'short',
-            day: 'numeric',
-          }),
-        );
-      }
-      return parts.join(' · ') || 'Trip details';
-    }
-    case 'purchase': {
-      const parts: string[] = [];
-      if (d.merchant) parts.push(d.merchant);
-      if (d.amount != null) {
-        parts.push(
-          new Intl.NumberFormat(undefined, {
-            style: 'currency',
-            currency: d.currency || 'USD',
-          }).format(d.amount),
-        );
-      }
-      return parts.join(' · ') || 'Purchase details';
-    }
-    case 'event': {
-      const parts: string[] = [];
-      if (d.title) parts.push(d.title);
-      if (d.startTime) {
-        parts.push(
-          new Date(d.startTime).toLocaleDateString(undefined, {
-            month: 'short',
-            day: 'numeric',
-          }),
-        );
-      }
-      return parts.join(' · ') || 'Event details';
-    }
+    case 'trip':
+      return join(
+        [
+          d.airline,
+          d.departure && d.arrival && `${d.departure} → ${d.arrival}`,
+          day(d.departureTime),
+        ],
+        'Trip details',
+      );
+    case 'purchase':
+      return join([d.merchant, d.amount != null && formatMoney(d.amount, d.currency)], 'Purchase details');
+    case 'event':
+      return join([d.title, day(d.startTime)], 'Event details');
     case 'bill': {
-      const parts: string[] = [];
-      if (d.biller) parts.push(d.biller);
-      if (d.amount != null) {
-        parts.push(
-          new Intl.NumberFormat(undefined, {
-            style: 'currency',
-            currency: d.currency || 'USD',
-          }).format(d.amount),
-        );
-      }
-      if (d.dueDate) {
-        parts.push(
-          `Due ${new Date(d.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`,
-        );
-      }
-      return parts.join(' · ') || 'Bill details';
+      const due = day(d.dueDate);
+      return join(
+        [d.biller, d.amount != null && formatMoney(d.amount, d.currency), due && `Due ${due}`],
+        'Bill details',
+      );
     }
     case 'package': {
-      const parts: string[] = [];
-      if (d.merchant) parts.push(d.merchant);
-      if (d.status) parts.push(d.status);
-      if (d.estimatedDelivery) {
-        parts.push(
-          `Est. ${new Date(d.estimatedDelivery).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`,
-        );
-      }
-      return parts.join(' · ') || 'Package details';
+      const eta = day(d.estimatedDelivery);
+      return join([d.merchant, d.status, eta && `Est. ${eta}`], 'Package details');
     }
     default:
       return '';

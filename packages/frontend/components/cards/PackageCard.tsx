@@ -1,3 +1,4 @@
+import { formatCardDate } from '@/utils/cardFormat';
 import { useColors } from '@/constants/theme';
 import type { CardData } from '@/services/emailApi';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -14,7 +15,7 @@ export function PackageCard({ data }: PackageCardProps) {
   const colors = useColors();
 
   const estimatedDelivery = data.estimatedDelivery
-    ? new Date(data.estimatedDelivery).toLocaleDateString(undefined, {
+    ? formatCardDate(data.estimatedDelivery, {
         weekday: 'short',
         month: 'short',
         day: 'numeric',

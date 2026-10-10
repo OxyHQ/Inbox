@@ -16,16 +16,21 @@
  *   change safe to pick up on the next reload without manual cache
  *   busting.
  *
- * - API calls (api.oxy.so, /api/*): network-only
+ * - Everything cross-origin, and any request carrying credentials: network-only
  *   Private responses are never stored or served by this worker. TanStack
  *   Query owns the authenticated offline cache and the SDK owns auth on
- *   replay; this worker must not capture bearer or CSRF headers.
+ *   replay; this worker must not capture bearer or CSRF headers. Excluding
+ *   only api.oxy.so was not enough: the Alia catalogue (api.alia.onl, with a
+ *   Bearer header) was cached and served by URL to whoever was signed in next.
  *
- * Bumping `CACHE_NAME` invalidates old shell caches on the next `activate`
- * event; any legacy API cache is deleted there as well.
+ * Bumping `CACHE_NAME` invalidates old caches on the next `activate` event.
+ * The cache is also bounded (`MAX_ENTRIES`): hashed bundles from earlier
+ * deploys are dropped oldest-first instead of accumulating forever.
  */
 
-const CACHE_NAME = 'inbox-v2';
+const CACHE_NAME = 'inbox-v3';
+const SHELL_KEY = '/index.html';
+const MAX_ENTRIES = 150;
 
 // App shell files cached on install. Keep this list short — large entries
 // here block the install step. Anything else gets cached on first fetch.
@@ -85,30 +90,55 @@ function getStrategy(request) {
   // flow and are never replayed by this worker.
   if (request.method !== 'GET') return 'network-only';
 
-  // Private API requests are deliberately never cached. This includes both
-  // same-origin `/api/*` routes and the authenticated Oxy API origin.
-  if (url.pathname.startsWith('/api/') || url.hostname === 'api.oxy.so') {
-    return 'network-only';
-  }
+  // Only this origin's public files are ever cached. Anything else — the Oxy
+  // and Alia APIs, the image proxy, fonts — is left to the browser.
+  if (url.origin !== self.location.origin) return 'network-only';
+  if (request.headers.has('authorization')) return 'network-only';
+  if (url.pathname.startsWith('/api/')) return 'network-only';
 
   // Static assets: stale-while-revalidate. Metro hashes filenames so old
   // entries are safe to keep until a new fetch replaces them.
   if (
     url.pathname.match(/\.(js|css|woff2?|ttf|otf|png|jpg|jpeg|gif|svg|ico|webp)$/) ||
     url.pathname.startsWith('/_expo/') ||
-    url.pathname.startsWith('/_next/static/') ||
     url.pathname.startsWith('/assets/')
   ) {
     return 'stale-while-revalidate';
   }
 
-  // Navigation / HTML: network-first (app shell fallback)
-  if (request.mode === 'navigate' || request.headers.get('accept')?.includes('text/html')) {
-    return 'network-first';
-  }
+  // Navigation: network-first, falling back to the one cached shell.
+  if (request.mode === 'navigate') return 'navigation';
 
-  // Default: network-first
   return 'network-first';
+}
+
+/** Drop the oldest entries beyond `MAX_ENTRIES` (keys are in insertion order). */
+async function trimCache(cache) {
+  const keys = await cache.keys();
+  const excess = keys.length - MAX_ENTRIES;
+  for (let i = 0; i < excess; i++) {
+    if (new URL(keys[i].url).pathname !== SHELL_KEY) await cache.delete(keys[i]);
+  }
+}
+
+/**
+ * Navigation: the network, else the cached shell. Every route is the same SPA
+ * shell, so it is stored ONCE under `/index.html` — storing each
+ * `/conversation/<id>` visited kept a copy of the shell per message opened.
+ */
+async function navigation(request) {
+  try {
+    const response = await fetch(request);
+    if (response.ok && response.headers.get('content-type')?.includes('text/html')) {
+      const cache = await caches.open(CACHE_NAME);
+      await cache.put(SHELL_KEY, response.clone());
+    }
+    return response;
+  } catch {
+    const shell = await caches.match(SHELL_KEY);
+    if (shell) return shell;
+    return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
+  }
 }
 
 /**
@@ -119,19 +149,13 @@ async function networkFirst(request, cacheName) {
     const response = await fetch(request);
     if (response.ok) {
       const cache = await caches.open(cacheName);
-      cache.put(request, response.clone());
+      await cache.put(request, response.clone());
+      void trimCache(cache);
     }
     return response;
   } catch {
     const cached = await caches.match(request);
     if (cached) return cached;
-
-    // For navigation requests, return cached app shell
-    if (request.mode === 'navigate') {
-      const shell = await caches.match('/index.html');
-      if (shell) return shell;
-    }
-
     return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
   }
 }
@@ -147,7 +171,7 @@ async function staleWhileRevalidate(request) {
   const fetchPromise = fetch(request)
     .then((response) => {
       if (response.ok) {
-        cache.put(request, response.clone());
+        void cache.put(request, response.clone()).then(() => trimCache(cache));
       }
       return response;
     })
@@ -166,6 +190,11 @@ self.addEventListener('fetch', (event) => {
 
   if (strategy === 'stale-while-revalidate') {
     event.respondWith(staleWhileRevalidate(event.request));
+    return;
+  }
+
+  if (strategy === 'navigation') {
+    event.respondWith(navigation(event.request));
     return;
   }
 
@@ -218,9 +247,14 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      // `navigate()` rejects for a window this worker does not control, which
+      // `includeUncontrolled` can return; the click then did nothing at all.
       const existing = clients.find((client) => client.url.startsWith(self.location.origin));
       if (existing && 'navigate' in existing) {
-        return existing.navigate(target).then(() => existing.focus());
+        return existing
+          .navigate(target)
+          .then((client) => (client ?? existing).focus())
+          .catch(() => self.clients.openWindow(target));
       }
       return self.clients.openWindow(target);
     }),

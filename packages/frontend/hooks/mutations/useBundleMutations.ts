@@ -58,50 +58,47 @@ export function useUpdateBundle() {
   });
 }
 
+/** The two `order` writes that move a bundle one place, or null at an end. */
+export function planBundleSwap(
+  bundles: Bundle[],
+  bundleId: string,
+  direction: 'up' | 'down',
+): { id: string; order: number }[] | null {
+  const sorted = [...bundles].sort((a, b) => a.order - b.order);
+  const idx = sorted.findIndex((b) => b._id === bundleId);
+  const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+  if (idx === -1 || swapIdx < 0 || swapIdx >= sorted.length) return null;
+  return [
+    { id: sorted[idx]._id, order: sorted[swapIdx].order },
+    { id: sorted[swapIdx]._id, order: sorted[idx].order },
+  ];
+}
+
 /**
  * Reorder a bundle by swapping its `order` with the adjacent bundle in the
  * given direction. Applies the swap optimistically to the `['bundles']`
  * cache, then persists both bundles' new order.
+ *
+ * The swap is planned ONCE, from the order before the optimistic update.
+ * `mutationFn` used to plan it again from the cache — which `onMutate` had
+ * already swapped — so "up" found no neighbour and sent nothing, and "down"
+ * swapped with the bundle two places away.
  */
 export function useReorderBundle() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  return useMutation({
-    mutationFn: async ({
-      bundleId,
-      direction,
-    }: {
-      bundleId: string;
-      direction: 'up' | 'down';
-    }) => {
+  const mutation = useMutation({
+    mutationFn: async ({ swap }: { swap: { id: string; order: number }[] }) => {
       if (!api) throw new Error('Email API not initialized');
-      const bundles = [...(queryClient.getQueryData<Bundle[]>(BUNDLES_KEY) ?? [])].sort(
-        (a, b) => a.order - b.order,
-      );
-      const idx = bundles.findIndex((b) => b._id === bundleId);
-      if (idx === -1) return;
-      const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-      if (swapIdx < 0 || swapIdx >= bundles.length) return;
-      const current = bundles[idx];
-      const neighbour = bundles[swapIdx];
-      await Promise.all([
-        api.updateBundle(current._id, { order: neighbour.order }),
-        api.updateBundle(neighbour._id, { order: current.order }),
-      ]);
+      await Promise.all(swap.map(({ id, order }) => api.updateBundle(id, { order })));
     },
-    onMutate: async ({ bundleId, direction }) => {
-      const { prev } = await optimisticBundles(queryClient, (bundles) => {
-        const sorted = [...bundles].sort((a, b) => a.order - b.order);
-        const idx = sorted.findIndex((b) => b._id === bundleId);
-        const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-        if (idx === -1 || swapIdx < 0 || swapIdx >= sorted.length) return bundles;
-        const currentOrder = sorted[idx].order;
-        sorted[idx] = { ...sorted[idx], order: sorted[swapIdx].order };
-        sorted[swapIdx] = { ...sorted[swapIdx], order: currentOrder };
-        return sorted;
-      });
+    onMutate: async ({ swap }) => {
+      const orders = new Map(swap.map(({ id, order }) => [id, order]));
+      const { prev } = await optimisticBundles(queryClient, (bundles) =>
+        bundles.map((b) => (orders.has(b._id) ? { ...b, order: orders.get(b._id)! } : b)),
+      );
       return { prev };
     },
     onError: (_err, _vars, context) => {
@@ -112,4 +109,14 @@ export function useReorderBundle() {
       queryClient.invalidateQueries({ queryKey: BUNDLES_KEY });
     },
   });
+
+  const { mutate } = mutation;
+  return {
+    ...mutation,
+    /** Move a bundle one place up or down. Nothing at either end. */
+    mutate: ({ bundleId, direction }: { bundleId: string; direction: 'up' | 'down' }) => {
+      const swap = planBundleSwap(queryClient.getQueryData<Bundle[]>(BUNDLES_KEY) ?? [], bundleId, direction);
+      if (swap) mutate({ swap });
+    },
+  };
 }

@@ -4,12 +4,14 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from '@oxy.so/bloom/accordion';
+import { Button } from '@oxy.so/bloom/button';
 import { Divider } from '@oxy.so/bloom/divider';
 import { RiSparklingLine } from '@oxy.so/bloom/icons';
 import { Loading } from '@oxy.so/bloom/loading';
 import { Text } from '@oxy.so/bloom/typography';
 import { useState } from 'react';
 import { View } from 'react-native';
+import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
 import { useThreadSummary } from '@/hooks/queries/useThreadSummary';
 import { useTranslation } from '@/lib/i18n';
 import type { Message } from '@/services/emailApi';
@@ -20,18 +22,46 @@ interface ThreadSummaryProps {
   minMessages?: number;
 }
 
+/**
+ * An AI summary of the open conversation, on request. It used to run for every
+ * conversation opened, with no setting to stop it, while the AI settings page
+ * said only the Daily Brief and Smart Reply used inference. Now it is a button,
+ * behind its own preference, and nothing leaves until it is pressed.
+ */
 export function ThreadSummary({
   messageId,
   messages,
   minMessages = 1,
 }: ThreadSummaryProps) {
   const { t } = useTranslation();
+  const { prefs } = useInboxPrefs();
   const [expanded, setExpanded] = useState(true);
+  // Per conversation: opening another one asks again.
+  const [requestedFor, setRequestedFor] = useState<string | null>(null);
+  const requested = requestedFor === messageId;
   const { summary, keyPoints, actionItems, isLoading, error } =
-    useThreadSummary(messageId, messages, { minMessages });
-  if (messages.length < minMessages) return null;
+    useThreadSummary(messageId, messages, {
+      minMessages,
+      enabled: prefs.aiThreadSummary && requested,
+    });
+  if (!prefs.aiThreadSummary || messages.length < minMessages) return null;
+  if (!requested) {
+    return (
+      <View className="w-full max-w-3xl items-start">
+        <Button
+          appearance="subtle"
+          leadingIcon={RiSparklingLine}
+          onPress={() => setRequestedFor(messageId)}
+        >
+          {t('threadSummary.summarize')}
+        </Button>
+      </View>
+    );
+  }
   if (isLoading) return <Loading text={t('threadSummary.title')} />;
-  if (error || (!summary.trim() && keyPoints.length === 0 && actionItems.length === 0))
+  // Asked for, so a failure is said rather than the button just vanishing.
+  if (error) return <Text>{t('threadSummary.unavailable')}</Text>;
+  if (!summary.trim() && keyPoints.length === 0 && actionItems.length === 0)
     return null;
   return (
     <View className="w-full max-w-3xl">

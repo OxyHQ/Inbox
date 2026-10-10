@@ -1,3 +1,5 @@
+import { TextFieldInput } from '@oxy.so/bloom/text-field';
+import { parseByteSize } from '@/utils/byteSize';
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
 import { OutboundQueueSection } from '@/components/settings/OutboundQueueSection';
 import {
@@ -32,7 +34,6 @@ import {
   RiEditLine,
 } from '@oxy.so/bloom/icons';
 import {
-  SettingsTextField,
   SettingsProfilePage,
 } from '@oxy.so/bloom/settings-modal';
 import { Switch } from '@oxy.so/bloom/switch';
@@ -173,6 +174,7 @@ export function AdvancedSection() {
   const filterValid = useMemo(() => {
     if (!filterName.trim()) return false;
     if (filterField === 'has-attachment') return true;
+    if (filterField === 'size') return parseByteSize(filterValue) !== null;
     return filterValue.trim().length > 0;
   }, [filterName, filterField, filterValue]);
 
@@ -184,7 +186,11 @@ export function AdvancedSection() {
         : {
             field: filterField,
             operator: filterOperator,
-            value: filterValue.trim(),
+            // The API compares bytes; "5 MB" is sent as 5242880.
+            value:
+              filterField === 'size'
+                ? String(parseByteSize(filterValue))
+                : filterValue.trim(),
           };
     const action: EmailFilterAction = { type: filterAction };
     createFilter.mutate(
@@ -443,11 +449,10 @@ export function AdvancedSection() {
                 key: 'name',
                 label: t('ui.settings.advanced.filterName'),
                 control: (
-                  <SettingsTextField
+                  <TextFieldInput
                     label={t('ui.settings.advanced.filterName')}
                     value={filterName}
-                    onCommit={setFilterName}
-                    showSavedToast={false}
+                    onChangeText={setFilterName}
                   />
                 ),
               },
@@ -481,14 +486,15 @@ export function AdvancedSection() {
                       key: 'value',
                       label: t('ui.settings.advanced.value'),
                       control: (
-                        <SettingsTextField
+                        <TextFieldInput
                           label={t('ui.settings.advanced.value')}
                           value={filterValue}
-                          onCommit={setFilterValue}
-                          keyboardType={
-                            filterField === 'size' ? 'numeric' : 'default'
+                          onChangeText={setFilterValue}
+                          placeholder={
+                            filterField === 'size'
+                              ? t('ui.settings.advanced.sizePlaceholder')
+                              : undefined
                           }
-                          showSavedToast={false}
                         />
                       ),
                     },
@@ -575,11 +581,10 @@ export function AdvancedSection() {
                 key: 'name',
                 label: t('ui.settings.advanced.templateName'),
                 control: (
-                  <SettingsTextField
+                  <TextFieldInput
                     label={t('ui.settings.advanced.templateName')}
                     value={templateName}
-                    onCommit={setTemplateName}
-                    showSavedToast={false}
+                    onChangeText={setTemplateName}
                   />
                 ),
               },
@@ -587,11 +592,10 @@ export function AdvancedSection() {
                 key: 'subject',
                 label: t('ui.settings.advanced.subjectOptional'),
                 control: (
-                  <SettingsTextField
+                  <TextFieldInput
                     label={t('ui.settings.advanced.subjectOptional')}
                     value={templateSubject}
-                    onCommit={setTemplateSubject}
-                    showSavedToast={false}
+                    onChangeText={setTemplateSubject}
                   />
                 ),
               },

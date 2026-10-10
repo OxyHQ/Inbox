@@ -64,6 +64,15 @@ export function useKeyboardShortcuts(config: KeyboardShortcutsConfig) {
         return;
       }
 
+      // Nothing behind an open dialog: with Settings or the AI draft dialog
+      // open and a button focused, `#` deleted the message selected behind it.
+      if (
+        target.closest?.('[role="dialog"], [aria-modal="true"]') ||
+        document.querySelector('[aria-modal="true"]')
+      ) {
+        return;
+      }
+
       // Don't trigger shortcuts with modifier keys (except shift for some)
       if (event.ctrlKey || event.metaKey || event.altKey) {
         return;

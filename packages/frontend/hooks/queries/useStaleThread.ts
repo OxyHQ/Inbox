@@ -9,6 +9,7 @@
 
 import { useMemo } from 'react';
 import type { Message } from '@/services/emailApi';
+import { isOwnAddress, type OwnIdentity } from '@/utils/replyRecipients';
 
 export interface StaleThreadInfo {
   isStale: boolean;
@@ -43,16 +44,23 @@ function getDaysSince(dateStr: string): number {
  * Detects if a thread is stale and needs attention.
  *
  * @param messages - All messages in the thread (sorted by date)
- * @param currentUserEmail - The current user's email address
+ * @param identity - The user's username and account email: every address that is theirs
  * @param staleThresholdDays - Number of days before considered stale (default: 3)
  */
 export function useStaleThread(
   messages: Message[],
-  currentUserEmail: string | undefined,
+  identity: OwnIdentity,
   staleThresholdDays = STALE_DAYS_THRESHOLD
 ): StaleThreadInfo | null {
+  const { username, email } = identity;
   return useMemo(() => {
-    if (!messages.length || !currentUserEmail) return null;
+    const identity = { username, email };
+    // Every address that is the user's: mail is addressed to `<username>@oxy.so`,
+    // and comparing with the account's `email` alone (often external, or unset)
+    // meant this banner almost never showed — or showed after a reply sent from
+    // the oxy.so address.
+    const own = (address: string) => isOwnAddress(address, identity);
+    if (!messages.length || (!identity.username && !identity.email)) return null;
 
     // Sort by date (newest first)
     const sorted = [...messages].sort(
@@ -62,19 +70,16 @@ export function useStaleThread(
     const latestMessage = sorted[0];
 
     // If the latest message is FROM the current user, it's not stale (they already replied)
-    const latestFromUser =
-      latestMessage.from.address.toLowerCase() === currentUserEmail.toLowerCase();
+    const latestFromUser = own(latestMessage.from.address);
 
     if (latestFromUser) {
       return null;
     }
 
     // Check if the latest message is addressed TO the user
-    const isAddressedToUser = latestMessage.to.some(
-      (addr) => addr.address.toLowerCase() === currentUserEmail.toLowerCase()
-    ) || latestMessage.cc?.some(
-      (addr) => addr.address.toLowerCase() === currentUserEmail.toLowerCase()
-    );
+    const isAddressedToUser =
+      latestMessage.to.some((addr) => own(addr.address)) ||
+      latestMessage.cc?.some((addr) => own(addr.address));
 
     if (!isAddressedToUser) {
       return null;
@@ -113,5 +118,5 @@ export function useStaleThread(
           ? 'You haven\'t replied to this email yet'
           : `You haven\'t replied in ${daysSince} days`,
     };
-  }, [messages, currentUserEmail, staleThresholdDays]);
+  }, [messages, username, email, staleThresholdDays]);
 }

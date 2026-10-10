@@ -27,7 +27,7 @@ const LOG_CONTEXT = { component: 'usePushRegistration' } as const;
 
 export function usePushRegistration(): void {
   const { t } = useTranslation();
-  const { prefs } = useInboxPrefs();
+  const { prefs, loaded } = useInboxPrefs();
   const { canUsePrivateApi, user, oxyServices, sessionClient } = useOxy();
 
   const enabled = prefs.pushNotifications;
@@ -39,10 +39,26 @@ export function usePushRegistration(): void {
    */
   const registeredTokenRef = useRef<string | null>(null);
 
+  // The channel's name and description are read when registering, not
+  // depended on: with `t` in the dependencies, every language change (the
+  // account's locale resolving after sign-in, for one) tore the registration
+  // down — unregistering the token — and registered it again, and when the
+  // unregister landed last the device stopped receiving push.
+  const channelRef = useRef({ name: '', description: '' });
+  useEffect(() => {
+    channelRef.current = {
+      name: t('notifications.push.channel.name'),
+      description: t('notifications.push.channel.description'),
+    };
+  }, [t]);
+
   useEffect(() => {
     // `canUsePrivateApi` is the SDK's own "a usable bearer is planted" verdict.
     // Waiting for it avoids racing the device-first cold boot with a doomed 401.
-    if (!enabled || !canUsePrivateApi || !userId) {
+    // `loaded`: until the stored preference is read, `enabled` is the default
+    // (on) — a user who turned push off was registered on every cold start,
+    // then unregistered a moment later.
+    if (!loaded || !enabled || !canUsePrivateApi || !userId) {
       return;
     }
 
@@ -65,10 +81,7 @@ export function usePushRegistration(): void {
       try {
         const outcome = await registerInboxPushToken(
           oxyServices.notifications,
-          {
-            name: t('notifications.push.channel.name'),
-            description: t('notifications.push.channel.description'),
-          },
+          channelRef.current,
           sessionClient?.getState()?.deviceId,
         );
 
@@ -105,5 +118,5 @@ export function usePushRegistration(): void {
         retire(expoPushToken);
       }
     };
-  }, [enabled, canUsePrivateApi, userId, oxyServices, sessionClient, t]);
+  }, [loaded, enabled, canUsePrivateApi, userId, oxyServices, sessionClient]);
 }

@@ -6,7 +6,17 @@ import type { LocaleDict } from '../types';
  * Tone: polite, modern Japanese — matches the rest of the Oxy ecosystem.
  */
 const ja: LocaleDict = {
+  notifications: {
+    push: {
+      channel: {
+        description: '新着メールの通知',
+        name: 'メール',
+      },
+    },
+  },
   common: {
+    undo: '元に戻す',
+    sending: '送信中…',
     cancel: 'キャンセル',
     save: '保存',
     ok: 'OK',
@@ -137,7 +147,13 @@ const ja: LocaleDict = {
   },
 
 
+  label: {
+    notFound: 'ラベルが見つかりません',
+  },
+
   inbox: {
+    resizePanes: 'パネルのサイズを変更',
+    loadErrorTitle: 'メールを読み込めませんでした',
     unreadable: {
       section: "表示できません",
       title: "このメッセージを表示できませんでした",
@@ -232,6 +248,7 @@ const ja: LocaleDict = {
       empty: 'ラベルはまだありません',
     },
     toast: {
+      spamUnavailable: '移動先の迷惑メールフォルダがありません。',
       attachmentFailed: '添付ファイルをダウンロードできませんでした。',
       fileSystemUnavailable: 'このデバイスではファイルシステムを利用できません。',
       sharingUnavailable: 'このデバイスでは共有できません。',
@@ -391,6 +408,10 @@ const ja: LocaleDict = {
   },
 
   ai: {
+    toast: {
+      keptYourEdits: '入力が続いたため、テキストはそのままにしました。',
+      applied: 'AI で書き直しました。',
+    },
     toolbar: {
       draft: '下書き',
       polish: '推敲',
@@ -411,6 +432,7 @@ const ja: LocaleDict = {
   },
 
   threadSummary: {
+    summarize: '要約する',
     title: 'スレッドの要約',
     messages_one: 'メッセージ {{count}} 件',
     messages_other: 'メッセージ {{count}} 件',
@@ -625,6 +647,10 @@ const ja: LocaleDict = {
   },
 
   ui: {
+    error: {
+      description: 'Inbox のこの部分を表示できませんでした。メールは安全です。',
+      title: '問題が発生しました',
+    },
     me: 'Me',
     settings: {
       landing: {
@@ -649,6 +675,7 @@ const ja: LocaleDict = {
         },
       },
       account: {
+        saveFailed: '設定を保存できませんでした。',
         signature: 'Signature', signaturePlaceholder: 'Appended to every outgoing message',
         autoReply: 'Auto-reply', autoReplyEnable: 'Enable auto-reply',
         subjectPlaceholder: 'Subject', messagePlaceholder: "Message — explain when you'll be back.",
@@ -663,6 +690,7 @@ const ja: LocaleDict = {
         accentColor: 'Accent color',
       },
       notifications: {
+        deviceNotice: 'システムの通知許可はデバイスの設定で管理します。',
         alerts: 'Alerts', push: 'Push notifications', pushDescription: 'Get notified when new messages arrive.',
         digest: 'Daily email digest', digestDescription: 'A summary of unread messages, once per day.',
         sound: 'Sound', playSound: 'Play sound', soundDescription: 'A short chime on new messages.',
@@ -692,12 +720,13 @@ const ja: LocaleDict = {
         your: 'Your contacts', search: 'Search contacts', edit: 'Edit {{name}}', delete: 'Delete {{name}}', editContact: 'Edit contact', addContact: 'Add contact', name: 'Name', email: 'Email', company: 'Company (optional)', notes: 'Notes (optional)', star: 'Star this contact', saving: 'Saving…', adding: 'Adding…', saveChanges: 'Save changes', deleteTitle: 'Delete contact?', deleteDescription: '"{{name}}" will be removed from your contacts.', noMatch: 'No contacts match your search.', empty: 'No contacts yet. Add your frequent recipients below for faster composing.',
       },
       ai: {
-        dailyBrief: 'Daily Brief', recap: 'Inbox recap', recapDescription: "A short summary generated from your inbox counts (unread, starred, attachments). It doesn't read message contents.", smartReply: 'Smart Reply', suggestions: 'One-tap suggestions', suggestionsDescription: 'Three context-aware reply chips above the message, generated through Oxy and Kaana.', priority: 'Priority flags', priorityTitle: 'Highlight likely-urgent mail', priorityDescription: 'Flag messages as Urgent, Action needed, or Important using on-device keyword heuristics — not a full AI model.', tip: 'Priority flags run on-device from keyword heuristics. Daily Brief and Smart Reply use bounded Oxy inference through Kaana; Ask Alia remains the separate agent.',
+        dailyBrief: 'Daily Brief', recap: 'Inbox recap', recapDescription: "A short summary generated from your inbox counts (unread, starred, attachments). It doesn't read message contents.", smartReply: 'Smart Reply', summary: 'Conversation summary', summaryTitle: 'Offer a summary', summaryDescription: 'Shows a Summarize button on conversations. A conversation is sent to Oxy and Kaana only when you press it.', suggestions: 'One-tap suggestions', suggestionsDescription: 'Three context-aware reply chips above the message, generated through Oxy and Kaana.', priority: 'Priority flags', priorityTitle: 'Highlight likely-urgent mail', priorityDescription: 'Flag messages as Urgent, Action needed, or Important using on-device keyword heuristics — not a full AI model.', tip: 'Priority flags run on-device from keyword heuristics. Daily Brief, Smart Reply and conversation summaries use bounded Oxy inference through Kaana; Ask Alia remains the separate agent.',
       },
       storage: {
         usage: 'Mailbox usage', local: 'Local cache', nearlyFull: "You're nearly out of space. Old messages will start to bounce when the quota is full.", localDescription: "The most recent 100 messages are cached on this device for fast offline access. Attachments are downloaded on demand and cleaned up automatically — there's nothing to manage manually today.", free: '{{value}} free',
       },
       advanced: {
+        sizePlaceholder: '例: 5 MB',
         contains: 'contains', equals: 'equals', notContains: "doesn't contain", startsWith: 'starts with', endsWith: 'ends with', largerThan: 'larger than (bytes)', smallerThan: 'smaller than (bytes)',
         filters: 'Filters & rules', noFilters: 'No filters yet. Filters automatically apply actions like archiving, starring, or marking read to incoming messages.', filterName: 'Filter name', whenMessage: "When a message's", sizeBytes: 'Size in bytes', value: 'Value', then: 'then', creating: 'Creating…', addFilter: 'Add filter', editingTemplate: 'Editing template', templates: 'Templates', templateName: 'Template name', subjectOptional: 'Subject (optional)', templateBody: 'Template body', saveChanges: 'Save changes', addTemplate: 'Add template', bundles: 'Bundles', bundleHint: 'Bundles group related mail automatically. Toggle to enable and reorder how they stack in your inbox.', import: 'Import', importDescription: 'Import emails from .eml files. Imported messages land in your Inbox and can be moved or labelled like any other mail.', importing: 'Importing…', importButton: 'Choose .eml files', imported: 'Imported {{imported}} of {{total}} email(s).', conditions: '{{conditions}} condition(s) · {{actions}} action(s)', deleteFilter: 'Delete {{name}}', editTemplate: 'Edit {{name}}', deleteTemplate: 'Delete {{name}}', moveUp: 'Move {{name}} up', moveDown: 'Move {{name}} down',
       },
@@ -706,7 +735,7 @@ const ja: LocaleDict = {
     drawer: { unread: '{{name}}, {{count}} unread', labels: 'Labels', folders: 'Folders', createFolder: 'Create folder', folderHint: 'Tap + to create a folder. Long-press a folder to delete it.', signedOutTitle: 'Sign in to manage your email', signedOutSubtitle: 'Access your mailboxes, labels, and compose new messages.', notSignedIn: 'Not signed in', newFolder: 'New folder', folderName: 'Folder name', creatingFolder: 'Creating…', createFolderButton: 'Create folder', deleteFolderTitle: 'Delete folder?', deleteFolderDescription: '"{{name}}" and its organization will be removed. Messages inside are not deleted.' },
     event: { sharingUnavailable: 'Sharing is unavailable. Try "Google Calendar" instead.', openFailed: 'Could not open the calendar file.' },
     message: { loadError: "Couldn't load this message", loadErrorDescription: 'Check your connection and try again.', notFound: 'Message not found', notFoundDescription: 'This message may have been deleted or moved.', conversationMessages_one: '{{count}} message in this conversation', conversationMessages_other: '{{count}} messages in this conversation', summaryTitle: 'Generate AI thread summary', summaryDescription: 'Oxy sends bounded conversation context to Kaana for summarization.' },
-    mutations: { bundleUpdateFailed: 'Failed to update bundle.', bundleReorderFailed: 'Failed to reorder bundle.', contactCreateFailed: 'Failed to create contact', contactUpdateFailed: 'Failed to update contact', contactDeleteFailed: 'Failed to delete contact', filterCreateFailed: 'Failed to create filter', filterUpdateFailed: 'Failed to update filter', filterDeleteFailed: 'Failed to delete filter', mailboxCreated: 'Folder created.', mailboxCreateFailed: 'Failed to create folder.', mailboxDeleted: 'Folder deleted.', mailboxDeleteFailed: 'Failed to delete folder.', reminderCreateFailed: 'Failed to create reminder', reminderUpdateFailed: 'Failed to update reminder', reminderDeleteFailed: 'Failed to delete reminder', templateCreateFailed: 'Failed to create template', templateUpdateFailed: 'Failed to update template', templateDeleteFailed: 'Failed to delete template', labelCreateFailed: 'Failed to create label.', labelUpdateFailed: 'Failed to update label.', labelDeleteFailed: 'Failed to delete label.', unsubscribeFailed: 'Failed to unsubscribe' },
+    mutations: { starFailed: 'スターを更新できませんでした。', readFailed: '既読状態を更新できませんでした。', archived: 'スレッドをアーカイブしました。', archiveFailed: 'スレッドをアーカイブできませんでした。', deleteFailed: 'スレッドを削除できませんでした。', deletedForever: 'スレッドを完全に削除しました。', trashed: 'スレッドをゴミ箱に移動しました。', sending: 'メッセージを送信中…', sendCancelled: 'メッセージを取り消しました。', labelsFailed: 'ラベルを更新できませんでした。', pinFailed: '固定できませんでした。', snoozed: 'メッセージをスヌーズしました。', snoozeFailed: 'メッセージをスヌーズできませんでした。', unsnoozed: 'スヌーズを解除しました。', unsnoozeFailed: 'スヌーズを解除できませんでした。', bulkFailed: 'メッセージを更新できませんでした。', bulkUpdated: 'メッセージを更新しました。', moveFailed: 'メッセージを移動できませんでした。', queuedDescription: 'まだ配信されていません。設定 → 詳細 → 配信キューで確認できます。', retryQueued: '再送信キューに追加しました。', retryFailed: '再送信できませんでした。', queuedCancelled: 'キューのメッセージを取り消しました。', cancelFailed: 'メッセージを取り消せませんでした。', bundleUpdateFailed: 'Failed to update bundle.', bundleReorderFailed: 'Failed to reorder bundle.', contactCreateFailed: 'Failed to create contact', contactUpdateFailed: 'Failed to update contact', contactDeleteFailed: 'Failed to delete contact', filterCreateFailed: 'Failed to create filter', filterUpdateFailed: 'Failed to update filter', filterDeleteFailed: 'Failed to delete filter', mailboxCreated: 'Folder created.', mailboxCreateFailed: 'Failed to create folder.', mailboxDeleted: 'Folder deleted.', mailboxDeleteFailed: 'Failed to delete folder.', reminderCreateFailed: 'Failed to create reminder', reminderUpdateFailed: 'Failed to update reminder', reminderDeleteFailed: 'Failed to delete reminder', templateCreateFailed: 'Failed to create template', templateUpdateFailed: 'Failed to update template', templateDeleteFailed: 'Failed to delete template', labelCreateFailed: 'Failed to create label.', labelUpdateFailed: 'Failed to update label.', labelDeleteFailed: 'Failed to delete label.', unsubscribeFailed: 'Failed to unsubscribe' },
   },
 
   auth: {

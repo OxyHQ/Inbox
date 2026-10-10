@@ -115,7 +115,13 @@ export function useTranslation(): UseTranslationResult {
       const fromCore = coreTranslate(locale, resolvedKey, vars);
       if (fromCore !== resolvedKey) return fromCore;
 
-      // Both layers missed — return the original key for visibility.
+      // A string not translated yet is shown in English, never as its key: a
+      // missing key used to reach users verbatim — "notifications.push.channel.name"
+      // as the Android notification channel's name in nine languages.
+      const english = lookup(INBOX_DICTS['en-US'], pluralizeKey(key, vars, INBOX_DICTS['en-US']));
+      if (english != null) return interpolate(english, vars);
+
+      // Every layer missed — return the original key for visibility.
       return key;
     },
     [dict, locale],

@@ -3,120 +3,41 @@ import { RiCalendarLine } from '@oxy.so/bloom/icons';
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';
 import type { CardData } from '@/services/emailApi';
+import { calendarTimes, generateIcs, googleCalendarUrl } from '@/utils/calendarEvent';
+import { formatCardDate } from '@/utils/cardFormat';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { toast } from '@oxy.so/bloom';
 import { Card, CardBody, CardHeader, CardTitle } from '@oxy.so/bloom/card';
 import { Text } from '@oxy.so/bloom/typography';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Linking, Platform, StyleSheet, View } from 'react-native';
 
 interface EventCardProps {
   data: CardData;
 }
 
-/**
- * Format a Date as an iCalendar DTSTART/DTEND value (UTC).
- * Returns e.g. "20260415T090000Z"
- */
-function toIcsDate(date: Date): string {
-  return date
-    .toISOString()
-    .replace(/[-:]/g, '')
-    .replace(/\.\d{3}/, '');
-}
-
-/**
- * Generate an iCalendar (.ics) file content string from event data.
- */
-function generateIcs(data: CardData): string {
-  const start = data.startTime ? new Date(data.startTime) : new Date();
-  // Default to 1 hour duration if no end time
-  const end = data.endTime
-    ? new Date(data.endTime)
-    : new Date(start.getTime() + 60 * 60 * 1000);
-
-  const escapeIcs = (s: string) =>
-    s
-      .replace(/\\/g, '\\\\')
-      .replace(/;/g, '\\;')
-      .replace(/,/g, '\\,')
-      .replace(/\n/g, '\\n');
-
-  const lines: string[] = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Oxy Inbox//EN',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
-    'BEGIN:VEVENT',
-    `DTSTART:${toIcsDate(start)}`,
-    `DTEND:${toIcsDate(end)}`,
-  ];
-
-  if (data.title) lines.push(`SUMMARY:${escapeIcs(data.title)}`);
-  if (data.location) lines.push(`LOCATION:${escapeIcs(data.location)}`);
-
-  // Combine description and organizer into a single DESCRIPTION field
-  const descParts: string[] = [];
-  if (data.description) descParts.push(data.description);
-  if (data.organizer) descParts.push(`Organizer: ${data.organizer}`);
-  if (descParts.length > 0)
-    lines.push(`DESCRIPTION:${escapeIcs(descParts.join('\\n'))}`);
-
-  lines.push('END:VEVENT', 'END:VCALENDAR');
-
-  return lines.join('\r\n');
-}
-
-/**
- * Build a Google Calendar "Add Event" URL from event data.
- */
-function buildGoogleCalendarUrl(data: CardData): string {
-  const start = data.startTime ? new Date(data.startTime) : new Date();
-  const end = data.endTime
-    ? new Date(data.endTime)
-    : new Date(start.getTime() + 60 * 60 * 1000);
-
-  const formatGcalDate = (d: Date) =>
-    d
-      .toISOString()
-      .replace(/[-:]/g, '')
-      .replace(/\.\d{3}/, '');
-
-  const params = new URLSearchParams({
-    action: 'TEMPLATE',
-    text: data.title || 'Event',
-    dates: `${formatGcalDate(start)}/${formatGcalDate(end)}`,
-  });
-  if (data.location) params.set('location', data.location);
-  if (data.description) params.set('details', data.description);
-
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
-}
-
 export function EventCard({ data }: EventCardProps) {
   const colors = useColors();
   const { t } = useTranslation();
 
-  const startTime = data.startTime
-    ? new Date(data.startTime).toLocaleString(undefined, {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-      })
+  const times = useMemo(() => calendarTimes(data), [data]);
+  const startTime = times
+    ? formatCardDate(
+        data.startTime,
+        times.allDay
+          ? { weekday: 'short', month: 'short', day: 'numeric' }
+          : { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' },
+        true,
+      )
     : null;
-
-  const endTime = data.endTime
-    ? new Date(data.endTime).toLocaleString(undefined, {
-        hour: 'numeric',
-        minute: '2-digit',
-      })
-    : null;
+  const endTime =
+    times && !times.allDay
+      ? formatCardDate(data.endTime, { hour: 'numeric', minute: '2-digit' }, true)
+      : null;
 
   const handleAddToCalendar = useCallback(async () => {
-    const icsContent = generateIcs(data);
+    if (!times) return;
+    const icsContent = generateIcs(data, times);
 
     if (Platform.OS === 'web') {
       // Web: create a Blob and trigger download
@@ -157,12 +78,12 @@ export function EventCard({ data }: EventCardProps) {
         toast.error(message);
       }
     }
-  }, [data, t]);
+  }, [data, t, times]);
 
   const handleOpenGoogleCalendar = useCallback(() => {
-    const url = buildGoogleCalendarUrl(data);
-    Linking.openURL(url);
-  }, [data]);
+    if (!times) return;
+    void Linking.openURL(googleCalendarUrl(data, times));
+  }, [data, times]);
 
   return (
     <Card appearance="subtle">
@@ -214,19 +135,21 @@ export function EventCard({ data }: EventCardProps) {
             </View>
           )}
 
-          {/* Calendar action buttons */}
-          <View style={styles.actions}>
-            <Button
-              appearance="subtle"
-              leading={<RiCalendarLine />}
-              onPress={handleAddToCalendar}
-            >
-              {t('cards.event.addToCalendar')}
-            </Button>
-            <Button appearance="subtle" onPress={handleOpenGoogleCalendar}>
-              {t('cards.event.googleCalendar')}
-            </Button>
-          </View>
+          {/* Calendar action buttons — only for an event whose start is known. */}
+          {times && (
+            <View style={styles.actions}>
+              <Button
+                appearance="subtle"
+                leading={<RiCalendarLine />}
+                onPress={handleAddToCalendar}
+              >
+                {t('cards.event.addToCalendar')}
+              </Button>
+              <Button appearance="subtle" onPress={handleOpenGoogleCalendar}>
+                {t('cards.event.googleCalendar')}
+              </Button>
+            </View>
+          )}
         </View>
       </CardBody>
     </Card>

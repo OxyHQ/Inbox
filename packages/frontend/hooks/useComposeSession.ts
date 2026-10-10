@@ -31,6 +31,7 @@ import {
   appendTextToBody,
   bodyParts,
   draftToEditorContent,
+  editorContentToText,
   isBodyBlank,
   signatureBlock,
   textToEditorContent,
@@ -435,6 +436,33 @@ export function useComposeSession({
     [updateBody],
   );
 
+  /**
+   * The body split into what the user wrote and the signature this composer
+   * put under it — while that signature is still intact at the end. Once the
+   * user has edited into it, it is their text like the rest.
+   */
+  const splitSignature = useCallback((content: string) => {
+    const signature = signatureRef.current;
+    if (signature && content.endsWith(signature)) {
+      return { own: content.slice(0, -signature.length), signature };
+    }
+    return { own: content, signature: '' };
+  }, []);
+
+  /** Replace what the user wrote with plain text (an AI rewrite), keeping the signature. */
+  const replaceOwnText = useCallback(
+    (text: string) => {
+      const { signature } = splitSignature(bodyValueRef.current);
+      updateBody(`${textToEditorContent(text, isWeb)}${signature}`);
+    },
+    [splitSignature, updateBody],
+  );
+
+  const ownText = useMemo(
+    () => editorContentToText(splitSignature(body).own, isWeb).trim(),
+    [body, splitSignature],
+  );
+
   // ── Recipients and attachments ────────────────────────────────────
 
   // Every field is checked, and one bad address refuses the send: dropping it
@@ -651,6 +679,8 @@ export function useComposeSession({
     body,
     updateBody,
     insertText,
+    ownText,
+    replaceOwnText,
     attachments,
     addFiles,
     removeAttachment,

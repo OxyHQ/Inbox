@@ -26,39 +26,12 @@ export function NotificationsSection() {
               onCheckedChange={(v) => setPref('pushNotifications', v)}
             />
           </SettingsRow>
-          <SettingsRow
-            key="emailDigest"
-            label={t('ui.settings.notifications.digest')}
-            description={t('ui.settings.notifications.digestDescription')}
-          >
-            <Switch
-              accessibilityLabel={t('ui.settings.notifications.digest')}
-              checked={prefs.emailDigest}
-              onCheckedChange={(v) => setPref('emailDigest', v)}
-            />
-          </SettingsRow>
-        </SettingsCard>
-      </SettingsSection>
-      <SettingsSection label={t('ui.settings.notifications.sound')}>
-        <SettingsCard>
-          <SettingsRow
-            key="notificationSound"
-            label={t('ui.settings.notifications.playSound')}
-            description={t('ui.settings.notifications.soundDescription')}
-          >
-            <Switch
-              accessibilityLabel={t('ui.settings.notifications.playSound')}
-              checked={prefs.notificationSound}
-              onCheckedChange={(v) => setPref('notificationSound', v)}
-            />
-          </SettingsRow>
         </SettingsCard>
       </SettingsSection>
       <>
         {Platform.OS !== 'web' ? (
           <Admonition type="info">
-            System-level notification permissions are managed in your device
-            settings.
+            {t('ui.settings.notifications.deviceNotice')}
           </Admonition>
         ) : null}
       </>

@@ -1,9 +1,11 @@
+import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
 import {
   useCreateContact,
   useDeleteContact,
   useUpdateContact,
 } from '@/hooks/mutations/useContactMutations';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useContacts } from '@/hooks/queries/useContacts';
 import { useTranslation } from '@/lib/i18n';
 import type { Contact } from '@/schemas/emailSchemas';
@@ -11,7 +13,6 @@ import { Button, IconButton } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
 import { RiDeleteBin6Line, RiEditLine } from '@oxy.so/bloom/icons';
 import {
-  SettingsTextField,
   SettingsProfilePage,
 } from '@oxy.so/bloom/settings-modal';
 import { Switch } from '@oxy.so/bloom/switch';
@@ -26,7 +27,9 @@ export function ContactsSection() {
   const { t } = useTranslation();
 
   const [search, setSearch] = useState('');
-  const { data: contacts = [] } = useContacts(search);
+  // Searched once the user pauses typing, not once per keystroke.
+  const searchQuery = useDebouncedValue(search, 250);
+  const { data: contacts = [] } = useContacts(searchQuery);
   const createContact = useCreateContact();
   const updateContact = useUpdateContact();
   const deleteContact = useDeleteContact();
@@ -80,11 +83,15 @@ export function ContactsSection() {
       toast.error(t('contacts.toast.nameEmailRequired'));
       return;
     }
+    // On an edit, an emptied field is sent as '' — which the server stores as
+    // "none" — not left out: left out, it kept its old value, so a company or
+    // a note could never be removed.
+    const optional = (value: string) => (editingId ? value.trim() : value.trim() || undefined);
     const payload = {
       name: name.trim(),
       email: email.trim(),
-      company: company.trim() || undefined,
-      notes: notes.trim() || undefined,
+      company: optional(company),
+      notes: optional(notes),
       starred,
     };
     if (editingId) {
@@ -141,11 +148,10 @@ export function ContactsSection() {
                 key: 'search',
                 label: t('ui.settings.contacts.search'),
                 control: (
-                  <SettingsTextField
+                  <TextFieldInput
                     label={t('ui.settings.contacts.search')}
                     value={search}
-                    onCommit={setSearch}
-                    showSavedToast={false}
+                    onChangeText={setSearch}
                   />
                 ),
               },
@@ -212,11 +218,10 @@ export function ContactsSection() {
                 key: 'name',
                 label: t('ui.settings.contacts.name'),
                 control: (
-                  <SettingsTextField
+                  <TextFieldInput
                     label={t('ui.settings.contacts.name')}
                     value={name}
-                    onCommit={setName}
-                    showSavedToast={false}
+                    onChangeText={setName}
                   />
                 ),
               },
@@ -224,12 +229,11 @@ export function ContactsSection() {
                 key: 'email',
                 label: t('ui.settings.contacts.email'),
                 control: (
-                  <SettingsTextField
+                  <TextFieldInput
                     label={t('ui.settings.contacts.email')}
                     value={email}
-                    onCommit={setEmail}
+                    onChangeText={setEmail}
                     keyboardType="email-address"
-                    showSavedToast={false}
                   />
                 ),
               },
@@ -237,11 +241,10 @@ export function ContactsSection() {
                 key: 'company',
                 label: t('ui.settings.contacts.company'),
                 control: (
-                  <SettingsTextField
+                  <TextFieldInput
                     label={t('ui.settings.contacts.company')}
                     value={company}
-                    onCommit={setCompany}
-                    showSavedToast={false}
+                    onChangeText={setCompany}
                   />
                 ),
               },

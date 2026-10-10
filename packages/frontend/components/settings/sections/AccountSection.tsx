@@ -1,5 +1,6 @@
 import { useSettings, useUpdateSettings } from '@/hooks/queries/useSettings';
 import { useTranslation } from '@/lib/i18n';
+import { isValidRecipientEmail } from '@/schemas/emailSchemas';
 import type { EmailSettings } from '@/services/emailApi';
 import { Button } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
@@ -94,27 +95,48 @@ export function AccountSection() {
   const saving = updateSettings.isPending;
 
   const handleSave = useCallback(() => {
+    // Only what changed. Every save used to send the whole object: the
+    // vacation window's dates (which this form does not show) were wiped, and a
+    // draft seeded from a stale cache reverted changes made on another device.
+    const saved = toDraft(settingsData);
+    const forwardTo = autoForwardTo.trim();
+    if (forwardTo && !isValidRecipientEmail(forwardTo)) {
+      toast.error(t('compose.toast.invalidEmail'));
+      return;
+    }
+    const autoReplyChanged =
+      autoReplyEnabled !== saved.autoReplyEnabled ||
+      autoReplySubject !== saved.autoReplySubject ||
+      autoReplyBody !== saved.autoReplyBody;
     updateSettings.mutate(
       {
-        signature,
-        autoReply: {
-          enabled: autoReplyEnabled,
-          subject: autoReplySubject,
-          body: autoReplyBody,
-        },
-        autoForwardTo,
-        autoForwardKeepCopy,
+        ...(signature !== saved.signature ? { signature } : {}),
+        ...(autoReplyChanged
+          ? {
+              autoReply: {
+                enabled: autoReplyEnabled,
+                subject: autoReplySubject,
+                body: autoReplyBody,
+                // The server rewrites the whole responder; keep its window.
+                startDate: settingsData?.autoReply.startDate ?? null,
+                endDate: settingsData?.autoReply.endDate ?? null,
+              },
+            }
+          : {}),
+        ...(forwardTo !== saved.autoForwardTo.trim() ? { autoForwardTo: forwardTo } : {}),
+        ...(autoForwardKeepCopy !== saved.autoForwardKeepCopy ? { autoForwardKeepCopy } : {}),
       },
       {
         onSuccess: () => toast.success(t('ui.settings.account.updated')),
         onError: (err: unknown) => {
           const message =
-            err instanceof Error ? err.message : 'Failed to save settings.';
+            err instanceof Error ? err.message : t('ui.settings.account.saveFailed');
           toast.error(message);
         },
       },
     );
   }, [
+    settingsData,
     signature,
     autoReplyEnabled,
     autoReplySubject,

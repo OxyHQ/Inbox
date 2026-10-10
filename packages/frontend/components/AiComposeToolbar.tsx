@@ -1,6 +1,7 @@
 import { useTranslation } from '@/lib/i18n';
 import { Button } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
+import { toast } from '@oxy.so/bloom';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 /**
  * AI Compose Toolbar component.
@@ -28,9 +29,28 @@ type MaterialCommunityIconName = ComponentProps<
   typeof MaterialCommunityIcons
 >['name'];
 
+/**
+ * The toolbar reads and rewrites the user's OWN text only — plain text, the
+ * signature excluded — and the composer owns what that means for the body.
+ *
+ * It used to read the editor's HTML as text and write the result over the
+ * whole body: "Draft for me" replaced what the user had written and the
+ * signature, a rewrite dropped formatting and links, and a failed draft
+ * "restored" the plain-text copy. Now every operation is bracketed — `onBegin`
+ * before, then `onCommit` (or `onAbort` to put the body back exactly) — so the
+ * composer can restore the original and offer Undo.
+ */
 interface AiComposeToolbarProps {
-  body: string;
-  onBodyChange: (text: string) => void;
+  /** The user's own text, as plain text, without the signature. */
+  text: string;
+  /** An operation is starting; remember the body as it is. */
+  onBegin: () => void;
+  /** A draft streaming in: show it, nothing is final yet. */
+  onPreview: (text: string) => void;
+  /** The result: replace the user's text with it. */
+  onCommit: (text: string) => void;
+  /** The operation failed or was overtaken: put the body back as it was. */
+  onAbort: () => void;
   onSubjectSuggested?: (subject: string) => void;
 }
 
@@ -46,8 +66,11 @@ const TONE_OPTIONS: {
 ];
 
 export function AiComposeToolbar({
-  body,
-  onBodyChange,
+  text: body,
+  onBegin,
+  onPreview,
+  onCommit,
+  onAbort,
   onSubjectSuggested,
 }: AiComposeToolbarProps) {
   const { t } = useTranslation();
@@ -75,6 +98,36 @@ export function AiComposeToolbar({
 
   const hasBody = body.trim().length > 0;
 
+  // The text as it is NOW, for an answer that arrives after the user typed on.
+  const latestText = useRef(body);
+  useEffect(() => {
+    latestText.current = body;
+  }, [body]);
+
+  /**
+   * Run a rewrite of the current text. Its answer is applied only if the text
+   * is still what was sent: typing while it ran used to be overwritten.
+   */
+  const rewrite = useCallback(
+    async (run: (input: string) => Promise<string>) => {
+      const input = body;
+      try {
+        const result = await run(input);
+        if (!mountedRef.current) return;
+        if (latestText.current !== input) {
+          toast(t('ai.toast.keptYourEdits'));
+          return;
+        }
+        onBegin();
+        onCommit(result);
+      } catch {
+        // Errors are reported by the hook; an abort belongs to an unmounted or
+        // superseded request.
+      }
+    },
+    [body, onBegin, onCommit, t],
+  );
+
   // Handler for "Draft for me" button
   const handleDraft = useCallback(() => {
     draftControl.open();
@@ -86,71 +139,44 @@ export function AiComposeToolbar({
     if (!draftPrompt.trim()) return;
     draftControl.close();
 
+    onBegin();
     try {
       // Use streaming for typewriter effect
-      await streamDraft(draftPrompt, selectedTone, (text) => {
-        onBodyChange(text);
+      const text = await streamDraft(draftPrompt, selectedTone, (partial) => {
+        if (mountedRef.current) onPreview(partial);
       });
+      if (mountedRef.current) onCommit(text);
     } catch (error: unknown) {
-      // A rejected/truncated stream is not a valid draft. Restore the exact
-      // body that was present before generation instead of leaving partial AI
-      // output in a sendable composer. An abort belongs to an unmounted or
-      // superseded request and must not race a replacement draft.
+      // A rejected/truncated stream is not a valid draft: put back exactly what
+      // was there, formatting and signature included. An abort belongs to an
+      // unmounted or superseded request and must not race a replacement draft.
       if (
         mountedRef.current &&
         (!(error instanceof Error) || error.name !== 'AbortError')
       ) {
-        onBodyChange(body);
+        onAbort();
       }
     }
-  }, [
-    body,
-    draftPrompt,
-    selectedTone,
-    streamDraft,
-    onBodyChange,
-    draftControl,
-  ]);
+  }, [draftPrompt, selectedTone, streamDraft, onBegin, onPreview, onCommit, onAbort, draftControl]);
 
   // Handler for "Polish" button
-  const handlePolish = useCallback(async () => {
-    if (!hasBody) return;
-    try {
-      const polished = await polish(body);
-      onBodyChange(polished);
-    } catch (error: unknown) {
-      if (error instanceof Error && error.name === 'AbortError') return;
-      // Error handled by hook
-    }
-  }, [body, hasBody, polish, onBodyChange]);
+  const handlePolish = useCallback(() => {
+    if (hasBody) void rewrite(polish);
+  }, [hasBody, rewrite, polish]);
 
   // Handler for "Shorter" button
-  const handleShorter = useCallback(async () => {
-    if (!hasBody) return;
-    try {
-      const shorter = await adjustLength(body, 'shorter');
-      onBodyChange(shorter);
-    } catch (error: unknown) {
-      if (error instanceof Error && error.name === 'AbortError') return;
-      // Error handled by hook
-    }
-  }, [body, hasBody, adjustLength, onBodyChange]);
+  const handleShorter = useCallback(() => {
+    if (hasBody) void rewrite((input) => adjustLength(input, 'shorter'));
+  }, [hasBody, rewrite, adjustLength]);
 
   // Handler for tone change
   const handleToneChange = useCallback(
-    async (tone: ComposeTone) => {
+    (tone: ComposeTone) => {
       toneControl.close();
       setSelectedTone(tone);
-      if (!hasBody) return;
-      try {
-        const rewritten = await changeTone(body, tone);
-        onBodyChange(rewritten);
-      } catch (error: unknown) {
-        if (error instanceof Error && error.name === 'AbortError') return;
-        // Error handled by hook
-      }
+      if (hasBody) void rewrite((input) => changeTone(input, tone));
     },
-    [body, hasBody, changeTone, onBodyChange, toneControl],
+    [hasBody, rewrite, changeTone, toneControl],
   );
 
   // Handler for subject suggestion

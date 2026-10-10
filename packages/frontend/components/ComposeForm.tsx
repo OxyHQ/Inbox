@@ -22,11 +22,11 @@ import { Loading } from '@oxy.so/bloom/loading';
  * it, so its fields are seeded once from real data rather than patched in after.
  */
 
-import { Dialog, useDialogControl } from '@oxy.so/bloom';
+import { Dialog, toast, useDialogControl } from '@oxy.so/bloom';
 import { Admonition } from '@oxy.so/bloom/admonition';
 import type { FileMetadata } from '@oxy.so/core';
 import { useOxy } from '@oxy.so/services';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -253,7 +253,8 @@ function ComposeSessionForm({
     [session],
   );
 
-  const plainBody = editorContentToText(session.body, isWeb);
+  // The body as it was before an AI operation, for Undo and for a failure.
+  const aiOriginal = useRef<string | null>(null);
 
   return (
     <KeyboardAvoidingView
@@ -372,8 +373,27 @@ function ComposeSessionForm({
           )}
 
           <AiComposeToolbar
-            body={plainBody}
-            onBodyChange={(text) => session.updateBody(textToEditorContent(text, isWeb))}
+            text={session.ownText}
+            onBegin={() => {
+              aiOriginal.current = session.body;
+            }}
+            onPreview={session.replaceOwnText}
+            onCommit={(text) => {
+              const previous = aiOriginal.current;
+              aiOriginal.current = null;
+              session.replaceOwnText(text);
+              // A rewrite replaces formatting and links with plain text, so
+              // what was there is always one tap away.
+              if (previous !== null) {
+                toast(t('ai.toast.applied'), {
+                  action: { label: t('common.undo'), onClick: () => session.updateBody(previous) },
+                } as Record<string, unknown>);
+              }
+            }}
+            onAbort={() => {
+              if (aiOriginal.current !== null) session.updateBody(aiOriginal.current);
+              aiOriginal.current = null;
+            }}
             onSubjectSuggested={!session.subject.trim() ? session.setSubject : undefined}
           />
 

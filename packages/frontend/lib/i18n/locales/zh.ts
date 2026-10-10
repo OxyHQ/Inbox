@@ -288,6 +288,14 @@ const zh: LocaleDict = {
       messagesInConversation_other: '此会话中有 {{count}} 条消息',
       toRecipients: '至 {{recipients}}',
       ccRecipients: ',抄送:{{recipients}}',
+      openVideo: '打开视频',
+      openAudio: '打开音频',
+    },
+    print: {
+      from: '发件人：',
+      to: '收件人：',
+      cc: '抄送：',
+      date: '日期：',
     },
     actions: {
       editDraft: '编辑草稿',

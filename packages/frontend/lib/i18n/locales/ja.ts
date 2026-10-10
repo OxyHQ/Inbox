@@ -290,6 +290,14 @@ const ja: LocaleDict = {
       messagesInConversation_other: 'このスレッドのメッセージ {{count}} 件',
       toRecipients: '宛先: {{recipients}}',
       ccRecipients: '、cc: {{recipients}}',
+      openVideo: '動画を開く',
+      openAudio: '音声を開く',
+    },
+    print: {
+      from: '差出人:',
+      to: '宛先:',
+      cc: 'Cc:',
+      date: '日付:',
     },
     actions: {
       editDraft: '下書きを編集',

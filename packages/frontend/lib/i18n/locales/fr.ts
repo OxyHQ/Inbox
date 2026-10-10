@@ -291,6 +291,14 @@ const fr: LocaleDict = {
       messagesInConversation_other: '{{count}} messages dans cette conversation',
       toRecipients: 'à {{recipients}}',
       ccRecipients: ', cc : {{recipients}}',
+      openVideo: 'Ouvrir la vidéo',
+      openAudio: "Ouvrir l'audio",
+    },
+    print: {
+      from: 'De :',
+      to: 'À :',
+      cc: 'Cc :',
+      date: 'Date :',
     },
     actions: {
       editDraft: 'Modifier le brouillon',

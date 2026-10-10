@@ -1,4 +1,5 @@
 import { useTranslation } from '@/lib/i18n';
+import { presetsThatMakeSense } from '@/utils/timePresets';
 import { BottomSheet, type BottomSheetRef } from '@oxy.so/bloom/bottom-sheet';
 import { Button, IconButton } from '@oxy.so/bloom/button';
 import { RiCloseLine } from '@oxy.so/bloom/icons';
@@ -51,47 +52,44 @@ function createReminderDraft(
   };
 }
 
-function getPresetTimes(): { label: string; date: Date }[] {
-  const now = new Date();
-  const presets: { label: string; date: Date }[] = [];
+interface ReminderPreset {
+  label: string;
+  date: Date;
+}
 
-  // Later today (6 PM or +3h)
+/**
+ * The quick choices, through the same `presetsThatMakeSense` as the snooze
+ * sheet: on a Saturday "This weekend" was NEXT Saturday, and on a Sunday
+ * "Tomorrow morning" and "Next week" were both Monday 9:00 — two buttons for
+ * one moment, both highlighted once either was picked. Exported for tests.
+ */
+export function getReminderPresets(now = new Date()): ReminderPreset[] {
+  // Later today (6 PM, or +3h after 3 PM)
   const laterToday = new Date(now);
   laterToday.setHours(Math.max(now.getHours() + 3, 18), 0, 0, 0);
-  if (laterToday.getDate() === now.getDate()) {
-    presets.push({
-      label: 'reminder.create.presets.laterToday',
-      date: laterToday,
-    });
-  }
 
   // Tomorrow 9 AM
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(9, 0, 0, 0);
-  presets.push({
-    label: 'reminder.create.presets.tomorrowMorning',
-    date: tomorrow,
-  });
 
   // This weekend (Saturday 9 AM)
   const saturday = new Date(now);
   saturday.setDate(saturday.getDate() + ((6 - saturday.getDay() + 7) % 7 || 7));
   saturday.setHours(9, 0, 0, 0);
-  if (saturday > now) {
-    presets.push({
-      label: 'reminder.create.presets.thisWeekend',
-      date: saturday,
-    });
-  }
 
   // Next week (Monday 9 AM)
   const monday = new Date(now);
   monday.setDate(monday.getDate() + ((1 - monday.getDay() + 7) % 7 || 7));
   monday.setHours(9, 0, 0, 0);
-  presets.push({ label: 'reminder.create.presets.nextWeek', date: monday });
 
-  return presets;
+  const options = [
+    { label: 'reminder.create.presets.laterToday', date: laterToday },
+    { label: 'reminder.create.presets.tomorrowMorning', date: tomorrow },
+    { label: 'reminder.create.presets.thisWeekend', date: saturday },
+    { label: 'reminder.create.presets.nextWeek', date: monday },
+  ].map((preset) => ({ ...preset, getDate: () => preset.date }));
+  return presetsThatMakeSense(options, now).map(({ label, date }) => ({ label, date }));
 }
 
 export function CreateReminderSheet({
@@ -101,11 +99,11 @@ export function CreateReminderSheet({
   editReminder,
   onUpdate,
 }: CreateReminderSheetProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const isEdit = !!editReminder;
   const sheetRef = useRef<BottomSheetRef>(null);
 
-  const presets = useMemo(() => (visible ? getPresetTimes() : []), [visible]);
+  const presets = useMemo(() => (visible ? getReminderPresets() : []), [visible]);
   const draftKey = useMemo(
     () => getReminderDraftKey(visible, editReminder),
     [visible, editReminder],
@@ -206,7 +204,7 @@ export function CreateReminderSheet({
                 pressed={isSelected}
                 onPress={() => handleTimeChange(preset.date)}
               >
-                {`${t(preset.label)} · ${preset.date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}`}
+                {`${t(preset.label)} · ${preset.date.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' })}`}
               </Button>
             );
           })}

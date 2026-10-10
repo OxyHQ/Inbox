@@ -22,7 +22,7 @@ interface SnoozeOption {
   getDate: () => Date;
 }
 
-function getSnoozeOptions(): SnoozeOption[] {
+function getSnoozeOptions(locale: string): SnoozeOption[] {
   const now = new Date();
 
   // Later today: 3 hours from now (or 6 PM if < 3 PM)
@@ -52,9 +52,9 @@ function getSnoozeOptions(): SnoozeOption[] {
   monday.setHours(9, 0, 0, 0);
 
   const formatTime = (d: Date) =>
-    d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    d.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
   const formatDay = (d: Date) =>
-    d.toLocaleDateString(undefined, {
+    d.toLocaleDateString(locale, {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
@@ -96,8 +96,8 @@ interface SnoozeSheetProps {
 }
 
 export function SnoozeSheet({ visible, onClose, onSnooze }: SnoozeSheetProps) {
-  const { t } = useTranslation();
-  const options = getSnoozeOptions();
+  const { t, locale } = useTranslation();
+  const options = getSnoozeOptions(locale);
   const sheetRef = useRef<BottomSheetRef>(null);
 
   useEffect(() => {

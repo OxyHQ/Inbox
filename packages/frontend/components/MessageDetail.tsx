@@ -92,9 +92,9 @@ import { emlFilename, saveEmlFile } from '@/utils/saveEml';
 import { buildThreadEntries } from '@/utils/threadEntries';
 import { splitHtmlQuote, splitTextQuote } from '@/utils/messageQuotes';
 
-function formatFullDate(dateStr: string): string {
+function formatFullDate(dateStr: string, locale: string): string {
   const date = new Date(dateStr);
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleDateString(locale, {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
@@ -104,25 +104,25 @@ function formatFullDate(dateStr: string): string {
   });
 }
 
-function formatShortDate(dateStr: string): string {
+function formatShortDate(dateStr: string, locale: string): string {
   const date = new Date(dateStr);
   const now = new Date();
   const isToday = date.toDateString() === now.toDateString();
   const isThisYear = date.getFullYear() === now.getFullYear();
 
   if (isToday) {
-    return date.toLocaleTimeString(undefined, {
+    return date.toLocaleTimeString(locale, {
       hour: 'numeric',
       minute: '2-digit',
     });
   }
   if (isThisYear) {
-    return date.toLocaleDateString(undefined, {
+    return date.toLocaleDateString(locale, {
       month: 'short',
       day: 'numeric',
     });
   }
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleDateString(locale, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -167,7 +167,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const bottomClearance = viewportWidth < BREAKPOINTS.md ? occupiedBottom : 0;
   const pathname = usePathname();
   const colors = useColors();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   const {
     data: currentMessage,
@@ -521,10 +521,20 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
   const handlePrint = useCallback(() => {
     if (!currentMessage) return;
-    const printHtml = buildPrintHtml(currentMessage, {
-      noSubject: t('message.detail.noSubject'),
-      date: formatFullDate(currentMessage.date),
-    });
+    // The reader's HTML, inline (cid:) images resolved, not the raw body.
+    const printHtml = buildPrintHtml(
+      { ...currentMessage, html: resolvedHtmlMap[currentMessage._id] ?? currentMessage.html },
+      {
+        noSubject: t('message.detail.noSubject'),
+        date: formatFullDate(currentMessage.date, locale),
+        labels: {
+          from: t('message.print.from'),
+          to: t('message.print.to'),
+          cc: t('message.print.cc'),
+          date: t('message.print.date'),
+        },
+      },
+    );
 
     if (Platform.OS === 'web') {
       printHtmlOnWeb(printHtml);
@@ -539,7 +549,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         }
       })();
     }
-  }, [currentMessage, t]);
+  }, [currentMessage, resolvedHtmlMap, locale, t]);
 
   // It used to assemble the file itself: bodies declared quoted-printable but
   // written raw (so every `=` in the HTML was decoded into garbage), no
@@ -634,8 +644,8 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         ...address,
         name: address.name ?? undefined,
       })),
-      date: formatFullDate(msg.date),
-      time: formatShortDate(msg.date),
+      date: formatFullDate(msg.date, locale),
+      time: formatShortDate(msg.date, locale),
       preview: getSnippet(msg.text),
       unread: !msg.flags.seen,
       starred: msg.flags.starred,

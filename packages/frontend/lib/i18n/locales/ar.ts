@@ -339,6 +339,14 @@ const ar: LocaleDict = {
       messagesInConversation_other: '{{count}} رسالة في هذه المحادثة',
       toRecipients: 'إلى {{recipients}}',
       ccRecipients: '، نسخة: {{recipients}}',
+      openVideo: 'فتح الفيديو',
+      openAudio: 'فتح الملف الصوتي',
+    },
+    print: {
+      from: 'من:',
+      to: 'إلى:',
+      cc: 'نسخة:',
+      date: 'التاريخ:',
     },
     actions: {
       editDraft: 'تعديل المسودة',

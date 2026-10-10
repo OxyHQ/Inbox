@@ -864,7 +864,7 @@ const zh: LocaleDict = {
         your: '你的联系人', search: '搜索联系人', edit: '编辑 {{name}}', delete: '删除 {{name}}', editContact: '编辑联系人', addContact: '添加联系人', name: '姓名', email: '邮箱', company: '公司（可选）', notes: '备注（可选）', star: '为此联系人加星标', saving: '正在保存…', adding: '正在添加…', saveChanges: '保存更改', deleteTitle: '删除联系人？', deleteDescription: '“{{name}}”将从你的联系人中移除。', noMatch: '没有与搜索匹配的联系人。', loadMore: '加载更多联系人', showing: '已显示 {{shown}} / {{total}}', empty: '还没有联系人。在下方添加常用收件人，撰写更快捷。',
       },
       ai: {
-        dailyBrief: '每日摘要', recap: '收件箱回顾', recapDescription: '根据收件箱的统计数据（未读、星标、附件）生成的简短摘要，不会读取邮件内容。', smartReply: '智能回复', summary: '会话摘要', summaryTitle: '提供摘要', summaryDescription: '在会话中显示“总结”按钮。只有在你点按时，会话才会发送给 Oxy 和 Kaana。', suggestions: '一键建议', suggestionsDescription: '在邮件上方显示三个结合上下文的回复建议，由 Oxy 和 Kaana 生成。', priority: '优先级标记', priorityTitle: '突出显示可能紧急的邮件', priorityDescription: '使用设备端关键词规则将邮件标记为紧急、需要处理或重要 — 并非完整的 AI 模型。', tip: '优先级标记基于关键词规则在设备端运行。每日摘要、智能回复和会话摘要通过 Kaana 使用有限的 Oxy 推理；问 Alia 仍是独立的智能体。',
+        dailyBrief: '每日摘要', recap: '收件箱回顾', recapDescription: '今天收到了什么、谁在等你回复、哪些可以稍后处理。打开时，今天收件箱邮件的发件人、主题和简短摘录会发送给 Oxy 和 Kaana 用于撰写；验证码和加密邮件不会包含在内。', smartReply: '智能回复', summary: '会话摘要', summaryTitle: '提供摘要', summaryDescription: '在会话中显示“总结”按钮。只有在你点按时，会话才会发送给 Oxy 和 Kaana。', suggestions: '一键建议', suggestionsDescription: '在邮件上方显示三个结合上下文的回复建议，由 Oxy 和 Kaana 生成。', priority: '优先级标记', priorityTitle: '突出显示可能紧急的邮件', priorityDescription: '使用设备端关键词规则将邮件标记为紧急、需要处理或重要 — 并非完整的 AI 模型。', tip: '优先级标记基于关键词规则在设备端运行。每日摘要、智能回复和会话摘要通过 Kaana 使用有限的 Oxy 推理；问 Alia 仍是独立的智能体。',
       },
       storage: {
         usedOf: '已用 {{used}} / {{limit}}',

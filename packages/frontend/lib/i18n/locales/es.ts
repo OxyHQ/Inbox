@@ -8,6 +8,8 @@ import type { LocaleDict } from '../types';
  */
 const es: LocaleDict = {
   common: {
+    undo: 'Deshacer',
+    sending: 'Enviando…',
     cancel: 'Cancelar',
     save: 'Guardar',
     ok: 'Aceptar',
@@ -241,6 +243,7 @@ const es: LocaleDict = {
       empty: 'Aún no hay etiquetas',
     },
     toast: {
+      spamUnavailable: 'No hay ninguna carpeta de spam a la que moverlo.',
       attachmentFailed: 'No se pudo descargar el adjunto.',
       fileSystemUnavailable:
         'El sistema de archivos no está disponible en este dispositivo.',
@@ -401,6 +404,10 @@ const es: LocaleDict = {
   },
 
   ai: {
+    toast: {
+      keptYourEdits: 'Seguiste escribiendo, así que tu texto se ha dejado como estaba.',
+      applied: 'Reescrito con IA.',
+    },
     toolbar: {
       draft: 'Redactar',
       polish: 'Pulir',
@@ -637,6 +644,10 @@ const es: LocaleDict = {
   },
 
   ui: {
+    error: {
+      description: 'No se pudo mostrar esta parte de Inbox. Tu correo está a salvo.',
+      title: 'Algo salió mal',
+    },
     me: 'Me',
     settings: {
       landing: {
@@ -661,6 +672,7 @@ const es: LocaleDict = {
         },
       },
       account: {
+        saveFailed: 'No se pudieron guardar los ajustes.',
         signature: 'Signature', signaturePlaceholder: 'Appended to every outgoing message',
         autoReply: 'Auto-reply', autoReplyEnable: 'Enable auto-reply',
         subjectPlaceholder: 'Subject', messagePlaceholder: "Message — explain when you'll be back.",
@@ -675,6 +687,7 @@ const es: LocaleDict = {
         accentColor: 'Accent color',
       },
       notifications: {
+        deviceNotice: 'Los permisos de notificaciones del sistema se gestionan en los ajustes del dispositivo.',
         alerts: 'Alerts', push: 'Push notifications', pushDescription: 'Get notified when new messages arrive.',
         digest: 'Daily email digest', digestDescription: 'A summary of unread messages, once per day.',
         sound: 'Sound', playSound: 'Play sound', soundDescription: 'A short chime on new messages.',
@@ -710,6 +723,7 @@ const es: LocaleDict = {
         usage: 'Mailbox usage', local: 'Local cache', nearlyFull: "You're nearly out of space. Old messages will start to bounce when the quota is full.", localDescription: "The most recent 100 messages are cached on this device for fast offline access. Attachments are downloaded on demand and cleaned up automatically — there's nothing to manage manually today.", free: '{{value}} free',
       },
       advanced: {
+        sizePlaceholder: 'p. ej. 5 MB',
         contains: 'contains', equals: 'equals', notContains: "doesn't contain", startsWith: 'starts with', endsWith: 'ends with', largerThan: 'larger than (bytes)', smallerThan: 'smaller than (bytes)',
         filters: 'Filters & rules', noFilters: 'No filters yet. Filters automatically apply actions like archiving, starring, or marking read to incoming messages.', filterName: 'Filter name', whenMessage: "When a message's", sizeBytes: 'Size in bytes', value: 'Value', then: 'then', creating: 'Creating…', addFilter: 'Add filter', editingTemplate: 'Editing template', templates: 'Templates', templateName: 'Template name', subjectOptional: 'Subject (optional)', templateBody: 'Template body', saveChanges: 'Save changes', addTemplate: 'Add template', bundles: 'Bundles', bundleHint: 'Bundles group related mail automatically. Toggle to enable and reorder how they stack in your inbox.', import: 'Import', importDescription: 'Import emails from .eml files. Imported messages land in your Inbox and can be moved or labelled like any other mail.', importing: 'Importing…', importButton: 'Choose .eml files', imported: 'Imported {{imported}} of {{total}} email(s).', conditions: '{{conditions}} condition(s) · {{actions}} action(s)', deleteFilter: 'Delete {{name}}', editTemplate: 'Edit {{name}}', deleteTemplate: 'Delete {{name}}', moveUp: 'Move {{name}} up', moveDown: 'Move {{name}} down',
       },
@@ -718,7 +732,7 @@ const es: LocaleDict = {
     drawer: { unread: '{{name}}, {{count}} unread', labels: 'Labels', folders: 'Folders', createFolder: 'Create folder', folderHint: 'Tap + to create a folder. Long-press a folder to delete it.', signedOutTitle: 'Sign in to manage your email', signedOutSubtitle: 'Access your mailboxes, labels, and compose new messages.', notSignedIn: 'Not signed in', newFolder: 'New folder', folderName: 'Folder name', creatingFolder: 'Creating…', createFolderButton: 'Create folder', deleteFolderTitle: 'Delete folder?', deleteFolderDescription: '"{{name}}" and its organization will be removed. Messages inside are not deleted.' },
     event: { sharingUnavailable: 'Sharing is unavailable. Try "Google Calendar" instead.', openFailed: 'Could not open the calendar file.' },
     message: { loadError: "Couldn't load this message", loadErrorDescription: 'Check your connection and try again.', notFound: 'Message not found', notFoundDescription: 'This message may have been deleted or moved.', conversationMessages_one: '{{count}} message in this conversation', conversationMessages_other: '{{count}} messages in this conversation', summaryTitle: 'Generate AI thread summary', summaryDescription: 'Oxy sends bounded conversation context to Kaana for summarization.' },
-    mutations: { bundleUpdateFailed: 'Failed to update bundle.', bundleReorderFailed: 'Failed to reorder bundle.', contactCreateFailed: 'Failed to create contact', contactUpdateFailed: 'Failed to update contact', contactDeleteFailed: 'Failed to delete contact', filterCreateFailed: 'Failed to create filter', filterUpdateFailed: 'Failed to update filter', filterDeleteFailed: 'Failed to delete filter', mailboxCreated: 'Folder created.', mailboxCreateFailed: 'Failed to create folder.', mailboxDeleted: 'Folder deleted.', mailboxDeleteFailed: 'Failed to delete folder.', reminderCreateFailed: 'Failed to create reminder', reminderUpdateFailed: 'Failed to update reminder', reminderDeleteFailed: 'Failed to delete reminder', templateCreateFailed: 'Failed to create template', templateUpdateFailed: 'Failed to update template', templateDeleteFailed: 'Failed to delete template', labelCreateFailed: 'Failed to create label.', labelUpdateFailed: 'Failed to update label.', labelDeleteFailed: 'Failed to delete label.', unsubscribeFailed: 'Failed to unsubscribe' },
+    mutations: { starFailed: 'No se pudo actualizar la estrella.', readFailed: 'No se pudo actualizar el estado de lectura.', archived: 'Conversación archivada.', archiveFailed: 'No se pudo archivar la conversación.', deleteFailed: 'No se pudo eliminar la conversación.', deletedForever: 'Conversación eliminada definitivamente.', trashed: 'Conversación movida a la papelera.', sending: 'Enviando mensaje…', sendCancelled: 'Mensaje cancelado.', labelsFailed: 'No se pudieron actualizar las etiquetas.', pinFailed: 'No se pudo fijar.', snoozed: 'Mensaje pospuesto.', snoozeFailed: 'No se pudo posponer el mensaje.', unsnoozed: 'Se quitó el aplazamiento.', unsnoozeFailed: 'No se pudo quitar el aplazamiento.', bulkFailed: 'No se pudieron actualizar los mensajes.', bulkUpdated: 'Mensajes actualizados.', moveFailed: 'No se pudieron mover los mensajes.', queuedDescription: 'Aún no se ha entregado. Síguelo en Ajustes → Avanzado → Cola de entrega.', retryQueued: 'Mensaje en cola para reintentar.', retryFailed: 'No se pudo reintentar el mensaje.', queuedCancelled: 'Mensaje en cola cancelado.', cancelFailed: 'No se pudo cancelar el mensaje.', bundleUpdateFailed: 'Failed to update bundle.', bundleReorderFailed: 'Failed to reorder bundle.', contactCreateFailed: 'Failed to create contact', contactUpdateFailed: 'Failed to update contact', contactDeleteFailed: 'Failed to delete contact', filterCreateFailed: 'Failed to create filter', filterUpdateFailed: 'Failed to update filter', filterDeleteFailed: 'Failed to delete filter', mailboxCreated: 'Folder created.', mailboxCreateFailed: 'Failed to create folder.', mailboxDeleted: 'Folder deleted.', mailboxDeleteFailed: 'Failed to delete folder.', reminderCreateFailed: 'Failed to create reminder', reminderUpdateFailed: 'Failed to update reminder', reminderDeleteFailed: 'Failed to delete reminder', templateCreateFailed: 'Failed to create template', templateUpdateFailed: 'Failed to update template', templateDeleteFailed: 'Failed to delete template', labelCreateFailed: 'Failed to create label.', labelUpdateFailed: 'Failed to update label.', labelDeleteFailed: 'Failed to delete label.', unsubscribeFailed: 'Failed to unsubscribe' },
   },
 
   auth: {

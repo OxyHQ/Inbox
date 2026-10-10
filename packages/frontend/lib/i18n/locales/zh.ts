@@ -4,7 +4,17 @@ import type { LocaleDict } from '../types';
  * Chinese Simplified (zh-CN) translation dictionary for the Inbox app.
  */
 const zh: LocaleDict = {
+  notifications: {
+    push: {
+      channel: {
+        description: '新邮件通知',
+        name: '邮件',
+      },
+    },
+  },
   common: {
+    undo: '撤销',
+    sending: '正在发送…',
     cancel: '取消',
     save: '保存',
     ok: '确定',
@@ -140,6 +150,7 @@ const zh: LocaleDict = {
   },
 
   inbox: {
+    resizePanes: '调整面板大小',
     loadErrorTitle: '无法加载你的邮件',
     unreadable: {
       section: "无法显示",
@@ -235,6 +246,7 @@ const zh: LocaleDict = {
       empty: '还没有标签',
     },
     toast: {
+      spamUnavailable: '没有可移入的垃圾邮件文件夹。',
       attachmentFailed: '附件下载失败。',
       fileSystemUnavailable: '此设备不支持文件系统。',
       sharingUnavailable: '此设备不支持分享。',
@@ -394,6 +406,10 @@ const zh: LocaleDict = {
   },
 
   ai: {
+    toast: {
+      keptYourEdits: '你仍在输入，因此保留了你的文本。',
+      applied: '已由 AI 改写。',
+    },
     toolbar: {
       draft: '草稿',
       polish: '润色',
@@ -629,6 +645,10 @@ const zh: LocaleDict = {
   },
 
   ui: {
+    error: {
+      description: '无法显示 Inbox 的这一部分。你的邮件是安全的。',
+      title: '出了点问题',
+    },
     me: 'Me',
     settings: {
       landing: {
@@ -653,6 +673,7 @@ const zh: LocaleDict = {
         },
       },
       account: {
+        saveFailed: '无法保存设置。',
         signature: 'Signature', signaturePlaceholder: 'Appended to every outgoing message',
         autoReply: 'Auto-reply', autoReplyEnable: 'Enable auto-reply',
         subjectPlaceholder: 'Subject', messagePlaceholder: "Message — explain when you'll be back.",
@@ -667,6 +688,7 @@ const zh: LocaleDict = {
         accentColor: 'Accent color',
       },
       notifications: {
+        deviceNotice: '系统通知权限在设备设置中管理。',
         alerts: 'Alerts', push: 'Push notifications', pushDescription: 'Get notified when new messages arrive.',
         digest: 'Daily email digest', digestDescription: 'A summary of unread messages, once per day.',
         sound: 'Sound', playSound: 'Play sound', soundDescription: 'A short chime on new messages.',
@@ -702,6 +724,7 @@ const zh: LocaleDict = {
         usage: 'Mailbox usage', local: 'Local cache', nearlyFull: "You're nearly out of space. Old messages will start to bounce when the quota is full.", localDescription: "The most recent 100 messages are cached on this device for fast offline access. Attachments are downloaded on demand and cleaned up automatically — there's nothing to manage manually today.", free: '{{value}} free',
       },
       advanced: {
+        sizePlaceholder: '例如 5 MB',
         contains: 'contains', equals: 'equals', notContains: "doesn't contain", startsWith: 'starts with', endsWith: 'ends with', largerThan: 'larger than (bytes)', smallerThan: 'smaller than (bytes)',
         filters: 'Filters & rules', noFilters: 'No filters yet. Filters automatically apply actions like archiving, starring, or marking read to incoming messages.', filterName: 'Filter name', whenMessage: "When a message's", sizeBytes: 'Size in bytes', value: 'Value', then: 'then', creating: 'Creating…', addFilter: 'Add filter', editingTemplate: 'Editing template', templates: 'Templates', templateName: 'Template name', subjectOptional: 'Subject (optional)', templateBody: 'Template body', saveChanges: 'Save changes', addTemplate: 'Add template', bundles: 'Bundles', bundleHint: 'Bundles group related mail automatically. Toggle to enable and reorder how they stack in your inbox.', import: 'Import', importDescription: 'Import emails from .eml files. Imported messages land in your Inbox and can be moved or labelled like any other mail.', importing: 'Importing…', importButton: 'Choose .eml files', imported: 'Imported {{imported}} of {{total}} email(s).', conditions: '{{conditions}} condition(s) · {{actions}} action(s)', deleteFilter: 'Delete {{name}}', editTemplate: 'Edit {{name}}', deleteTemplate: 'Delete {{name}}', moveUp: 'Move {{name}} up', moveDown: 'Move {{name}} down',
       },
@@ -710,7 +733,7 @@ const zh: LocaleDict = {
     drawer: { unread: '{{name}}, {{count}} unread', labels: 'Labels', folders: 'Folders', createFolder: 'Create folder', folderHint: 'Tap + to create a folder. Long-press a folder to delete it.', signedOutTitle: 'Sign in to manage your email', signedOutSubtitle: 'Access your mailboxes, labels, and compose new messages.', notSignedIn: 'Not signed in', newFolder: 'New folder', folderName: 'Folder name', creatingFolder: 'Creating…', createFolderButton: 'Create folder', deleteFolderTitle: 'Delete folder?', deleteFolderDescription: '"{{name}}" and its organization will be removed. Messages inside are not deleted.' },
     event: { sharingUnavailable: 'Sharing is unavailable. Try "Google Calendar" instead.', openFailed: 'Could not open the calendar file.' },
     message: { loadError: "Couldn't load this message", loadErrorDescription: 'Check your connection and try again.', notFound: 'Message not found', notFoundDescription: 'This message may have been deleted or moved.', conversationMessages_one: '{{count}} message in this conversation', conversationMessages_other: '{{count}} messages in this conversation', summaryTitle: 'Generate AI thread summary', summaryDescription: 'Oxy sends bounded conversation context to Kaana for summarization.' },
-    mutations: { bundleUpdateFailed: 'Failed to update bundle.', bundleReorderFailed: 'Failed to reorder bundle.', contactCreateFailed: 'Failed to create contact', contactUpdateFailed: 'Failed to update contact', contactDeleteFailed: 'Failed to delete contact', filterCreateFailed: 'Failed to create filter', filterUpdateFailed: 'Failed to update filter', filterDeleteFailed: 'Failed to delete filter', mailboxCreated: 'Folder created.', mailboxCreateFailed: 'Failed to create folder.', mailboxDeleted: 'Folder deleted.', mailboxDeleteFailed: 'Failed to delete folder.', reminderCreateFailed: 'Failed to create reminder', reminderUpdateFailed: 'Failed to update reminder', reminderDeleteFailed: 'Failed to delete reminder', templateCreateFailed: 'Failed to create template', templateUpdateFailed: 'Failed to update template', templateDeleteFailed: 'Failed to delete template', labelCreateFailed: 'Failed to create label.', labelUpdateFailed: 'Failed to update label.', labelDeleteFailed: 'Failed to delete label.', unsubscribeFailed: 'Failed to unsubscribe' },
+    mutations: { starFailed: '无法更新星标。', readFailed: '无法更新已读状态。', archived: '已归档会话。', archiveFailed: '无法归档会话。', deleteFailed: '无法删除会话。', deletedForever: '已永久删除会话。', trashed: '已将会话移至回收站。', sending: '正在发送邮件…', sendCancelled: '已取消发送。', labelsFailed: '无法更新标签。', pinFailed: '无法置顶。', snoozed: '已推迟邮件。', snoozeFailed: '无法推迟邮件。', unsnoozed: '已取消推迟。', unsnoozeFailed: '无法取消推迟。', bulkFailed: '无法更新邮件。', bulkUpdated: '已更新邮件。', moveFailed: '无法移动邮件。', queuedDescription: '尚未送达。可在 设置 → 高级 → 投递队列 中查看。', retryQueued: '已加入重试队列。', retryFailed: '无法重试邮件。', queuedCancelled: '已取消队列中的邮件。', cancelFailed: '无法取消邮件。', bundleUpdateFailed: 'Failed to update bundle.', bundleReorderFailed: 'Failed to reorder bundle.', contactCreateFailed: 'Failed to create contact', contactUpdateFailed: 'Failed to update contact', contactDeleteFailed: 'Failed to delete contact', filterCreateFailed: 'Failed to create filter', filterUpdateFailed: 'Failed to update filter', filterDeleteFailed: 'Failed to delete filter', mailboxCreated: 'Folder created.', mailboxCreateFailed: 'Failed to create folder.', mailboxDeleted: 'Folder deleted.', mailboxDeleteFailed: 'Failed to delete folder.', reminderCreateFailed: 'Failed to create reminder', reminderUpdateFailed: 'Failed to update reminder', reminderDeleteFailed: 'Failed to delete reminder', templateCreateFailed: 'Failed to create template', templateUpdateFailed: 'Failed to update template', templateDeleteFailed: 'Failed to delete template', labelCreateFailed: 'Failed to create label.', labelUpdateFailed: 'Failed to update label.', labelDeleteFailed: 'Failed to delete label.', unsubscribeFailed: 'Failed to unsubscribe' },
   },
 
   auth: {

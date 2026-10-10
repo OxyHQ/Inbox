@@ -6,7 +6,7 @@ import React, {
   useEffect,
   useMemo,
 } from 'react';
-import { I18nManager } from 'react-native';
+import { I18nManager, Platform } from 'react-native';
 import { useOxy, useUpdateProfile } from '@oxy.so/services';
 import { coerceToSupportedLocale, isRTLLocale } from '@oxy.so/core';
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type Locale } from './types';
@@ -79,6 +79,14 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
   // takes effect after a JS bundle reload, so we set it eagerly here.
   useEffect(() => {
     I18nManager.forceRTL(isRTLLocale(locale));
+    // On the web, `forceRTL` does nothing: the document's own `lang` and `dir`
+    // are what the browser, screen readers and Bloom (`useIsRtl` reads
+    // `documentElement.dir`) go by. They stayed `en` / left-to-right, so Arabic
+    // was laid out backwards and read aloud with an English voice.
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      document.documentElement.lang = locale;
+      document.documentElement.dir = isRTLLocale(locale) ? 'rtl' : 'ltr';
+    }
   }, [locale]);
 
   const value = useMemo<LocaleContextValue>(

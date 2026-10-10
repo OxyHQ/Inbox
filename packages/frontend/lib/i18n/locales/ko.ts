@@ -6,7 +6,17 @@ import type { LocaleDict } from '../types';
  * Tone: polite 해요체 — matches the rest of the Oxy ecosystem.
  */
 const ko: LocaleDict = {
+  notifications: {
+    push: {
+      channel: {
+        description: '새 메일 알림',
+        name: '메일',
+      },
+    },
+  },
   common: {
+    undo: '실행 취소',
+    sending: '보내는 중…',
     cancel: '취소',
     save: '저장',
     ok: '확인',
@@ -142,6 +152,7 @@ const ko: LocaleDict = {
   },
 
   inbox: {
+    resizePanes: '패널 크기 조정',
     loadErrorTitle: '메일을 불러올 수 없습니다',
     unreadable: {
       section: "표시할 수 없음",
@@ -237,6 +248,7 @@ const ko: LocaleDict = {
       empty: '아직 라벨이 없어요',
     },
     toast: {
+      spamUnavailable: '이동할 스팸 폴더가 없습니다.',
       attachmentFailed: '첨부 파일을 다운로드하지 못했어요.',
       fileSystemUnavailable: '이 기기에서 파일 시스템을 사용할 수 없어요.',
       sharingUnavailable: '이 기기에서 공유를 사용할 수 없어요.',
@@ -396,6 +408,10 @@ const ko: LocaleDict = {
   },
 
   ai: {
+    toast: {
+      keptYourEdits: '계속 입력하셔서 텍스트를 그대로 두었습니다.',
+      applied: 'AI로 다시 작성했습니다.',
+    },
     toolbar: {
       draft: '초안',
       polish: '다듬기',
@@ -631,6 +647,10 @@ const ko: LocaleDict = {
   },
 
   ui: {
+    error: {
+      description: 'Inbox의 이 부분을 표시할 수 없습니다. 메일은 안전합니다.',
+      title: '문제가 발생했습니다',
+    },
     me: 'Me',
     settings: {
       landing: {
@@ -655,6 +675,7 @@ const ko: LocaleDict = {
         },
       },
       account: {
+        saveFailed: '설정을 저장하지 못했습니다.',
         signature: 'Signature', signaturePlaceholder: 'Appended to every outgoing message',
         autoReply: 'Auto-reply', autoReplyEnable: 'Enable auto-reply',
         subjectPlaceholder: 'Subject', messagePlaceholder: "Message — explain when you'll be back.",
@@ -669,6 +690,7 @@ const ko: LocaleDict = {
         accentColor: 'Accent color',
       },
       notifications: {
+        deviceNotice: '시스템 알림 권한은 기기 설정에서 관리합니다.',
         alerts: 'Alerts', push: 'Push notifications', pushDescription: 'Get notified when new messages arrive.',
         digest: 'Daily email digest', digestDescription: 'A summary of unread messages, once per day.',
         sound: 'Sound', playSound: 'Play sound', soundDescription: 'A short chime on new messages.',
@@ -704,6 +726,7 @@ const ko: LocaleDict = {
         usage: 'Mailbox usage', local: 'Local cache', nearlyFull: "You're nearly out of space. Old messages will start to bounce when the quota is full.", localDescription: "The most recent 100 messages are cached on this device for fast offline access. Attachments are downloaded on demand and cleaned up automatically — there's nothing to manage manually today.", free: '{{value}} free',
       },
       advanced: {
+        sizePlaceholder: '예: 5 MB',
         contains: 'contains', equals: 'equals', notContains: "doesn't contain", startsWith: 'starts with', endsWith: 'ends with', largerThan: 'larger than (bytes)', smallerThan: 'smaller than (bytes)',
         filters: 'Filters & rules', noFilters: 'No filters yet. Filters automatically apply actions like archiving, starring, or marking read to incoming messages.', filterName: 'Filter name', whenMessage: "When a message's", sizeBytes: 'Size in bytes', value: 'Value', then: 'then', creating: 'Creating…', addFilter: 'Add filter', editingTemplate: 'Editing template', templates: 'Templates', templateName: 'Template name', subjectOptional: 'Subject (optional)', templateBody: 'Template body', saveChanges: 'Save changes', addTemplate: 'Add template', bundles: 'Bundles', bundleHint: 'Bundles group related mail automatically. Toggle to enable and reorder how they stack in your inbox.', import: 'Import', importDescription: 'Import emails from .eml files. Imported messages land in your Inbox and can be moved or labelled like any other mail.', importing: 'Importing…', importButton: 'Choose .eml files', imported: 'Imported {{imported}} of {{total}} email(s).', conditions: '{{conditions}} condition(s) · {{actions}} action(s)', deleteFilter: 'Delete {{name}}', editTemplate: 'Edit {{name}}', deleteTemplate: 'Delete {{name}}', moveUp: 'Move {{name}} up', moveDown: 'Move {{name}} down',
       },
@@ -712,7 +735,7 @@ const ko: LocaleDict = {
     drawer: { unread: '{{name}}, {{count}} unread', labels: 'Labels', folders: 'Folders', createFolder: 'Create folder', folderHint: 'Tap + to create a folder. Long-press a folder to delete it.', signedOutTitle: 'Sign in to manage your email', signedOutSubtitle: 'Access your mailboxes, labels, and compose new messages.', notSignedIn: 'Not signed in', newFolder: 'New folder', folderName: 'Folder name', creatingFolder: 'Creating…', createFolderButton: 'Create folder', deleteFolderTitle: 'Delete folder?', deleteFolderDescription: '"{{name}}" and its organization will be removed. Messages inside are not deleted.' },
     event: { sharingUnavailable: 'Sharing is unavailable. Try "Google Calendar" instead.', openFailed: 'Could not open the calendar file.' },
     message: { loadError: "Couldn't load this message", loadErrorDescription: 'Check your connection and try again.', notFound: 'Message not found', notFoundDescription: 'This message may have been deleted or moved.', conversationMessages_one: '{{count}} message in this conversation', conversationMessages_other: '{{count}} messages in this conversation', summaryTitle: 'Generate AI thread summary', summaryDescription: 'Oxy sends bounded conversation context to Kaana for summarization.' },
-    mutations: { bundleUpdateFailed: 'Failed to update bundle.', bundleReorderFailed: 'Failed to reorder bundle.', contactCreateFailed: 'Failed to create contact', contactUpdateFailed: 'Failed to update contact', contactDeleteFailed: 'Failed to delete contact', filterCreateFailed: 'Failed to create filter', filterUpdateFailed: 'Failed to update filter', filterDeleteFailed: 'Failed to delete filter', mailboxCreated: 'Folder created.', mailboxCreateFailed: 'Failed to create folder.', mailboxDeleted: 'Folder deleted.', mailboxDeleteFailed: 'Failed to delete folder.', reminderCreateFailed: 'Failed to create reminder', reminderUpdateFailed: 'Failed to update reminder', reminderDeleteFailed: 'Failed to delete reminder', templateCreateFailed: 'Failed to create template', templateUpdateFailed: 'Failed to update template', templateDeleteFailed: 'Failed to delete template', labelCreateFailed: 'Failed to create label.', labelUpdateFailed: 'Failed to update label.', labelDeleteFailed: 'Failed to delete label.', unsubscribeFailed: 'Failed to unsubscribe' },
+    mutations: { starFailed: '별표를 업데이트하지 못했습니다.', readFailed: '읽음 상태를 업데이트하지 못했습니다.', archived: '대화를 보관처리했습니다.', archiveFailed: '대화를 보관처리하지 못했습니다.', deleteFailed: '대화를 삭제하지 못했습니다.', deletedForever: '대화를 영구 삭제했습니다.', trashed: '대화를 휴지통으로 이동했습니다.', sending: '메시지를 보내는 중…', sendCancelled: '메시지를 취소했습니다.', labelsFailed: '라벨을 업데이트하지 못했습니다.', pinFailed: '고정하지 못했습니다.', snoozed: '메시지를 다시 알림으로 설정했습니다.', snoozeFailed: '메시지를 다시 알림으로 설정하지 못했습니다.', unsnoozed: '다시 알림을 해제했습니다.', unsnoozeFailed: '다시 알림을 해제하지 못했습니다.', bulkFailed: '메시지를 업데이트하지 못했습니다.', bulkUpdated: '메시지를 업데이트했습니다.', moveFailed: '메시지를 이동하지 못했습니다.', queuedDescription: '아직 전달되지 않았습니다. 설정 → 고급 → 전달 대기열에서 확인하세요.', retryQueued: '재시도 대기열에 추가했습니다.', retryFailed: '메시지를 재시도하지 못했습니다.', queuedCancelled: '대기 중인 메시지를 취소했습니다.', cancelFailed: '메시지를 취소하지 못했습니다.', bundleUpdateFailed: 'Failed to update bundle.', bundleReorderFailed: 'Failed to reorder bundle.', contactCreateFailed: 'Failed to create contact', contactUpdateFailed: 'Failed to update contact', contactDeleteFailed: 'Failed to delete contact', filterCreateFailed: 'Failed to create filter', filterUpdateFailed: 'Failed to update filter', filterDeleteFailed: 'Failed to delete filter', mailboxCreated: 'Folder created.', mailboxCreateFailed: 'Failed to create folder.', mailboxDeleted: 'Folder deleted.', mailboxDeleteFailed: 'Failed to delete folder.', reminderCreateFailed: 'Failed to create reminder', reminderUpdateFailed: 'Failed to update reminder', reminderDeleteFailed: 'Failed to delete reminder', templateCreateFailed: 'Failed to create template', templateUpdateFailed: 'Failed to update template', templateDeleteFailed: 'Failed to delete template', labelCreateFailed: 'Failed to create label.', labelUpdateFailed: 'Failed to update label.', labelDeleteFailed: 'Failed to delete label.', unsubscribeFailed: 'Failed to unsubscribe' },
   },
 
   auth: {

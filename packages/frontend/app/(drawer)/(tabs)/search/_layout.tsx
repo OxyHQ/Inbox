@@ -16,3 +16,6 @@ export default function SearchLayout() {
     </Stack>
   );
 }
+
+// A failure in this section stays in this section.
+export { RouteErrorBoundary as ErrorBoundary } from '@/components/RouteErrorBoundary';

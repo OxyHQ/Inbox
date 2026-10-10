@@ -14,7 +14,10 @@ import { type PropsWithChildren } from 'react';
 const DEFAULT_TITLE = 'Inbox by Oxy';
 const DEFAULT_DESCRIPTION = 'Email by Oxy. Federated, encrypted, simple.';
 const SITE_NAME = 'Inbox by Oxy';
-const OG_IMAGE = '/assets/images/icon.png';
+// Absolute, and a file the export actually contains: `/assets/images/icon.png`
+// is not in dist/, so the SPA fallback answered with index.html and link
+// previews showed no image.
+const OG_IMAGE = 'https://inbox.oxy.so/icon-512.png';
 
 export default function Root({ children }: PropsWithChildren) {
   return (

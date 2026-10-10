@@ -34,6 +34,10 @@ jest.mock('@/hooks/useEmail', () => ({
 
 jest.mock('@oxy.so/services', () => ({ useOxy: () => ({ user: { id: 'u1' } }) }));
 
+// Toasts are translated; the keys are what these tests read.
+const t = (key: string) => key;
+jest.mock('@/lib/i18n', () => ({ useTranslation: () => ({ t }) }));
+
 const recordInboxMetric = jest.fn();
 jest.mock('@/utils/inboxTelemetry', () => ({ recordInboxMetric }));
 
@@ -117,7 +121,7 @@ describe('queued', () => {
     expect(toast.success).not.toHaveBeenCalled();
     expect(toast.warning).toHaveBeenCalledWith(
       'Message queued for delivery',
-      expect.objectContaining({ description: expect.stringContaining('Delivery queue') }),
+      expect.objectContaining({ description: 'ui.mutations.queuedDescription' }),
     );
     expect(recordInboxMetric).toHaveBeenCalledWith('composer_send_queued', { queued: true });
   });

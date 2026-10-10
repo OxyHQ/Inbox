@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@oxy.so/bloom';
 import { useOxy } from '@oxy.so/services';
 import { useEmailStore } from '@/hooks/useEmail';
+import { useTranslation } from '@/lib/i18n';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import { invalidateMailViews } from '@/hooks/queries/invalidateMailViews';
 import { INBOX_MUTATION_KEYS } from '@/hooks/queries/queryClient';
@@ -23,6 +24,7 @@ import {
 } from '@/utils/messageCache';
 
 export function useToggleStar() {
+  const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
   const { user } = useOxy();
@@ -57,7 +59,7 @@ export function useToggleStar() {
     },
     onError: (_err, _vars, context) => {
       if (context) restoreSnapshot(queryClient, context.snapshot);
-      toast.error('Failed to update star.');
+      toast.error(t('ui.mutations.starFailed'));
     },
     onSuccess: (updatedMessage, { messageId }) => {
       if (updatedMessage) {
@@ -75,6 +77,7 @@ export function useToggleStar() {
 }
 
 export function useToggleRead() {
+  const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
   const { user } = useOxy();
@@ -105,7 +108,7 @@ export function useToggleRead() {
     },
     onError: (_err, _vars, context) => {
       if (context) restoreSnapshot(queryClient, context.snapshot);
-      toast.error('Failed to update read status.');
+      toast.error(t('ui.mutations.readFailed'));
     },
     onSuccess: (updatedMessage, { messageId }) => {
       if (updatedMessage) {
@@ -121,6 +124,7 @@ export function useToggleRead() {
 }
 
 export function useArchiveMessage() {
+  const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
 
@@ -141,14 +145,14 @@ export function useArchiveMessage() {
       return { snapshot, prevSelectedMessageId };
     },
     onSuccess: () => {
-      toast.success('Conversation archived.');
+      toast.success(t('ui.mutations.archived'));
     },
     onError: (_err, _vars, context) => {
       if (context) {
         restoreSnapshot(queryClient, context.snapshot);
         useEmailStore.setState({ selectedMessageId: context.prevSelectedMessageId });
       }
-      toast.error('Failed to archive conversation.');
+      toast.error(t('ui.mutations.archiveFailed'));
     },
     onSettled: () => {
       // Mark stale but don't trigger immediate refetch — optimistic update is already applied
@@ -158,6 +162,7 @@ export function useArchiveMessage() {
 }
 
 export function useDeleteMessage() {
+  const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
 
@@ -192,14 +197,14 @@ export function useDeleteMessage() {
       return { snapshot, prevSelectedMessageId };
     },
     onSuccess: (_data, { isInTrash }) => {
-      toast.success(isInTrash ? 'Conversation permanently deleted.' : 'Conversation moved to Trash.');
+      toast.success(isInTrash ? t('ui.mutations.deletedForever') : t('ui.mutations.trashed'));
     },
     onError: (_err, _vars, context) => {
       if (context) {
         restoreSnapshot(queryClient, context.snapshot);
         useEmailStore.setState({ selectedMessageId: context.prevSelectedMessageId });
       }
-      toast.error('Failed to delete conversation.');
+      toast.error(t('ui.mutations.deleteFailed'));
     },
     onSettled: () => {
       // Mark stale but don't trigger immediate refetch — optimistic update is already applied
@@ -237,6 +242,7 @@ function invalidateAfterSend(queryClient: ReturnType<typeof useQueryClient>) {
 const UNDO_SEND_DELAY_MS = 5000;
 
 export function useSendMessageWithUndo() {
+  const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
   const [isPending, setIsPending] = useState(false);
@@ -273,10 +279,10 @@ export function useSendMessageWithUndo() {
         clearTimeout(timeoutRef.current);
       }
 
-      toast('Sending message...', {
+      toast(t('ui.mutations.sending'), {
         duration: UNDO_SEND_DELAY_MS,
         action: {
-          label: 'Undo',
+          label: t('common.undo'),
           onClick: () => {
             cancelledRef.current = true;
             if (timeoutRef.current) {
@@ -284,7 +290,7 @@ export function useSendMessageWithUndo() {
               timeoutRef.current = null;
             }
             setIsPending(false);
-            toast('Message cancelled.');
+            toast(t('ui.mutations.sendCancelled'));
             options?.onCancel?.();
           },
         },
@@ -310,7 +316,7 @@ export function useSendMessageWithUndo() {
             queryClient.invalidateQueries({ queryKey: emailKeys.outbox });
             toast.warning(result.message, {
               duration: 10000,
-              description: 'It has not been delivered yet. Track it in Settings → Advanced → Delivery queue.',
+              description: t('ui.mutations.queuedDescription'),
             } as Record<string, unknown>);
             recordInboxMetric('composer_send_queued', { queued: true });
             options?.onQueued?.();
@@ -321,7 +327,7 @@ export function useSendMessageWithUndo() {
           recordInboxMetric('composer_send_succeeded');
           options?.onSuccess?.();
         } catch (err: unknown) {
-          const message = err instanceof Error ? err.message : 'Failed to send message.';
+          const message = err instanceof Error ? err.message : t('compose.toast.sendFailed');
           toast.error(message);
           recordInboxMetric('composer_send_failed');
           options?.onError?.(err);
@@ -330,7 +336,7 @@ export function useSendMessageWithUndo() {
         }
       }, UNDO_SEND_DELAY_MS);
     },
-    [api, queryClient],
+    [api, queryClient, t],
   );
 
   return {
@@ -340,6 +346,7 @@ export function useSendMessageWithUndo() {
 }
 
 export function useUpdateMessageLabels() {
+  const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
   const { user } = useOxy();
@@ -365,7 +372,7 @@ export function useUpdateMessageLabels() {
     },
     onError: (_err, _vars, context) => {
       if (context) restoreSnapshot(queryClient, context.snapshot);
-      toast.error('Failed to update labels.');
+      toast.error(t('ui.mutations.labelsFailed'));
     },
     onSettled: (_data, _err, { messageId }) => {
       // The list is updated optimistically; the message, thread and search are not.
@@ -376,6 +383,7 @@ export function useUpdateMessageLabels() {
 }
 
 export function useTogglePin() {
+  const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
   const { user } = useOxy();
@@ -394,7 +402,7 @@ export function useTogglePin() {
     },
     onError: (_err, _vars, context) => {
       if (context) restoreSnapshot(queryClient, context.snapshot);
-      toast.error('Failed to update pin.');
+      toast.error(t('ui.mutations.pinFailed'));
     },
     onSettled: () => {
       // The pin flag is already patched optimistically everywhere but search.
@@ -404,6 +412,7 @@ export function useTogglePin() {
 }
 
 export function useSnoozeMessage() {
+  const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
   const { user } = useOxy();
@@ -421,11 +430,11 @@ export function useSnoozeMessage() {
       return { snapshot };
     },
     onSuccess: () => {
-      toast.success('Message snoozed.');
+      toast.success(t('ui.mutations.snoozed'));
     },
     onError: (_err, _vars, context) => {
       if (context) restoreSnapshot(queryClient, context.snapshot);
-      toast.error('Failed to snooze message.');
+      toast.error(t('ui.mutations.snoozeFailed'));
     },
     onSettled: () => {
       // Mark stale but don't trigger immediate refetch — optimistic update is already applied
@@ -435,6 +444,7 @@ export function useSnoozeMessage() {
 }
 
 export function useUnsnoozeMessage() {
+  const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
   const { user } = useOxy();
@@ -454,11 +464,11 @@ export function useUnsnoozeMessage() {
       return { snapshot };
     },
     onSuccess: () => {
-      toast.success('Snooze removed.');
+      toast.success(t('ui.mutations.unsnoozed'));
     },
     onError: (_err, _vars, context) => {
       if (context) restoreSnapshot(queryClient, context.snapshot);
-      toast.error('Failed to unsnooze message.');
+      toast.error(t('ui.mutations.unsnoozeFailed'));
     },
     onSettled: () => {
       // Mark stale but don't trigger immediate refetch — optimistic update is already applied
@@ -470,6 +480,7 @@ export function useUnsnoozeMessage() {
 // ─── Bulk Operations ─────────────────────────────────────────────
 
 export function useBulkUpdateFlags() {
+  const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
   const { user } = useOxy();
@@ -525,10 +536,10 @@ export function useBulkUpdateFlags() {
     },
     onError: (_err, _vars, context) => {
       context?.snapshots.forEach((snapshot) => restoreSnapshot(queryClient, snapshot));
-      toast.error('Failed to update messages.');
+      toast.error(t('ui.mutations.bulkFailed'));
     },
     onSuccess: (_data, { quiet }) => {
-      if (!quiet) toast.success('Messages updated.');
+      if (!quiet) toast.success(t('ui.mutations.bulkUpdated'));
     },
     onSettled: () => {
       invalidateMailViews(queryClient, { views: 'stale' });
@@ -537,6 +548,7 @@ export function useBulkUpdateFlags() {
 }
 
 export function useBulkMoveMessages() {
+  const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
 
@@ -558,7 +570,7 @@ export function useBulkMoveMessages() {
         context.prevMessages.forEach(([key, data]) => queryClient.setQueryData(key, data));
         useEmailStore.setState({ selectedMessageId: context.prevSelectedMessageId });
       }
-      toast.error('Failed to move messages.');
+      toast.error(t('ui.mutations.moveFailed'));
     },
     onSettled: () => {
       invalidateMailViews(queryClient, { views: 'stale' });
@@ -573,6 +585,7 @@ export function useBulkMoveMessages() {
  * and came back on the next refresh, never deleted.
  */
 export function useBulkDeleteMessages() {
+  const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
 
@@ -607,14 +620,14 @@ export function useBulkDeleteMessages() {
       return { prevMessages, prevSelectedMessageId };
     },
     onSuccess: (_data, { permanent }) => {
-      toast.success(permanent.length > 0 ? 'Conversation permanently deleted.' : 'Conversation moved to Trash.');
+      toast.success(permanent.length > 0 ? t('ui.mutations.deletedForever') : t('ui.mutations.trashed'));
     },
     onError: (_err, _vars, context) => {
       if (context) {
         context.prevMessages.forEach(([key, data]) => queryClient.setQueryData(key, data));
         useEmailStore.setState({ selectedMessageId: context.prevSelectedMessageId });
       }
-      toast.error('Failed to delete conversation.');
+      toast.error(t('ui.mutations.deleteFailed'));
     },
     onSettled: () => {
       invalidateMailViews(queryClient, { views: 'stale' });

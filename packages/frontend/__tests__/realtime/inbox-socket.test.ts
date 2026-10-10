@@ -172,11 +172,15 @@ describe('email:unread_count', () => {
 });
 
 describe('email:changed', () => {
-  it('invalidates every affected mailbox, which for a move is two', () => {
+  it('reconciles every view that shows mail, not only the mailbox lists', () => {
     mount();
-    handlers.get('email:changed')!({ id: 'row-1', mailboxIds: ['mb-from', 'mb-to'], reason: 'moved' });
-    // Two message lists plus the mailbox list itself.
-    expect(invalidateQueries).toHaveBeenCalledTimes(3);
+    // A draft sent from another device: it is deleted, and it may be open here,
+    // in a conversation, in search results or in a bundle.
+    handlers.get('email:changed')!({ id: 'draft-1', mailboxIds: ['mb-drafts'], reason: 'deleted' });
+    const keys = invalidateQueries.mock.calls.map(([filters]) => (filters as { queryKey: unknown[] }).queryKey[0]);
+    expect(keys).toEqual(
+      expect.arrayContaining(['messages', 'message', 'thread', 'search', 'bundles', 'mailboxes']),
+    );
   });
 
   it('ignores a malformed payload', () => {

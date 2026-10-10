@@ -4,6 +4,7 @@ import { toast } from '@oxy.so/bloom';
 import { useOxy } from '@oxy.so/services';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
+import { invalidateMailViews } from '@/hooks/queries/invalidateMailViews';
 import { INBOX_MUTATION_KEYS } from '@/hooks/queries/queryClient';
 import type { Message } from '@/services/emailApi';
 import { recordInboxMetric } from '@/utils/inboxTelemetry';
@@ -68,8 +69,7 @@ export function useToggleStar() {
     },
     onSettled: () => {
       // Reconcile filtered caches (e.g. Starred) with the server.
-      queryClient.invalidateQueries({ queryKey: emailKeys.messages.root });
-      queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
+      invalidateMailViews(queryClient);
     },
   });
 }
@@ -113,9 +113,9 @@ export function useToggleRead() {
       }
     },
     onSettled: () => {
-      // Reconcile unseen counts with the server. Message/thread caches are
-      // already synced from the server response in onSuccess.
-      queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
+      // Lists, message and thread are already synced from the server response
+      // in onSuccess; search, bundles and the unseen counts are not.
+      invalidateMailViews(queryClient, { views: 'stale' });
     },
   });
 }
@@ -152,8 +152,7 @@ export function useArchiveMessage() {
     },
     onSettled: () => {
       // Mark stale but don't trigger immediate refetch — optimistic update is already applied
-      queryClient.invalidateQueries({ queryKey: emailKeys.messages.root, refetchType: 'none' });
-      queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
+      invalidateMailViews(queryClient, { views: 'stale' });
     },
   });
 }
@@ -204,8 +203,7 @@ export function useDeleteMessage() {
     },
     onSettled: () => {
       // Mark stale but don't trigger immediate refetch — optimistic update is already applied
-      queryClient.invalidateQueries({ queryKey: emailKeys.messages.root, refetchType: 'none' });
-      queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
+      invalidateMailViews(queryClient, { views: 'stale' });
     },
   });
 }
@@ -221,8 +219,8 @@ export function useSendMessage() {
       // re-sends the same key rather than minting a second message.
       return api.sendMessage(params);
     },
-    onSettled: (_data, _error, params) => {
-      invalidateAfterSend(queryClient, params.draftId);
+    onSettled: () => {
+      invalidateAfterSend(queryClient);
     },
   });
 }
@@ -232,13 +230,8 @@ export function useSendMessage() {
  * removes that draft — so its own detail and any thread it was shown in are
  * stale too.
  */
-function invalidateAfterSend(queryClient: ReturnType<typeof useQueryClient>, draftId: string | undefined) {
-  queryClient.invalidateQueries({ queryKey: emailKeys.messages.root });
-  queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
-  if (draftId) {
-    queryClient.invalidateQueries({ queryKey: emailKeys.message.byId(draftId) });
-    queryClient.invalidateQueries({ queryKey: emailKeys.thread.root });
-  }
+function invalidateAfterSend(queryClient: ReturnType<typeof useQueryClient>) {
+  invalidateMailViews(queryClient);
 }
 
 const UNDO_SEND_DELAY_MS = 5000;
@@ -304,7 +297,7 @@ export function useSendMessageWithUndo() {
 
         try {
           const result = await api.sendMessage(params);
-          invalidateAfterSend(queryClient, params.draftId);
+          invalidateAfterSend(queryClient);
 
           if (result.queued) {
             // `queued` is NOT `sent`. It means the relay refused the message
@@ -375,8 +368,9 @@ export function useUpdateMessageLabels() {
       toast.error('Failed to update labels.');
     },
     onSettled: (_data, _err, { messageId }) => {
-      // Only invalidate single message cache — list is already updated optimistically
-      queryClient.invalidateQueries({ queryKey: emailKeys.message.byId(messageId) });
+      // The list is updated optimistically; the message, thread and search are not.
+      void queryClient.invalidateQueries({ queryKey: emailKeys.message.byId(messageId) });
+      invalidateMailViews(queryClient, { views: 'stale' });
     },
   });
 }
@@ -403,8 +397,8 @@ export function useTogglePin() {
       toast.error('Failed to update pin.');
     },
     onSettled: () => {
-      // Only invalidate mailboxes — pin flag is already synced optimistically
-      queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
+      // The pin flag is already patched optimistically everywhere but search.
+      invalidateMailViews(queryClient, { views: 'stale' });
     },
   });
 }
@@ -435,8 +429,7 @@ export function useSnoozeMessage() {
     },
     onSettled: () => {
       // Mark stale but don't trigger immediate refetch — optimistic update is already applied
-      queryClient.invalidateQueries({ queryKey: emailKeys.messages.root, refetchType: 'none' });
-      queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
+      invalidateMailViews(queryClient, { views: 'stale' });
     },
   });
 }
@@ -469,8 +462,7 @@ export function useUnsnoozeMessage() {
     },
     onSettled: () => {
       // Mark stale but don't trigger immediate refetch — optimistic update is already applied
-      queryClient.invalidateQueries({ queryKey: emailKeys.messages.root, refetchType: 'none' });
-      queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
+      invalidateMailViews(queryClient, { views: 'stale' });
     },
   });
 }
@@ -536,7 +528,7 @@ export function useBulkUpdateFlags() {
       toast.success('Messages updated.');
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
+      invalidateMailViews(queryClient, { views: 'stale' });
     },
   });
 }
@@ -577,8 +569,7 @@ export function useBulkMoveMessages() {
       toast.error('Failed to move messages.');
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: emailKeys.messages.root, refetchType: 'none' });
-      queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
+      invalidateMailViews(queryClient, { views: 'stale' });
     },
   });
 }
@@ -597,8 +588,7 @@ export function useSaveDraft() {
     onSettled: () => {
       // Refetch the Drafts list (the saved draft appears) and mailbox badges
       // (the Drafts unseen count) so the sidebar reflects the new draft.
-      queryClient.invalidateQueries({ queryKey: emailKeys.messages.root });
-      queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
+      invalidateMailViews(queryClient);
     },
   });
 }
@@ -616,11 +606,8 @@ export function useDiscardDraft() {
       if (!api) throw new Error('Email API not initialized');
       await api.deleteMessage(draftId, true);
     },
-    onSettled: (_data, _error, draftId) => {
-      queryClient.invalidateQueries({ queryKey: emailKeys.messages.root });
-      queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
-      queryClient.invalidateQueries({ queryKey: emailKeys.message.byId(draftId) });
-      queryClient.invalidateQueries({ queryKey: emailKeys.thread.root });
+    onSettled: () => {
+      invalidateMailViews(queryClient);
     },
   });
 }

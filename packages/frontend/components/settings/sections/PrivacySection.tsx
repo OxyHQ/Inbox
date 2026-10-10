@@ -3,54 +3,43 @@ import {
   SettingsGeneralPage,
   SettingsValueField,
 } from '@oxy.so/bloom/settings-modal';
-import { Switch } from '@oxy.so/bloom/switch';
-/** These protections are enabled server-side; settings remain read-only until the API supports changes. */
+
+/**
+ * What the reader actually gets, and nothing it does not.
+ *
+ * This page used to list "Block remote images (until you tap to allow)",
+ * "Strip tracking parameters", "Sender verification" and an always-empty block
+ * list as switched-on protections. None of them existed. What does: every
+ * remote image and font in a message is rewritten to the API's `/email/proxy`
+ * (`utils/htmlTransform.ts`), which fetches it on the reader's behalf — so the
+ * sender's server sees Oxy, not the reader's IP or location — and answers a
+ * known tracking URL with a blank image instead. Neither can be turned off,
+ * so each row states it rather than offering a switch.
+ */
 export function PrivacySection() {
   const { t } = useTranslation();
+  const alwaysOn = (
+    <SettingsValueField muted>{t('ui.settings.privacy.alwaysOn')}</SettingsValueField>
+  );
   return (
     <SettingsGeneralPage
       sections={[
         {
-          key: 'tracking',
-          label: t('ui.settings.privacy.tracking'),
+          key: 'images',
+          label: t('ui.settings.privacy.images'),
           description: t('ui.settings.privacy.info'),
-          rows: ['blockImages', 'hideIp', 'stripTracking'].map((key) => ({
-            key,
-            label: t(`ui.settings.privacy.${key}`),
-            description: t(`ui.settings.privacy.${key}Description`),
-            control: (
-              <Switch
-                accessibilityLabel={t(`ui.settings.privacy.${key}`)}
-                checked
-                disabled
-              />
-            ),
-          })),
-        },
-        {
-          key: 'trust',
-          label: t('ui.settings.privacy.trust'),
           rows: [
             {
-              key: 'verification',
-              label: t('ui.settings.privacy.verification'),
-              description: t('ui.settings.privacy.verificationDescription'),
-              control: (
-                <Switch
-                  accessibilityLabel={t('ui.settings.privacy.verification')}
-                  checked
-                  disabled
-                />
-              ),
+              key: 'proxy',
+              label: t('ui.settings.privacy.proxy'),
+              description: t('ui.settings.privacy.proxyDescription'),
+              control: alwaysOn,
             },
             {
-              key: 'blocked',
-              label: t('ui.settings.privacy.blockListTitle'),
-              control: (
-                <SettingsValueField muted>
-                  {t('ui.settings.privacy.blockListEmpty')}
-                </SettingsValueField>
-              ),
+              key: 'trackers',
+              label: t('ui.settings.privacy.trackers'),
+              description: t('ui.settings.privacy.trackersDescription'),
+              control: alwaysOn,
             },
           ],
         },

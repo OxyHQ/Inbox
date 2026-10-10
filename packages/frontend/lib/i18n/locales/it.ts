@@ -636,6 +636,10 @@ const it: LocaleDict = {
     },
     unsubscribe: 'Disiscriviti',
     block: 'Blocca',
+    unsubscribed: 'Disiscritto',
+    blocked: 'Bloccato',
+    messageCount_one: '{{count}} email',
+    messageCount_other: '{{count}} email',
     frequency: {
       twentyPlus: 'Oltre 20 email recenti',
       tenToTwenty: '10-20 email recenti',
@@ -743,6 +747,7 @@ const it: LocaleDict = {
     sizeBytes: '{{value}} B',
     sizeKb: '{{value}} KB',
     sizeMb: '{{value}} MB',
+    previewAlt: 'Anteprima dell\'allegato',
   },
 
   settings: {
@@ -756,6 +761,9 @@ const it: LocaleDict = {
       title: 'Qualcosa è andato storto',
     },
     me: 'Me',
+    layoutDirection: {
+      restartRequired: 'Riavvia Inbox per adattare la direzione del layout a questa lingua.',
+    },
     settings: {
       manageOxyAccount: 'Gestisci account Oxy',
       landing: {
@@ -770,7 +778,7 @@ const it: LocaleDict = {
           appearance: 'Aspetto', appearanceDescription: 'Tema e colore principale',
           notifications: 'Notifiche', notificationsDescription: 'Avvisi push ed email',
           inbox: 'Inbox', inboxDescription: 'Densità, lettura e azioni di scorrimento',
-          privacy: 'Privacy', privacyDescription: 'Protezione dal tracciamento e affidabilità dei mittenti',
+          privacy: 'Privacy', privacyDescription: 'Proxy delle immagini e blocco dei tracker',
           labels: 'Etichette', labelsDescription: 'Organizza la posta con etichette personalizzate',
           contacts: 'Contatti', contactsDescription: 'Le persone a cui scrivi, per comporre più in fretta',
           ai: 'Funzioni IA', aiDescription: 'Riepilogo, risposte rapide e categorizzazione',
@@ -803,7 +811,7 @@ const it: LocaleDict = {
         accentColor: 'Colore principale',
       },
       notifications: {
-        deviceNotice: 'I permessi di notifica del sistema si gestiscono nelle impostazioni del dispositivo.',
+        deviceNotice: 'I permessi di notifica del sistema si gestiscono nelle impostazioni del dispositivo.', webNotice: 'Le notifiche push sono disponibili nell\'app Inbox per Android. Finché Inbox è aperto nel browser, la nuova posta compare qui appena arriva.',
         alerts: 'Avvisi', push: 'Notifiche push', pushDescription: 'Ricevi una notifica all\'arrivo di nuovi messaggi.',
         digest: 'Riepilogo email giornaliero', digestDescription: 'Un riepilogo dei messaggi non letti, una volta al giorno.',
         sound: 'Suono', playSound: 'Riproduci suono', soundDescription: 'Un breve segnale acustico per i nuovi messaggi.',
@@ -818,13 +826,15 @@ const it: LocaleDict = {
         swipeA11y: 'Azione di scorrimento {{label}}: {{value}}, tocca per cambiare', swipeHint: 'Tocca una riga per scorrere tra Archivia · Elimina · Segna come letto · Posticipa · Nessuna.',
       },
       privacy: {
-        info: 'Le protezioni della privacy sono attive per impostazione predefinita. Presto arriveranno le opzioni per singola funzione.',
-        tracking: 'Protezione dal tracciamento', blockImages: 'Blocca immagini remote', blockImagesDescription: 'Non caricare immagini da server esterni finché non tocchi per consentirlo.',
-        hideIp: 'Nascondi l\'IP ai mittenti', hideIpDescription: 'Immagini e font vengono caricati tramite il proxy per la privacy di Oxy.',
-        stripTracking: 'Rimuovi parametri di tracciamento', stripTrackingDescription: 'Rimuove i token di tracciamento dai link nei messaggi.',
-        trust: 'Affidabilità dei mittenti', verification: 'Verifica del mittente', verificationDescription: 'Mostra se i messaggi sono firmati dal dominio dichiarato.',
-        blockList: 'Gestisci elenco bloccati', blockListTitle: 'Elenco bloccati', blockListEmpty: 'Al momento non ci sono mittenti bloccati.',
-        why: 'Perché queste impostazioni predefinite?', whyDescription: 'Oxy adotta un approccio di privacy predefinita: i mittenti non vedono mai il tuo IP, la tua posizione o le conferme di lettura, e i pixel di tracciamento vengono bloccati a livello di rete. Con la maturazione delle protezioni introdurremo eccezioni dettagliate per singolo messaggio e per singolo mittente.',
+        info: 'Queste protezioni valgono per ogni messaggio e sono sempre attive.',
+        images: 'Immagini remote',
+        alwaysOn: 'Sempre attivo',
+        proxy: 'Le immagini passano da Oxy',
+        proxyDescription: 'Immagini e font della tua posta vengono scaricati dal proxy di Oxy, così i mittenti non vedono mai il tuo indirizzo IP né la tua posizione.',
+        trackers: 'Tracker noti bloccati',
+        trackersDescription: 'Le immagini dei servizi di tracciamento noti vengono sostituite da un\'immagine vuota.',
+        why: 'Cosa possono ancora vedere i mittenti',
+        whyDescription: 'Le immagini si caricano automaticamente, quindi un mittente può comunque sapere che un messaggio è stato aperto, ma non il tuo indirizzo IP né la tua posizione.',
       },
       labels: {
         color: 'Colore',
@@ -844,7 +854,7 @@ const it: LocaleDict = {
         your: 'Le tue etichette', empty: 'Ancora nessuna etichetta. Crea la prima qui sotto per organizzare i messaggi.', create: 'Crea etichetta', labelName: 'Nome dell\'etichetta', saveName: 'Salva nome dell\'etichetta', rename: 'Rinomina {{name}}', delete: 'Elimina {{name}}', builtIn: 'Predefinita', pick: 'Scegli {{color}}', newName: 'Nome della nuova etichetta', creating: 'Creazione…', add: 'Aggiungi etichetta', deleteTitle: 'Eliminare l\'etichetta?', deleteDescription: '"{{name}}" verrà rimossa da tutti i messaggi a cui è applicata.',
       },
       contacts: {
-        your: 'I tuoi contatti', search: 'Cerca contatti', edit: 'Modifica {{name}}', delete: 'Elimina {{name}}', editContact: 'Modifica contatto', addContact: 'Aggiungi contatto', name: 'Nome', email: 'Email', company: 'Azienda (facoltativo)', notes: 'Note (facoltativo)', star: 'Segna questo contatto come speciale', saving: 'Salvataggio…', adding: 'Aggiunta…', saveChanges: 'Salva modifiche', deleteTitle: 'Eliminare il contatto?', deleteDescription: '"{{name}}" verrà rimosso dai tuoi contatti.', noMatch: 'Nessun contatto corrisponde alla ricerca.', empty: 'Ancora nessun contatto. Aggiungi qui sotto i destinatari abituali per comporre più in fretta.',
+        your: 'I tuoi contatti', search: 'Cerca contatti', edit: 'Modifica {{name}}', delete: 'Elimina {{name}}', editContact: 'Modifica contatto', addContact: 'Aggiungi contatto', name: 'Nome', email: 'Email', company: 'Azienda (facoltativo)', notes: 'Note (facoltativo)', star: 'Segna questo contatto come speciale', saving: 'Salvataggio…', adding: 'Aggiunta…', saveChanges: 'Salva modifiche', deleteTitle: 'Eliminare il contatto?', deleteDescription: '"{{name}}" verrà rimosso dai tuoi contatti.', noMatch: 'Nessun contatto corrisponde alla ricerca.', loadMore: 'Carica altri contatti', showing: '{{shown}} di {{total}} visualizzati', empty: 'Ancora nessun contatto. Aggiungi qui sotto i destinatari abituali per comporre più in fretta.',
       },
       ai: {
         dailyBrief: 'Riepilogo quotidiano', recap: 'Riepilogo della posta', recapDescription: 'Un breve riepilogo generato dai conteggi della posta (non letti, speciali, allegati). Non legge il contenuto dei messaggi.', smartReply: 'Risposte rapide', summary: 'Riepilogo conversazione', summaryTitle: 'Proponi un riepilogo', summaryDescription: 'Mostra un pulsante Riassumi nelle conversazioni. Una conversazione viene inviata a Oxy e Kaana solo quando lo premi.', suggestions: 'Suggerimenti con un tocco', suggestionsDescription: 'Tre risposte contestuali sopra il messaggio, generate tramite Oxy e Kaana.', priority: 'Indicatori di priorità', priorityTitle: 'Evidenzia la posta probabilmente urgente', priorityDescription: 'Contrassegna i messaggi come Urgente, Azione richiesta o Importante usando euristiche basate su parole chiave sul dispositivo, non un vero modello di IA.', tip: 'Gli indicatori di priorità funzionano sul dispositivo con euristiche basate su parole chiave. Riepilogo quotidiano, Risposte rapide e riepiloghi delle conversazioni usano l\'inferenza limitata di Oxy tramite Kaana; Chiedi ad Alia resta l\'agente separato.',
@@ -867,14 +877,14 @@ const it: LocaleDict = {
         deleteTemplateDescription: '"{{name}}" verrà rimosso dai modelli salvati.',
         sizePlaceholder: 'es. 5 MB',
         contains: 'contiene', equals: 'è uguale a', notContains: 'non contiene', startsWith: 'inizia con', endsWith: 'finisce con', largerThan: 'maggiore di (byte)', smallerThan: 'minore di (byte)',
-        filters: 'Filtri e regole', noFilters: 'Ancora nessun filtro. I filtri applicano automaticamente ai messaggi in arrivo azioni come archiviare, segnare come speciale o come letto.', filterName: 'Nome del filtro', whenMessage: 'Quando il campo del messaggio', sizeBytes: 'Dimensione in byte', value: 'Valore', then: 'allora', creating: 'Creazione…', addFilter: 'Aggiungi filtro', editingTemplate: 'Modifica del modello', templates: 'Modelli', templateName: 'Nome del modello', subjectOptional: 'Oggetto (facoltativo)', templateBody: 'Testo del modello', saveChanges: 'Salva modifiche', addTemplate: 'Aggiungi modello', bundles: 'Gruppi', bundleHint: 'I gruppi raccolgono automaticamente la posta correlata. Attivali e riordinali per decidere come si dispongono nella posta.', import: 'Importa', importDescription: 'Importa email da file .eml. I messaggi importati arrivano in Inbox e possono essere spostati o etichettati come qualsiasi altra email.', importing: 'Importazione…', importButton: 'Scegli file .eml', imported: 'Importate {{imported}} email su {{total}}.', conditions: 'Condizioni: {{conditions}} · Azioni: {{actions}}', deleteFilter: 'Elimina {{name}}', editTemplate: 'Modifica {{name}}', deleteTemplate: 'Elimina {{name}}', moveUp: 'Sposta {{name}} in alto', moveDown: 'Sposta {{name}} in basso',
+        filters: 'Filtri e regole', noFilters: 'Ancora nessun filtro. I filtri applicano automaticamente ai messaggi in arrivo azioni come archiviare, segnare come speciale o come letto.', filterName: 'Nome del filtro', whenMessage: 'Quando il campo del messaggio', sizeBytes: 'Dimensione in byte', value: 'Valore', then: 'allora', creating: 'Creazione…', addFilter: 'Aggiungi filtro', editingTemplate: 'Modifica del modello', templates: 'Modelli', templateName: 'Nome del modello', subjectOptional: 'Oggetto (facoltativo)', templateBody: 'Testo del modello', saveChanges: 'Salva modifiche', addTemplate: 'Aggiungi modello', bundles: 'Gruppi', bundleHint: 'I gruppi raccolgono automaticamente la posta correlata. Attivali e riordinali per decidere come si dispongono nella posta.', import: 'Importa', importDescription: 'Importa email da file .eml. I messaggi importati arrivano in Inbox e possono essere spostati o etichettati come qualsiasi altra email.', importing: 'Importazione…', importButton: 'Scegli file .eml', imported_one: 'Email importata: {{imported}} su {{count}}.', imported_other: 'Email importate: {{imported}} su {{count}}.', conditions: 'Condizioni: {{conditions}} · Azioni: {{actions}}', deleteFilter: 'Elimina {{name}}', editTemplate: 'Modifica {{name}}', deleteTemplate: 'Elimina {{name}}', moveUp: 'Sposta {{name}} in alto', moveDown: 'Sposta {{name}} in basso',
       },
       about: { legal: 'Note legali e assistenza', terms: 'Termini di servizio', privacy: 'Informativa sulla privacy', help: 'Centro assistenza', status: 'Stato del sistema', version: 'Versione {{version}} · {{platform}}', madeBy: 'Fatto con ❤️ nel 🌎 da Oxy™.', linkUnavailable: 'Impossibile aprire il link in questo ambiente.', linkFailed: 'Impossibile aprire il link.' },
     },
-    drawer: { unread: '{{name}}, {{count}} non letti', labels: 'Etichette', folders: 'Cartelle', createFolder: 'Crea cartella', folderHint: 'Tocca + per creare una cartella. Tieni premuta una cartella per eliminarla.', signedOutTitle: 'Accedi per gestire la posta', signedOutSubtitle: 'Accedi alle tue cassette, alle etichette e componi nuovi messaggi.', notSignedIn: 'Non autenticato', newFolder: 'Nuova cartella', folderName: 'Nome della cartella', creatingFolder: 'Creazione…', createFolderButton: 'Crea cartella', deleteFolderTitle: 'Eliminare la cartella?', deleteFolderDescription: '"{{name}}" e la sua organizzazione verranno rimosse. I messaggi al suo interno non verranno eliminati.' },
+    drawer: { unread: '{{name}}, {{count}} non letti', labels: 'Etichette', folders: 'Cartelle', createFolder: 'Crea cartella', folderHint: 'Tocca + per creare una cartella. Tieni premuta una cartella per eliminarla.', signedOutTitle: 'Accedi per gestire la posta', signedOutSubtitle: 'Accedi alle tue cassette, alle etichette e componi nuovi messaggi.', notSignedIn: 'Non autenticato', newFolder: 'Nuova cartella', folderName: 'Nome della cartella', creatingFolder: 'Creazione…', createFolderButton: 'Crea cartella', deleteFolderTitle: 'Eliminare la cartella?', deleteFolderDescription: '"{{name}}" verrà eliminata. I messaggi al suo interno verranno spostati in Archivio.' },
     event: { sharingUnavailable: 'Condivisione non disponibile. Prova invece "Google Calendar".', openFailed: 'Impossibile aprire il file del calendario.' },
     message: { loadError: 'Impossibile caricare questo messaggio', loadErrorDescription: 'Controlla la connessione e riprova.', notFound: 'Messaggio non trovato', notFoundDescription: 'Questo messaggio potrebbe essere stato eliminato o spostato.', conversationMessages_one: '{{count}} messaggio in questa conversazione', conversationMessages_other: '{{count}} messaggi in questa conversazione', summaryTitle: 'Genera riepilogo della conversazione con l\'IA', summaryDescription: 'Oxy invia a Kaana un contesto limitato della conversazione per il riepilogo.' },
-    mutations: { starFailed: 'Impossibile aggiornare la stella.', readFailed: 'Impossibile aggiornare lo stato di lettura.', archived: 'Conversazione archiviata.', archiveFailed: 'Impossibile archiviare la conversazione.', deleteFailed: 'Impossibile eliminare la conversazione.', deletedForever: 'Conversazione eliminata definitivamente.', trashed: 'Conversazione spostata nel cestino.', sending: 'Invio del messaggio…', sendCancelled: 'Messaggio annullato.', labelsFailed: 'Impossibile aggiornare le etichette.', pinFailed: 'Impossibile fissare.', snoozed: 'Messaggio posticipato.', snoozeFailed: 'Impossibile posticipare il messaggio.', unsnoozed: 'Posticipo rimosso.', unsnoozeFailed: 'Impossibile rimuovere il posticipo.', bulkFailed: 'Impossibile aggiornare i messaggi.', bulkUpdated: 'Messaggi aggiornati.', moveFailed: 'Impossibile spostare i messaggi.', queuedDescription: 'Non è ancora stato consegnato. Seguilo in Impostazioni → Avanzate → Coda di consegna.', retryQueued: 'Messaggio in coda per un nuovo tentativo.', retryFailed: 'Impossibile riprovare il messaggio.', queuedCancelled: 'Messaggio in coda annullato.', cancelFailed: 'Impossibile annullare il messaggio.', bundleUpdateFailed: 'Impossibile aggiornare il gruppo.', bundleReorderFailed: 'Impossibile riordinare il gruppo.', contactCreateFailed: 'Impossibile creare il contatto', contactUpdateFailed: 'Impossibile aggiornare il contatto', contactDeleteFailed: 'Impossibile eliminare il contatto', filterCreateFailed: 'Impossibile creare il filtro', filterUpdateFailed: 'Impossibile aggiornare il filtro', filterDeleteFailed: 'Impossibile eliminare il filtro', mailboxCreated: 'Cartella creata.', mailboxCreateFailed: 'Impossibile creare la cartella.', mailboxDeleted: 'Cartella eliminata.', mailboxDeleteFailed: 'Impossibile eliminare la cartella.', reminderCreateFailed: 'Impossibile creare il promemoria', reminderUpdateFailed: 'Impossibile aggiornare il promemoria', reminderDeleteFailed: 'Impossibile eliminare il promemoria', templateCreateFailed: 'Impossibile creare il modello', templateUpdateFailed: 'Impossibile aggiornare il modello', templateDeleteFailed: 'Impossibile eliminare il modello', labelCreateFailed: 'Impossibile creare l\'etichetta.', labelUpdateFailed: 'Impossibile aggiornare l\'etichetta.', labelDeleteFailed: 'Impossibile eliminare l\'etichetta.', unsubscribeFailed: 'Impossibile annullare l\'iscrizione' },
+    mutations: { starFailed: 'Impossibile aggiornare la stella.', readFailed: 'Impossibile aggiornare lo stato di lettura.', archived: 'Conversazione archiviata.', archiveFailed: 'Impossibile archiviare la conversazione.', deleteFailed: 'Impossibile eliminare la conversazione.', deletedForever: 'Conversazione eliminata definitivamente.', trashed: 'Conversazione spostata nel cestino.', sending: 'Invio del messaggio…', sendCancelled: 'Messaggio annullato.', labelsFailed: 'Impossibile aggiornare le etichette.', pinFailed: 'Impossibile fissare.', snoozed: 'Messaggio posticipato.', snoozeFailed: 'Impossibile posticipare il messaggio.', unsnoozed: 'Posticipo rimosso.', unsnoozeFailed: 'Impossibile rimuovere il posticipo.', bulkFailed: 'Impossibile aggiornare i messaggi.', bulkUpdated: 'Messaggi aggiornati.', moveFailed: 'Impossibile spostare i messaggi.', queuedDescription: 'Non è ancora stato consegnato. Seguilo in Impostazioni → Avanzate → Coda di consegna.', retryQueued: 'Messaggio in coda per un nuovo tentativo.', retryFailed: 'Impossibile riprovare il messaggio.', queuedCancelled: 'Messaggio in coda annullato.', cancelFailed: 'Impossibile annullare il messaggio.', bundleUpdateFailed: 'Impossibile aggiornare il gruppo.', bundleReorderFailed: 'Impossibile riordinare il gruppo.', contactCreateFailed: 'Impossibile creare il contatto', contactUpdateFailed: 'Impossibile aggiornare il contatto', contactDeleteFailed: 'Impossibile eliminare il contatto', filterCreateFailed: 'Impossibile creare il filtro', filterUpdateFailed: 'Impossibile aggiornare il filtro', filterDeleteFailed: 'Impossibile eliminare il filtro', mailboxCreated: 'Cartella creata.', mailboxCreateFailed: 'Impossibile creare la cartella.', mailboxDeleted: 'Cartella eliminata.', mailboxDeleteFailed: 'Impossibile eliminare la cartella.', reminderCreateFailed: 'Impossibile creare il promemoria', reminderUpdateFailed: 'Impossibile aggiornare il promemoria', reminderDeleteFailed: 'Impossibile eliminare il promemoria', templateCreateFailed: 'Impossibile creare il modello', templateUpdateFailed: 'Impossibile aggiornare il modello', templateDeleteFailed: 'Impossibile eliminare il modello', labelCreateFailed: 'Impossibile creare l\'etichetta.', labelUpdateFailed: 'Impossibile aggiornare l\'etichetta.', labelDeleteFailed: 'Impossibile eliminare l\'etichetta.', labelNameTaken: 'Esiste già un\'etichetta chiamata "{{name}}".', unsubscribeFailed: 'Impossibile annullare l\'iscrizione' },
   },
 
   auth: {

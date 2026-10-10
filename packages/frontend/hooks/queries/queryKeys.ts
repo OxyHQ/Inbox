@@ -87,7 +87,10 @@ export const emailKeys = {
   },
   contacts: {
     root: ['contacts'] as const,
-    list: (query: string | null | undefined) => ['contacts', query ?? null] as const,
+    // `'pages'`: the list became an infinite query, and `contacts` is a
+    // persisted root — an old flat `Contact[]` restored from disk under the
+    // previous key would be read as `{ pages }` and crash the screen.
+    list: (query: string | null | undefined) => ['contacts', 'pages', query ?? null] as const,
   },
   contactSuggestions: (query: string) => ['contactSuggestions', query] as const,
   attachmentUrl: (fileId: string, variant?: string) =>

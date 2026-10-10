@@ -16,8 +16,20 @@ function formatBytes(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
+/**
+ * The quota's `percentage` is the API's raw ratio (`42.857142…`), and was shown
+ * as-is. Formatted in the app's locale — `42.9%`, `42,9 %`, `٤٢٫٩٪` — with at
+ * most one decimal.
+ */
+export function formatQuotaPercent(percentage: number, locale: string): string {
+  return new Intl.NumberFormat(locale, {
+    style: 'percent',
+    maximumFractionDigits: 1,
+  }).format(percentage / 100);
+}
+
 export function StorageSection() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { data: quota, isLoading } = useQuota();
   return (
     <SettingsGeneralPage
@@ -44,7 +56,7 @@ export function StorageSection() {
                   <Loading variant="inline" size="sm" />
                 ) : (
                   <SettingsValueField>
-                    {quota ? `${quota.percentage}%` : '—'}
+                    {quota ? formatQuotaPercent(quota.percentage, locale) : '—'}
                   </SettingsValueField>
                 ),
             },

@@ -640,6 +640,10 @@ const ca: LocaleDict = {
     },
     unsubscribe: "Dona't de baixa",
     block: 'Bloqueja',
+    unsubscribed: 'Donat de baixa',
+    blocked: 'Bloquejat',
+    messageCount_one: '{{count}} correu',
+    messageCount_other: '{{count}} correus',
     frequency: {
       twentyPlus: 'Més de 20 correus recents',
       tenToTwenty: '10-20 correus recents',
@@ -747,6 +751,7 @@ const ca: LocaleDict = {
     sizeBytes: '{{value}} B',
     sizeKb: '{{value}} KB',
     sizeMb: '{{value}} MB',
+    previewAlt: 'Previsualització de l\'adjunt',
   },
 
   settings: {
@@ -760,6 +765,9 @@ const ca: LocaleDict = {
       title: 'Alguna cosa ha fallat',
     },
     me: 'Me',
+    layoutDirection: {
+      restartRequired: 'Reinicia Inbox per canviar la direcció del disseny a la d\'aquest idioma.',
+    },
     settings: {
       manageOxyAccount: 'Gestiona el compte d\'Oxy',
       landing: {
@@ -774,7 +782,7 @@ const ca: LocaleDict = {
           appearance: 'Aparença', appearanceDescription: 'Tema i color d\'accent',
           notifications: 'Notificacions', notificationsDescription: 'Alertes push i per correu',
           inbox: 'Safata d\'entrada', inboxDescription: 'Densitat, lectura i accions en lliscar',
-          privacy: 'Privadesa', privacyDescription: 'Protecció contra el seguiment i confiança en els remitents',
+          privacy: 'Privadesa', privacyDescription: 'Servidor intermediari d\'imatges i bloqueig de rastrejadors',
           labels: 'Etiquetes', labelsDescription: 'Organitza la safata amb etiquetes personalitzades',
           contacts: 'Contactes', contactsDescription: 'Persones a qui escrius, per redactar més de pressa',
           ai: 'Funcions d\'IA', aiDescription: 'Resum, resposta intel·ligent i categorització',
@@ -807,7 +815,7 @@ const ca: LocaleDict = {
         accentColor: 'Color d\'accent',
       },
       notifications: {
-        deviceNotice: 'Els permisos de notificacions del sistema es gestionen als ajustos del dispositiu.',
+        deviceNotice: 'Els permisos de notificacions del sistema es gestionen als ajustos del dispositiu.', webNotice: 'Les notificacions push estan disponibles a l\'app d\'Inbox per a Android. Mentre tinguis Inbox obert al navegador, el correu nou apareixerà aquí tan bon punt arribi.',
         alerts: 'Alertes', push: 'Notificacions push', pushDescription: 'Rep un avís quan arribin missatges nous.',
         digest: 'Resum diari per correu', digestDescription: 'Un resum dels missatges sense llegir, un cop al dia.',
         sound: 'So', playSound: 'Reprodueix un so', soundDescription: 'Un so breu amb cada missatge nou.',
@@ -822,13 +830,15 @@ const ca: LocaleDict = {
         swipeA11y: 'Acció en lliscar ({{label}}): {{value}}, toca per canviar-la', swipeHint: 'Toca una fila per alternar entre Arxiva · Elimina · Marca com a llegit · Posposa · Cap.',
       },
       privacy: {
-        info: 'Les proteccions de privadesa estan activades per defecte. Aviat les podràs configurar per funció.',
-        tracking: 'Protecció contra el seguiment', blockImages: 'Bloqueja les imatges remotes', blockImagesDescription: 'No carrega imatges de servidors externs fins que toques per permetre-ho.',
-        hideIp: 'Amaga la IP als remitents', hideIpDescription: 'Les imatges i els tipus de lletra es carreguen a través del servidor intermediari de privadesa d\'Oxy.',
-        stripTracking: 'Treu els paràmetres de seguiment', stripTrackingDescription: 'Elimina els testimonis de seguiment dels enllaços dels missatges.',
-        trust: 'Confiança en els remitents', verification: 'Verificació del remitent', verificationDescription: 'Mostra si els missatges estan signats pel domini que diuen tenir.',
-        blockList: 'Gestiona la llista de bloquejats', blockListTitle: 'Llista de bloquejats', blockListEmpty: 'No hi ha cap remitent bloquejat.',
-        why: 'Per què aquests valors per defecte?', whyDescription: 'Oxy aplica la privadesa per defecte: els remitents mai no veuen la teva IP, la teva ubicació ni les confirmacions de lectura, i els píxels de seguiment es bloquegen a la perifèria de la xarxa. A mesura que aquestes proteccions madurin, hi afegirem opcions més detallades per missatge i per remitent.',
+        info: 'Aquestes proteccions s\'apliquen a tots els missatges i sempre estan actives.',
+        images: 'Imatges remotes',
+        alwaysOn: 'Sempre actiu',
+        proxy: 'Les imatges es carreguen a través d\'Oxy',
+        proxyDescription: 'El servidor intermediari d\'Oxy obté les imatges i els tipus de lletra del teu correu, de manera que els remitents mai no veuen la teva adreça IP ni la teva ubicació.',
+        trackers: 'Rastrejadors coneguts bloquejats',
+        trackersDescription: 'Les imatges de serveis de rastreig coneguts se substitueixen per una imatge en blanc.',
+        why: 'El que els remitents encara poden veure',
+        whyDescription: 'Les imatges es carreguen automàticament, de manera que un remitent pot saber que s\'ha obert un missatge, però no la teva adreça IP ni la teva ubicació.',
       },
       labels: {
         color: 'Color',
@@ -848,7 +858,7 @@ const ca: LocaleDict = {
         your: 'Les teves etiquetes', empty: 'Encara no hi ha etiquetes. Crea\'n la primera a continuació per organitzar els missatges.', create: 'Crea una etiqueta', labelName: 'Nom de l\'etiqueta', saveName: 'Desa el nom de l\'etiqueta', rename: 'Canvia el nom de {{name}}', delete: 'Elimina {{name}}', builtIn: 'Predefinida', pick: 'Tria {{color}}', newName: 'Nom de la nova etiqueta', creating: 'Creant…', add: 'Afegeix una etiqueta', deleteTitle: 'Vols eliminar l\'etiqueta?', deleteDescription: '«{{name}}» es traurà de tots els missatges que la tinguin.',
       },
       contacts: {
-        your: 'Els teus contactes', search: 'Cerca contactes', edit: 'Edita {{name}}', delete: 'Elimina {{name}}', editContact: 'Edita el contacte', addContact: 'Afegeix un contacte', name: 'Nom', email: 'Correu', company: 'Empresa (opcional)', notes: 'Notes (opcional)', star: 'Destaca aquest contacte', saving: 'Desant…', adding: 'Afegint…', saveChanges: 'Desa els canvis', deleteTitle: 'Vols eliminar el contacte?', deleteDescription: '«{{name}}» s\'eliminarà dels teus contactes.', noMatch: 'Cap contacte coincideix amb la cerca.', empty: 'Encara no tens contactes. Afegeix a continuació els destinataris habituals per redactar més de pressa.',
+        your: 'Els teus contactes', search: 'Cerca contactes', edit: 'Edita {{name}}', delete: 'Elimina {{name}}', editContact: 'Edita el contacte', addContact: 'Afegeix un contacte', name: 'Nom', email: 'Correu', company: 'Empresa (opcional)', notes: 'Notes (opcional)', star: 'Destaca aquest contacte', saving: 'Desant…', adding: 'Afegint…', saveChanges: 'Desa els canvis', deleteTitle: 'Vols eliminar el contacte?', deleteDescription: '«{{name}}» s\'eliminarà dels teus contactes.', noMatch: 'Cap contacte coincideix amb la cerca.', loadMore: 'Carrega més contactes', showing: 'Se\'n mostren {{shown}} de {{total}}', empty: 'Encara no tens contactes. Afegeix a continuació els destinataris habituals per redactar més de pressa.',
       },
       ai: {
         dailyBrief: 'Resum diari', recap: 'Resum de la safata', recapDescription: 'Un resum breu generat a partir dels recomptes de la safata (sense llegir, destacats, adjunts). No llegeix el contingut dels missatges.', smartReply: 'Resposta intel·ligent', summary: 'Resum de la conversa', summaryTitle: 'Ofereix un resum', summaryDescription: 'Mostra un botó Resumeix a les converses. Una conversa només s\'envia a Oxy i Kaana quan el prems.', suggestions: 'Suggeriments d\'un toc', suggestionsDescription: 'Tres respostes suggerides segons el context a sobre del missatge, generades a través d\'Oxy i Kaana.', priority: 'Indicadors de prioritat', priorityTitle: 'Destaca el correu que sembli urgent', priorityDescription: 'Marca els missatges com a Urgent, Requereix acció o Important amb heurístiques de paraules clau al dispositiu — no és un model d\'IA complet.', tip: 'Els indicadors de prioritat es calculen al dispositiu amb heurístiques de paraules clau. El resum diari, la resposta intel·ligent i els resums de converses fan servir inferència limitada d\'Oxy a través de Kaana; Pregunta a l\'Alia continua sent un agent a part.',
@@ -871,14 +881,14 @@ const ca: LocaleDict = {
         deleteTemplateDescription: '«{{name}}» s\'eliminarà de les teves plantilles desades.',
         sizePlaceholder: 'p. ex. 5 MB',
         contains: 'conté', equals: 'és igual a', notContains: 'no conté', startsWith: 'comença per', endsWith: 'acaba en', largerThan: 'més gran que (bytes)', smallerThan: 'més petit que (bytes)',
-        filters: 'Filtres i regles', noFilters: 'Encara no hi ha filtres. Els filtres apliquen automàticament accions com arxivar, destacar o marcar com a llegit als missatges entrants.', filterName: 'Nom del filtre', whenMessage: 'Camp del missatge', sizeBytes: 'Mida en bytes', value: 'Valor', then: 'aleshores', creating: 'Creant…', addFilter: 'Afegeix un filtre', editingTemplate: 'Editant la plantilla', templates: 'Plantilles', templateName: 'Nom de la plantilla', subjectOptional: 'Assumpte (opcional)', templateBody: 'Cos de la plantilla', saveChanges: 'Desa els canvis', addTemplate: 'Afegeix una plantilla', bundles: 'Grups', bundleHint: 'Els grups apleguen automàticament el correu relacionat. Activa\'ls i canvia\'n l\'ordre per decidir com s\'apilen a la safata.', import: 'Importa', importDescription: 'Importa correus des de fitxers .eml. Els missatges importats arriben a la Safata d\'entrada i els pots moure o etiquetar com qualsevol altre correu.', importing: 'Important…', importButton: 'Tria fitxers .eml', imported: 'S\'han importat {{imported}} de {{total}} correu(s).', conditions: '{{conditions}} condició(ns) · {{actions}} acció(ns)', deleteFilter: 'Elimina {{name}}', editTemplate: 'Edita {{name}}', deleteTemplate: 'Elimina {{name}}', moveUp: 'Puja {{name}}', moveDown: 'Baixa {{name}}',
+        filters: 'Filtres i regles', noFilters: 'Encara no hi ha filtres. Els filtres apliquen automàticament accions com arxivar, destacar o marcar com a llegit als missatges entrants.', filterName: 'Nom del filtre', whenMessage: 'Camp del missatge', sizeBytes: 'Mida en bytes', value: 'Valor', then: 'aleshores', creating: 'Creant…', addFilter: 'Afegeix un filtre', editingTemplate: 'Editant la plantilla', templates: 'Plantilles', templateName: 'Nom de la plantilla', subjectOptional: 'Assumpte (opcional)', templateBody: 'Cos de la plantilla', saveChanges: 'Desa els canvis', addTemplate: 'Afegeix una plantilla', bundles: 'Grups', bundleHint: 'Els grups apleguen automàticament el correu relacionat. Activa\'ls i canvia\'n l\'ordre per decidir com s\'apilen a la safata.', import: 'Importa', importDescription: 'Importa correus des de fitxers .eml. Els missatges importats arriben a la Safata d\'entrada i els pots moure o etiquetar com qualsevol altre correu.', importing: 'Important…', importButton: 'Tria fitxers .eml', imported_one: 'Importat: {{imported}} de {{count}} correu.', imported_other: 'Importats: {{imported}} de {{count}} correus.', conditions: '{{conditions}} condició(ns) · {{actions}} acció(ns)', deleteFilter: 'Elimina {{name}}', editTemplate: 'Edita {{name}}', deleteTemplate: 'Elimina {{name}}', moveUp: 'Puja {{name}}', moveDown: 'Baixa {{name}}',
       },
       about: { legal: 'Avís legal i ajuda', terms: 'Condicions del servei', privacy: 'Política de privadesa', help: 'Centre d\'ajuda', status: 'Estat del sistema', version: 'Versió {{version}} · {{platform}}', madeBy: 'Fet amb ❤️ al 🌎 per Oxy™.', linkUnavailable: 'No s\'ha pogut obrir l\'enllaç en aquest entorn.', linkFailed: 'No s\'ha pogut obrir l\'enllaç.' },
     },
-    drawer: { unread: '{{name}}, {{count}} sense llegir', labels: 'Etiquetes', folders: 'Carpetes', createFolder: 'Crea una carpeta', folderHint: 'Toca + per crear una carpeta. Mantén premuda una carpeta per eliminar-la.', signedOutTitle: 'Inicia la sessió per gestionar el correu', signedOutSubtitle: 'Accedeix a les bústies, etiquetes i redacta missatges nous.', notSignedIn: 'Sessió no iniciada', newFolder: 'Carpeta nova', folderName: 'Nom de la carpeta', creatingFolder: 'Creant…', createFolderButton: 'Crea la carpeta', deleteFolderTitle: 'Vols eliminar la carpeta?', deleteFolderDescription: 'S\'eliminaran «{{name}}» i la seva organització. Els missatges que conté no s\'eliminen.' },
+    drawer: { unread: '{{name}}, {{count}} sense llegir', labels: 'Etiquetes', folders: 'Carpetes', createFolder: 'Crea una carpeta', folderHint: 'Toca + per crear una carpeta. Mantén premuda una carpeta per eliminar-la.', signedOutTitle: 'Inicia la sessió per gestionar el correu', signedOutSubtitle: 'Accedeix a les bústies, etiquetes i redacta missatges nous.', notSignedIn: 'Sessió no iniciada', newFolder: 'Carpeta nova', folderName: 'Nom de la carpeta', creatingFolder: 'Creant…', createFolderButton: 'Crea la carpeta', deleteFolderTitle: 'Vols eliminar la carpeta?', deleteFolderDescription: 'S\'eliminarà «{{name}}». Els missatges que conté es mouran a Arxiu.' },
     event: { sharingUnavailable: 'Compartir no està disponible. Prova amb «Google Calendar».', openFailed: 'No s\'ha pogut obrir el fitxer del calendari.' },
     message: { loadError: 'No s\'ha pogut carregar aquest missatge', loadErrorDescription: 'Comprova la connexió i torna-ho a provar.', notFound: 'No s\'ha trobat el missatge', notFoundDescription: 'Pot ser que aquest missatge s\'hagi eliminat o mogut.', conversationMessages_one: '{{count}} missatge en aquesta conversa', conversationMessages_other: '{{count}} missatges en aquesta conversa', summaryTitle: 'Genera un resum de la conversa amb IA', summaryDescription: 'Oxy envia un context limitat de la conversa a Kaana per resumir-la.' },
-    mutations: { starFailed: 'No s\'ha pogut actualitzar l\'estrella.', readFailed: 'No s\'ha pogut actualitzar l\'estat de lectura.', archived: 'Conversa arxivada.', archiveFailed: 'No s\'ha pogut arxivar la conversa.', deleteFailed: 'No s\'ha pogut suprimir la conversa.', deletedForever: 'Conversa suprimida definitivament.', trashed: 'Conversa moguda a la paperera.', sending: 'S\'està enviant el missatge…', sendCancelled: 'Missatge cancel·lat.', labelsFailed: 'No s\'han pogut actualitzar les etiquetes.', pinFailed: 'No s\'ha pogut fixar.', snoozed: 'Missatge posposat.', snoozeFailed: 'No s\'ha pogut posposar el missatge.', unsnoozed: 'S\'ha tret l\'ajornament.', unsnoozeFailed: 'No s\'ha pogut treure l\'ajornament.', bulkFailed: 'No s\'han pogut actualitzar els missatges.', bulkUpdated: 'Missatges actualitzats.', moveFailed: 'No s\'han pogut moure els missatges.', queuedDescription: 'Encara no s\'ha lliurat. Segueix-lo a Ajustos → Avançat → Cua de lliurament.', retryQueued: 'Missatge a la cua per tornar-ho a provar.', retryFailed: 'No s\'ha pogut tornar a provar el missatge.', queuedCancelled: 'Missatge de la cua cancel·lat.', cancelFailed: 'No s\'ha pogut cancel·lar el missatge.', bundleUpdateFailed: 'No s\'ha pogut actualitzar el grup.', bundleReorderFailed: 'No s\'ha pogut reordenar el grup.', contactCreateFailed: 'No s\'ha pogut crear el contacte', contactUpdateFailed: 'No s\'ha pogut actualitzar el contacte', contactDeleteFailed: 'No s\'ha pogut eliminar el contacte', filterCreateFailed: 'No s\'ha pogut crear el filtre', filterUpdateFailed: 'No s\'ha pogut actualitzar el filtre', filterDeleteFailed: 'No s\'ha pogut eliminar el filtre', mailboxCreated: 'Carpeta creada.', mailboxCreateFailed: 'No s\'ha pogut crear la carpeta.', mailboxDeleted: 'Carpeta eliminada.', mailboxDeleteFailed: 'No s\'ha pogut eliminar la carpeta.', reminderCreateFailed: 'No s\'ha pogut crear el recordatori', reminderUpdateFailed: 'No s\'ha pogut actualitzar el recordatori', reminderDeleteFailed: 'No s\'ha pogut eliminar el recordatori', templateCreateFailed: 'No s\'ha pogut crear la plantilla', templateUpdateFailed: 'No s\'ha pogut actualitzar la plantilla', templateDeleteFailed: 'No s\'ha pogut eliminar la plantilla', labelCreateFailed: 'No s\'ha pogut crear l\'etiqueta.', labelUpdateFailed: 'No s\'ha pogut actualitzar l\'etiqueta.', labelDeleteFailed: 'No s\'ha pogut eliminar l\'etiqueta.', unsubscribeFailed: 'No s\'ha pogut cancel·lar la subscripció' },
+    mutations: { starFailed: 'No s\'ha pogut actualitzar l\'estrella.', readFailed: 'No s\'ha pogut actualitzar l\'estat de lectura.', archived: 'Conversa arxivada.', archiveFailed: 'No s\'ha pogut arxivar la conversa.', deleteFailed: 'No s\'ha pogut suprimir la conversa.', deletedForever: 'Conversa suprimida definitivament.', trashed: 'Conversa moguda a la paperera.', sending: 'S\'està enviant el missatge…', sendCancelled: 'Missatge cancel·lat.', labelsFailed: 'No s\'han pogut actualitzar les etiquetes.', pinFailed: 'No s\'ha pogut fixar.', snoozed: 'Missatge posposat.', snoozeFailed: 'No s\'ha pogut posposar el missatge.', unsnoozed: 'S\'ha tret l\'ajornament.', unsnoozeFailed: 'No s\'ha pogut treure l\'ajornament.', bulkFailed: 'No s\'han pogut actualitzar els missatges.', bulkUpdated: 'Missatges actualitzats.', moveFailed: 'No s\'han pogut moure els missatges.', queuedDescription: 'Encara no s\'ha lliurat. Segueix-lo a Ajustos → Avançat → Cua de lliurament.', retryQueued: 'Missatge a la cua per tornar-ho a provar.', retryFailed: 'No s\'ha pogut tornar a provar el missatge.', queuedCancelled: 'Missatge de la cua cancel·lat.', cancelFailed: 'No s\'ha pogut cancel·lar el missatge.', bundleUpdateFailed: 'No s\'ha pogut actualitzar el grup.', bundleReorderFailed: 'No s\'ha pogut reordenar el grup.', contactCreateFailed: 'No s\'ha pogut crear el contacte', contactUpdateFailed: 'No s\'ha pogut actualitzar el contacte', contactDeleteFailed: 'No s\'ha pogut eliminar el contacte', filterCreateFailed: 'No s\'ha pogut crear el filtre', filterUpdateFailed: 'No s\'ha pogut actualitzar el filtre', filterDeleteFailed: 'No s\'ha pogut eliminar el filtre', mailboxCreated: 'Carpeta creada.', mailboxCreateFailed: 'No s\'ha pogut crear la carpeta.', mailboxDeleted: 'Carpeta eliminada.', mailboxDeleteFailed: 'No s\'ha pogut eliminar la carpeta.', reminderCreateFailed: 'No s\'ha pogut crear el recordatori', reminderUpdateFailed: 'No s\'ha pogut actualitzar el recordatori', reminderDeleteFailed: 'No s\'ha pogut eliminar el recordatori', templateCreateFailed: 'No s\'ha pogut crear la plantilla', templateUpdateFailed: 'No s\'ha pogut actualitzar la plantilla', templateDeleteFailed: 'No s\'ha pogut eliminar la plantilla', labelCreateFailed: 'No s\'ha pogut crear l\'etiqueta.', labelUpdateFailed: 'No s\'ha pogut actualitzar l\'etiqueta.', labelDeleteFailed: 'No s\'ha pogut eliminar l\'etiqueta.', labelNameTaken: 'Ja existeix una etiqueta anomenada «{{name}}».', unsubscribeFailed: 'No s\'ha pogut cancel·lar la subscripció' },
   },
 
   auth: {

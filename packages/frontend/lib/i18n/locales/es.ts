@@ -632,6 +632,10 @@ const es: LocaleDict = {
     },
     unsubscribe: 'Darse de baja',
     block: 'Bloquear',
+    unsubscribed: 'Dado de baja',
+    blocked: 'Bloqueado',
+    messageCount_one: '{{count}} correo',
+    messageCount_other: '{{count}} correos',
     frequency: {
       twentyPlus: 'Más de 20 correos recientes',
       tenToTwenty: '10-20 correos recientes',
@@ -739,6 +743,7 @@ const es: LocaleDict = {
     sizeBytes: '{{value}} B',
     sizeKb: '{{value}} KB',
     sizeMb: '{{value}} MB',
+    previewAlt: 'Vista previa del adjunto',
   },
 
   settings: {
@@ -752,6 +757,9 @@ const es: LocaleDict = {
       title: 'Algo salió mal',
     },
     me: 'Me',
+    layoutDirection: {
+      restartRequired: 'Reinicia Inbox para cambiar la dirección del diseño a la de este idioma.',
+    },
     settings: {
       manageOxyAccount: 'Gestionar cuenta de Oxy',
       landing: {
@@ -766,7 +774,7 @@ const es: LocaleDict = {
           appearance: 'Apariencia', appearanceDescription: 'Tema y color de acento',
           notifications: 'Notificaciones', notificationsDescription: 'Alertas push y por correo',
           inbox: 'Bandeja de entrada', inboxDescription: 'Densidad, lectura y acciones al deslizar',
-          privacy: 'Privacidad', privacyDescription: 'Protección contra rastreo y confianza en remitentes',
+          privacy: 'Privacidad', privacyDescription: 'Proxy de imágenes y bloqueo de rastreadores',
           labels: 'Etiquetas', labelsDescription: 'Organiza tu bandeja con etiquetas personalizadas',
           contacts: 'Contactos', contactsDescription: 'Personas a las que escribes, para redactar más rápido',
           ai: 'Funciones de IA', aiDescription: 'Resumen, respuesta inteligente y categorización',
@@ -799,7 +807,7 @@ const es: LocaleDict = {
         accentColor: 'Color de acento',
       },
       notifications: {
-        deviceNotice: 'Los permisos de notificaciones del sistema se gestionan en los ajustes del dispositivo.',
+        deviceNotice: 'Los permisos de notificaciones del sistema se gestionan en los ajustes del dispositivo.', webNotice: 'Las notificaciones push están disponibles en la app de Inbox para Android. Mientras tengas Inbox abierto en el navegador, el correo nuevo aparecerá aquí en cuanto llegue.',
         alerts: 'Alertas', push: 'Notificaciones push', pushDescription: 'Recibe un aviso cuando lleguen mensajes nuevos.',
         digest: 'Resumen diario por correo', digestDescription: 'Un resumen de los mensajes sin leer, una vez al día.',
         sound: 'Sonido', playSound: 'Reproducir sonido', soundDescription: 'Un breve aviso sonoro con cada mensaje nuevo.',
@@ -814,13 +822,15 @@ const es: LocaleDict = {
         swipeA11y: 'Acción al deslizar ({{label}}): {{value}}, toca para cambiarla', swipeHint: 'Toca una fila para alternar entre Archivar · Eliminar · Marcar como leído · Posponer · Ninguna.',
       },
       privacy: {
-        info: 'Las protecciones de privacidad están activadas por defecto. Pronto podrás configurarlas por función.',
-        tracking: 'Protección contra rastreo', blockImages: 'Bloquear imágenes remotas', blockImagesDescription: 'No carga imágenes de servidores externos hasta que tocas para permitirlo.',
-        hideIp: 'Ocultar la IP a los remitentes', hideIpDescription: 'Las imágenes y fuentes se cargan a través del proxy de privacidad de Oxy.',
-        stripTracking: 'Quitar parámetros de rastreo', stripTrackingDescription: 'Elimina los tokens de rastreo de los enlaces de los mensajes.',
-        trust: 'Confianza en remitentes', verification: 'Verificación del remitente', verificationDescription: 'Muestra si los mensajes están firmados por el dominio que dicen tener.',
-        blockList: 'Gestionar la lista de bloqueados', blockListTitle: 'Lista de bloqueados', blockListEmpty: 'No hay remitentes bloqueados.',
-        why: '¿Por qué estos valores predeterminados?', whyDescription: 'Oxy aplica la privacidad por defecto: los remitentes nunca ven tu IP, tu ubicación ni tus confirmaciones de lectura, y los píxeles de rastreo se bloquean en el perímetro de la red. A medida que estas protecciones maduren, añadiremos ajustes más detallados por mensaje y por remitente.',
+        info: 'Estas protecciones se aplican a todos los mensajes y están siempre activas.',
+        images: 'Imágenes remotas',
+        alwaysOn: 'Siempre activo',
+        proxy: 'Las imágenes se cargan a través de Oxy',
+        proxyDescription: 'El proxy de Oxy descarga las imágenes y fuentes de tu correo, así que los remitentes nunca ven tu dirección IP ni tu ubicación.',
+        trackers: 'Rastreadores conocidos bloqueados',
+        trackersDescription: 'Las imágenes de servicios de rastreo conocidos se sustituyen por una imagen en blanco.',
+        why: 'Lo que los remitentes aún pueden ver',
+        whyDescription: 'Las imágenes se cargan automáticamente, así que un remitente puede llegar a saber que se abrió un mensaje, pero no tu dirección IP ni tu ubicación.',
       },
       labels: {
         color: 'Color',
@@ -840,7 +850,7 @@ const es: LocaleDict = {
         your: 'Tus etiquetas', empty: 'Aún no hay etiquetas. Crea la primera abajo para organizar tus mensajes.', create: 'Crear etiqueta', labelName: 'Nombre de la etiqueta', saveName: 'Guardar nombre de la etiqueta', rename: 'Cambiar el nombre de {{name}}', delete: 'Eliminar {{name}}', builtIn: 'Predefinida', pick: 'Elegir {{color}}', newName: 'Nombre de la nueva etiqueta', creating: 'Creando…', add: 'Añadir etiqueta', deleteTitle: '¿Eliminar la etiqueta?', deleteDescription: '«{{name}}» se quitará de todos los mensajes que la tengan.',
       },
       contacts: {
-        your: 'Tus contactos', search: 'Buscar contactos', edit: 'Editar {{name}}', delete: 'Eliminar {{name}}', editContact: 'Editar contacto', addContact: 'Añadir contacto', name: 'Nombre', email: 'Correo', company: 'Empresa (opcional)', notes: 'Notas (opcional)', star: 'Destacar este contacto', saving: 'Guardando…', adding: 'Añadiendo…', saveChanges: 'Guardar cambios', deleteTitle: '¿Eliminar el contacto?', deleteDescription: '«{{name}}» se eliminará de tus contactos.', noMatch: 'Ningún contacto coincide con tu búsqueda.', empty: 'Aún no tienes contactos. Añade abajo a tus destinatarios habituales para redactar más rápido.',
+        your: 'Tus contactos', search: 'Buscar contactos', edit: 'Editar {{name}}', delete: 'Eliminar {{name}}', editContact: 'Editar contacto', addContact: 'Añadir contacto', name: 'Nombre', email: 'Correo', company: 'Empresa (opcional)', notes: 'Notas (opcional)', star: 'Destacar este contacto', saving: 'Guardando…', adding: 'Añadiendo…', saveChanges: 'Guardar cambios', deleteTitle: '¿Eliminar el contacto?', deleteDescription: '«{{name}}» se eliminará de tus contactos.', noMatch: 'Ningún contacto coincide con tu búsqueda.', loadMore: 'Cargar más contactos', showing: 'Se muestran {{shown}} de {{total}}', empty: 'Aún no tienes contactos. Añade abajo a tus destinatarios habituales para redactar más rápido.',
       },
       ai: {
         dailyBrief: 'Resumen diario', recap: 'Resumen de la bandeja', recapDescription: 'Un breve resumen generado a partir de los recuentos de tu bandeja (sin leer, destacados, adjuntos). No lee el contenido de los mensajes.', smartReply: 'Respuesta inteligente', summary: 'Resumen de la conversación', summaryTitle: 'Ofrecer un resumen', summaryDescription: 'Muestra un botón Resumir en las conversaciones. Una conversación solo se envía a Oxy y Kaana cuando lo pulsas.', suggestions: 'Sugerencias de un toque', suggestionsDescription: 'Tres respuestas sugeridas según el contexto encima del mensaje, generadas a través de Oxy y Kaana.', priority: 'Indicadores de prioridad', priorityTitle: 'Resaltar el correo que parezca urgente', priorityDescription: 'Marca los mensajes como Urgente, Requiere acción o Importante con heurísticas de palabras clave en el dispositivo — no es un modelo de IA completo.', tip: 'Los indicadores de prioridad se calculan en el dispositivo con heurísticas de palabras clave. El resumen diario, la respuesta inteligente y los resúmenes de conversación usan inferencia limitada de Oxy a través de Kaana; Preguntar a Alia sigue siendo un agente aparte.',
@@ -863,14 +873,14 @@ const es: LocaleDict = {
         deleteTemplateDescription: '«{{name}}» se eliminará de tus plantillas guardadas.',
         sizePlaceholder: 'p. ej. 5 MB',
         contains: 'contiene', equals: 'es igual a', notContains: 'no contiene', startsWith: 'empieza por', endsWith: 'termina en', largerThan: 'mayor que (bytes)', smallerThan: 'menor que (bytes)',
-        filters: 'Filtros y reglas', noFilters: 'Aún no hay filtros. Los filtros aplican automáticamente acciones como archivar, destacar o marcar como leído a los mensajes entrantes.', filterName: 'Nombre del filtro', whenMessage: 'Campo del mensaje', sizeBytes: 'Tamaño en bytes', value: 'Valor', then: 'entonces', creating: 'Creando…', addFilter: 'Añadir filtro', editingTemplate: 'Editando plantilla', templates: 'Plantillas', templateName: 'Nombre de la plantilla', subjectOptional: 'Asunto (opcional)', templateBody: 'Cuerpo de la plantilla', saveChanges: 'Guardar cambios', addTemplate: 'Añadir plantilla', bundles: 'Grupos', bundleHint: 'Los grupos reúnen automáticamente el correo relacionado. Actívalos y cambia su orden para decidir cómo se apilan en tu bandeja.', import: 'Importar', importDescription: 'Importa correos desde archivos .eml. Los mensajes importados llegan a tu Bandeja de entrada y puedes moverlos o etiquetarlos como cualquier otro correo.', importing: 'Importando…', importButton: 'Elegir archivos .eml', imported: 'Se importaron {{imported}} de {{total}} correo(s).', conditions: '{{conditions}} condición(es) · {{actions}} acción(es)', deleteFilter: 'Eliminar {{name}}', editTemplate: 'Editar {{name}}', deleteTemplate: 'Eliminar {{name}}', moveUp: 'Subir {{name}}', moveDown: 'Bajar {{name}}',
+        filters: 'Filtros y reglas', noFilters: 'Aún no hay filtros. Los filtros aplican automáticamente acciones como archivar, destacar o marcar como leído a los mensajes entrantes.', filterName: 'Nombre del filtro', whenMessage: 'Campo del mensaje', sizeBytes: 'Tamaño en bytes', value: 'Valor', then: 'entonces', creating: 'Creando…', addFilter: 'Añadir filtro', editingTemplate: 'Editando plantilla', templates: 'Plantillas', templateName: 'Nombre de la plantilla', subjectOptional: 'Asunto (opcional)', templateBody: 'Cuerpo de la plantilla', saveChanges: 'Guardar cambios', addTemplate: 'Añadir plantilla', bundles: 'Grupos', bundleHint: 'Los grupos reúnen automáticamente el correo relacionado. Actívalos y cambia su orden para decidir cómo se apilan en tu bandeja.', import: 'Importar', importDescription: 'Importa correos desde archivos .eml. Los mensajes importados llegan a tu Bandeja de entrada y puedes moverlos o etiquetarlos como cualquier otro correo.', importing: 'Importando…', importButton: 'Elegir archivos .eml', imported_one: 'Importado: {{imported}} de {{count}} correo.', imported_other: 'Importados: {{imported}} de {{count}} correos.', conditions: '{{conditions}} condición(es) · {{actions}} acción(es)', deleteFilter: 'Eliminar {{name}}', editTemplate: 'Editar {{name}}', deleteTemplate: 'Eliminar {{name}}', moveUp: 'Subir {{name}}', moveDown: 'Bajar {{name}}',
       },
       about: { legal: 'Legal y ayuda', terms: 'Términos del servicio', privacy: 'Política de privacidad', help: 'Centro de ayuda', status: 'Estado del sistema', version: 'Versión {{version}} · {{platform}}', madeBy: 'Hecho con ❤️ en el 🌎 por Oxy™.', linkUnavailable: 'No se pudo abrir el enlace en este entorno.', linkFailed: 'No se pudo abrir el enlace.' },
     },
-    drawer: { unread: '{{name}}, {{count}} sin leer', labels: 'Etiquetas', folders: 'Carpetas', createFolder: 'Crear carpeta', folderHint: 'Toca + para crear una carpeta. Mantén pulsada una carpeta para eliminarla.', signedOutTitle: 'Inicia sesión para gestionar tu correo', signedOutSubtitle: 'Accede a tus carpetas, etiquetas y crea mensajes nuevos.', notSignedIn: 'Sesión no iniciada', newFolder: 'Nueva carpeta', folderName: 'Nombre de la carpeta', creatingFolder: 'Creando…', createFolderButton: 'Crear carpeta', deleteFolderTitle: '¿Eliminar la carpeta?', deleteFolderDescription: 'Se eliminarán «{{name}}» y su organización. Los mensajes que contiene no se eliminan.' },
+    drawer: { unread: '{{name}}, {{count}} sin leer', labels: 'Etiquetas', folders: 'Carpetas', createFolder: 'Crear carpeta', folderHint: 'Toca + para crear una carpeta. Mantén pulsada una carpeta para eliminarla.', signedOutTitle: 'Inicia sesión para gestionar tu correo', signedOutSubtitle: 'Accede a tus carpetas, etiquetas y crea mensajes nuevos.', notSignedIn: 'Sesión no iniciada', newFolder: 'Nueva carpeta', folderName: 'Nombre de la carpeta', creatingFolder: 'Creando…', createFolderButton: 'Crear carpeta', deleteFolderTitle: '¿Eliminar la carpeta?', deleteFolderDescription: 'Se eliminará «{{name}}». Los mensajes que contiene se moverán a Archivo.' },
     event: { sharingUnavailable: 'Compartir no está disponible. Prueba con «Google Calendar».', openFailed: 'No se pudo abrir el archivo del calendario.' },
     message: { loadError: 'No se pudo cargar este mensaje', loadErrorDescription: 'Comprueba tu conexión e inténtalo de nuevo.', notFound: 'Mensaje no encontrado', notFoundDescription: 'Puede que este mensaje se haya eliminado o movido.', conversationMessages_one: '{{count}} mensaje en esta conversación', conversationMessages_other: '{{count}} mensajes en esta conversación', summaryTitle: 'Generar resumen de la conversación con IA', summaryDescription: 'Oxy envía un contexto limitado de la conversación a Kaana para resumirla.' },
-    mutations: { starFailed: 'No se pudo actualizar la estrella.', readFailed: 'No se pudo actualizar el estado de lectura.', archived: 'Conversación archivada.', archiveFailed: 'No se pudo archivar la conversación.', deleteFailed: 'No se pudo eliminar la conversación.', deletedForever: 'Conversación eliminada definitivamente.', trashed: 'Conversación movida a la papelera.', sending: 'Enviando mensaje…', sendCancelled: 'Mensaje cancelado.', labelsFailed: 'No se pudieron actualizar las etiquetas.', pinFailed: 'No se pudo fijar.', snoozed: 'Mensaje pospuesto.', snoozeFailed: 'No se pudo posponer el mensaje.', unsnoozed: 'Se quitó el aplazamiento.', unsnoozeFailed: 'No se pudo quitar el aplazamiento.', bulkFailed: 'No se pudieron actualizar los mensajes.', bulkUpdated: 'Mensajes actualizados.', moveFailed: 'No se pudieron mover los mensajes.', queuedDescription: 'Aún no se ha entregado. Síguelo en Ajustes → Avanzado → Cola de entrega.', retryQueued: 'Mensaje en cola para reintentar.', retryFailed: 'No se pudo reintentar el mensaje.', queuedCancelled: 'Mensaje en cola cancelado.', cancelFailed: 'No se pudo cancelar el mensaje.', bundleUpdateFailed: 'No se pudo actualizar el grupo.', bundleReorderFailed: 'No se pudo reordenar el grupo.', contactCreateFailed: 'No se pudo crear el contacto', contactUpdateFailed: 'No se pudo actualizar el contacto', contactDeleteFailed: 'No se pudo eliminar el contacto', filterCreateFailed: 'No se pudo crear el filtro', filterUpdateFailed: 'No se pudo actualizar el filtro', filterDeleteFailed: 'No se pudo eliminar el filtro', mailboxCreated: 'Carpeta creada.', mailboxCreateFailed: 'No se pudo crear la carpeta.', mailboxDeleted: 'Carpeta eliminada.', mailboxDeleteFailed: 'No se pudo eliminar la carpeta.', reminderCreateFailed: 'No se pudo crear el recordatorio', reminderUpdateFailed: 'No se pudo actualizar el recordatorio', reminderDeleteFailed: 'No se pudo eliminar el recordatorio', templateCreateFailed: 'No se pudo crear la plantilla', templateUpdateFailed: 'No se pudo actualizar la plantilla', templateDeleteFailed: 'No se pudo eliminar la plantilla', labelCreateFailed: 'No se pudo crear la etiqueta.', labelUpdateFailed: 'No se pudo actualizar la etiqueta.', labelDeleteFailed: 'No se pudo eliminar la etiqueta.', unsubscribeFailed: 'No se pudo cancelar la suscripción' },
+    mutations: { starFailed: 'No se pudo actualizar la estrella.', readFailed: 'No se pudo actualizar el estado de lectura.', archived: 'Conversación archivada.', archiveFailed: 'No se pudo archivar la conversación.', deleteFailed: 'No se pudo eliminar la conversación.', deletedForever: 'Conversación eliminada definitivamente.', trashed: 'Conversación movida a la papelera.', sending: 'Enviando mensaje…', sendCancelled: 'Mensaje cancelado.', labelsFailed: 'No se pudieron actualizar las etiquetas.', pinFailed: 'No se pudo fijar.', snoozed: 'Mensaje pospuesto.', snoozeFailed: 'No se pudo posponer el mensaje.', unsnoozed: 'Se quitó el aplazamiento.', unsnoozeFailed: 'No se pudo quitar el aplazamiento.', bulkFailed: 'No se pudieron actualizar los mensajes.', bulkUpdated: 'Mensajes actualizados.', moveFailed: 'No se pudieron mover los mensajes.', queuedDescription: 'Aún no se ha entregado. Síguelo en Ajustes → Avanzado → Cola de entrega.', retryQueued: 'Mensaje en cola para reintentar.', retryFailed: 'No se pudo reintentar el mensaje.', queuedCancelled: 'Mensaje en cola cancelado.', cancelFailed: 'No se pudo cancelar el mensaje.', bundleUpdateFailed: 'No se pudo actualizar el grupo.', bundleReorderFailed: 'No se pudo reordenar el grupo.', contactCreateFailed: 'No se pudo crear el contacto', contactUpdateFailed: 'No se pudo actualizar el contacto', contactDeleteFailed: 'No se pudo eliminar el contacto', filterCreateFailed: 'No se pudo crear el filtro', filterUpdateFailed: 'No se pudo actualizar el filtro', filterDeleteFailed: 'No se pudo eliminar el filtro', mailboxCreated: 'Carpeta creada.', mailboxCreateFailed: 'No se pudo crear la carpeta.', mailboxDeleted: 'Carpeta eliminada.', mailboxDeleteFailed: 'No se pudo eliminar la carpeta.', reminderCreateFailed: 'No se pudo crear el recordatorio', reminderUpdateFailed: 'No se pudo actualizar el recordatorio', reminderDeleteFailed: 'No se pudo eliminar el recordatorio', templateCreateFailed: 'No se pudo crear la plantilla', templateUpdateFailed: 'No se pudo actualizar la plantilla', templateDeleteFailed: 'No se pudo eliminar la plantilla', labelCreateFailed: 'No se pudo crear la etiqueta.', labelUpdateFailed: 'No se pudo actualizar la etiqueta.', labelDeleteFailed: 'No se pudo eliminar la etiqueta.', labelNameTaken: 'Ya existe una etiqueta llamada «{{name}}».', unsubscribeFailed: 'No se pudo cancelar la suscripción' },
   },
 
   auth: {

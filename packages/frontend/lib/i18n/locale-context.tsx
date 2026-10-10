@@ -5,15 +5,43 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
 } from 'react';
 import { I18nManager, Platform } from 'react-native';
+import { toast } from '@oxy.so/bloom/toast';
 import { useOxy, useUpdateProfile } from '@oxy.so/services';
 import { coerceToSupportedLocale, isRTLLocale } from '@oxy.so/core';
+import { translate } from './translate';
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type Locale } from './types';
 
-// Allow RTL flipping system-wide once on module init. `allowRTL` is idempotent
-// and gates whether `forceRTL` takes effect.
-I18nManager.allowRTL(true);
+/**
+ * How long a wrong native direction must persist before the user is told to
+ * restart. The locale settles asynchronously (the stored guest choice, then the
+ * account's), so the first render can briefly hold a locale of the other
+ * direction; that moment must not ask for a restart.
+ */
+const DIRECTION_SETTLE_MS = 1500;
+
+/**
+ * Point React Native's layout direction at the UI language's.
+ *
+ * `allowRTL(true)` used to run unconditionally at module load, which lets RN
+ * follow the DEVICE's direction: on an Arabic or Hebrew phone an English UI
+ * came up mirrored. Both calls now take the UI language's direction.
+ *
+ * RN reads the direction once, at startup, so a change only applies after a
+ * reload. `expo-updates` (whose `reloadAsync` could do that) is not a
+ * dependency of this app, so the caller asks the user to restart instead.
+ *
+ * @returns Whether the running app is laid out the other way, i.e. a restart
+ *   is needed. Always `false` on the web, where `dir` is set on the document.
+ */
+export function applyNativeLayoutDirection(rtl: boolean): boolean {
+  if (Platform.OS === 'web') return false;
+  I18nManager.allowRTL(rtl);
+  I18nManager.forceRTL(rtl);
+  return I18nManager.isRTL !== rtl;
+}
 
 /**
  * Coerce a canonical BCP-47 locale from the SDK down to a locale this app
@@ -75,19 +103,31 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
     [isAuthenticated, currentLanguages, updateProfile, setLanguage],
   );
 
-  // Keep RN layout direction in sync with the active locale. `forceRTL` only
-  // takes effect after a JS bundle reload, so we set it eagerly here.
+  // Keep the layout direction in sync with the active locale.
+  const rtl = isRTLLocale(locale);
+  const restartNoticeFor = useRef<boolean | null>(null);
   useEffect(() => {
-    I18nManager.forceRTL(isRTLLocale(locale));
     // On the web, `forceRTL` does nothing: the document's own `lang` and `dir`
     // are what the browser, screen readers and Bloom (`useIsRtl` reads
     // `documentElement.dir`) go by. They stayed `en` / left-to-right, so Arabic
     // was laid out backwards and read aloud with an English voice.
-    if (Platform.OS === 'web' && typeof document !== 'undefined') {
-      document.documentElement.lang = locale;
-      document.documentElement.dir = isRTLLocale(locale) ? 'rtl' : 'ltr';
+    if (Platform.OS === 'web') {
+      if (typeof document !== 'undefined') {
+        document.documentElement.lang = locale;
+        document.documentElement.dir = rtl ? 'rtl' : 'ltr';
+      }
+      return;
     }
-  }, [locale]);
+    if (!applyNativeLayoutDirection(rtl)) return;
+    // Once per direction: switching between two languages of the same
+    // direction is not a second reason to restart.
+    if (restartNoticeFor.current === rtl) return;
+    const timer = setTimeout(() => {
+      restartNoticeFor.current = rtl;
+      toast.info(translate(locale, 'ui.layoutDirection.restartRequired'), { duration: 10_000 });
+    }, DIRECTION_SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, [locale, rtl]);
 
   const value = useMemo<LocaleContextValue>(
     // Hydration is owned by the SDK; the derived locale is always immediately

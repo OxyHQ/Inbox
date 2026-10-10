@@ -36,7 +36,7 @@ export function getNextSearchPageParam(lastPage: SearchPage): string | number | 
   return nextOffset < lastPage.pagination.total ? nextOffset : undefined;
 }
 
-export function useSearchMessages(options: SearchOptions = {}) {
+export function useSearchMessages(options: SearchOptions = {}, { enabled = true }: { enabled?: boolean } = {}) {
   const api = useEmailStore((s) => s._api);
   const { user } = useOxy();
   const userId = user?.id ?? null;
@@ -67,6 +67,6 @@ export function useSearchMessages(options: SearchOptions = {}) {
     },
     initialPageParam: '',
     getNextPageParam: getNextSearchPageParam,
-    enabled: hasFilter && !!api && !!userId,
+    enabled: enabled && hasFilter && !!api && !!userId,
   });
 }

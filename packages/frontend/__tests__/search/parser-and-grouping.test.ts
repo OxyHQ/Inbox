@@ -125,3 +125,16 @@ describe('groupThreads', () => {
     expect(group.members.map((m) => m._id).sort()).toEqual([baseMessage._id, 'message-2'].sort());
   });
 });
+
+describe('groupThreads pin state', () => {
+  it('pins a conversation that holds a pinned message', () => {
+    const olderPinned = message({ ...baseMessage, flags: { pinned: true } });
+    const newer = message({
+      _id: 'message-2',
+      messageId: '<message-2@example.test>',
+      inReplyTo: '<message-1@example.test>',
+      date: '2026-01-03T00:00:00.000Z',
+    });
+    expect(groupThreads([olderPinned, newer])[0].row.flags.pinned).toBe(true);
+  });
+});

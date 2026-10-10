@@ -256,20 +256,26 @@ export function groupThreads(messages: Message[]): ThreadGroup[] {
     }
   });
 
-  const groups = new Map<number, { rep: Message; members: Message[]; hasUnread: boolean }>();
+  const groups = new Map<number, { rep: Message; members: Message[]; hasUnread: boolean; hasPinned: boolean }>();
   const order: number[] = [];
 
   messages.forEach((message, index) => {
     const root = find(index);
     const entry = groups.get(root);
     if (!entry) {
-      groups.set(root, { rep: message, members: [message], hasUnread: !message.flags.seen });
+      groups.set(root, {
+        rep: message,
+        members: [message],
+        hasUnread: !message.flags.seen,
+        hasPinned: message.flags.pinned,
+      });
       order.push(root);
       return;
     }
 
     entry.members.push(message);
     if (!message.flags.seen) entry.hasUnread = true;
+    if (message.flags.pinned) entry.hasPinned = true;
     if (new Date(message.date).getTime() > new Date(entry.rep.date).getTime()) {
       entry.rep = message;
     }
@@ -278,11 +284,17 @@ export function groupThreads(messages: Message[]): ThreadGroup[] {
   return order.map((root) => {
     const entry = groups.get(root);
     if (!entry) return { row: messages[root], members: [messages[root]] };
-    const { rep, members, hasUnread } = entry;
+    const { rep, members, hasUnread, hasPinned } = entry;
     const threadCount = Math.max(members.length, rep.threadCount ?? 1);
     let row = threadCount === rep.threadCount ? rep : { ...rep, threadCount };
     if (hasUnread && row.flags.seen) {
       row = { ...row, flags: { ...row.flags, seen: false } };
+    }
+    // A conversation holding a pinned message is pinned. Shown unpinned, it sat
+    // at the pinned message's place, out of date order, and opened a second
+    // section with the same date heading.
+    if (hasPinned && !row.flags.pinned) {
+      row = { ...row, flags: { ...row.flags, pinned: true } };
     }
     return { row, members };
   });

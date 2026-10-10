@@ -444,37 +444,46 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
   const handleAttachment = useCallback(
     async (fileId: string, filename: string) => {
-      try {
-        const url = await oxyServices.assets.url(fileId);
-        if (Platform.OS === 'web') {
-          window.open(url, '_blank', 'noopener,noreferrer');
-        } else {
-          const documentDirectory = FileSystem.documentDirectory;
-          if (!documentDirectory) {
-            await Linking.openURL(url);
-            return;
-          }
-          const localUri = documentDirectory + safeDownloadFilename(filename);
-          const { uri } = await FileSystem.downloadAsync(url, localUri);
-          if (await Sharing.isAvailableAsync()) {
-            await Sharing.shareAsync(uri);
-          } else {
-            await Linking.openURL(url);
-          }
-        }
-      } catch (error: unknown) {
+      if (Platform.OS === 'web') {
+        // The window is opened IN the tap, then pointed at the file once its
+        // signed URL arrives: opened after the await, it is a popup that
+        // Safari and strict blockers refuse — and nothing said so.
+        const tab = window.open('', '_blank');
         try {
           const url = await oxyServices.assets.url(fileId);
-          await Linking.openURL(url);
-        } catch (err: unknown) {
-          const message =
-            err instanceof Error
-              ? err.message
-              : error instanceof Error
-                ? error.message
-                : t('message.toast.attachmentFailed');
-          toast.error(message);
+          if (tab) {
+            tab.opener = null;
+            tab.location.href = url;
+          } else {
+            window.location.assign(url);
+          }
+        } catch (error: unknown) {
+          tab?.close();
+          toast.error(error instanceof Error ? error.message : t('message.toast.attachmentFailed'));
         }
+        return;
+      }
+      try {
+        const url = await oxyServices.assets.url(fileId);
+        // A cache file: the OS may reclaim it, nothing piles up in Documents.
+        const cacheDirectory = FileSystem.cacheDirectory;
+        if (!cacheDirectory) {
+          await Linking.openURL(url);
+          return;
+        }
+        const download = await FileSystem.downloadAsync(url, cacheDirectory + safeDownloadFilename(filename));
+        // An expired link or a refusal downloads an error page; never hand
+        // that to the share sheet as the user's file.
+        if (download.status < 200 || download.status >= 300) {
+          throw new Error(t('message.toast.attachmentFailed'));
+        }
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(download.uri);
+        } else {
+          await Linking.openURL(url);
+        }
+      } catch (error: unknown) {
+        toast.error(error instanceof Error ? error.message : t('message.toast.attachmentFailed'));
       }
     },
     [oxyServices, t],
@@ -626,7 +635,11 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
             onReplyAll: () => handleReplyAll(msg._id),
             onForward: () => handleForward(msg._id),
           }),
-      attachments: msg.attachments.map((attachment) => ({
+      // An inline image is part of an HTML body, not a file the sender
+      // attached. Without an HTML body it has nowhere else to appear.
+      attachments: msg.attachments
+        .filter((attachment) => !(msg.html && attachment.isInline && attachment.contentId))
+        .map((attachment) => ({
         id: attachment.fileId,
         name: attachment.name,
         onPress: () => handleAttachment(attachment.fileId, attachment.name),

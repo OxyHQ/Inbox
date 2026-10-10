@@ -2,6 +2,7 @@ import { SearchFiltersBar } from '@/components/SearchFiltersBar';
 import {
   hasSearchCriteria,
   pickSearchFilters,
+  searchDateBound,
   type SearchFilters,
 } from '@/utils/searchFilters';
 import { BREAKPOINTS } from '@oxy.so/bloom/styles';
@@ -149,6 +150,8 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     return mailbox?._id;
   }, [requestedMailbox, mailboxes]);
 
+  const mailboxUnresolved = !!requestedMailbox && !mailboxIdFromName;
+
   const searchOptions = useMemo(
     () => ({
       // NL parsed options take precedence, then Gmail-style operators, then filter chips.
@@ -161,10 +164,12 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         nlParsedOptions?.hasAttachment ??
         parsedQuery.hasAttachment ??
         filters.hasAttachment,
-      dateAfter:
+      dateAfter: searchDateBound(
         nlParsedOptions?.after ?? parsedQuery.after ?? filters.dateAfter,
-      dateBefore:
+      ),
+      dateBefore: searchDateBound(
         nlParsedOptions?.before ?? parsedQuery.before ?? filters.dateBefore,
+      ),
       mailbox: mailboxIdFromName,
       starred:
         nlParsedOptions?.starred ?? parsedQuery.starred ?? filters.starred,
@@ -184,8 +189,13 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     hasNextPage,
     fetchNextPage,
     refetch,
-  } = useSearchMessages(searchOptions);
+  } = useSearchMessages(searchOptions, {
+    // `in:<folder>` that names no folder is not "every folder": the search
+    // used to run across all mail as if the operator were not there.
+    enabled: !mailboxUnresolved,
+  });
   const messages = useMemo(() => {
+    if (mailboxUnresolved) return [];
     const seen = new Set<string>();
     return (
       searchData?.pages
@@ -196,7 +206,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           return true;
         }) ?? []
     );
-  }, [searchData]);
+  }, [searchData, mailboxUnresolved]);
   // Search pages are grouped only after they are merged. This avoids one row
   // per page and lets a related message loaded later update the same row.
   // The API still needs a server-side threadId for authoritative cross-page

@@ -40,3 +40,17 @@ export function filtersDateRange(filters: SearchFilters): DateRange | null {
     return null;
   return { start, end };
 }
+
+/**
+ * An `after:` / `before:` value as the instant the API compares with. A bare
+ * `YYYY-MM-DD` is a LOCAL day, as the filter chips treat it: sent as-is, the
+ * API read it as UTC midnight and the search started or stopped hours away
+ * from the day the user meant. `after:` starts at the beginning of that day;
+ * `before:` is exclusive, like Gmail's, so it ends where that day begins.
+ */
+export function searchDateBound(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (!dateOnly) return value;
+  return new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3])).toISOString();
+}

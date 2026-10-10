@@ -539,13 +539,22 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     fetchNextPage();
   }, [fetchNextPage, isFetchingNextPage, hasNextPage]);
 
+  // Pin state is the conversation's, as the row shows it: unpinning unpins
+  // every pinned message in it, pinning pins the row's own message.
   const handlePin = useCallback(
-    (messageId: string) => {
+    (rowId: string) => {
       if (togglePin.isPending) return;
-      const msg = messages.find((m) => m._id === messageId);
-      if (msg) togglePin.mutate({ messageId, pinned: !msg.flags.pinned });
+      const row = displayMessages.find((m) => m._id === rowId);
+      if (!row) return;
+      if (row.flags.pinned) {
+        for (const m of conversationOf(rowId)) {
+          if (m.flags.pinned) togglePin.mutate({ messageId: m._id, pinned: false });
+        }
+      } else {
+        togglePin.mutate({ messageId: rowId, pinned: true });
+      }
     },
-    [messages, togglePin],
+    [displayMessages, conversationOf, togglePin],
   );
 
   const handleToggleRead = useCallback(

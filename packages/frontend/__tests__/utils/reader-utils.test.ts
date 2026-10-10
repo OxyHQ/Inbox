@@ -12,6 +12,8 @@ import type { Bundle } from '@/services/emailApi';
 import { calendarTimes, generateIcs } from '@/utils/calendarEvent';
 import { formatMoney, isPastDue, parseCardDate } from '@/utils/cardFormat';
 import { presetsThatMakeSense } from '@/utils/timePresets';
+import { parseByteSize } from '@/utils/byteSize';
+import { searchDateBound } from '@/utils/searchFilters';
 
 describe('cards', () => {
   it('formats an amount whose "currency" is a symbol instead of throwing', () => {
@@ -86,5 +88,20 @@ describe('bundle reordering', () => {
       { id: 'b', order: 0 },
     ]);
     expect(planBundleSwap(bundles, 'a', 'up')).toBeNull();
+  });
+});
+
+describe('search date bounds', () => {
+  it('sends a bare date as the start of that LOCAL day', () => {
+    expect(searchDateBound('2026-10-15')).toBe(new Date(2026, 9, 15).toISOString());
+    expect(searchDateBound('2026-10-15T10:00:00.000Z')).toBe('2026-10-15T10:00:00.000Z');
+  });
+});
+
+describe('byte sizes', () => {
+  it('reads units and refuses what is not a size', () => {
+    expect(parseByteSize('5 MB')).toBe(5 * 1024 * 1024);
+    expect(parseByteSize('2048')).toBe(2048);
+    expect(parseByteSize('big')).toBeNull();
   });
 });

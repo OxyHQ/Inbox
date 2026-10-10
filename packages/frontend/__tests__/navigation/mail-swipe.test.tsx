@@ -1,6 +1,7 @@
 import { SwipeableRow } from '@/components/SwipeableRow';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
+import type { Children } from '../fixtures/mockProps';
 
 let mockTouch = true;
 jest.mock('@/lib/i18n', () => ({
@@ -9,7 +10,14 @@ jest.mock('@/lib/i18n', () => ({
 jest.mock('@oxy.so/bloom/icons', () => new Proxy({}, { get: () => () => null }));
 jest.mock('@oxy.so/bloom/swipe-row', () => ({
   useSwipeAvailable: () => mockTouch,
-  SwipeRow: ({ onOpenChange, actions, children }: any) => {
+  SwipeRow: ({
+    onOpenChange,
+    actions,
+    children,
+  }: Children & {
+    onOpenChange: (side: 'left' | 'right' | null) => void;
+    actions: Record<'left' | 'right', unknown[]>;
+  }) => {
     const [open, setOpen] = useState(false);
     return (
       <div>

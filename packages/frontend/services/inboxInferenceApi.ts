@@ -21,7 +21,7 @@ import {
   type InboxSmartRepliesResponse,
   type InboxThreadSummaryResponse,
 } from '@oxy.so/contracts';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 type HttpService = OxyServices['http'];
 
@@ -326,13 +326,48 @@ export function streamInboxDraft(
   return streamInboxText(http, COMPOSE_PATH, { ...request, stream: true }, signal);
 }
 
-export function streamInboxDailyBrief(
+/**
+ * The brief, mirroring `inboxDailyBriefResponseSchema` in `@oxy.so/contracts`
+ * (OxyHQ/oxy). Local until a published contracts release carries it, like the
+ * other not-yet-covered endpoints in `schemas/emailSchemas.ts`.
+ */
+export const INBOX_DAILY_BRIEF_SECTIONS = ['needs_you', 'today', 'earlier'] as const;
+export const inboxDailyBriefSchema = z.object({
+  schemaVersion: z.literal(1),
+  requestId: z.string().min(1).max(128),
+  generationId: z.string().min(1).max(128).optional(),
+  summary: z.string().max(400),
+  counts: z.object({
+    received: z.number().int().nonnegative(),
+    unread: z.number().int().nonnegative(),
+    starred: z.number().int().nonnegative(),
+    earlierUnread: z.number().int().nonnegative(),
+  }).strict(),
+  items: z.array(z.object({
+    messageId: z.string().min(1).max(128),
+    section: z.enum(INBOX_DAILY_BRIEF_SECTIONS),
+    note: z.string().max(200),
+    from: z.object({ name: z.string().max(998).nullable(), address: z.string().max(320) }).strict(),
+    subject: z.string().max(998),
+    receivedAt: z.string().datetime(),
+    unread: z.boolean(),
+    hasAttachments: z.boolean(),
+  }).strict()).max(20),
+}).strict();
+export type InboxDailyBrief = z.infer<typeof inboxDailyBriefSchema>;
+export type InboxDailyBriefItem = InboxDailyBrief['items'][number];
+
+/** Today's brief: a short summary and the messages it names, in `locale`. */
+export async function fetchInboxDailyBrief(
   http: HttpService,
   request: Pick<InboxDailyBriefWindow, 'startAt' | 'endAt'> & {
     /** The language the brief is written in (BCP 47). */
     locale?: string;
   },
   signal?: AbortSignal,
-): AsyncGenerator<string> {
-  return streamInboxText(http, DAILY_BRIEF_PATH, { ...request, stream: true }, signal);
+): Promise<InboxDailyBrief> {
+  return parseResponse(
+    inboxDailyBriefSchema,
+    await http.post<unknown>(DAILY_BRIEF_PATH, request, signal ? { signal } : undefined),
+  );
 }

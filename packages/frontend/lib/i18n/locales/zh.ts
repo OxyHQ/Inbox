@@ -197,7 +197,11 @@ const zh: LocaleDict = {
       unavailable: '当前无法生成摘要。',
       empty: '还没有可摘要的邮件。',
       writing: '正在撰写你的摘要…',
-      preparing: '正在准备你的摘要…',
+      sections: {
+        needsYou: '需要你处理',
+        today: '今天',
+        earlier: '仍未读',
+      },
       failed: '无法生成今天的摘要。',
       nothingNew: '今天没有新邮件。',
       tapRetry: '点按重试',

@@ -201,7 +201,11 @@ const ca: LocaleDict = {
       unavailable: "No s'ha pogut generar el resum ara mateix.",
       empty: 'Encara no hi ha correus per resumir.',
       writing: 'Escrivint el teu resum…',
-      preparing: 'Preparant el teu resum…',
+      sections: {
+        needsYou: 'Et necessiten',
+        today: 'Avui',
+        earlier: 'Encara sense llegir',
+      },
       failed: "No s'ha pogut escriure el resum d'avui.",
       nothingNew: 'Res de nou avui.',
       tapRetry: 'Toca per tornar-ho a provar.',

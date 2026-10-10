@@ -200,7 +200,11 @@ const fr: LocaleDict = {
       unavailable: 'Impossible de générer le résumé pour le moment.',
       empty: 'Aucun courriel à résumer pour le moment.',
       writing: 'Rédaction de ton résumé…',
-      preparing: 'Préparation de ton résumé…',
+      sections: {
+        needsYou: 'Attend ta réponse',
+        today: "Aujourd'hui",
+        earlier: 'Toujours non lus',
+      },
       failed: "Impossible d'écrire le résumé d'aujourd'hui.",
       nothingNew: "Rien de nouveau aujourd'hui.",
       tapRetry: 'Appuie pour réessayer.',

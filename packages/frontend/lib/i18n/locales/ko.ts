@@ -199,7 +199,11 @@ const ko: LocaleDict = {
       unavailable: '지금은 요약을 만들 수 없어요.',
       empty: '아직 요약할 메일이 없어요.',
       writing: '요약을 작성하고 있어요…',
-      preparing: '요약을 준비하고 있어요…',
+      sections: {
+        needsYou: '확인 필요',
+        today: '오늘',
+        earlier: '아직 읽지 않음',
+      },
       failed: '오늘의 요약을 작성하지 못했어요.',
       nothingNew: '오늘은 새 메일이 없어요.',
       tapRetry: '탭하여 다시 시도',

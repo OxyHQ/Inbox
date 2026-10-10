@@ -200,7 +200,11 @@ const it: LocaleDict = {
       unavailable: 'Impossibile generare il riepilogo in questo momento.',
       empty: 'Ancora nessuna email da riepilogare.',
       writing: 'Scrittura del riepilogo…',
-      preparing: 'Preparazione del riepilogo…',
+      sections: {
+        needsYou: 'Ti aspettano',
+        today: 'Oggi',
+        earlier: 'Ancora da leggere',
+      },
       failed: 'Impossibile scrivere il riepilogo di oggi.',
       nothingNew: 'Niente di nuovo oggi.',
       tapRetry: 'Tocca per riprovare.',

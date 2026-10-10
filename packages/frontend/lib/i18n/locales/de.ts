@@ -200,7 +200,11 @@ const de: LocaleDict = {
       unavailable: 'Überblick kann gerade nicht erstellt werden.',
       empty: 'Noch keine E-Mails zum Zusammenfassen.',
       writing: 'Dein Überblick wird geschrieben…',
-      preparing: 'Dein Überblick wird vorbereitet…',
+      sections: {
+        needsYou: 'Braucht dich',
+        today: 'Heute',
+        earlier: 'Noch ungelesen',
+      },
       failed: 'Der heutige Überblick konnte nicht erstellt werden.',
       nothingNew: 'Heute nichts Neues.',
       tapRetry: 'Tippe, um es erneut zu versuchen.',

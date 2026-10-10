@@ -193,7 +193,11 @@ const es: LocaleDict = {
       unavailable: 'No se pudo generar el resumen ahora.',
       empty: 'Aún no hay correos para resumir.',
       writing: 'Escribiendo tu resumen…',
-      preparing: 'Preparando tu resumen…',
+      sections: {
+        needsYou: 'Te necesitan',
+        today: 'Hoy',
+        earlier: 'Aún sin leer',
+      },
       failed: 'No se pudo escribir el resumen de hoy.',
       nothingNew: 'Nada nuevo hoy.',
       tapRetry: 'Toca para reintentar.',

@@ -12,7 +12,7 @@ import { useDailyBrief } from '@/hooks/queries/useDailyBrief';
 import {
   inboxLocalDayWindow,
   runInboxCompose,
-  streamInboxDailyBrief,
+  fetchInboxDailyBrief,
   streamInboxDraft,
 } from '@/services/inboxInferenceApi';
 
@@ -30,13 +30,13 @@ jest.mock('@/lib/i18n', () => ({
 jest.mock('@/services/inboxInferenceApi', () => ({
   inboxLocalDayWindow: jest.fn(),
   runInboxCompose: jest.fn(),
-  streamInboxDailyBrief: jest.fn(),
+  fetchInboxDailyBrief: jest.fn(),
   streamInboxDraft: jest.fn(),
 }));
 
 const mockInboxLocalDayWindow = jest.mocked(inboxLocalDayWindow);
 const mockRunInboxCompose = jest.mocked(runInboxCompose);
-const mockStreamInboxDailyBrief = jest.mocked(streamInboxDailyBrief);
+const mockFetchInboxDailyBrief = jest.mocked(fetchInboxDailyBrief);
 const mockStreamInboxDraft = jest.mocked(streamInboxDraft);
 
 function abortError(): Error {
@@ -60,7 +60,7 @@ describe('Inbox inference hooks', () => {
       endAt: '2026-09-03T21:00:00.000Z',
     });
     mockRunInboxCompose.mockReset();
-    mockStreamInboxDailyBrief.mockReset();
+    mockFetchInboxDailyBrief.mockReset();
     mockStreamInboxDraft.mockReset();
     Object.defineProperty(globalThis, 'requestAnimationFrame', {
       configurable: true,
@@ -131,50 +131,53 @@ describe('Inbox inference hooks', () => {
     queryClient.clear();
   });
 
-  it('retries an opened Daily Brief after its collapsed stream finishes aborting', async () => {
-    const oxyServices = {
-      ...makeMockOxyServices(),
-      httpService: {},
-    };
+  it('fetches the Daily Brief only while open, in the UI language, and marks opened rows read', async () => {
+    const oxyServices = makeMockOxyServices();
     __setOxyState({
       user: { id: 'user-1', username: 'nate' },
       isAuthenticated: true,
       canUsePrivateApi: true,
       oxyServices,
     });
-
-    let firstSignal: AbortSignal | undefined;
-    let releaseFirst = (): void => undefined;
-    mockStreamInboxDailyBrief
-      .mockImplementationOnce(async function* (_http, _window, signal) {
-        firstSignal = signal;
-        await new Promise<void>((resolve) => {
-          releaseFirst = resolve;
-        });
-        if (signal?.aborted) throw abortError();
-        yield 'unreachable';
-      })
-      .mockImplementationOnce(async function* () {
-        yield 'Ready';
-      });
+    mockFetchInboxDailyBrief.mockResolvedValue({
+      schemaVersion: 1,
+      requestId: 'req_brief',
+      summary: 'Ana needs the numbers by Friday.',
+      counts: { received: 1, unread: 1, starred: 0, earlierUnread: 0 },
+      items: [{
+        messageId: 'msg_ana',
+        section: 'needs_you',
+        note: 'Wants the quarterly numbers by Friday.',
+        from: { name: 'Ana', address: 'ana@example.com' },
+        subject: 'Quarterly numbers',
+        receivedAt: '2026-09-03T08:00:00.000Z',
+        unread: true,
+        hasAttachments: false,
+      }],
+    });
 
     const queryClient = new QueryClient();
     const rendered = renderHook(
-      ({ enabled }: { enabled: boolean }) => useDailyBrief({ enabled, autoGenerate: true }),
-      { initialProps: { enabled: true }, wrapper: wrapper(queryClient) },
+      ({ enabled }: { enabled: boolean }) => useDailyBrief({ enabled }),
+      { initialProps: { enabled: false }, wrapper: wrapper(queryClient) },
     );
-    await waitFor(() => expect(firstSignal).toBeDefined());
-    // The brief is written in the UI language.
-    expect(mockStreamInboxDailyBrief.mock.calls[0]?.[1]).toMatchObject({ locale: 'es' });
+    expect(mockFetchInboxDailyBrief).not.toHaveBeenCalled();
 
-    act(() => rendered.rerender({ enabled: false }));
-    await waitFor(() => expect(firstSignal?.aborted).toBe(true));
-    act(() => rendered.rerender({ enabled: true }));
-    expect(mockStreamInboxDailyBrief).toHaveBeenCalledTimes(1);
+    rendered.rerender({ enabled: true });
+    await waitFor(() => expect(rendered.result.current.brief?.summary).toBe('Ana needs the numbers by Friday.'));
+    expect(mockFetchInboxDailyBrief).toHaveBeenCalledWith(
+      oxyServices.http,
+      { startAt: '2026-09-02T21:00:00.000Z', endAt: '2026-09-03T21:00:00.000Z', locale: 'es' },
+      expect.any(AbortSignal),
+    );
 
-    act(() => releaseFirst());
-    await waitFor(() => expect(mockStreamInboxDailyBrief).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(rendered.result.current.briefText).toBe('Ready'));
+    act(() => rendered.result.current.markOpened('msg_ana'));
+    await waitFor(() => expect(rendered.result.current.brief?.items[0]?.unread).toBe(false));
+
+    // Closing and reopening the brief within the half hour reuses it.
+    rendered.rerender({ enabled: false });
+    rendered.rerender({ enabled: true });
+    expect(mockFetchInboxDailyBrief).toHaveBeenCalledTimes(1);
 
     rendered.unmount();
     queryClient.clear();

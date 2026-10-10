@@ -851,12 +851,14 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
         leftAction={prefs.leftSwipeAction}
         rightAction={prefs.rightSwipeAction}
         onAction={handleSwipeAction}
+        archived={messageActions.isArchived(conversationOf(msg._id))}
       >
         <MessageRow
           message={msg}
           onPin={handlePin}
           onSelect={handleMessagePress}
           onArchive={handleArchiveRow}
+          archived={messageActions.isArchived(conversationOf(msg._id))}
           onDelete={handleDeleteRow}
           onToggleRead={handleToggleRead}
           isSelected={msg._id === selectedMessageId}
@@ -891,6 +893,8 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       density,
       showPreviews,
       sentimentMap,
+      messageActions,
+      conversationOf,
     ],
   );
 
@@ -1102,6 +1106,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
           count={selectedMessageIds.size}
           onClose={clearSelection}
           onArchive={handleBulkArchive}
+          archived={messageActions.isArchived(selectedConversations())}
           onDelete={handleBulkDelete}
           onStar={handleBulkStar}
           onMarkRead={handleBulkMarkRead}

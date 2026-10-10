@@ -19,6 +19,7 @@ import { Button, IconButton } from '@oxy.so/bloom/button';
 import { Checkbox } from '@oxy.so/bloom/checkbox';
 import {
   RiArchiveLine,
+  RiInbox2Line,
   RiArrowGoBackLine,
   RiCornerUpLeftLine,
   RiDeleteBinLine,
@@ -272,6 +273,8 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     [messageId, messageActions, folderConversation, handleBack, mode],
   );
 
+  // In Archive the button moves the conversation back to the Inbox.
+  const archived = messageActions.isArchived(folderConversation);
   const handleArchive = useCallback(() => {
     if (!messageId) return;
     if (!mailboxes.some((m) => m.specialUse === SPECIAL_USE.ARCHIVE)) {
@@ -306,7 +309,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
       toast.error(t('message.toast.spamUnavailable'));
       return;
     }
-    messageActions.moveTo(folderConversation, spamBox._id);
+    messageActions.moveTo(folderConversation, spamBox._id, 'spam');
     if (mode === 'standalone') handleBack();
   }, [
     messageId,
@@ -733,8 +736,8 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           <ButtonGroup>
             <ButtonGroupItem
               iconOnly
-              accessibilityLabel={t('message.actions.archive')}
-              leadingIcon={RiArchiveLine}
+              accessibilityLabel={t(archived ? 'message.actions.moveToInbox' : 'message.actions.archive')}
+              leadingIcon={archived ? RiInbox2Line : RiArchiveLine}
               onPress={handleArchive}
             />
             <ButtonGroupItem

@@ -266,7 +266,11 @@ function restoreRows(current: Message[][], prev: Message[], ids: ReadonlySet<str
  * archive had succeeded. Then the views are re-read, because the server is the
  * one that knows what the failure left behind.
  */
-export function restoreSnapshot(queryClient: QueryClient, snapshot: MessageSnapshot): void {
+export function restoreSnapshot(
+  queryClient: QueryClient,
+  snapshot: MessageSnapshot,
+  { reread = true }: { reread?: boolean } = {},
+): void {
   const ids = new Set(snapshot.messageIds);
   for (const [key, prev] of snapshot.prevMessages) {
     if (!prev) continue;
@@ -290,7 +294,25 @@ export function restoreSnapshot(queryClient: QueryClient, snapshot: MessageSnaps
     queryClient.setQueryData(emailKeys.message.detail(id, snapshot.userId), prev);
   }
   // Counts are not restored by hand: other changes moved them too.
-  invalidateMailViews(queryClient);
+  if (reread) invalidateMailViews(queryClient);
+}
+
+/**
+ * Where each of the snapshot's messages was — its folder before the mutation —
+ * as far as any cache knew it. What an Undo moves them back to.
+ */
+export function snapshotOrigins(snapshot: MessageSnapshot): Map<string, string> {
+  const ids = new Set(snapshot.messageIds);
+  const origins = new Map<string, string>();
+  const note = (message: Message | null | undefined) => {
+    if (message && ids.has(message._id) && message.mailboxId && !origins.has(message._id)) {
+      origins.set(message._id, message.mailboxId);
+    }
+  };
+  for (const [, prev] of snapshot.prevDetails) note(prev);
+  for (const [, data] of snapshot.prevMessages) flatMessages(data).forEach(note);
+  for (const [, data] of snapshot.prevThreads) data?.messages.forEach(note);
+  return origins;
 }
 
 /** Cancel in-flight queries for the message caches before an optimistic update. */

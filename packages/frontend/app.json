@@ -61,7 +61,9 @@
           "speechRecognitionPermission": "Allow Inbox to turn your speech into text."
         }
       ],
-      "expo-status-bar"
+      "expo-status-bar",
+      "@oxy.so/services/plugins/withOxySharedPermissions",
+      "@oxy.so/app-preset/plugin/withOxyAndroidRelease"
     ],
     "experiments": {
       "typedRoutes": true,

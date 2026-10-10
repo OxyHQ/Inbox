@@ -31,6 +31,7 @@ import {
   useToggleRead,
   useToggleStar,
   useUnsnoozeMessage,
+  type MoveKind,
 } from '@/hooks/mutations/useMessageMutations';
 
 export function useMessageActions() {
@@ -81,27 +82,48 @@ export function useMessageActions() {
   );
 
   const moveTo = useCallback(
-    (conversation: Message[], mailboxId: string) => {
+    (conversation: Message[], mailboxId: string, kind: MoveKind = 'move') => {
       if (conversation.length === 0) return;
       if (conversation.length === 1) {
-        archiveMutation.mutate({ messageId: conversation[0]._id, archiveMailboxId: mailboxId });
+        archiveMutation.mutate({ messageId: conversation[0]._id, archiveMailboxId: mailboxId, kind });
         return;
       }
-      bulkMove.mutate({ messageIds: conversation.map((m) => m._id), mailboxId });
+      bulkMove.mutate({ messageIds: conversation.map((m) => m._id), mailboxId, kind });
     },
     [archiveMutation, bulkMove],
   );
 
+  const archiveBox = useMemo(
+    () => mailboxes.find((m) => m.specialUse === SPECIAL_USE.ARCHIVE),
+    [mailboxes],
+  );
+
+  /** Already archived: every message of it is in Archive. */
+  const isArchived = useCallback(
+    (conversation: Message[]) =>
+      !!archiveBox && conversation.length > 0 && conversation.every((m) => m.mailboxId === archiveBox._id),
+    [archiveBox],
+  );
+
+  /**
+   * Archive — or, for a conversation already in Archive, move it back to the
+   * Inbox. Archived mail had no way back: in Archive the same button archived
+   * again, which does nothing.
+   */
   const archive = useCallback(
     (conversation: Message[]) => {
-      const archiveBox = mailboxes.find((m) => m.specialUse === SPECIAL_USE.ARCHIVE);
+      if (isArchived(conversation)) {
+        const inbox = mailboxes.find((m) => m.specialUse === SPECIAL_USE.INBOX);
+        if (inbox) moveTo(conversation, inbox._id, 'inbox');
+        return;
+      }
       if (!archiveBox) {
         toast.error(t('inbox.toast.archiveUnavailable'));
         return;
       }
-      moveTo(conversation, archiveBox._id);
+      moveTo(conversation, archiveBox._id, 'archive');
     },
-    [mailboxes, moveTo, t],
+    [archiveBox, isArchived, mailboxes, moveTo, t],
   );
 
   /**
@@ -151,6 +173,7 @@ export function useMessageActions() {
       pin,
       moveTo,
       archive,
+      isArchived,
       deleteConversation,
       snooze,
       unsnooze,
@@ -175,6 +198,8 @@ export function useMessageActions() {
       pin,
       moveTo,
       archive,
+      isArchived,
+      isArchived,
       deleteConversation,
       snooze,
       unsnooze,

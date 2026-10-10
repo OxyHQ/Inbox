@@ -9,6 +9,10 @@
 //   set-state-in-effect, immutability, ...). Biome has no equivalent.
 //   `rules-of-hooks` and `exhaustive-deps` are left to Biome's
 //   `useHookAtTopLevel` and `useExhaustiveDependencies`.
+//
+// `bun run lint` runs `expo lint .`, not bare `expo lint`: the bare form only
+// covers app/, components/ and src/, and skipped hooks/, lib/ and utils/ —
+// where six React Compiler errors sat unreported.
 const { defineConfig } = require('eslint/config');
 const tsParser = require('@typescript-eslint/parser');
 const expo = require('eslint-plugin-expo');

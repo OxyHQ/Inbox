@@ -10,7 +10,7 @@
     "android": "RCT_METRO_PORT=8103 expo run:android",
     "ios": "RCT_METRO_PORT=8103 expo run:ios",
     "typecheck": "tsc --noEmit",
-    "lint": "expo lint",
+    "lint": "expo lint .",
     "test": "node --test ../../scripts/edge-activity.test.mjs && jest",
     "test:watch": "jest --watch"
   },

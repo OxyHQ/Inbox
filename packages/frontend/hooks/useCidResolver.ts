@@ -6,46 +6,59 @@
  * messageId → resolvedHtml.
  */
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { OxyServices } from '@oxy.so/core';
 import type { Message } from '@/services/emailApi';
 import { normalizeContentId, resolveCidImages } from '@/utils/htmlTransform';
+
+type CidMaps = Record<string, Record<string, string>>;
+
+/** What a message that has not resolved yet reads: one object, so memos stay put. */
+const NO_MAPS: CidMaps = {};
 
 export function useCidResolver(
   messages: Message[],
   oxyServices: OxyServices | null | undefined,
   resetKey: string,
 ): Record<string, string> {
-  const [cidMaps, setCidMaps] = useState<Record<string, Record<string, string>>>({});
-  // Messages whose lookup is under way. A message counts as resolved only once
-  // its map is stored: marking it before the lookup finished meant a lookup
-  // cancelled by a thread refetch was never retried, and the images of the
-  // message the user opened stayed broken.
-  const inFlight = useRef(new Set<string>());
-  // Bumped when the displayed message changes: a lookup started before that
-  // belongs to another message and is dropped. Nothing else drops a lookup.
-  const generation = useRef(0);
+  // The maps belong to the message they were resolved for. When the displayed
+  // message changes they are simply not read any more — derived during render,
+  // so the first render of the new message already has none. Clearing them in
+  // an effect instead rendered the new message once with the old maps, then
+  // again without them.
+  const [store, setStore] = useState<{ key: string; maps: CidMaps }>(() => ({
+    key: resetKey,
+    maps: NO_MAPS,
+  }));
+  const cidMaps = store.key === resetKey ? store.maps : NO_MAPS;
+  // The message on screen as of the last commit. A lookup that finishes after
+  // the user moved to another message is dropped.
+  const shownKey = useRef(resetKey);
+  // Messages whose lookup is under way, for the message they belong to. A
+  // message counts as resolved only once its map is stored: marking it before
+  // the lookup finished meant a lookup cancelled by a thread refetch was never
+  // retried, and the images of the message the user opened stayed broken.
+  const inFlight = useRef({ key: resetKey, ids: new Set<string>() });
 
-  // Reset when the displayed message changes
   useEffect(() => {
-    generation.current += 1;
-    setCidMaps({});
-    inFlight.current = new Set();
+    shownKey.current = resetKey;
   }, [resetKey]);
 
   // Fetch signed File Manager URLs for inline CID attachments
   useEffect(() => {
     if (!oxyServices) return;
-    const started = generation.current;
+    const key = resetKey;
+    if (inFlight.current.key !== key) inFlight.current = { key, ids: new Set() };
+    const ids = inFlight.current.ids;
     const pending = messages.filter(
       (msg) =>
         !(msg._id in cidMaps) &&
-        !inFlight.current.has(msg._id) &&
+        !ids.has(msg._id) &&
         // Referenced by Content-ID, whatever its disposition says.
         msg.attachments.some((a) => a.contentId),
     );
     if (pending.length === 0) return;
-    for (const msg of pending) inFlight.current.add(msg._id);
+    for (const msg of pending) ids.add(msg._id);
 
     (async () => {
       const newEntries: [string, Record<string, string>][] = [];
@@ -63,15 +76,15 @@ export function useCidResolver(
         );
         newEntries.push([msg._id, cidMap]);
       }
-      if (generation.current !== started) return;
-      for (const msg of pending) inFlight.current.delete(msg._id);
-      setCidMaps((prev) => {
-        const next = { ...prev };
+      for (const msg of pending) ids.delete(msg._id);
+      if (shownKey.current !== key) return;
+      setStore((prev) => {
+        const next = { ...(prev.key === key ? prev.maps : NO_MAPS) };
         for (const [id, map] of newEntries) next[id] = map;
-        return next;
+        return { key, maps: next };
       });
     })();
-  }, [messages, oxyServices, cidMaps]);
+  }, [messages, oxyServices, cidMaps, resetKey]);
 
   // Pre-compute resolved HTML per message — stable references
   return useMemo(() => {

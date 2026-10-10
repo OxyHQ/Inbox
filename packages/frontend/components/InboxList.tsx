@@ -72,7 +72,7 @@ import { useEmailStore } from '@/hooks/useEmail';
 import { useInboxDisplayPrefs } from '@/hooks/useInboxDisplayPrefs';
 import { useMessageActions } from '@/hooks/useMessageActions';
 import { useLeaveRemovedRows } from '@/hooks/useLeaveRemovedRows';
-import { calendarDaysBetween } from '@/utils/calendarDays';
+import { calendarDaysBetween } from '@oxy.so/utils/date';
 import { useTranslation, type TranslateFn } from '@/lib/i18n';
 import type {
   Bundle,

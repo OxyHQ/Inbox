@@ -37,7 +37,7 @@ import { AttachmentThumbnail } from './AttachmentThumbnail';
 import { CardPreview } from './cards/CardPreview';
 import { ImportanceBadge } from './ImportanceBadge';
 import { SentimentIndicator } from './SentimentIndicator';
-import { calendarDaysBetween } from '@/utils/calendarDays';
+import { calendarDaysBetween } from '@oxy.so/utils/date';
 import { dateFormatter } from '@/utils/dateFormat';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://api.oxy.so';

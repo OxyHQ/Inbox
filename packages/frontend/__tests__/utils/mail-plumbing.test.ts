@@ -8,7 +8,6 @@ import { QueryClient } from '@tanstack/react-query';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import { MessageSchema, type Message } from '@/schemas/emailSchemas';
 import { createEmailApi } from '@/services/emailApi';
-import { calendarDaysBetween } from '@/utils/calendarDays';
 import { restoreSnapshot, snapshotForRollback, type MessagesInfinite } from '@/utils/messageCache';
 import { buildReplyHeaders } from '@/utils/replyHeaders';
 import { stripHtml } from '@/utils/stripHtml';
@@ -112,14 +111,5 @@ describe('References in a long thread', () => {
     expect(headers.references).toHaveLength(100);
     expect(headers.references[0]).toBe('<m0@x>');
     expect(headers.references.at(-1)).toBe('<last@x>');
-  });
-});
-
-describe('calendarDaysBetween', () => {
-  it('counts calendar dates, not 24-hour blocks', () => {
-    expect(calendarDaysBetween(new Date(2026, 2, 8, 23, 30), new Date(2026, 2, 9, 0, 15))).toBe(1);
-    expect(calendarDaysBetween(new Date(2026, 2, 9, 9), new Date(2026, 2, 9, 22))).toBe(0);
-    expect(calendarDaysBetween(new Date(2026, 11, 31), new Date(2027, 0, 1))).toBe(1);
-    expect(calendarDaysBetween(new Date(2026, 2, 10), new Date(2026, 2, 8))).toBe(-2);
   });
 });

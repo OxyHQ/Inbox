@@ -11,7 +11,7 @@ import { Item } from '@oxy.so/bloom/item';
  */
 
 import type { Reminder } from '@/services/emailApi';
-import { calendarDaysBetween } from '@/utils/calendarDays';
+import { calendarDaysBetween } from '@oxy.so/utils/date';
 
 interface ReminderRowProps {
   reminder: Reminder;

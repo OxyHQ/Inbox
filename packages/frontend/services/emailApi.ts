@@ -6,6 +6,7 @@
  * All responses validated with zod schemas at runtime.
  */
 
+import { chunk } from '@oxy.so/utils/text';
 import { z } from 'zod';
 import type { OxyServices } from '@oxy.so/core';
 
@@ -191,8 +192,8 @@ async function inBatches(
   run: (batch: string[]) => Promise<{ matched: number; modified: number }>,
 ): Promise<{ matched: number; modified: number }> {
   const total = { matched: 0, modified: 0 };
-  for (let start = 0; start < ids.length; start += BULK_LIMIT) {
-    const result = await run(ids.slice(start, start + BULK_LIMIT));
+  for (const batch of chunk(ids, BULK_LIMIT)) {
+    const result = await run(batch);
     total.matched += result.matched;
     total.modified += result.modified;
   }

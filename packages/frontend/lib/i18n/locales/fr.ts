@@ -196,6 +196,8 @@ const fr: LocaleDict = {
   },
 
   message: {
+    draftLabel: 'Brouillon',
+    draftTo: 'Brouillon pour {{recipients}}',
     detail: {
       noSubject: '(sans objet)',
       emptyMessage: '(message vide)',
@@ -205,6 +207,7 @@ const fr: LocaleDict = {
       ccRecipients: ', cc : {{recipients}}',
     },
     actions: {
+      editDraft: 'Modifier le brouillon',
       archive: 'Archiver',
       delete: 'Supprimer',
       markUnread: 'Marquer comme non lu',
@@ -316,6 +319,13 @@ const fr: LocaleDict = {
   },
 
   compose: {
+    titleDraft: 'Brouillon',
+    draftLoadError: 'Impossible de charger ce brouillon.',
+    draftGone: 'Ce brouillon a déjà été envoyé ou supprimé.',
+    discardDraftPrompt: {
+      title: 'Supprimer ce brouillon ?',
+      description: 'Le brouillon sera supprimé. Cette action est irréversible.',
+    },
     replyParentError: "Impossible de charger le message auquel tu réponds : cette réponse ne peut pas encore être envoyée sans casser la conversation.",
     queuedNotice: "Ce message est déjà dans la file d'envoi. Le renvoyer ne créera pas de doublon.",
     titleCompose: 'Rédiger',
@@ -342,6 +352,7 @@ const fr: LocaleDict = {
       scheduleSend: "Planifier l'envoi",
       saveDraft: 'Enregistrer le brouillon',
       discard: 'Abandonner',
+      discardDraft: 'Supprimer le brouillon',
     },
     saveDraftPrompt: {
       title: 'Enregistrer le brouillon ?',
@@ -356,6 +367,8 @@ const fr: LocaleDict = {
       scheduled: 'Courriel planifié pour le {{time}}',
       uploadFailed: 'Échec du téléversement de la pièce jointe.',
       signatureFailed: 'Échec du chargement de la signature.',
+      draftSaved: 'Brouillon enregistré.',
+      draftConflict: 'Ce brouillon a été modifié sur un autre appareil, ou y a été envoyé ou supprimé. Votre version sera enregistrée comme nouveau brouillon.',
     },
   },
 

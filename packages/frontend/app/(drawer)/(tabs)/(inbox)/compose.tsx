@@ -7,11 +7,11 @@ import { useTranslation } from '@/lib/i18n';
 export default function ComposeRoute() {
   const { t } = useTranslation();
   const params = useLocalSearchParams<{
+    draftId?: string;
     replyTo?: string;
     forward?: string;
     to?: string;
     cc?: string;
-    toName?: string;
     subject?: string;
     body?: string;
   }>();
@@ -25,7 +25,10 @@ export default function ComposeRoute() {
       <Head>
         <title>{pageTitle}</title>
       </Head>
+      {/* Keyed so opening another draft or reply starts a new session. */}
       <ComposeForm
+        key={params.draftId ?? params.replyTo ?? params.forward ?? 'new'}
+        draftId={params.draftId}
         replyTo={params.replyTo}
         forward={params.forward}
         to={params.to}

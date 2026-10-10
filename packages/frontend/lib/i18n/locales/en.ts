@@ -203,6 +203,8 @@ const en: LocaleDict = {
   },
 
   message: {
+    draftLabel: 'Draft',
+    draftTo: 'Draft to {{recipients}}',
     detail: {
       noSubject: '(no subject)',
       emptyMessage: '(empty message)',
@@ -212,6 +214,7 @@ const en: LocaleDict = {
       ccRecipients: ', cc: {{recipients}}',
     },
     actions: {
+      editDraft: 'Edit draft',
       archive: 'Archive',
       delete: 'Delete',
       markUnread: 'Mark as unread',
@@ -323,6 +326,13 @@ const en: LocaleDict = {
   },
 
   compose: {
+    titleDraft: 'Draft',
+    draftLoadError: 'Couldn\'t load this draft.',
+    draftGone: 'This draft was already sent or deleted.',
+    discardDraftPrompt: {
+      title: 'Discard this draft?',
+      description: 'The draft will be deleted. This cannot be undone.',
+    },
     replyParentError: "Couldn't load the message you're replying to, so this reply can't be sent yet without breaking the conversation.",
     queuedNotice: "This message is already in the send queue. Sending it again will not send a duplicate.",
     titleCompose: 'Compose',
@@ -349,6 +359,7 @@ const en: LocaleDict = {
       scheduleSend: 'Schedule send',
       saveDraft: 'Save draft',
       discard: 'Discard',
+      discardDraft: 'Discard draft',
     },
     saveDraftPrompt: {
       title: 'Save draft?',
@@ -363,6 +374,8 @@ const en: LocaleDict = {
       scheduled: 'Email scheduled for {{time}}',
       uploadFailed: 'Failed to upload attachment.',
       signatureFailed: 'Failed to load signature.',
+      draftSaved: 'Draft saved.',
+      draftConflict: 'This draft changed on another device, or was sent or deleted there. Your version will be saved as a new draft.',
     },
   },
 

@@ -50,7 +50,8 @@ import { useEmailStore } from '@/hooks/useEmail';
 import { useInboxDisplayPrefs } from '@/hooks/useInboxDisplayPrefs';
 import { useMessageActions } from '@/hooks/useMessageActions';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
-import type { SavedEmailSearchFilters } from '@/services/emailApi';
+import type { Message, SavedEmailSearchFilters } from '@/services/emailApi';
+import { messageRoute } from '@/utils/messageRoute';
 import { recordInboxMetric } from '@/utils/inboxTelemetry';
 import {
   buildSearchItems,
@@ -362,9 +363,8 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     runSearch(query, { allowAI: true });
   }, [rememberSearch, runSearch, query]);
 
-  const handleMessagePress = useCallback(
+  const openConversation = useCallback(
     (messageId: string) => {
-      messageActions.prepareOpenMessage(messageId);
       const path = {
         pathname: '/search/conversation/[id]',
         params: { id: messageId },
@@ -375,7 +375,19 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         router.push(path);
       }
     },
-    [router, replaceNavigation, messageActions],
+    [router, replaceNavigation],
+  );
+
+  const handleMessagePress = useCallback(
+    (message: Message) => {
+      if (message.flags.draft) {
+        router.push(messageRoute(message));
+        return;
+      }
+      messageActions.prepareOpenMessage(message._id);
+      openConversation(message._id);
+    },
+    [router, messageActions, openConversation],
   );
 
   const handleBack = useGoBack();
@@ -487,7 +499,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         <View style={styles.unreadableItem}>
           <UnreadableMessageRow
             message={item.row}
-            onOpen={handleMessagePress}
+            onOpen={openConversation}
           />
         </View>
       ) : (
@@ -499,7 +511,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           showPreviews={showPreviews}
         />
       ),
-    [handleMessagePress, selectedMessageId, density, showPreviews],
+    [handleMessagePress, openConversation, selectedMessageId, density, showPreviews],
   );
 
   const handleEndReached = useCallback(() => {

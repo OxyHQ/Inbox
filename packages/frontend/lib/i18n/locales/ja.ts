@@ -195,6 +195,8 @@ const ja: LocaleDict = {
   },
 
   message: {
+    draftLabel: '下書き',
+    draftTo: '{{recipients}} 宛ての下書き',
     detail: {
       noSubject: '(件名なし)',
       emptyMessage: '(本文なし)',
@@ -204,6 +206,7 @@ const ja: LocaleDict = {
       ccRecipients: '、cc: {{recipients}}',
     },
     actions: {
+      editDraft: '下書きを編集',
       archive: 'アーカイブ',
       delete: '削除',
       markUnread: '未読にする',
@@ -315,6 +318,13 @@ const ja: LocaleDict = {
   },
 
   compose: {
+    titleDraft: '下書き',
+    draftLoadError: 'この下書きを読み込めませんでした。',
+    draftGone: 'この下書きはすでに送信または削除されています。',
+    discardDraftPrompt: {
+      title: 'この下書きを破棄しますか？',
+      description: '下書きは削除されます。この操作は元に戻せません。',
+    },
     replyParentError: "返信先のメッセージを読み込めませんでした。会話が分断されるため、この返信はまだ送信できません。",
     queuedNotice: "このメッセージは既に送信キューにあります。もう一度送信しても重複しません。",
     titleCompose: '作成',
@@ -341,6 +351,7 @@ const ja: LocaleDict = {
       scheduleSend: '送信予約',
       saveDraft: '下書きを保存',
       discard: '破棄',
+      discardDraft: '下書きを破棄',
     },
     saveDraftPrompt: {
       title: '下書きを保存しますか?',
@@ -355,6 +366,8 @@ const ja: LocaleDict = {
       scheduled: '{{time}} に送信予約しました',
       uploadFailed: '添付ファイルをアップロードできませんでした。',
       signatureFailed: '署名を読み込めませんでした。',
+      draftSaved: '下書きを保存しました。',
+      draftConflict: 'この下書きは別のデバイスで変更、送信、または削除されました。あなたの内容は新しい下書きとして保存されます。',
     },
   },
 

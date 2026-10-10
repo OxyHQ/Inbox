@@ -22,6 +22,7 @@ import {
   RiArrowGoBackLine,
   RiCornerUpLeftLine,
   RiDeleteBinLine,
+  RiDraftLine,
   RiMailLine,
   RiMenuLine,
   RiMoreLine,
@@ -51,7 +52,7 @@ import { Loading } from '@oxy.so/bloom/loading';
 import { useOxy } from '@oxy.so/services';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Print from 'expo-print';
-import { usePathname } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useMemo, useState } from 'react';
 import { useWindowDimensions, Linking, Platform, StyleSheet, View } from 'react-native';
@@ -85,6 +86,7 @@ import { useEmailStore } from '@/hooks/useEmail';
 import { useGoBack } from '@/hooks/useGoBack';
 import { useTranslation } from '@/lib/i18n';
 import type { Message } from '@/services/emailApi';
+import { messageRoute } from '@/utils/messageRoute';
 import { safeDownloadFilename } from '@/utils/downloadFilename';
 import { emlFilename, saveEmlFile } from '@/utils/saveEml';
 import { buildThreadEntries } from '@/utils/threadEntries';
@@ -346,6 +348,26 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
     );
   }, [threadMessages, currentMessage]);
+
+  // A reply answers the newest message that was actually sent or received —
+  // never one of the user's own unsent drafts, which is what the footer's
+  // Reply used to do when the opened message was a draft.
+  const replyableMessage = useMemo(
+    () =>
+      [...sortedThread].reverse().find((m) => !m.flags.draft) ??
+      (currentMessage && !currentMessage.flags.draft ? currentMessage : null),
+    [sortedThread, currentMessage],
+  );
+  // The newest unsent draft in this conversation, finished in the composer.
+  const threadDraft = useMemo(
+    () => [...sortedThread].reverse().find((m) => m.flags.draft) ?? null,
+    [sortedThread],
+  );
+  const router = useRouter();
+  const handleEditDraft = useCallback(
+    (draft: Message) => router.push(messageRoute(draft)),
+    [router],
+  );
 
   // Every row of the conversation, the unreadable ones in their place.
   const threadEntries = useMemo(
@@ -670,15 +692,27 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         if (!toggleStar.isPending)
           toggleStar.mutate({ messageId: msg._id, starred });
       },
-      onReply: () => handleReply(msg._id),
-      onReplyAll: () => handleReplyAll(msg._id),
-      onForward: () => handleForward(msg._id),
+      // A draft is the user's own unsent message: it is finished and sent,
+      // not replied to or forwarded.
+      ...(msg.flags.draft
+        ? {}
+        : {
+            onReply: () => handleReply(msg._id),
+            onReplyAll: () => handleReplyAll(msg._id),
+            onForward: () => handleForward(msg._id),
+          }),
       attachments: msg.attachments.map((attachment) => ({
         id: attachment.fileId,
         name: attachment.name,
         onPress: () => handleAttachment(attachment.fileId, attachment.name),
       })),
-      menu: (
+      menu: msg.flags.draft ? (
+        <IconButton
+          accessibilityLabel={t('message.actions.editDraft')}
+          icon={<RiDraftLine />}
+          onPress={() => handleEditDraft(msg)}
+        />
+      ) : (
         <IconButton
           accessibilityLabel={t('message.actions.more')}
           icon={<RiMoreLine />}
@@ -688,9 +722,21 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           }}
         />
       ),
-      children: parts.body.trim()
-        ? renderBody(parts.body)
-        : parts.quoted ? undefined : <Text>{t('message.detail.emptyMessage')}</Text>,
+      ...(msg.flags.draft ? { time: t('message.draftLabel') } : {}),
+      children: (
+        <>
+          {parts.body.trim()
+            ? renderBody(parts.body)
+            : parts.quoted ? null : <Text>{t('message.detail.emptyMessage')}</Text>}
+          {msg.flags.draft && (
+            <View style={{ alignItems: 'flex-start', marginTop: tokens.space.sm }}>
+              <Button leadingIcon={RiDraftLine} onPress={() => handleEditDraft(msg)}>
+                {t('message.actions.editDraft')}
+              </Button>
+            </View>
+          )}
+        </>
+      ),
       trimmed: parts.quoted ? renderBody(parts.quoted) : undefined,
     };
   };
@@ -943,10 +989,11 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
             <InlineReply
               key={`${replyMode}:${replyTargetId ?? currentMessage._id}`}
               message={
-                replyTargetId
-                  ? sortedThread.find((m) => m._id === replyTargetId) ||
-                    currentMessage
-                  : currentMessage
+                (replyTargetId
+                  ? sortedThread.find((m) => m._id === replyTargetId)
+                  : undefined) ??
+                (currentMessage.flags.draft ? replyableMessage : currentMessage) ??
+                currentMessage
               }
               mode={replyMode}
               onClose={handleCloseReply}
@@ -1010,26 +1057,39 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           testID="message-reply-footer"
           actions={
             <>
-              <Button
-                leadingIcon={RiCornerUpLeftLine}
-                onPress={() => handleReply()}
-              >
-                {t('message.actions.reply')}
-              </Button>
-              <Button
-                appearance="subtle"
-                leadingIcon={RiArrowGoBackLine}
-                onPress={() => handleReplyAll()}
-              >
-                {t('message.actions.replyAll')}
-              </Button>
-              <Button
-                appearance="subtle"
-                leadingIcon={RiShareForwardLine}
-                onPress={() => handleForward()}
-              >
-                {t('message.actions.forward')}
-              </Button>
+              {threadDraft && (
+                <Button
+                  leadingIcon={RiDraftLine}
+                  onPress={() => handleEditDraft(threadDraft)}
+                >
+                  {t('message.actions.editDraft')}
+                </Button>
+              )}
+              {replyableMessage && (
+                <>
+                  <Button
+                    appearance={threadDraft ? 'subtle' : undefined}
+                    leadingIcon={RiCornerUpLeftLine}
+                    onPress={() => handleReply(replyableMessage._id)}
+                  >
+                    {t('message.actions.reply')}
+                  </Button>
+                  <Button
+                    appearance="subtle"
+                    leadingIcon={RiArrowGoBackLine}
+                    onPress={() => handleReplyAll(replyableMessage._id)}
+                  >
+                    {t('message.actions.replyAll')}
+                  </Button>
+                  <Button
+                    appearance="subtle"
+                    leadingIcon={RiShareForwardLine}
+                    onPress={() => handleForward(replyableMessage._id)}
+                  >
+                    {t('message.actions.forward')}
+                  </Button>
+                </>
+              )}
             </>
           }
         />

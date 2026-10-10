@@ -196,6 +196,8 @@ const ar: LocaleDict = {
   },
 
   message: {
+    draftLabel: 'مسودة',
+    draftTo: 'مسودة إلى {{recipients}}',
     detail: {
       noSubject: '(بدون موضوع)',
       emptyMessage: '(رسالة فارغة)',
@@ -205,6 +207,7 @@ const ar: LocaleDict = {
       ccRecipients: '، نسخة: {{recipients}}',
     },
     actions: {
+      editDraft: 'تعديل المسودة',
       archive: 'أرشفة',
       delete: 'حذف',
       markUnread: 'تحديد كغير مقروءة',
@@ -316,6 +319,13 @@ const ar: LocaleDict = {
   },
 
   compose: {
+    titleDraft: 'مسودة',
+    draftLoadError: 'تعذّر تحميل هذه المسودة.',
+    draftGone: 'تم إرسال هذه المسودة أو حذفها بالفعل.',
+    discardDraftPrompt: {
+      title: 'تجاهل هذه المسودة؟',
+      description: 'سيتم حذف المسودة. لا يمكن التراجع عن ذلك.',
+    },
     replyParentError: "تعذّر تحميل الرسالة التي تردّ عليها، لذا لا يمكن إرسال هذا الرد بعد دون فصله عن المحادثة.",
     queuedNotice: "هذه الرسالة موجودة بالفعل في قائمة انتظار الإرسال. إعادة إرسالها لن تُنشئ نسخة مكررة.",
     titleCompose: 'كتابة',
@@ -342,6 +352,7 @@ const ar: LocaleDict = {
       scheduleSend: 'جدولة الإرسال',
       saveDraft: 'حفظ كمسودة',
       discard: 'تجاهل',
+      discardDraft: 'تجاهل المسودة',
     },
     saveDraftPrompt: {
       title: 'حفظ المسودة؟',
@@ -356,6 +367,8 @@ const ar: LocaleDict = {
       scheduled: 'الرسالة مجدولة في {{time}}',
       uploadFailed: 'تعذّر رفع المرفق.',
       signatureFailed: 'تعذّر تحميل التوقيع.',
+      draftSaved: 'تم حفظ المسودة.',
+      draftConflict: 'تم تغيير هذه المسودة أو إرسالها أو حذفها على جهاز آخر. سيتم حفظ نسختك كمسودة جديدة.',
     },
   },
 

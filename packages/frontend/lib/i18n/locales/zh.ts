@@ -193,6 +193,8 @@ const zh: LocaleDict = {
   },
 
   message: {
+    draftLabel: '草稿',
+    draftTo: '发给 {{recipients}} 的草稿',
     detail: {
       noSubject: '(无主题)',
       emptyMessage: '(空消息)',
@@ -202,6 +204,7 @@ const zh: LocaleDict = {
       ccRecipients: ',抄送:{{recipients}}',
     },
     actions: {
+      editDraft: '编辑草稿',
       archive: '存档',
       delete: '删除',
       markUnread: '标为未读',
@@ -313,6 +316,13 @@ const zh: LocaleDict = {
   },
 
   compose: {
+    titleDraft: '草稿',
+    draftLoadError: '无法加载此草稿。',
+    draftGone: '此草稿已发送或已删除。',
+    discardDraftPrompt: {
+      title: '舍弃此草稿？',
+      description: '草稿将被删除，且无法撤销。',
+    },
     replyParentError: "无法加载你要回复的邮件，因此暂时无法发送此回复，否则会打断会话。",
     queuedNotice: "此邮件已在发送队列中。再次发送不会产生重复邮件。",
     titleCompose: '撰写',
@@ -339,6 +349,7 @@ const zh: LocaleDict = {
       scheduleSend: '定时发送',
       saveDraft: '保存草稿',
       discard: '舍弃',
+      discardDraft: '舍弃草稿',
     },
     saveDraftPrompt: {
       title: '保存草稿?',
@@ -353,6 +364,8 @@ const zh: LocaleDict = {
       scheduled: '邮件已定时于 {{time}}',
       uploadFailed: '附件上传失败。',
       signatureFailed: '签名加载失败。',
+      draftSaved: '草稿已保存。',
+      draftConflict: '此草稿已在另一台设备上被更改、发送或删除。你的版本将另存为新草稿。',
     },
   },
 

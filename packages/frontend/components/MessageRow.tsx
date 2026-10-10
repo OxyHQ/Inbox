@@ -14,7 +14,7 @@ import { SPACING } from '@/constants/layout';
 import { useColors } from '@/constants/theme';
 import type { MessageDensity } from '@/contexts/inbox-prefs-context';
 import type { SentimentResult } from '@/hooks/queries/useSentimentAnalysis';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation, type TranslateFn } from '@/lib/i18n';
 import type { Attachment, Message } from '@/services/emailApi';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import {
@@ -97,9 +97,23 @@ function formatDate(dateStr: string, yesterdayLabel: string): string {
   return MONTH_DAY_YEAR_FORMAT.format(date);
 }
 
-function getSenderName(message: Message): string {
-  if (message.from.name) return message.from.name;
-  return message.from.address.split('@')[0];
+function displayName(address: { name?: string | null; address: string }): string {
+  if (address.name) return address.name;
+  return address.address.split('@')[0];
+}
+
+/**
+ * Who a row names. A draft's sender is always the user, so a list of drafts
+ * named only them, row after row; it names who the draft is going to instead.
+ */
+function getSenderName(message: Message, t: TranslateFn): string {
+  if (message.flags.draft) {
+    const recipients = [...message.to, ...message.cc].map(displayName).join(', ');
+    return recipients
+      ? t('message.draftTo', { recipients })
+      : t('message.draftLabel');
+  }
+  return displayName(message.from);
 }
 
 function getPreview(message: Message): string {
@@ -210,7 +224,8 @@ function formatSnoozeTime(dateStr: string): string {
 interface MessageRowProps {
   message: Message;
   onPin?: (id: string) => void;
-  onSelect: (id: string) => void;
+  /** Gets the whole message: where it opens depends on it (a draft opens in the composer). */
+  onSelect: (message: Message) => void;
   onArchive?: (id: string) => void;
   onDelete?: (id: string) => void;
   onToggleRead?: (id: string, seen: boolean) => void;
@@ -289,7 +304,7 @@ function MessageRowInner({
   return (
     <MailRow
       sender={{
-        name: getSenderName(message),
+        name: getSenderName(message, t),
         avatar: message.senderAvatarPath
           ? `${API_URL}${message.senderAvatarPath}`
           : undefined,
@@ -315,7 +330,7 @@ function MessageRowInner({
       onPress={() =>
         isSelectionMode && onToggleSelect
           ? onToggleSelect(message._id)
-          : onSelect(message._id)
+          : onSelect(message)
       }
       onLongPress={onLongPress ? () => onLongPress(message._id) : undefined}
       density={density}

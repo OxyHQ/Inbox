@@ -196,6 +196,8 @@ const it: LocaleDict = {
   },
 
   message: {
+    draftLabel: 'Bozza',
+    draftTo: 'Bozza per {{recipients}}',
     detail: {
       noSubject: '(senza oggetto)',
       emptyMessage: '(messaggio vuoto)',
@@ -205,6 +207,7 @@ const it: LocaleDict = {
       ccRecipients: ', cc: {{recipients}}',
     },
     actions: {
+      editDraft: 'Modifica bozza',
       archive: 'Archivia',
       delete: 'Elimina',
       markUnread: 'Segna come non letto',
@@ -316,6 +319,13 @@ const it: LocaleDict = {
   },
 
   compose: {
+    titleDraft: 'Bozza',
+    draftLoadError: 'Impossibile caricare questa bozza.',
+    draftGone: 'Questa bozza è già stata inviata o eliminata.',
+    discardDraftPrompt: {
+      title: 'Eliminare questa bozza?',
+      description: 'La bozza verrà eliminata. L\'operazione non può essere annullata.',
+    },
     replyParentError: "Impossibile caricare il messaggio a cui rispondi: questa risposta non può ancora essere inviata senza spezzare la conversazione.",
     queuedNotice: "Questo messaggio è già nella coda di invio. Inviarlo di nuovo non creerà un duplicato.",
     titleCompose: 'Scrivi',
@@ -342,6 +352,7 @@ const it: LocaleDict = {
       scheduleSend: 'Programma invio',
       saveDraft: 'Salva bozza',
       discard: 'Scarta',
+      discardDraft: 'Elimina bozza',
     },
     saveDraftPrompt: {
       title: 'Salvare la bozza?',
@@ -356,6 +367,8 @@ const it: LocaleDict = {
       scheduled: 'Email programmata per il {{time}}',
       uploadFailed: 'Impossibile caricare l\'allegato.',
       signatureFailed: 'Impossibile caricare la firma.',
+      draftSaved: 'Bozza salvata.',
+      draftConflict: 'Questa bozza è stata modificata su un altro dispositivo, oppure lì è stata inviata o eliminata. La tua versione verrà salvata come nuova bozza.',
     },
   },
 

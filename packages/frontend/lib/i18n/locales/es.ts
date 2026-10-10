@@ -199,6 +199,8 @@ const es: LocaleDict = {
   },
 
   message: {
+    draftLabel: 'Borrador',
+    draftTo: 'Borrador para {{recipients}}',
     detail: {
       noSubject: '(sin asunto)',
       emptyMessage: '(mensaje vacío)',
@@ -208,6 +210,7 @@ const es: LocaleDict = {
       ccRecipients: ', cc: {{recipients}}',
     },
     actions: {
+      editDraft: 'Editar borrador',
       archive: 'Archivar',
       delete: 'Eliminar',
       markUnread: 'Marcar como no leído',
@@ -320,6 +323,13 @@ const es: LocaleDict = {
   },
 
   compose: {
+    titleDraft: 'Borrador',
+    draftLoadError: 'No se pudo cargar este borrador.',
+    draftGone: 'Este borrador ya se envió o se eliminó.',
+    discardDraftPrompt: {
+      title: '¿Descartar este borrador?',
+      description: 'El borrador se eliminará. No se puede deshacer.',
+    },
     replyParentError: "No se pudo cargar el mensaje al que respondes, así que esta respuesta aún no se puede enviar sin romper la conversación.",
     queuedNotice: "Este mensaje ya está en la cola de envío. Volver a enviarlo no creará un duplicado.",
     titleCompose: 'Redactar',
@@ -346,6 +356,7 @@ const es: LocaleDict = {
       scheduleSend: 'Programar envío',
       saveDraft: 'Guardar borrador',
       discard: 'Descartar',
+      discardDraft: 'Descartar borrador',
     },
     saveDraftPrompt: {
       title: '¿Guardar borrador?',
@@ -360,6 +371,8 @@ const es: LocaleDict = {
       scheduled: 'Correo programado para el {{time}}',
       uploadFailed: 'No se pudo subir el adjunto.',
       signatureFailed: 'No se pudo cargar la firma.',
+      draftSaved: 'Borrador guardado.',
+      draftConflict: 'Este borrador cambió en otro dispositivo, o allí se envió o eliminó. Tu versión se guardará como un borrador nuevo.',
     },
   },
 

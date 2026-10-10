@@ -195,6 +195,8 @@ const ko: LocaleDict = {
   },
 
   message: {
+    draftLabel: '임시보관',
+    draftTo: '{{recipients}}에게 보낼 임시보관 메일',
     detail: {
       noSubject: '(제목 없음)',
       emptyMessage: '(빈 메시지)',
@@ -204,6 +206,7 @@ const ko: LocaleDict = {
       ccRecipients: ', cc: {{recipients}}',
     },
     actions: {
+      editDraft: '임시보관 메일 편집',
       archive: '보관',
       delete: '삭제',
       markUnread: '읽지 않음으로 표시',
@@ -315,6 +318,13 @@ const ko: LocaleDict = {
   },
 
   compose: {
+    titleDraft: '임시보관 메일',
+    draftLoadError: '이 임시보관 메일을 불러올 수 없습니다.',
+    draftGone: '이 임시보관 메일은 이미 전송되었거나 삭제되었습니다.',
+    discardDraftPrompt: {
+      title: '이 임시보관 메일을 삭제할까요?',
+      description: '임시보관 메일이 삭제됩니다. 되돌릴 수 없습니다.',
+    },
     replyParentError: "답장할 메시지를 불러오지 못했습니다. 대화가 끊기지 않도록 이 답장은 아직 보낼 수 없습니다.",
     queuedNotice: "이 메시지는 이미 전송 대기열에 있습니다. 다시 보내도 중복되지 않습니다.",
     titleCompose: '작성',
@@ -341,6 +351,7 @@ const ko: LocaleDict = {
       scheduleSend: '예약 전송',
       saveDraft: '임시 저장',
       discard: '폐기',
+      discardDraft: '임시보관 메일 삭제',
     },
     saveDraftPrompt: {
       title: '임시 저장하시겠어요?',
@@ -355,6 +366,8 @@ const ko: LocaleDict = {
       scheduled: '{{time}}에 메일이 예약되었어요',
       uploadFailed: '첨부 파일을 업로드하지 못했어요.',
       signatureFailed: '서명을 불러오지 못했어요.',
+      draftSaved: '임시보관 메일을 저장했습니다.',
+      draftConflict: '이 임시보관 메일이 다른 기기에서 변경, 전송 또는 삭제되었습니다. 내 버전은 새 임시보관 메일로 저장됩니다.',
     },
   },
 

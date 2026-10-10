@@ -1,6 +1,6 @@
 /** Persisted light/dark mode and Bloom color preset. */
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { Platform } from 'react-native';
 import { APP_COLOR_NAMES } from '@oxy.so/bloom/theme';

@@ -3,7 +3,6 @@
  * Used in both MessageRow (compact) and MessageDetail (full).
  */
 
-import React from 'react';
 import type { MessageCard } from '@/services/emailApi';
 import { TripCard } from './TripCard';
 import { PurchaseCard } from './PurchaseCard';

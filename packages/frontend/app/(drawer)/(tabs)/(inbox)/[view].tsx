@@ -11,7 +11,6 @@
  * are intentionally NOT handled here.
  */
 
-import React from 'react';
 import { Redirect, useLocalSearchParams } from 'expo-router';
 
 import { MailboxView } from '@/components/MailboxView';

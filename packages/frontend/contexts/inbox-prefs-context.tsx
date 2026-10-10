@@ -13,7 +13,7 @@
  */
 
 import type { MailDensity } from '@oxy.so/bloom/mail-list';
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Platform } from 'react-native';
 

@@ -5,7 +5,7 @@
  * Shows different badges: urgent, important, action needed, etc.
  */
 
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Chip } from '@oxy.so/bloom/chip';
 import { Badge } from '@oxy.so/bloom/badge';
 

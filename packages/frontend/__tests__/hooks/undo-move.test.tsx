@@ -22,7 +22,7 @@ jest.mock('@/hooks/useEmail', () => {
   return { useEmailStore };
 });
 
-import React, { type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { __setOxyState } from '@oxy.so/services';

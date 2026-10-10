@@ -9,7 +9,6 @@
  * the row's padding, so this file only supplies content.
  */
 
-import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Item } from '@oxy.so/bloom/item';
 import { Button } from '@oxy.so/bloom/button';

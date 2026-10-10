@@ -32,7 +32,6 @@ import {
 } from '@/schemas/emailSchemas';
 import { recordInboxMetric } from '@/utils/inboxTelemetry';
 import type {
-  EmailAddress,
   RecipientInput,
   Message,
   UnreadableMessage,

@@ -7,7 +7,6 @@
  * never sent unthreaded instead.
  */
 
-import React from 'react';
 import {
   AdmonitionButton,
   AdmonitionContent,

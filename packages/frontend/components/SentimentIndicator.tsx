@@ -1,10 +1,5 @@
 import { Badge } from '@oxy.so/bloom/badge';
-import {
-  RiAlertLine,
-  RiThumbUpLine,
-  RiSendPlaneLine,
-  RiEmotionLine,
-} from '@oxy.so/bloom/icons';
+import { RiAlertLine, RiThumbUpLine, RiSendPlaneLine, RiEmotionLine } from '@oxy.so/bloom/icons';
 import type { BloomTone } from '@oxy.so/bloom/appearance';
 import type { SentimentResult } from '@/hooks/queries/useSentimentAnalysis';
 import { useTranslation } from '@/lib/i18n';

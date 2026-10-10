@@ -40,13 +40,10 @@ const sectionContent = {
   advanced: <AdvancedSection />,
   about: <AboutSection />,
 };
-const SettingsContext = createContext<
-  ((page?: SettingsSectionKey) => void) | null
->(null);
+const SettingsContext = createContext<((page?: SettingsSectionKey) => void) | null>(null);
 export function useInboxSettings() {
   const open = useContext(SettingsContext);
-  if (!open)
-    throw new Error('Inbox settings must be used inside InboxSettingsProvider');
+  if (!open) throw new Error('Inbox settings must be used inside InboxSettingsProvider');
   return open;
 }
 export function InboxSettingsProvider({ children }: { children: ReactNode }) {
@@ -65,8 +62,7 @@ export function InboxSettingsProvider({ children }: { children: ReactNode }) {
   const open = useCallback(
     (next?: SettingsSectionKey) => {
       const allowed = SETTINGS_SECTIONS.find(
-        (section) =>
-          section.key === next && (!section.requiresAuth || isAuthenticated),
+        (section) => section.key === next && (!section.requiresAuth || isAuthenticated),
       );
       setPage(allowed?.key ?? 'appearance');
       // The modal covers the mail list: new mail is announced while it is up.
@@ -78,21 +74,19 @@ export function InboxSettingsProvider({ children }: { children: ReactNode }) {
     },
     [isAuthenticated],
   );
-  const sections = SETTINGS_SECTIONS.filter(
-    (section) => !section.requiresAuth || isAuthenticated,
-  );
+  const sections = SETTINGS_SECTIONS.filter((section) => !section.requiresAuth || isAuthenticated);
   const pages = useMemo(
     () =>
       Object.fromEntries(
-        SETTINGS_SECTIONS.filter(
-          (section) => !section.requiresAuth || isAuthenticated,
-        ).map((section) => [
-          section.key,
-          {
-            title: t(section.labelKey),
-            content: sectionContent[section.key],
-          },
-        ]),
+        SETTINGS_SECTIONS.filter((section) => !section.requiresAuth || isAuthenticated).map(
+          (section) => [
+            section.key,
+            {
+              title: t(section.labelKey),
+              content: sectionContent[section.key],
+            },
+          ],
+        ),
       ),
     [t, isAuthenticated],
   );

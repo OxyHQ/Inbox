@@ -10,10 +10,7 @@ import { useTranslation } from '@/lib/i18n';
 import { Button, IconButton } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
 import { RiDeleteBin6Line, RiEditLine } from '@oxy.so/bloom/icons';
-import {
-  SettingsValueField,
-  SettingsProfilePage,
-} from '@oxy.so/bloom/settings-modal';
+import { SettingsValueField, SettingsProfilePage } from '@oxy.so/bloom/settings-modal';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { toast } from '@oxy.so/bloom/toast';
 import { useCallback, useState } from 'react';
@@ -141,13 +138,9 @@ export function LabelsSection() {
               key: label._id,
               label: label.name,
               control: label.system ? (
-                <SettingsValueField muted>
-                  {t('ui.settings.labels.builtIn')}
-                </SettingsValueField>
+                <SettingsValueField muted>{t('ui.settings.labels.builtIn')}</SettingsValueField>
               ) : (
-                <View
-                  style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}
-                >
+                <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
                   {editingLabelId === label._id ? (
                     <>
                       <TextFieldInput

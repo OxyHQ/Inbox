@@ -49,9 +49,7 @@ function readBuiltHtml(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const path = resolve(directory, entry.name);
     if (entry.isDirectory()) return readBuiltHtml(path);
-    return entry.isFile() && entry.name.endsWith('.html')
-      ? [readFileSync(path, 'utf8')]
-      : [];
+    return entry.isFile() && entry.name.endsWith('.html') ? [readFileSync(path, 'utf8')] : [];
   });
 }
 

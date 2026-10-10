@@ -14,20 +14,12 @@ import { TextFieldInput } from '@oxy.so/bloom/text-field';
  */
 
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type ComponentProps,
-} from 'react';
+import { useCallback, useEffect, useRef, useState, type ComponentProps } from 'react';
 import { View } from 'react-native';
 
 import { useAiCompose, type ComposeTone } from '@/hooks/mutations/useAiCompose';
 
-type MaterialCommunityIconName = ComponentProps<
-  typeof MaterialCommunityIcons
->['name'];
+type MaterialCommunityIconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 /**
  * The toolbar reads and rewrites the user's OWN text only — plain text, the
@@ -74,14 +66,8 @@ export function AiComposeToolbar({
   onSubjectSuggested,
 }: AiComposeToolbarProps) {
   const { t } = useTranslation();
-  const {
-    streamDraft,
-    polish,
-    changeTone,
-    adjustLength,
-    suggestSubject,
-    isLoading,
-  } = useAiCompose();
+  const { streamDraft, polish, changeTone, adjustLength, suggestSubject, isLoading } =
+    useAiCompose();
   const mountedRef = useRef(false);
 
   const draftControl = useDialogControl();
@@ -150,10 +136,7 @@ export function AiComposeToolbar({
       // A rejected/truncated stream is not a valid draft: put back exactly what
       // was there, formatting and signature included. An abort belongs to an
       // unmounted or superseded request and must not race a replacement draft.
-      if (
-        mountedRef.current &&
-        (!(error instanceof Error) || error.name !== 'AbortError')
-      ) {
+      if (mountedRef.current && (!(error instanceof Error) || error.name !== 'AbortError')) {
         onAbort();
       }
     }
@@ -194,40 +177,20 @@ export function AiComposeToolbar({
   return (
     <View className="gap-2 px-4 py-2">
       <View className="flex-row flex-wrap gap-2">
-        <Button
-          appearance="subtle"
-          onPress={handleDraft}
-          disabled={isLoading}
-        >
+        <Button appearance="subtle" onPress={handleDraft} disabled={isLoading}>
           {t('ai.toolbar.draft')}
         </Button>
-        <Button
-          appearance="subtle"
-          onPress={handlePolish}
-          disabled={isLoading || !hasBody}
-        >
+        <Button appearance="subtle" onPress={handlePolish} disabled={isLoading || !hasBody}>
           {t('ai.toolbar.polish')}
         </Button>
-        <Button
-          appearance="subtle"
-          onPress={handleShorter}
-          disabled={isLoading || !hasBody}
-        >
+        <Button appearance="subtle" onPress={handleShorter} disabled={isLoading || !hasBody}>
           {t('ai.toolbar.shorter')}
         </Button>
-        <Button
-          appearance="subtle"
-          onPress={() => toneControl.open()}
-          disabled={isLoading}
-        >
+        <Button appearance="subtle" onPress={() => toneControl.open()} disabled={isLoading}>
           {t(`ai.tones.${selectedTone}`)}
         </Button>
         {hasBody && onSubjectSuggested && (
-          <Button
-            appearance="subtle"
-            onPress={handleSuggestSubject}
-            disabled={isLoading}
-          >
+          <Button appearance="subtle" onPress={handleSuggestSubject} disabled={isLoading}>
             {t('ai.toolbar.suggestSubject')}
           </Button>
         )}

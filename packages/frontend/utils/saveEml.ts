@@ -13,11 +13,18 @@ import type { TranslateFn } from '@/lib/i18n';
 import { safeDownloadFilename } from '@/utils/downloadFilename';
 
 export function emlFilename(subject: string | null | undefined): string {
-  const safeSubject = (subject ?? '').replace(/[^a-zA-Z0-9_\- ]/g, '_').slice(0, 60).trim();
+  const safeSubject = (subject ?? '')
+    .replace(/[^a-zA-Z0-9_\- ]/g, '_')
+    .slice(0, 60)
+    .trim();
   return `${safeDownloadFilename(safeSubject || 'message')}.eml`;
 }
 
-export async function saveEmlFile(content: string, filename: string, t: TranslateFn): Promise<void> {
+export async function saveEmlFile(
+  content: string,
+  filename: string,
+  t: TranslateFn,
+): Promise<void> {
   if (Platform.OS === 'web') {
     const blob = new Blob([content], { type: 'message/rfc822' });
     const url = URL.createObjectURL(blob);
@@ -37,9 +44,14 @@ export async function saveEmlFile(content: string, filename: string, t: Translat
       return;
     }
     const fileUri = `${documentDirectory}${filename}`;
-    await FileSystem.writeAsStringAsync(fileUri, content, { encoding: FileSystem.EncodingType.UTF8 });
+    await FileSystem.writeAsStringAsync(fileUri, content, {
+      encoding: FileSystem.EncodingType.UTF8,
+    });
     if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(fileUri, { mimeType: 'message/rfc822', dialogTitle: t('message.toast.saveEmailDialog') });
+      await Sharing.shareAsync(fileUri, {
+        mimeType: 'message/rfc822',
+        dialogTitle: t('message.toast.saveEmailDialog'),
+      });
     } else {
       toast.error(t('message.toast.sharingUnavailable'));
     }

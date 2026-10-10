@@ -31,7 +31,10 @@ export interface InboxMetricDimensions {
   queued?: boolean;
 }
 
-export function recordInboxMetric(name: InboxMetricName, dimensions: InboxMetricDimensions = {}): void {
+export function recordInboxMetric(
+  name: InboxMetricName,
+  dimensions: InboxMetricDimensions = {},
+): void {
   const detail = {
     name,
     ...dimensions,

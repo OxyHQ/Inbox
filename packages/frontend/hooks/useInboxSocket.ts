@@ -156,10 +156,7 @@ function messagesInMailbox(mailboxId: string, userId: string) {
     predicate: (q: { queryKey: readonly unknown[] }) => {
       const key = q.queryKey;
       return (
-        Array.isArray(key) &&
-        key[0] === 'messages' &&
-        key[1] === mailboxId &&
-        key[4] === userId
+        Array.isArray(key) && key[0] === 'messages' && key[1] === mailboxId && key[4] === userId
       );
     },
   };
@@ -171,21 +168,18 @@ function prependToMessageCache(
   userId: string,
   optimistic: Message,
 ) {
-  queryClient.setQueriesData<MessagesInfinite>(
-    messagesInMailbox(mailboxId, userId),
-    (old) => {
-      if (!old || old.pages.length === 0) return old;
-      const alreadyPresent = old.pages.some((page) =>
-        page.data.some((m) => m._id === optimistic._id),
-      );
-      if (alreadyPresent) return old;
-      const [firstPage, ...rest] = old.pages;
-      return {
-        ...old,
-        pages: [{ ...firstPage, data: [optimistic, ...firstPage.data] }, ...rest],
-      };
-    },
-  );
+  queryClient.setQueriesData<MessagesInfinite>(messagesInMailbox(mailboxId, userId), (old) => {
+    if (!old || old.pages.length === 0) return old;
+    const alreadyPresent = old.pages.some((page) =>
+      page.data.some((m) => m._id === optimistic._id),
+    );
+    if (alreadyPresent) return old;
+    const [firstPage, ...rest] = old.pages;
+    return {
+      ...old,
+      pages: [{ ...firstPage, data: [optimistic, ...firstPage.data] }, ...rest],
+    };
+  });
 }
 
 /** Set a mailbox's unread badge from the server's authoritative count. */
@@ -269,7 +263,12 @@ export function useInboxSocket() {
       }
 
       // 1. Optimistic prepend — instant, no round-trip.
-      prependToMessageCache(queryClient, payload.mailboxId, userId, buildOptimisticMessage(payload, userId));
+      prependToMessageCache(
+        queryClient,
+        payload.mailboxId,
+        userId,
+        buildOptimisticMessage(payload, userId),
+      );
 
       // 2. Bump the badge by one; the `email:unread_count` the server emits
       //    alongside reconciles the exact number a moment later.
@@ -309,7 +308,9 @@ export function useInboxSocket() {
         target?.specialUse === SPECIAL_USE.TRASH ||
         /^(spam|junk|trash)$/i.test(payload.folder);
       if (firstAnnouncement && !isViewingTargetMailbox && !isQuietFolder) {
-        toast.info(t('inbox.toast.newEmail', { sender: payload.from.name ?? payload.from.address }));
+        toast.info(
+          t('inbox.toast.newEmail', { sender: payload.from.name ?? payload.from.address }),
+        );
       }
 
       recordInboxMetric('realtime_email_new');

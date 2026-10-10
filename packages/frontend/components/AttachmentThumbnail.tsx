@@ -7,10 +7,7 @@ interface AttachmentThumbnailProps {
   fileId: string;
   size?: number;
 }
-export function AttachmentThumbnail({
-  fileId,
-  size = 48,
-}: AttachmentThumbnailProps) {
+export function AttachmentThumbnail({ fileId, size = 48 }: AttachmentThumbnailProps) {
   const { t } = useTranslation();
   const { url, isLoading } = useAttachmentUrl(fileId, true, 'thumb');
   return (
@@ -20,9 +17,7 @@ export function AttachmentThumbnail({
       shape="squircle"
       color="neutral"
       alt={t('attachment.previewAlt')}
-      placeholderIcon={
-        isLoading ? <Loading size="sm" /> : <RiFileImageLine />
-      }
+      placeholderIcon={isLoading ? <Loading size="sm" /> : <RiFileImageLine />}
     />
   );
 }

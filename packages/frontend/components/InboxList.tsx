@@ -16,19 +16,9 @@ import { PageHeader } from '@oxy.so/bloom/page-header';
 import { toast } from '@oxy.so/bloom';
 import { Loading } from '@oxy.so/bloom/loading';
 import { OxySignInButton, useOxy } from '@oxy.so/services';
-import {
-  FlashList,
-  type FlashListProps,
-  type FlashListRef,
-} from '@shopify/flash-list';
+import { FlashList, type FlashListProps, type FlashListRef } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWindowDimensions, RefreshControl, StyleSheet, View } from 'react-native';
 import Animated, { type AnimatedProps } from 'react-native-reanimated';
 
@@ -46,14 +36,8 @@ import { UnreadableMessageRow } from '@/components/UnreadableMessageRow';
 import { SPACING } from '@/constants/layout';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { useColors } from '@/constants/theme';
-import {
-  useInboxPrefs,
-  type SwipeAction,
-} from '@/contexts/inbox-prefs-context';
-import {
-  useBulkUpdateFlags,
-  useTogglePin,
-} from '@/hooks/mutations/useMessageMutations';
+import { useInboxPrefs, type SwipeAction } from '@/contexts/inbox-prefs-context';
+import { useBulkUpdateFlags, useTogglePin } from '@/hooks/mutations/useMessageMutations';
 import {
   useCreateReminder,
   useDeleteReminder,
@@ -62,10 +46,7 @@ import {
 import { useBundles } from '@/hooks/queries/useBundles';
 import { useFollowUp } from '@/hooks/queries/useFollowUp';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
-import {
-  useNeedsResponse,
-  type NeedsResponseReason,
-} from '@/hooks/queries/useNeedsResponse';
+import { useNeedsResponse, type NeedsResponseReason } from '@/hooks/queries/useNeedsResponse';
 import { useReminders } from '@/hooks/queries/useReminders';
 import { useBatchSentimentAnalysis } from '@/hooks/queries/useSentimentAnalysis';
 import { useEmailStore } from '@/hooks/useEmail';
@@ -74,12 +55,7 @@ import { useMessageActions } from '@/hooks/useMessageActions';
 import { useLeaveRemovedRows } from '@/hooks/useLeaveRemovedRows';
 import { calendarDaysBetween } from '@oxy.so/utils/date';
 import { useTranslation, type TranslateFn } from '@/lib/i18n';
-import type {
-  Bundle,
-  Message,
-  Reminder,
-  UnreadableMessage,
-} from '@/services/emailApi';
+import type { Bundle, Message, Reminder, UnreadableMessage } from '@/services/emailApi';
 import { messageRoute } from '@/utils/messageRoute';
 import { useCurrentList } from '@/hooks/useCurrentList';
 import { AliaChatSheet, type AliaChatSheetRef } from '@alia.onl/sdk';
@@ -114,8 +90,7 @@ const AnimatedInboxList = Animated.createAnimatedComponent(
     FlashListProps<ListItem> & React.RefAttributes<FlashListRef<ListItem>>
   >,
 ) as React.ComponentType<
-  AnimatedProps<FlashListProps<ListItem>> &
-    React.RefAttributes<FlashListRef<ListItem>>
+  AnimatedProps<FlashListProps<ListItem>> & React.RefAttributes<FlashListRef<ListItem>>
 >;
 
 /** Section title for a message: one card per calendar bucket. */
@@ -138,12 +113,7 @@ function getDateCategory(dateStr: string, t: TranslateFn): string {
  * and it is the price of framing each section with a shared card component
  * instead of hand-rolling per-row borders.
  */
-function pushGroup(
-  items: ListItem[],
-  title: string,
-  key: string,
-  messages: Message[],
-): void {
+function pushGroup(items: ListItem[], title: string, key: string, messages: Message[]): void {
   if (messages.length === 0) return;
   // One list item per message, not one per bucket. FlashList mounts an item
   // whole, so a bucket-sized item would mount every message in it — the
@@ -211,8 +181,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   );
   const { isAuthenticated, user } = useOxy();
   const { prefs } = useInboxPrefs();
-  const { density, showPreviews } =
-    useInboxDisplayPrefs();
+  const { density, showPreviews } = useInboxDisplayPrefs();
   const messageActions = useMessageActions();
 
   const currentMailbox = useEmailStore((s) => s.currentMailbox);
@@ -231,14 +200,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   } = useMailboxes();
 
   const {
-    query: {
-      isLoading,
-      isError,
-      isFetchingNextPage,
-      refetch,
-      fetchNextPage,
-      hasNextPage,
-    },
+    query: { isLoading, isError, isFetchingNextPage, refetch, fetchNextPage, hasNextPage },
     options: messagesOptions,
     listReady,
     messages,
@@ -256,15 +218,10 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
 
   const [snoozeTargetId, setSnoozeTargetId] = useState<string | null>(null);
   const [createReminderVisible, setCreateReminderVisible] = useState(false);
-  const [editReminderTarget, setEditReminderTarget] = useState<Reminder | null>(
-    null,
-  );
+  const [editReminderTarget, setEditReminderTarget] = useState<Reminder | null>(null);
 
   const { data: remindersResult } = useReminders();
-  const reminders = useMemo(
-    () => remindersResult?.data ?? [],
-    [remindersResult],
-  );
+  const reminders = useMemo(() => remindersResult?.data ?? [], [remindersResult]);
   const createReminderMutation = useCreateReminder();
   const updateReminderMutation = useUpdateReminder();
   const deleteReminderMutation = useDeleteReminder();
@@ -273,8 +230,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     viewMode?.type === 'mailbox'
       ? viewMode.mailbox.specialUse === SPECIAL_USE.INBOX
       : // No view chosen yet: the list falls back to the Inbox (useCurrentList).
-        !viewMode &&
-        (currentMailbox ? currentMailbox.specialUse === SPECIAL_USE.INBOX : true);
+        !viewMode && (currentMailbox ? currentMailbox.specialUse === SPECIAL_USE.INBOX : true);
   const isSnoozedView =
     viewMode?.type === 'mailbox'
       ? viewMode.mailbox.specialUse === SPECIAL_USE.SNOOZED
@@ -317,10 +273,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
 
   // Sentiment is an inexpensive local heuristic, and is additionally gated by
   // the existing user-facing categorization preference. It is not an AI call.
-  const sentimentMap = useBatchSentimentAnalysis(
-    displayMessages,
-    prefs.aiCategorization,
-  );
+  const sentimentMap = useBatchSentimentAnalysis(displayMessages, prefs.aiCategorization);
 
   const [showTriage, setShowTriage] = useState(false);
   const [showBrief, setShowBrief] = useState(false);
@@ -461,12 +414,8 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     items.push(...triageItems);
 
     // Partition pinned messages to top (only in mailbox views, not snoozed)
-    const triagedMessages = displayMessages.filter(
-      (message) => !triageMessageIds.has(message._id),
-    );
-    const pinned = !isSnoozedView
-      ? triagedMessages.filter((m) => m.flags.pinned)
-      : [];
+    const triagedMessages = displayMessages.filter((message) => !triageMessageIds.has(message._id));
+    const pinned = !isSnoozedView ? triagedMessages.filter((m) => m.flags.pinned) : [];
     const unpinned = !isSnoozedView
       ? triagedMessages.filter((m) => !m.flags.pinned)
       : triagedMessages;
@@ -766,20 +715,13 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const mailboxTitle = useMemo(() => {
     if (viewMode?.type === 'starred') return t('drawer.starred');
     if (viewMode?.type === 'label') return viewMode.labelName;
-    if (currentMailbox?.specialUse === SPECIAL_USE.INBOX)
-      return t('drawer.mailboxes.Inbox');
-    if (currentMailbox?.specialUse === SPECIAL_USE.SENT)
-      return t('drawer.mailboxes.Sent');
-    if (currentMailbox?.specialUse === SPECIAL_USE.DRAFTS)
-      return t('drawer.mailboxes.Drafts');
-    if (currentMailbox?.specialUse === SPECIAL_USE.TRASH)
-      return t('drawer.mailboxes.Trash');
-    if (currentMailbox?.specialUse === SPECIAL_USE.SPAM)
-      return t('drawer.mailboxes.Spam');
-    if (currentMailbox?.specialUse === SPECIAL_USE.ARCHIVE)
-      return t('drawer.mailboxes.Archive');
-    if (currentMailbox?.specialUse === SPECIAL_USE.SNOOZED)
-      return t('drawer.mailboxes.Snoozed');
+    if (currentMailbox?.specialUse === SPECIAL_USE.INBOX) return t('drawer.mailboxes.Inbox');
+    if (currentMailbox?.specialUse === SPECIAL_USE.SENT) return t('drawer.mailboxes.Sent');
+    if (currentMailbox?.specialUse === SPECIAL_USE.DRAFTS) return t('drawer.mailboxes.Drafts');
+    if (currentMailbox?.specialUse === SPECIAL_USE.TRASH) return t('drawer.mailboxes.Trash');
+    if (currentMailbox?.specialUse === SPECIAL_USE.SPAM) return t('drawer.mailboxes.Spam');
+    if (currentMailbox?.specialUse === SPECIAL_USE.ARCHIVE) return t('drawer.mailboxes.Archive');
+    if (currentMailbox?.specialUse === SPECIAL_USE.SNOOZED) return t('drawer.mailboxes.Snoozed');
     return currentMailbox?.name || t('drawer.mailboxes.Inbox');
   }, [currentMailbox, t, viewMode]);
 
@@ -809,9 +751,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
 
   /** One message row, shared by the flat items and the grouped panels. */
   const pinPendingId =
-    togglePin.isPending && togglePin.variables?.messageId
-      ? togglePin.variables.messageId
-      : null;
+    togglePin.isPending && togglePin.variables?.messageId ? togglePin.variables.messageId : null;
 
   const listExtraData = useMemo(
     () => ({
@@ -911,9 +851,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
 
       return (
         <View style={styles.triageMessageItem}>
-          <Text style={[styles.triageReason, { color: colors.secondaryText }]}>
-            {reasonLabel}
-          </Text>
+          <Text style={[styles.triageReason, { color: colors.secondaryText }]}>{reasonLabel}</Text>
           {renderMessageRow(item.data)}
         </View>
       );
@@ -926,21 +864,11 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       if (item.type === 'header') {
         return (
           <View style={styles.sectionHeader} accessibilityRole="header">
-            <Text
-              style={[
-                styles.sectionHeaderText,
-                { color: colors.secondaryText },
-              ]}
-            >
+            <Text style={[styles.sectionHeaderText, { color: colors.secondaryText }]}>
               {item.title}
             </Text>
             {item.count !== undefined ? (
-              <Text
-                style={[
-                  styles.sectionHeaderCount,
-                  { color: colors.secondaryText },
-                ]}
-              >
+              <Text style={[styles.sectionHeaderCount, { color: colors.secondaryText }]}>
                 {item.count}
               </Text>
             ) : null}
@@ -951,26 +879,14 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
         return (
           <View style={styles.triageHeader} accessibilityRole="header">
             <View style={styles.triageHeaderText}>
-              <Text
-                style={[styles.sectionHeaderText, { color: colors.primary }]}
-              >
+              <Text style={[styles.sectionHeaderText, { color: colors.primary }]}>
                 {item.title}
               </Text>
-              <Text
-                style={[
-                  styles.triageDescription,
-                  { color: colors.secondaryText },
-                ]}
-              >
+              <Text style={[styles.triageDescription, { color: colors.secondaryText }]}>
                 {item.description}
               </Text>
             </View>
-            <Text
-              style={[
-                styles.sectionHeaderCount,
-                { color: colors.secondaryText },
-              ]}
-            >
+            <Text style={[styles.sectionHeaderCount, { color: colors.secondaryText }]}>
               {item.count}
             </Text>
           </View>
@@ -980,10 +896,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       if (item.type === 'unreadable') {
         return (
           <View style={styles.messageItem}>
-            <UnreadableMessageRow
-              message={item.data}
-              onOpen={openMessageById}
-            />
+            <UnreadableMessageRow message={item.data} onOpen={openMessageById} />
           </View>
         );
       }
@@ -1008,9 +921,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
           />
         );
       }
-      return (
-        <View style={styles.messageItem}>{renderMessageRow(item.data)}</View>
-      );
+      return <View style={styles.messageItem}>{renderMessageRow(item.data)}</View>;
     },
     // Only what this function itself reads. It used to re-list
     // `renderMessageRow`'s own dependencies by hand while omitting
@@ -1036,8 +947,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const keyExtractor = useCallback((item: ListItem) => {
     if (item.type === 'header') return item.key;
     if (item.type === 'triage-header') return item.key;
-    if (item.type === 'triage-message')
-      return `triage-${item.category}-${item.data._id}`;
+    if (item.type === 'triage-message') return `triage-${item.category}-${item.data._id}`;
     if (item.type === 'bundle') return `bundle-${item.bundle._id}`;
     if (item.type === 'reminder') return `reminder-${item.data._id}`;
     if (item.type === 'unreadable') return item.key;
@@ -1080,15 +990,20 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       <EmptyState
         illustration={<EmptyStateSticker name="inbox" />}
         title={t('inbox.emptyTitle')}
-        description={
-          isAuthenticated ? t('inbox.emptyAllCaught') : t('inbox.emptySignIn')
-        }
-        footer={
-          !isAuthenticated ? <OxySignInButton variant="contained" /> : undefined
-        }
+        description={isAuthenticated ? t('inbox.emptyAllCaught') : t('inbox.emptySignIn')}
+        footer={!isAuthenticated ? <OxySignInButton variant="contained" /> : undefined}
       />
     );
-  }, [isAuthenticated, isLoading, isError, listReady, mailboxesFailed, refetch, refetchMailboxes, t]);
+  }, [
+    isAuthenticated,
+    isLoading,
+    isError,
+    listReady,
+    mailboxesFailed,
+    refetch,
+    refetchMailboxes,
+    t,
+  ]);
 
   const renderFooter = useCallback(() => {
     if (!isFetchingNextPage) return null;
@@ -1141,9 +1056,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
                       accessibilityLabel={t('reminder.create.title')}
                       onPress={() => setCreateReminderVisible(true)}
                     />
-                    <ButtonGroupItem onPress={handleAskAlia}>
-                      {t('inbox.askAlia')}
-                    </ButtonGroupItem>
+                    <ButtonGroupItem onPress={handleAskAlia}>{t('inbox.askAlia')}</ButtonGroupItem>
                   </>
                 )}
                 <ButtonGroupItem
@@ -1158,8 +1071,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
             }
           />
           {isAuthenticated &&
-            (prefs.aiBrief ||
-              (isInboxView && needsResponseCount + followUpCount > 0)) && (
+            (prefs.aiBrief || (isInboxView && needsResponseCount + followUpCount > 0)) && (
               <View className="flex-row flex-wrap gap-1 px-3 pb-2">
                 {isInboxView && needsResponseCount + followUpCount > 0 && (
                   <Button
@@ -1168,10 +1080,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
                   >{`${t('home.needsResponse')} · ${needsResponseCount + followUpCount}`}</Button>
                 )}
                 {prefs.aiBrief && (
-                  <Button
-                    appearance="subtle"
-                    onPress={() => setShowBrief((value) => !value)}
-                  >
+                  <Button appearance="subtle" onPress={() => setShowBrief((value) => !value)}>
                     {t('home.todaysBrief')}
                   </Button>
                 )}

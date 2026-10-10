@@ -23,14 +23,29 @@ export interface Commitment {
 // Patterns for detecting commitments
 const COMMITMENT_PATTERNS = [
   // "I'll/I will" promises
-  { pattern: /\b(i['']?ll|i will)\s+(send|get|have|finish|complete|deliver|provide|share|forward)\b/gi, type: 'promise' as const },
+  {
+    pattern:
+      /\b(i['']?ll|i will)\s+(send|get|have|finish|complete|deliver|provide|share|forward)\b/gi,
+    type: 'promise' as const,
+  },
   { pattern: /\b(i['']?ll|i will)\s+get\s+back\s+to\s+you\b/gi, type: 'follow_up' as const },
   { pattern: /\b(will|going to)\s+follow\s*up\b/gi, type: 'follow_up' as const },
 
   // Direct deadline mentions
-  { pattern: /\bby\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/gi, type: 'deadline' as const },
-  { pattern: /\bby\s+(end\s+of\s+day|eod|close\s+of\s+business|cob|tonight|tomorrow|next\s+week)\b/gi, type: 'deadline' as const },
-  { pattern: /\bbefore\s+(monday|tuesday|wednesday|thursday|friday|the\s+meeting|the\s+deadline)\b/gi, type: 'deadline' as const },
+  {
+    pattern: /\bby\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/gi,
+    type: 'deadline' as const,
+  },
+  {
+    pattern:
+      /\bby\s+(end\s+of\s+day|eod|close\s+of\s+business|cob|tonight|tomorrow|next\s+week)\b/gi,
+    type: 'deadline' as const,
+  },
+  {
+    pattern:
+      /\bbefore\s+(monday|tuesday|wednesday|thursday|friday|the\s+meeting|the\s+deadline)\b/gi,
+    type: 'deadline' as const,
+  },
 ];
 
 // Deadline text patterns and their relative dates
@@ -135,7 +150,7 @@ export function useCommitmentDetection(message: Message | null | undefined): Com
  * Finds messages with upcoming or past-due commitments.
  */
 export function useCommitmentReminders(
-  sentMessages: Message[]
+  sentMessages: Message[],
 ): { message: Message; commitments: Commitment[] }[] {
   return useMemo(() => {
     const results: { message: Message; commitments: Commitment[] }[] = [];

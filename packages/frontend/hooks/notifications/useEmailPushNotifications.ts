@@ -7,10 +7,7 @@ import {
 } from '@oxy.so/services/notifications';
 
 import { useMessageActions } from '@/hooks/useMessageActions';
-import {
-  claimEmailMessageId,
-  emailMessageIdFromPush,
-} from '@/lib/notifications/email-push';
+import { claimEmailMessageId, emailMessageIdFromPush } from '@/lib/notifications/email-push';
 
 const LOG_CONTEXT = { component: 'useEmailPushNotifications' } as const;
 

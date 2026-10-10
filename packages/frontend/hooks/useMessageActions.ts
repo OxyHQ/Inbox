@@ -85,7 +85,11 @@ export function useMessageActions() {
     (conversation: Message[], mailboxId: string, kind: MoveKind = 'move') => {
       if (conversation.length === 0) return;
       if (conversation.length === 1) {
-        archiveMutation.mutate({ messageId: conversation[0]._id, archiveMailboxId: mailboxId, kind });
+        archiveMutation.mutate({
+          messageId: conversation[0]._id,
+          archiveMailboxId: mailboxId,
+          kind,
+        });
         return;
       }
       bulkMove.mutate({ messageIds: conversation.map((m) => m._id), mailboxId, kind });
@@ -101,7 +105,9 @@ export function useMessageActions() {
   /** Already archived: every message of it is in Archive. */
   const isArchived = useCallback(
     (conversation: Message[]) =>
-      !!archiveBox && conversation.length > 0 && conversation.every((m) => m.mailboxId === archiveBox._id),
+      !!archiveBox &&
+      conversation.length > 0 &&
+      conversation.every((m) => m.mailboxId === archiveBox._id),
     [archiveBox],
   );
 

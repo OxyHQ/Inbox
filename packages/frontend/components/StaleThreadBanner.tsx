@@ -1,11 +1,5 @@
 import { Button, IconButton } from '@oxy.so/bloom/button';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from '@oxy.so/bloom/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from '@oxy.so/bloom/card';
 import { RiCloseLine, RiCornerUpLeftLine } from '@oxy.so/bloom/icons';
 import { useState } from 'react';
 import type { StaleThreadInfo } from '@/hooks/queries/useStaleThread';
@@ -17,25 +11,17 @@ interface StaleThreadBannerProps {
   onDismiss?: () => void;
 }
 
-export function StaleThreadBanner({
-  staleInfo,
-  onReply,
-  onDismiss,
-}: StaleThreadBannerProps) {
+export function StaleThreadBanner({ staleInfo, onReply, onDismiss }: StaleThreadBannerProps) {
   const { t } = useTranslation();
   const [dismissed, setDismissed] = useState(false);
   if (!staleInfo || dismissed) return null;
   return (
-    <Card
-      appearance="subtle"
-      tone={staleInfo.daysSinceReceived >= 7 ? 'danger' : 'warning'}
-    >
+    <Card appearance="subtle" tone={staleInfo.daysSinceReceived >= 7 ? 'danger' : 'warning'}>
       <CardHeader>
         <CardTitle>
-          {t(
-            staleInfo.reason === 'unanswered_question' ? 'stale.question' : 'stale.noReply',
-            { count: staleInfo.daysSinceReceived },
-          )}
+          {t(staleInfo.reason === 'unanswered_question' ? 'stale.question' : 'stale.noReply', {
+            count: staleInfo.daysSinceReceived,
+          })}
         </CardTitle>
         {staleInfo.reason === 'unanswered_question' && (
           <CardDescription>{t('stale.suggestion')}</CardDescription>
@@ -43,11 +29,7 @@ export function StaleThreadBanner({
       </CardHeader>
       <CardFooter>
         {onReply && (
-          <Button
-            appearance="subtle"
-            leading={<RiCornerUpLeftLine />}
-            onPress={onReply}
-          >
+          <Button appearance="subtle" leading={<RiCornerUpLeftLine />} onPress={onReply}>
             {t('message.actions.reply')}
           </Button>
         )}

@@ -9,12 +9,7 @@ jest.mock('react-native', () => {
   const React = require('react');
   const el =
     (tag: string) =>
-    ({
-      children,
-      onPress,
-      accessibilityRole,
-      accessibilityLabel,
-    }: Record<string, unknown>) =>
+    ({ children, onPress, accessibilityRole, accessibilityLabel }: Record<string, unknown>) =>
       React.createElement(
         onPress ? 'button' : tag,
         {
@@ -51,15 +46,9 @@ jest.mock('@oxy.so/bloom/card', () => ({
     ) : (
       <div>{children}</div>
     ),
-  CardHeader: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
-  CardTitle: ({ children }: { children: React.ReactNode }) => (
-    <span>{children}</span>
-  ),
-  CardDescription: ({ children }: { children: React.ReactNode }) => (
-    <span>{children}</span>
-  ),
+  CardHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  CardTitle: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+  CardDescription: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
 }));
 jest.mock('@oxy.so/bloom/icons', () => ({ RiErrorWarningLine: () => null }));
 jest.mock('@oxy.so/bloom/empty-state', () => ({
@@ -79,9 +68,7 @@ jest.mock('@oxy.so/bloom/empty-state', () => ({
       <span>{description}</span>
       {action && <button onClick={action.onPress}>{action.label}</button>}
       {secondaryAction && (
-        <button onClick={secondaryAction.onPress}>
-          {secondaryAction.label}
-        </button>
+        <button onClick={secondaryAction.onPress}>{secondaryAction.label}</button>
       )}
     </div>
   ),
@@ -126,10 +113,9 @@ afterEach(() => consoleError.mockRestore());
 describe('reads carry their unreadable rows', () => {
   it('a thread keeps the row it could not parse', async () => {
     const ok = wireMessage({ _id: 'ok-1' });
-    const thread = await apiReturning([
-      ok,
-      broken('bad-1', '2026-09-27T05:00:00.000Z'),
-    ]).getThread('ok-1');
+    const thread = await apiReturning([ok, broken('bad-1', '2026-09-27T05:00:00.000Z')]).getThread(
+      'ok-1',
+    );
     expect(thread.messages.map((m) => m._id)).toEqual(['ok-1']);
     expect(thread.unreadable).toEqual([
       expect.objectContaining({
@@ -142,10 +128,7 @@ describe('reads carry their unreadable rows', () => {
 
   it('search results keep them', async () => {
     const page = await apiReturning({
-      data: [
-        wireMessage({ _id: 'ok-1' }),
-        broken('bad-1', '2026-09-27T05:00:00.000Z'),
-      ],
+      data: [wireMessage({ _id: 'ok-1' }), broken('bad-1', '2026-09-27T05:00:00.000Z')],
       pagination: { total: 2, limit: 50, offset: 0, hasMore: false },
     }).search({ q: 'ramp' });
     expect(page.data).toHaveLength(1);
@@ -172,10 +155,7 @@ describe('reads carry their unreadable rows', () => {
               createdAt: '2026-09-27T00:00:00.000Z',
               updatedAt: '2026-09-27T00:00:00.000Z',
             },
-            messages: [
-              wireMessage({ _id: 'ok-b' }),
-              broken('bad-b', '2026-09-27T05:00:00.000Z'),
-            ],
+            messages: [wireMessage({ _id: 'ok-b' }), broken('bad-b', '2026-09-27T05:00:00.000Z')],
             unreadCount: 2,
           },
         ],
@@ -183,9 +163,7 @@ describe('reads carry their unreadable rows', () => {
       pagination: { total: 3, limit: 50, offset: 0, hasMore: false },
     }).listBundledMessages();
     expect(bundled.primaryUnreadable.map((row) => row._id)).toEqual(['bad-p']);
-    expect(bundled.bundles[0].unreadable.map((row) => row._id)).toEqual([
-      'bad-b',
-    ]);
+    expect(bundled.bundles[0].unreadable.map((row) => row._id)).toEqual(['bad-b']);
     expect(bundled.bundles[0].unreadCount).toBe(2);
   });
 });
@@ -193,10 +171,7 @@ describe('reads carry their unreadable rows', () => {
 describe('thread entries', () => {
   const at = (id: string, date: string) =>
     wireMessage({ _id: id, date, receivedAt: date }) as unknown as Message;
-  const row = (
-    id: string | null,
-    receivedAt: string | null,
-  ): UnreadableMessage => ({
+  const row = (id: string | null, receivedAt: string | null): UnreadableMessage => ({
     kind: 'unreadable',
     _id: id,
     from: null,
@@ -206,17 +181,15 @@ describe('thread entries', () => {
 
   it('places an unreadable message in reading order, and one without a date last', () => {
     const entries = buildThreadEntries(
-      [
-        at('a', '2026-09-27T01:00:00.000Z'),
-        at('c', '2026-09-27T03:00:00.000Z'),
-      ],
+      [at('a', '2026-09-27T01:00:00.000Z'), at('c', '2026-09-27T03:00:00.000Z')],
       [row('b', '2026-09-27T02:00:00.000Z'), row(null, null)],
     );
-    expect(
-      entries.map((e) =>
-        e.kind === 'message' ? e.message._id : `!${e.row._id}`,
-      ),
-    ).toEqual(['a', '!b', 'c', '!null']);
+    expect(entries.map((e) => (e.kind === 'message' ? e.message._id : `!${e.row._id}`))).toEqual([
+      'a',
+      '!b',
+      'c',
+      '!null',
+    ]);
   });
 
   it('a flag patch on the thread cache leaves its unreadable rows alone', () => {
@@ -247,15 +220,8 @@ describe('search items', () => {
       { unreadable: [r('x'), r('y')] },
       {},
     ]);
-    const items = buildSearchItems(
-      [wireMessage({ _id: 'ok' }) as unknown as Message],
-      unreadable,
-    );
-    expect(items.map((i) => i.key)).toEqual([
-      'unreadable-x',
-      'unreadable-y',
-      'ok',
-    ]);
+    const items = buildSearchItems([wireMessage({ _id: 'ok' }) as unknown as Message], unreadable);
+    expect(items.map((i) => i.key)).toEqual(['unreadable-x', 'unreadable-y', 'ok']);
   });
 });
 
@@ -280,13 +246,7 @@ describe('rendering', () => {
   it('the thread entry offers retry and the original', () => {
     const onRetry = jest.fn();
     const onOpenRaw = jest.fn();
-    render(
-      <UnreadableThreadEntry
-        row={row}
-        onRetry={onRetry}
-        onOpenRaw={onOpenRaw}
-      />,
-    );
+    render(<UnreadableThreadEntry row={row} onRetry={onRetry} onOpenRaw={onOpenRaw} />);
     expect(screen.getByText('inbox.unreadable.title')).toBeTruthy();
     fireEvent.click(screen.getByText('inbox.unreadable.retry'));
     fireEvent.click(screen.getByText('inbox.unreadable.openRaw'));

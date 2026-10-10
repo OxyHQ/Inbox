@@ -8,11 +8,7 @@ interface LogoIconProps {
   style?: ViewStyle;
 }
 
-export const LogoIcon: React.FC<LogoIconProps> = ({
-  color = '#000000',
-  height = 26,
-  style,
-}) => {
+export const LogoIcon: React.FC<LogoIconProps> = ({ color = '#000000', height = 26, style }) => {
   // viewBox: "0 0 512 512" (square) -> aspect ratio 1:1
   const width = height;
 

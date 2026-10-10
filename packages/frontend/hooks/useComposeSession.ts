@@ -93,7 +93,12 @@ function contentKeyOf(fields: {
     fields.bcc,
     fields.subject,
     fields.body,
-    fields.attachments.map(({ fileId, name, contentType, size }) => ({ fileId, name, contentType, size })),
+    fields.attachments.map(({ fileId, name, contentType, size }) => ({
+      fileId,
+      name,
+      contentType,
+      size,
+    })),
   ]);
 }
 
@@ -110,9 +115,7 @@ function isDraftConflict(error: unknown): boolean {
     response?: { status?: number };
   };
   return (
-    candidate.status === 409 ||
-    candidate.statusCode === 409 ||
-    candidate.response?.status === 409
+    candidate.status === 409 || candidate.statusCode === 409 || candidate.response?.status === 409
   );
 }
 
@@ -322,9 +325,7 @@ export function useComposeSession({
       // A reopened draft yields to a snapshot only when that snapshot holds
       // edits made after the draft was last saved: a successful save deletes
       // the snapshot, so one that is still there and newer was never saved.
-      const usable =
-        record &&
-        (!draft || record.savedAt > Date.parse(draft.date));
+      const usable = record && (!draft || record.savedAt > Date.parse(draft.date));
       if (record && usable) {
         if (record.snapshot.idempotencyKey) setIdempotencyKey(record.snapshot.idempotencyKey);
         const queued = record.snapshot.queued === true;
@@ -376,9 +377,7 @@ export function useComposeSession({
         updateBody(block);
         // The signature is where the session starts, not something to save.
         setSavedContentKey((saved) =>
-          saved === seedContentKey
-            ? contentKeyOf({ ...seed, body: block })
-            : saved,
+          saved === seedContentKey ? contentKeyOf({ ...seed, body: block }) : saved,
         );
       })
       .catch((err: unknown) => {
@@ -441,7 +440,16 @@ export function useComposeSession({
       };
       return draftSaveQueue.enqueue(save);
     },
-    [api, awaitingReplyHeaders, draftSaveQueue, recoveryKey, replyHeaders, saveDraftAsync, t, trailer],
+    [
+      api,
+      awaitingReplyHeaders,
+      draftSaveQueue,
+      recoveryKey,
+      replyHeaders,
+      saveDraftAsync,
+      t,
+      trailer,
+    ],
   );
 
   useEffect(() => {
@@ -469,16 +477,19 @@ export function useComposeSession({
   useEffect(
     () => () => {
       if (sentRef.current || discardedRef.current) return;
-      const { snapshot: last, contentKey: key, hasContent: had, hasUnsavedWork: unsaved } =
-        latest.current;
+      const {
+        snapshot: last,
+        contentKey: key,
+        hasContent: had,
+        hasUnsavedWork: unsaved,
+      } = latest.current;
       if (unsaved) void saveToServerRef.current(last, key);
       else if (!had && createdDraftRef.current) void deleteServerDraftRef.current();
     },
     [],
   );
 
-  const visibleSaveState =
-    draftSaveState === 'saved' && isDirty ? 'idle' : draftSaveState;
+  const visibleSaveState = draftSaveState === 'saved' && isDirty ? 'idle' : draftSaveState;
   const draftStatusLabel =
     visibleSaveState === 'saving'
       ? t('common.saving')
@@ -731,7 +742,17 @@ export function useComposeSession({
     } else if (mountedRef.current) {
       toast.error(t('common.notSaved'));
     }
-  }, [contentKey, deleteServerDraft, hasContent, hasUnsavedWork, finish, recoveryKey, saveToServer, snapshot, t]);
+  }, [
+    contentKey,
+    deleteServerDraft,
+    hasContent,
+    hasUnsavedWork,
+    finish,
+    recoveryKey,
+    saveToServer,
+    snapshot,
+    t,
+  ]);
 
   /**
    * Close without keeping the unsaved edits. A draft this session created is

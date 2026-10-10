@@ -1,9 +1,6 @@
 import { useTranslation } from '@/lib/i18n';
 import { Button } from '@oxy.so/bloom/button';
-import {
-  SettingsGeneralPage,
-  SettingsValueField,
-} from '@oxy.so/bloom/settings-modal';
+import { SettingsGeneralPage, SettingsValueField } from '@oxy.so/bloom/settings-modal';
 import { toast } from '@oxy.so/bloom/toast';
 import Constants from 'expo-constants';
 import { useCallback } from 'react';
@@ -38,10 +35,7 @@ export function AboutSection() {
         }
         await Linking.openURL(url);
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : t('ui.settings.about.linkFailed');
+        const message = err instanceof Error ? err.message : t('ui.settings.about.linkFailed');
         toast.error(message);
       }
     },
@@ -61,9 +55,7 @@ export function AboutSection() {
                 version: getAppVersion(),
                 platform: getPlatformLabel(),
               }),
-              control: (
-                <SettingsValueField>{getAppVersion()}</SettingsValueField>
-              ),
+              control: <SettingsValueField>{getAppVersion()}</SettingsValueField>,
             },
           ],
         },
@@ -74,10 +66,7 @@ export function AboutSection() {
             key,
             label: t(`ui.settings.about.${key}`),
             control: (
-              <Button
-                appearance="subtle"
-                onPress={() => openLink(LINKS[key])}
-              >
+              <Button appearance="subtle" onPress={() => openLink(LINKS[key])}>
                 {t(`ui.settings.about.${key}`)}
               </Button>
             ),

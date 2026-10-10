@@ -22,10 +22,7 @@ interface CardPreviewProps {
   card: MessageCard;
 }
 
-const CARD_CONFIG: Record<
-  string,
-  { icon: BloomIconComponent; tone: BloomTone }
-> = {
+const CARD_CONFIG: Record<string, { icon: BloomIconComponent; tone: BloomTone }> = {
   trip: { icon: RiSendPlaneLine, tone: 'info' },
   purchase: { icon: RiShoppingBag3Line, tone: 'success' },
   event: { icon: RiCalendarLine, tone: 'danger' },
@@ -51,19 +48,29 @@ function getSummary(card: MessageCard, t: TranslateFn, locale: string): string {
         t('cards.trip.summary'),
       );
     case 'purchase':
-      return join([d.merchant, d.amount != null && formatMoney(locale, d.amount, d.currency)], t('cards.purchase.summary'));
+      return join(
+        [d.merchant, d.amount != null && formatMoney(locale, d.amount, d.currency)],
+        t('cards.purchase.summary'),
+      );
     case 'event':
       return join([d.title, day(d.startTime)], t('cards.event.summary'));
     case 'bill': {
       const due = day(d.dueDate);
       return join(
-        [d.biller, d.amount != null && formatMoney(locale, d.amount, d.currency), due && t('cards.bill.due', { date: due })],
+        [
+          d.biller,
+          d.amount != null && formatMoney(locale, d.amount, d.currency),
+          due && t('cards.bill.due', { date: due }),
+        ],
         t('cards.bill.summary'),
       );
     }
     case 'package': {
       const eta = day(d.estimatedDelivery);
-      return join([d.merchant, d.status, eta && t('cards.package.estimated', { date: eta })], t('cards.package.summary'));
+      return join(
+        [d.merchant, d.status, eta && t('cards.package.estimated', { date: eta })],
+        t('cards.package.summary'),
+      );
     }
     default:
       return '';

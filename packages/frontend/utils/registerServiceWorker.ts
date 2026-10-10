@@ -26,9 +26,12 @@ export function registerServiceWorker(onUpdate?: () => void): void {
       const registration = await navigator.serviceWorker.register('/sw.js');
 
       // Check for updates periodically (every 60 minutes)
-      setInterval(() => {
-        registration.update().catch(() => {});
-      }, 60 * 60 * 1000);
+      setInterval(
+        () => {
+          registration.update().catch(() => {});
+        },
+        60 * 60 * 1000,
+      );
 
       // Detect when a new service worker is waiting
       registration.addEventListener('updatefound', () => {
@@ -36,10 +39,7 @@ export function registerServiceWorker(onUpdate?: () => void): void {
         if (!newWorker) return;
 
         newWorker.addEventListener('statechange', () => {
-          if (
-            newWorker.state === 'installed' &&
-            navigator.serviceWorker.controller
-          ) {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
             // New version available
             onUpdate?.();
           }

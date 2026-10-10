@@ -60,11 +60,16 @@ function trimReferences(ids: string[]): string[] {
  * from its parent when the draft was saved, so sending it later needs no
  * parent lookup; anything that is not a msg-id is left out, as above.
  */
-export function draftReplyHeaders(draft: Pick<Message, 'inReplyTo' | 'references'>): ReplyHeaders | undefined {
+export function draftReplyHeaders(
+  draft: Pick<Message, 'inReplyTo' | 'references'>,
+): ReplyHeaders | undefined {
   const inReplyTo = toRfcMessageId(draft.inReplyTo);
   const references = (draft.references ?? [])
     .map(toRfcMessageId)
     .filter((id): id is string => id !== null);
   if (!inReplyTo && references.length === 0) return undefined;
-  return { ...(inReplyTo ? { inReplyTo } : {}), references: trimReferences([...new Set(references)]) };
+  return {
+    ...(inReplyTo ? { inReplyTo } : {}),
+    references: trimReferences([...new Set(references)]),
+  };
 }

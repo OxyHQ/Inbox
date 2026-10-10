@@ -62,12 +62,14 @@ function normalizeSnapshot(value: unknown): ComposeRecoverySnapshot | null {
         if (!attachment || typeof attachment !== 'object') return [];
         const { fileId, name, contentType, size } = attachment as Record<string, unknown>;
         if (typeof fileId !== 'string') return [];
-        return [{
-          fileId,
-          ...(typeof name === 'string' ? { name } : {}),
-          ...(typeof contentType === 'string' ? { contentType } : {}),
-          ...(typeof size === 'number' && Number.isFinite(size) ? { size } : {}),
-        }];
+        return [
+          {
+            fileId,
+            ...(typeof name === 'string' ? { name } : {}),
+            ...(typeof contentType === 'string' ? { contentType } : {}),
+            ...(typeof size === 'number' && Number.isFinite(size) ? { size } : {}),
+          },
+        ];
       })
     : [];
 
@@ -79,7 +81,9 @@ function normalizeSnapshot(value: unknown): ComposeRecoverySnapshot | null {
     body,
     attachments,
     ...(typeof candidate.replyTo === 'string' ? { replyTo: candidate.replyTo } : {}),
-    ...(typeof candidate.idempotencyKey === 'string' ? { idempotencyKey: candidate.idempotencyKey } : {}),
+    ...(typeof candidate.idempotencyKey === 'string'
+      ? { idempotencyKey: candidate.idempotencyKey }
+      : {}),
     ...(candidate.queued === true ? { queued: true } : {}),
   };
 }
@@ -95,17 +99,23 @@ function normalizeRecord(value: unknown): ComposeRecoveryRecord | null {
 }
 
 async function readNativeStorage(key: string): Promise<string | null> {
-  const AsyncStorage = await import('@react-native-async-storage/async-storage').then((module) => module.default);
+  const AsyncStorage = await import('@react-native-async-storage/async-storage').then(
+    (module) => module.default,
+  );
   return AsyncStorage.getItem(key);
 }
 
 async function writeNativeStorage(key: string, value: string): Promise<void> {
-  const AsyncStorage = await import('@react-native-async-storage/async-storage').then((module) => module.default);
+  const AsyncStorage = await import('@react-native-async-storage/async-storage').then(
+    (module) => module.default,
+  );
   await AsyncStorage.setItem(key, value);
 }
 
 async function removeNativeStorage(key: string): Promise<void> {
-  const AsyncStorage = await import('@react-native-async-storage/async-storage').then((module) => module.default);
+  const AsyncStorage = await import('@react-native-async-storage/async-storage').then(
+    (module) => module.default,
+  );
   await AsyncStorage.removeItem(key);
 }
 

@@ -115,7 +115,11 @@ export function useReorderBundle() {
     ...mutation,
     /** Move a bundle one place up or down. Nothing at either end. */
     mutate: ({ bundleId, direction }: { bundleId: string; direction: 'up' | 'down' }) => {
-      const swap = planBundleSwap(queryClient.getQueryData<Bundle[]>(BUNDLES_KEY) ?? [], bundleId, direction);
+      const swap = planBundleSwap(
+        queryClient.getQueryData<Bundle[]>(BUNDLES_KEY) ?? [],
+        bundleId,
+        direction,
+      );
       if (swap) mutate({ swap });
     },
   };

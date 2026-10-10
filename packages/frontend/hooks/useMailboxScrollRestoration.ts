@@ -1,7 +1,4 @@
-import {
-  useScrollRestoration,
-  type ScrollableHandle,
-} from '@oxy.so/bloom/scroll';
+import { useScrollRestoration, type ScrollableHandle } from '@oxy.so/bloom/scroll';
 import { useMinimizeOnScroll } from '@oxy.so/bloom/tab-bar';
 import { useAnimatedScrollMetricsBinding } from '@oxy.so/bloom/layout';
 import type { RefObject } from 'react';

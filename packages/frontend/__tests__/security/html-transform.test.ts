@@ -32,8 +32,10 @@ function imageSources(html: string): (string | null)[] {
 function unproxiedUrls(html: string): string[] {
   const decoded = new DOMParser()
     .parseFromString(`<textarea>${html.replace(/<\/textarea/gi, '')}</textarea>`, 'text/html')
-    .querySelector('textarea')!.value
-    .replace(/\\([0-9a-f]{1,6}) ?/gi, (_m, hex: string) => String.fromCodePoint(parseInt(hex, 16)))
+    .querySelector('textarea')!
+    .value.replace(/\\([0-9a-f]{1,6}) ?/gi, (_m, hex: string) =>
+      String.fromCodePoint(parseInt(hex, 16)),
+    )
     .replace(/\\(.)/g, '$1');
   return (decoded.match(/(?:https?:|[\\/]{2})[^\s"'()<>]*/gi) ?? []).filter(
     (url) => !url.startsWith(PROXY) && !/^(?:https?:)?[\\/]*$/.test(url),
@@ -64,7 +66,7 @@ describe('email HTML security boundary', () => {
   it('removes nested active documents and preserves encoded text and query strings', () => {
     const html = sanitizeEmailHtml(
       '<noscript><img src=x onerror=alert(1)></noscript><iframe srcdoc="&lt;script&gt;alert(1)&lt;/script&gt;"></iframe>' +
-      '<p>&lt;script&gt; is text</p><a href="https://example.com/?a=1&amp;b=2">link</a>',
+        '<p>&lt;script&gt; is text</p><a href="https://example.com/?a=1&amp;b=2">link</a>',
     );
     const document = new DOMParser().parseFromString(html, 'text/html');
     expect(document.querySelector('noscript, iframe, script')).toBeNull();
@@ -121,17 +123,24 @@ describe('email HTML security boundary', () => {
   });
 
   it('preserves query parameters and proxies protocol-relative resources after serialization', () => {
-    const html = proxyExternalImages(sanitizeEmailHtml(
-      '<img src="//images.example/a.png?x=1&amp;y=2"><div style="background-image:url(//images.example/b.png)"></div>',
-    ), 'https://api.example/email/proxy');
+    const html = proxyExternalImages(
+      sanitizeEmailHtml(
+        '<img src="//images.example/a.png?x=1&amp;y=2"><div style="background-image:url(//images.example/b.png)"></div>',
+      ),
+      'https://api.example/email/proxy',
+    );
     const document = new DOMParser().parseFromString(html, 'text/html');
     const url = new URL(document.querySelector('img')!.getAttribute('src')!);
     expect(atob(url.searchParams.get('url')!)).toBe('https://images.example/a.png?x=1&y=2');
-    expect(document.querySelector('div')?.getAttribute('style')).toContain('https://api.example/email/proxy');
+    expect(document.querySelector('div')?.getAttribute('style')).toContain(
+      'https://api.example/email/proxy',
+    );
   });
 
   it('drops foreign content, where <style> hides markup from the sanitizer', () => {
-    const html = sanitizeEmailHtml('<svg><style><img src=https://tracker.example/p.gif></style></svg><p>hi</p>');
+    const html = sanitizeEmailHtml(
+      '<svg><style><img src=https://tracker.example/p.gif></style></svg><p>hi</p>',
+    );
     expect(html).not.toMatch(/svg|tracker/);
     expect(html).toContain('<p>hi</p>');
   });
@@ -143,7 +152,9 @@ describe('email HTML security boundary', () => {
       'https://api.example/email/proxy',
     );
     // The <video> is a link now (see "video and audio"): a link loads nothing.
-    expect(html.replace(/<a [^>]*>[^<]*<\/a>/g, '')).not.toMatch(/(["'(\s])https?:\/\/tracker\.example/i);
+    expect(html.replace(/<a [^>]*>[^<]*<\/a>/g, '')).not.toMatch(
+      /(["'(\s])https?:\/\/tracker\.example/i,
+    );
     expect(html).toContain('href="https://site.example/"');
   });
 
@@ -161,9 +172,11 @@ describe('email HTML security boundary', () => {
   });
 
   it('resolves only known CID attachments', () => {
-    expect(resolveCidImages('<img src="cid:known"><img src="cid:unknown">', {
-      known: 'https://files.example/known',
-    })).toBe('<img src="https://files.example/known"><img src="cid:unknown">');
+    expect(
+      resolveCidImages('<img src="cid:known"><img src="cid:unknown">', {
+        known: 'https://files.example/known',
+      }),
+    ).toBe('<img src="https://files.example/known"><img src="cid:unknown">');
   });
 
   describe('tracking-proxy bypasses', () => {
@@ -171,10 +184,11 @@ describe('email HTML security boundary', () => {
 
     it('proxies backslash, slash-less and protocol-relative URLs, as a browser reads them', () => {
       // The detector itself sees through entities and CSS escapes.
-      expect(unproxiedUrls('<img src="https://t.example/x.gif"><i style="background:u\\72l(&quot;\\68ttps://t.example/y.gif&quot;)">')).toEqual([
-        'https://t.example/x.gif',
-        'https://t.example/y.gif',
-      ]);
+      expect(
+        unproxiedUrls(
+          '<img src="https://t.example/x.gif"><i style="background:u\\72l(&quot;\\68ttps://t.example/y.gif&quot;)">',
+        ),
+      ).toEqual(['https://t.example/x.gif', 'https://t.example/y.gif']);
       const html = rewrite(
         '<img src="https:\\\\t.example\\a.gif"><img src="https:t.example/b.gif"><img src="\\\\t.example\\c.gif">' +
           '<img src="/\\t.example/d.gif"><img src="HTTPS://t.example/e.gif">' +
@@ -191,10 +205,13 @@ describe('email HTML security boundary', () => {
         'https://t.example/e.gif',
       ]);
       // On its own, the proxy pass reads it as the browser does: another host.
-      expect(proxiedUrl(imageSources(proxyExternalImages('<img src="\\\\t.example\\c.gif">', PROXY))[0])).toBe(
-        'https://t.example/c.gif',
-      );
-      const srcset = new DOMParser().parseFromString(html, 'text/html').querySelectorAll('img')[5].getAttribute('srcset')!;
+      expect(
+        proxiedUrl(imageSources(proxyExternalImages('<img src="\\\\t.example\\c.gif">', PROXY))[0]),
+      ).toBe('https://t.example/c.gif');
+      const srcset = new DOMParser()
+        .parseFromString(html, 'text/html')
+        .querySelectorAll('img')[5]
+        .getAttribute('srcset')!;
       expect(srcset.split(', ').map((candidate) => proxiedUrl(candidate.split(' ')[0]))).toEqual([
         'https://t.example/f.gif',
         'https://t.example/g.gif',
@@ -222,14 +239,16 @@ describe('email HTML security boundary', () => {
       const document = new DOMParser().parseFromString(html, 'text/html');
       const css = [
         ...[...document.querySelectorAll('style')].map((style) => style.textContent),
-        ...[...document.querySelectorAll('[style]')].map((element) => element.getAttribute('style')),
+        ...[...document.querySelectorAll('[style]')].map((element) =>
+          element.getAttribute('style'),
+        ),
       ].join('\n');
       const proxied = [...css.matchAll(/url\("([^"]+)"\)/g)].map((match) => proxiedUrl(match[1]));
       expect(proxied).toEqual([
         "https://t.example/a'b.gif",
         'https://t.example/q%22q.gif',
         'https://t.example/x).gif',
-        "https://t.example/p.gif?x=%27)",
+        'https://t.example/p.gif?x=%27)',
         "https://t.example/c'd.gif",
       ]);
     });
@@ -255,7 +274,9 @@ describe('email HTML security boundary', () => {
     });
 
     it('does not rewrite url( in the text of the mail', () => {
-      expect(sanitizeEmailHtml('<p>call url(foo) or @import x;</p>')).toBe('<p>call url(foo) or @import x;</p>');
+      expect(sanitizeEmailHtml('<p>call url(foo) or @import x;</p>')).toBe(
+        '<p>call url(foo) or @import x;</p>',
+      );
     });
   });
 
@@ -271,7 +292,9 @@ describe('email HTML security boundary', () => {
       );
       const document = new DOMParser().parseFromString(html, 'text/html');
       expect(document.querySelector('video, audio, source, track')).toBeNull();
-      expect([...document.querySelectorAll('a')].map((a) => [a.getAttribute('href'), a.textContent])).toEqual([
+      expect(
+        [...document.querySelectorAll('a')].map((a) => [a.getAttribute('href'), a.textContent]),
+      ).toEqual([
         ['https://cdn.example/clip.mp4', 'Open video'],
         ['https://cdn.example/song.mp3', 'Open audio'],
       ]);
@@ -287,6 +310,8 @@ describe('email HTML security boundary', () => {
   });
 
   it('removes hyperlink-auditing pings', () => {
-    expect(sanitizeEmailHtml('<a href="https://site.example/" ping="https://t.example/ping">x</a>')).not.toContain('ping');
+    expect(
+      sanitizeEmailHtml('<a href="https://site.example/" ping="https://t.example/ping">x</a>'),
+    ).not.toContain('ping');
   });
 });

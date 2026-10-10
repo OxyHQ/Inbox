@@ -30,7 +30,9 @@ async function readStored(key: string): Promise<string[]> {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       return mergeRecentSearches(JSON.parse(window.localStorage.getItem(key) ?? '[]'));
     }
-    const AsyncStorage = await import('@react-native-async-storage/async-storage').then((m) => m.default);
+    const AsyncStorage = await import('@react-native-async-storage/async-storage').then(
+      (m) => m.default,
+    );
     return mergeRecentSearches(JSON.parse((await AsyncStorage.getItem(key)) ?? '[]'));
   } catch {
     return [];
@@ -43,7 +45,9 @@ async function writeStored(key: string, value: string[]): Promise<void> {
       window.localStorage.setItem(key, JSON.stringify(value));
       return;
     }
-    const AsyncStorage = await import('@react-native-async-storage/async-storage').then((m) => m.default);
+    const AsyncStorage = await import('@react-native-async-storage/async-storage').then(
+      (m) => m.default,
+    );
     await AsyncStorage.setItem(key, JSON.stringify(value));
   } catch {
     // Recent searches improve navigation but must never block searching.
@@ -64,13 +68,16 @@ export function useRecentSearches(scope: string | null | undefined) {
     };
   }, [key]);
 
-  const remember = useCallback((query: string) => {
-    setRecentSearches((current) => {
-      const next = addRecentSearch(current, query);
-      void writeStored(key, next);
-      return next;
-    });
-  }, [key]);
+  const remember = useCallback(
+    (query: string) => {
+      setRecentSearches((current) => {
+        const next = addRecentSearch(current, query);
+        void writeStored(key, next);
+        return next;
+      });
+    },
+    [key],
+  );
 
   const clear = useCallback(() => {
     setRecentSearches([]);

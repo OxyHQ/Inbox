@@ -1,7 +1,4 @@
-import {
-  InboxSettingsProvider,
-  useInboxSettings,
-} from '@/components/settings/InboxSettings';
+import { InboxSettingsProvider, useInboxSettings } from '@/components/settings/InboxSettings';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 
@@ -15,10 +12,7 @@ jest.mock('@oxy.so/services', () => ({
     showBottomSheet: mockShowAccount,
   }),
 }));
-jest.mock(
-  '@oxy.so/bloom/icons',
-  () => new Proxy({}, { get: () => () => null }),
-);
+jest.mock('@oxy.so/bloom/icons', () => new Proxy({}, { get: () => () => null }));
 jest.mock('@/lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
@@ -124,9 +118,7 @@ it('excludes private pages and rejects a private deep link while signed out', ()
   );
   fireEvent.click(screen.getByText('Account link'));
   expect(mockModal.pages.account).toBeUndefined();
-  expect(
-    mockModal.groups[0].items.some((item: any) => item.key === 'account'),
-  ).toBe(false);
+  expect(mockModal.groups[0].items.some((item: any) => item.key === 'account')).toBe(false);
   expect(mockOpen).toHaveBeenLastCalledWith({
     initialView: 'page',
     page: 'appearance',

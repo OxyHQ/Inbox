@@ -50,7 +50,7 @@ function getDaysSince(dateStr: string): number {
 export function useStaleThread(
   messages: Message[],
   identity: OwnIdentity,
-  staleThresholdDays = STALE_DAYS_THRESHOLD
+  staleThresholdDays = STALE_DAYS_THRESHOLD,
 ): StaleThreadInfo | null {
   const { username, email } = identity;
   return useMemo(() => {
@@ -64,7 +64,7 @@ export function useStaleThread(
 
     // Sort by date (newest first)
     const sorted = [...messages].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     );
 
     const latestMessage = sorted[0];

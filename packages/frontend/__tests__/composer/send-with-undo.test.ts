@@ -29,8 +29,7 @@ jest.mock('@tanstack/react-query', () => ({
 
 const sendMessage = jest.fn();
 jest.mock('@/hooks/useEmail', () => ({
-  useEmailStore: (selector: (s: unknown) => unknown) =>
-    selector({ _api: { sendMessage } }),
+  useEmailStore: (selector: (s: unknown) => unknown) => selector({ _api: { sendMessage } }),
 }));
 
 jest.mock('@oxy.so/services', () => ({ useOxy: () => ({ user: { id: 'u1' } }) }));
@@ -73,7 +72,11 @@ async function elapseUndoWindow() {
 
 describe('delivered', () => {
   it('reports success and lets the caller discard the recovery snapshot', async () => {
-    sendMessage.mockResolvedValue({ messageId: '<a@oxy.so>', queued: false, message: 'Message sent' });
+    sendMessage.mockResolvedValue({
+      messageId: '<a@oxy.so>',
+      queued: false,
+      message: 'Message sent',
+    });
     const onSuccess = jest.fn();
     const onQueued = jest.fn();
 
@@ -95,7 +98,11 @@ describe('delivered', () => {
 
 describe('queued', () => {
   it('does NOT call onSuccess — the snapshot must survive', async () => {
-    sendMessage.mockResolvedValue({ messageId: '<a@oxy.so>', queued: true, message: 'Message queued for delivery' });
+    sendMessage.mockResolvedValue({
+      messageId: '<a@oxy.so>',
+      queued: true,
+      message: 'Message queued for delivery',
+    });
     const onSuccess = jest.fn();
     const onQueued = jest.fn();
 
@@ -111,7 +118,11 @@ describe('queued', () => {
   });
 
   it('warns rather than reporting success, and says where to look', async () => {
-    sendMessage.mockResolvedValue({ messageId: '<a@oxy.so>', queued: true, message: 'Message queued for delivery' });
+    sendMessage.mockResolvedValue({
+      messageId: '<a@oxy.so>',
+      queued: true,
+      message: 'Message queued for delivery',
+    });
 
     const { result } = renderHook(() => useSendMessageWithUndo());
     await act(async () => {
@@ -130,7 +141,11 @@ describe('queued', () => {
 
 describe('undo', () => {
   it('cancels within the window and never reaches the network', async () => {
-    sendMessage.mockResolvedValue({ messageId: '<a@oxy.so>', queued: false, message: 'Message sent' });
+    sendMessage.mockResolvedValue({
+      messageId: '<a@oxy.so>',
+      queued: false,
+      message: 'Message sent',
+    });
     const onSuccess = jest.fn();
 
     const { result } = renderHook(() => useSendMessageWithUndo());
@@ -157,7 +172,11 @@ describe('after the window', () => {
    * it said "cancelled" and reopened the composer for a message that left.
    */
   it('dismisses the toast when the send fires, and Undo then does nothing', async () => {
-    sendMessage.mockResolvedValue({ messageId: '<a@oxy.so>', queued: false, message: 'Message sent' });
+    sendMessage.mockResolvedValue({
+      messageId: '<a@oxy.so>',
+      queued: false,
+      message: 'Message sent',
+    });
     const onCancel = jest.fn();
     toast.mockReturnValueOnce('undo-toast');
 
@@ -224,7 +243,11 @@ describe('idempotency', () => {
    */
   it('sends the compose session key unchanged on every attempt', async () => {
     sendMessage.mockRejectedValueOnce(new Error('timeout'));
-    sendMessage.mockResolvedValueOnce({ messageId: '<a@oxy.so>', queued: false, message: 'Message sent' });
+    sendMessage.mockResolvedValueOnce({
+      messageId: '<a@oxy.so>',
+      queued: false,
+      message: 'Message sent',
+    });
 
     const { result } = renderHook(() => useSendMessageWithUndo());
     await act(async () => {

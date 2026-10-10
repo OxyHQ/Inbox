@@ -30,7 +30,8 @@ export function useThreadSummary(
 ) {
   const { oxyServices, user } = useOxy();
   const { enabled = true, minMessages = 1 } = options;
-  const shouldFetch = enabled && !!user && !!messageId && !!messages && messages.length >= minMessages;
+  const shouldFetch =
+    enabled && !!user && !!messageId && !!messages && messages.length >= minMessages;
 
   const query = useQuery({
     queryKey: aiKeys.threadSummary(messageId),

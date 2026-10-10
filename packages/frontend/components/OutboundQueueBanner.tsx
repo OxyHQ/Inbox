@@ -12,19 +12,11 @@
  */
 
 import React, { useMemo } from 'react';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@oxy.so/bloom/card';
+import { Card, CardHeader, CardTitle, CardDescription } from '@oxy.so/bloom/card';
 import { useRouter } from 'expo-router';
 
 import { useOutboundMessages } from '@/hooks/queries/useOutboundMessages';
-import {
-  outstandingOutbound,
-  stuckOutbound,
-} from '@/components/settings/OutboundQueueSection';
+import { outstandingOutbound, stuckOutbound } from '@/components/settings/OutboundQueueSection';
 import { useTranslation } from '@/lib/i18n';
 
 export function OutboundQueueBanner() {

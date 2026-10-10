@@ -7,11 +7,7 @@ import {
   RiMailOpenLine,
   RiTimeLine,
 } from '@oxy.so/bloom/icons';
-import {
-  SwipeRow,
-  useSwipeAvailable,
-  type SwipeRowAction,
-} from '@oxy.so/bloom/swipe-row';
+import { SwipeRow, useSwipeAvailable, type SwipeRowAction } from '@oxy.so/bloom/swipe-row';
 import { useState, type ReactNode } from 'react';
 interface SwipeableRowProps {
   children: ReactNode;
@@ -58,8 +54,7 @@ export function SwipeableRow({
             onPress: () => onAction(key, messageId),
           },
         ];
-  if (!enabled || (leftAction === 'none' && rightAction === 'none'))
-    return <>{children}</>;
+  if (!enabled || (leftAction === 'none' && rightAction === 'none')) return <>{children}</>;
   return (
     <SwipeRow
       key={gesture}

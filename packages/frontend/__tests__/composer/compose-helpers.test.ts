@@ -6,15 +6,8 @@ import {
 
 describe('compose helpers', () => {
   it('keeps valid recipients and reports every invalid entry', () => {
-    expect(
-      parseComposeRecipients(
-        'alice@example.com, not-an-email, bob@example.org',
-      ),
-    ).toEqual({
-      addresses: [
-        { address: 'alice@example.com' },
-        { address: 'bob@example.org' },
-      ],
+    expect(parseComposeRecipients('alice@example.com, not-an-email, bob@example.org')).toEqual({
+      addresses: [{ address: 'alice@example.com' }, { address: 'bob@example.org' }],
       invalid: ['not-an-email'],
     });
   });

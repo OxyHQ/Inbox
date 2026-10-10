@@ -56,11 +56,7 @@ export function useColors() {
       swipeDeleteForeground: bloom.errorForeground,
       swipeReadForeground: bloom.infoForeground,
       swipeSnoozeForeground: bloom.warningForeground,
-      avatarColors: [
-        bloom.primarySubtle,
-        bloom.secondarySubtle,
-        bloom.tertiarySubtle,
-      ],
+      avatarColors: [bloom.primarySubtle, bloom.secondarySubtle, bloom.tertiarySubtle],
       avatarForegrounds: [
         bloom.primarySubtleForeground,
         bloom.secondarySubtleForeground,

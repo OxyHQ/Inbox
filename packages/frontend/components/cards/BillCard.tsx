@@ -16,9 +16,7 @@ export function BillCard({ data }: BillCardProps) {
   const colors = useColors();
 
   const formattedAmount =
-    data.amount != null
-      ? formatMoney(locale, data.amount, data.currency)
-      : null;
+    data.amount != null ? formatMoney(locale, data.amount, data.currency) : null;
 
   const dueDate = data.dueDate
     ? formatCardDate(locale, data.dueDate, {
@@ -38,14 +36,10 @@ export function BillCard({ data }: BillCardProps) {
       <CardBody>
         <View style={styles.body}>
           {data.biller && (
-            <Text style={[styles.biller, { color: colors.text }]}>
-              {data.biller}
-            </Text>
+            <Text style={[styles.biller, { color: colors.text }]}>{data.biller}</Text>
           )}
           {formattedAmount && (
-            <Text style={[styles.amount, { color: colors.text }]}>
-              {formattedAmount}
-            </Text>
+            <Text style={[styles.amount, { color: colors.text }]}>{formattedAmount}</Text>
           )}
           {dueDate && (
             <View style={styles.row}>
@@ -69,9 +63,7 @@ export function BillCard({ data }: BillCardProps) {
               <Text style={[styles.label, { color: colors.secondaryText }]}>
                 {t('cards.bill.account')}
               </Text>
-              <Text style={[styles.value, { color: colors.text }]}>
-                {data.accountNumber}
-              </Text>
+              <Text style={[styles.value, { color: colors.text }]}>{data.accountNumber}</Text>
             </View>
           )}
         </View>

@@ -65,13 +65,13 @@ jest.mock('@oxy.so/bloom/app-shell', () => ({
     );
   },
   AppShellSplitPanes: ({ list, detail, showList, showDetail }: any) => (
-    <div>{showList && list}{showDetail && detail}</div>
+    <div>
+      {showList && list}
+      {showDetail && detail}
+    </div>
   ),
 }));
-jest.mock(
-  '@oxy.so/bloom/icons',
-  () => new Proxy({}, { get: () => () => null }),
-);
+jest.mock('@oxy.so/bloom/icons', () => new Proxy({}, { get: () => () => null }));
 jest.mock('@oxy.so/bloom/dialog', () => ({
   useDialogControl: () => ({ open: jest.fn(), close: jest.fn() }),
   Dialog: ({ children, actions }: any) => (
@@ -103,9 +103,7 @@ jest.mock('@oxy.so/bloom/text-field', () => ({
 }));
 jest.mock('@oxy.so/services', () => ({
   useOxy: () => ({ isAuthenticated: mockAuthenticated }),
-  ProfileButton: () => (
-    <button>{mockAuthenticated ? 'Account' : 'Sign in'}</button>
-  ),
+  ProfileButton: () => <button>{mockAuthenticated ? 'Account' : 'Sign in'}</button>,
   OxySignInButton: () => <button>Sign in</button>,
   openAccountDialog: jest.fn(),
 }));
@@ -161,10 +159,7 @@ it('routes system mailboxes, custom folders, labels and compose without changing
   );
   for (const [key, expected] of [
     ['inbox-id', '/'],
-    [
-      'sent-id',
-      { pathname: '/(drawer)/(tabs)/(inbox)/[view]', params: { view: 'sent' } },
-    ],
+    ['sent-id', { pathname: '/(drawer)/(tabs)/(inbox)/[view]', params: { view: 'sent' } }],
     [
       'custom-id',
       {
@@ -180,9 +175,7 @@ it('routes system mailboxes, custom folders, labels and compose without changing
       },
     ],
   ]) {
-    act(() =>
-      mockSidebar.items.find((item: any) => item.key === key).onPress(),
-    );
+    act(() => mockSidebar.items.find((item: any) => item.key === key).onPress());
     expect(mockPush).toHaveBeenLastCalledWith(expected);
   }
   act(() => mockSidebar.primaryAction.onPress());
@@ -195,23 +188,12 @@ it('retains folder create and long-press delete mutations and a keyboard-accessi
   fireEvent.change(screen.getByLabelText('ui.drawer.folderName'), {
     target: { value: '  Work  ' },
   });
-  fireEvent.click(
-    screen.getByRole('button', { name: 'ui.drawer.createFolderButton' }),
-  );
+  fireEvent.click(screen.getByRole('button', { name: 'ui.drawer.createFolderButton' }));
   expect(mockCreate).toHaveBeenCalledWith({ name: 'Work' }, expect.any(Object));
-  act(() =>
-    mockSidebar.items
-      .find((item: any) => item.key === 'custom-id')
-      .onLongPress(),
-  );
+  act(() => mockSidebar.items.find((item: any) => item.key === 'custom-id').onLongPress());
   fireEvent.click(screen.getByRole('button', { name: 'common.delete' }));
-  expect(mockDelete).toHaveBeenCalledWith(
-    { mailboxId: 'custom-id' },
-    expect.any(Object),
-  );
-  fireEvent.click(
-    screen.getByRole('button', { name: 'common.delete · Invoices' }),
-  );
+  expect(mockDelete).toHaveBeenCalledWith({ mailboxId: 'custom-id' }, expect.any(Object));
+  fireEvent.click(screen.getByRole('button', { name: 'common.delete · Invoices' }));
   fireEvent.click(screen.getByRole('button', { name: 'common.delete' }));
   expect(mockDelete).toHaveBeenCalledTimes(2);
 });
@@ -245,24 +227,42 @@ it('gives subscriptions one solid workspace while preserving the routed navigato
       />
     );
   }
-  const view = render(<MailboxShell><RetainedRoute /></MailboxShell>);
+  const view = render(
+    <MailboxShell>
+      <RetainedRoute />
+    </MailboxShell>,
+  );
   const draft = screen.getByLabelText('Retained draft');
   fireEvent.change(draft, { target: { value: 'Keep my draft' } });
-  const appearance = () => draft.closest('[data-panel-appearance]')?.getAttribute('data-panel-appearance');
+  const appearance = () =>
+    draft.closest('[data-panel-appearance]')?.getAttribute('data-panel-appearance');
   expect(appearance()).toBe('plain');
   mockPath = '/subscriptions';
-  view.rerender(<MailboxShell><RetainedRoute /></MailboxShell>);
+  view.rerender(
+    <MailboxShell>
+      <RetainedRoute />
+    </MailboxShell>,
+  );
   expect(screen.queryByText('Mailbox list')).toBeNull();
   expect(screen.getByLabelText('Retained draft')).toBe(draft);
   expect(appearance()).toBe('solid');
   mockPath = '/';
-  view.rerender(<MailboxShell><RetainedRoute /></MailboxShell>);
+  view.rerender(
+    <MailboxShell>
+      <RetainedRoute />
+    </MailboxShell>,
+  );
   expect(screen.getByText('Mailbox list')).toBeTruthy();
   expect((screen.getByLabelText('Retained draft') as HTMLInputElement).value).toBe('Keep my draft');
 });
 
 it('names the IMAP \\Junk folder with the Spam key, not a raw "Junk"', () => {
-  mockMailboxes.push({ _id: 'junk-id', name: 'Junk', specialUse: SPECIAL_USE.SPAM, unseenMessages: 0 });
+  mockMailboxes.push({
+    _id: 'junk-id',
+    name: 'Junk',
+    specialUse: SPECIAL_USE.SPAM,
+    unseenMessages: 0,
+  });
   mockState.moreExpanded = true;
   try {
     render(<MailboxShell>{null}</MailboxShell>);

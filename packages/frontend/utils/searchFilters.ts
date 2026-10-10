@@ -31,13 +31,10 @@ export function filtersDateRange(filters: SearchFilters): DateRange | null {
   if (!filters.dateAfter || !filters.dateBefore) return null;
   // Date-only search operators represent local calendar days, not UTC midnights.
   const parse = (value: string) =>
-    /^\d{4}-\d{2}-\d{2}$/.test(value)
-      ? new Date(`${value}T00:00:00`)
-      : new Date(value);
+    /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00`) : new Date(value);
   const start = parse(filters.dateAfter);
   const end = parse(filters.dateBefore);
-  if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()))
-    return null;
+  if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) return null;
   return { start, end };
 }
 

@@ -5,9 +5,7 @@
     "skipLibCheck": true,
     "types": ["node"],
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"]
     }
   },
   "include": [
@@ -18,11 +16,5 @@
     "types/**/*.d.ts",
     "nativewind-env.d.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "__tests__",
-    "__mocks__",
-    "jest.config.js",
-    "jest.setup.ts"
-  ]
+  "exclude": ["node_modules", "__tests__", "__mocks__", "jest.config.js", "jest.setup.ts"]
 }

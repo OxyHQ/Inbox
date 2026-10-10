@@ -25,10 +25,7 @@ export default function Root({ children }: PropsWithChildren) {
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, viewport-fit=cover"
-        />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 
         <title>{DEFAULT_TITLE}</title>
         <meta name="description" content={DEFAULT_DESCRIPTION} />
@@ -40,16 +37,8 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="format-detection" content="telephone=no" />
 
         {/* Theme color (light + dark) */}
-        <meta
-          name="theme-color"
-          content="#f3f3f7"
-          media="(prefers-color-scheme: light)"
-        />
-        <meta
-          name="theme-color"
-          content="#0c0e11"
-          media="(prefers-color-scheme: dark)"
-        />
+        <meta name="theme-color" content="#f3f3f7" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#0c0e11" media="(prefers-color-scheme: dark)" />
 
         {/* Open Graph */}
         <meta property="og:type" content="website" />

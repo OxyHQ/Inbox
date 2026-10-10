@@ -14,11 +14,7 @@ import { useEmailStore } from '@/hooks/useEmail';
 import { useMessageActions } from '@/hooks/useMessageActions';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useLeaveRemovedRows } from '@/hooks/useLeaveRemovedRows';
-import {
-  buildReplyRecipients,
-  joinAddresses,
-  type ReplyMode,
-} from '@/utils/replyRecipients';
+import { buildReplyRecipients, joinAddresses, type ReplyMode } from '@/utils/replyRecipients';
 import { messageRoute } from '@/utils/messageRoute';
 
 export default function InboxLayout() {
@@ -42,7 +38,9 @@ export default function InboxLayout() {
     if (!selectedMessageId) return -1;
     const exact = rows.findIndex((m) => m._id === selectedMessageId);
     if (exact !== -1) return exact;
-    return rows.findIndex((row) => conversationOf(row._id).some((m) => m._id === selectedMessageId));
+    return rows.findIndex((row) =>
+      conversationOf(row._id).some((m) => m._id === selectedMessageId),
+    );
   }, [selectedMessageId, rows, conversationOf]);
 
   const currentMessage = useMemo(() => {
@@ -94,14 +92,7 @@ export default function InboxLayout() {
         },
       });
     },
-    [
-      selectedMessageId,
-      currentMessage,
-      router,
-      isDesktop,
-      user?.username,
-      user?.email,
-    ],
+    [selectedMessageId, currentMessage, router, isDesktop, user?.username, user?.email],
   );
 
   const handleReply = useCallback(() => openReply('reply'), [openReply]);

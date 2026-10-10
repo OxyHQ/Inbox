@@ -5,14 +5,15 @@
  */
 
 const useMessage = jest.fn();
-jest.mock('@/hooks/queries/useMessage', () => ({ useMessage: (id: string | undefined) => useMessage(id) }));
+jest.mock('@/hooks/queries/useMessage', () => ({
+  useMessage: (id: string | undefined) => useMessage(id),
+}));
 jest.mock('@/lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 jest.mock('@oxy.so/bloom/admonition', () => {
   const pass = ({ children }: { children?: unknown }) => children;
   return {
-    AdmonitionRoot: ({ children, type }: { children?: unknown; type?: string }) => (
-      require('react').createElement('div', { role: 'alert', 'data-type': type }, children)
-    ),
+    AdmonitionRoot: ({ children, type }: { children?: unknown; type?: string }) =>
+      require('react').createElement('div', { role: 'alert', 'data-type': type }, children),
     AdmonitionRow: pass,
     AdmonitionIcon: () => null,
     AdmonitionContent: pass,
@@ -30,8 +31,17 @@ import { ReplyParentNotice } from '@/components/ReplyParentNotice';
 
 const parent = { messageId: '<case@amazon.com>', references: ['<root@amazon.com>'] };
 
-function query(state: Partial<{ data: unknown; isError: boolean; isFetching: boolean; isFetched: boolean }>) {
-  return { data: undefined, isError: false, isFetching: false, isFetched: false, refetch: jest.fn(), ...state };
+function query(
+  state: Partial<{ data: unknown; isError: boolean; isFetching: boolean; isFetched: boolean }>,
+) {
+  return {
+    data: undefined,
+    isError: false,
+    isFetching: false,
+    isFetched: false,
+    refetch: jest.fn(),
+    ...state,
+  };
 }
 
 beforeEach(() => useMessage.mockReset());
@@ -78,7 +88,9 @@ describe('useReplyParent', () => {
 
 describe('ReplyParentNotice', () => {
   it('shows nothing while loading — the Send button carries that state', () => {
-    const { container } = render(<ReplyParentNotice state={{ status: 'loading', retry: jest.fn() }} />);
+    const { container } = render(
+      <ReplyParentNotice state={{ status: 'loading', retry: jest.fn() }} />,
+    );
     expect(container.innerHTML).toBe('');
   });
 

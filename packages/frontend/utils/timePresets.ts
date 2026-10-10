@@ -17,8 +17,10 @@ export function presetsThatMakeSense<T extends { label: string; getDate: () => D
   return options.filter((option) => {
     const date = option.getDate();
     if (date.getTime() <= now.getTime()) return false;
-    if (option.label.endsWith('.laterToday') && date.toDateString() !== now.toDateString()) return false;
-    if (option.label.endsWith('.thisWeekend') && (now.getDay() === 0 || now.getDay() === 6)) return false;
+    if (option.label.endsWith('.laterToday') && date.toDateString() !== now.toDateString())
+      return false;
+    if (option.label.endsWith('.thisWeekend') && (now.getDay() === 0 || now.getDay() === 6))
+      return false;
     if (seen.has(date.getTime())) return false;
     seen.add(date.getTime());
     return true;

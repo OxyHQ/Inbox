@@ -28,22 +28,21 @@ interface ThreadSummaryProps {
  * said only the Daily Brief and Smart Reply used inference. Now it is a button,
  * behind its own preference, and nothing leaves until it is pressed.
  */
-export function ThreadSummary({
-  messageId,
-  messages,
-  minMessages = 1,
-}: ThreadSummaryProps) {
+export function ThreadSummary({ messageId, messages, minMessages = 1 }: ThreadSummaryProps) {
   const { t } = useTranslation();
   const { prefs } = useInboxPrefs();
   const [expanded, setExpanded] = useState(true);
   // Per conversation: opening another one asks again.
   const [requestedFor, setRequestedFor] = useState<string | null>(null);
   const requested = requestedFor === messageId;
-  const { summary, keyPoints, actionItems, isLoading, error } =
-    useThreadSummary(messageId, messages, {
+  const { summary, keyPoints, actionItems, isLoading, error } = useThreadSummary(
+    messageId,
+    messages,
+    {
       minMessages,
       enabled: prefs.aiThreadSummary && requested,
-    });
+    },
+  );
   if (!prefs.aiThreadSummary || messages.length < minMessages) return null;
   if (!requested) {
     return (
@@ -61,8 +60,7 @@ export function ThreadSummary({
   if (isLoading) return <Loading text={t('threadSummary.title')} />;
   // Asked for, so a failure is said rather than the button just vanishing.
   if (error) return <Text>{t('threadSummary.unavailable')}</Text>;
-  if (!summary.trim() && keyPoints.length === 0 && actionItems.length === 0)
-    return null;
+  if (!summary.trim() && keyPoints.length === 0 && actionItems.length === 0) return null;
   return (
     <View className="w-full max-w-3xl">
       <Accordion
@@ -70,28 +68,24 @@ export function ThreadSummary({
         onValueChange={(value) => setExpanded(value === 'summary')}
       >
         <AccordionItem value="summary">
-          <AccordionTrigger icon={<RiSparklingLine />}>
-            {t('threadSummary.title')}
-          </AccordionTrigger>
+          <AccordionTrigger icon={<RiSparklingLine />}>{t('threadSummary.title')}</AccordionTrigger>
           <AccordionContent>
             <View className="gap-3">
               {summary && <Text selectable>{summary}</Text>}
               {keyPoints.length > 0 && (
                 <View className="gap-2">
-                  <Text variant="caption-1-medium">
-                    {t('threadSummary.keyPoints')}
-                  </Text>
+                  <Text variant="caption-1-medium">{t('threadSummary.keyPoints')}</Text>
                   {keyPoints.map((point, index) => (
-                    <Text key={index} selectable>• {point}</Text>
+                    <Text key={index} selectable>
+                      • {point}
+                    </Text>
                   ))}
                 </View>
               )}
               {actionItems.length > 0 && (
                 <View className="gap-2">
                   <Divider />
-                  <Text variant="caption-1-medium">
-                    {t('threadSummary.actionItems')}
-                  </Text>
+                  <Text variant="caption-1-medium">{t('threadSummary.actionItems')}</Text>
                   {actionItems.map((item, index) => (
                     <View key={index} className="gap-1">
                       <Text selectable>{item.text}</Text>

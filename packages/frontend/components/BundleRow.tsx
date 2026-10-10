@@ -11,18 +11,11 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Text } from '@oxy.so/bloom/typography';
 import { useMemo, type ComponentProps } from 'react';
 import { View } from 'react-native';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@oxy.so/bloom/card';
+import { Card, CardHeader, CardTitle, CardDescription } from '@oxy.so/bloom/card';
 import { RiArrowUpSLine, RiArrowDownSLine } from '@oxy.so/bloom/icons';
 import { useTranslation } from '@/lib/i18n';
 
-type MaterialCommunityIconName = ComponentProps<
-  typeof MaterialCommunityIcons
->['name'];
+type MaterialCommunityIconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 interface BundleRowProps {
   bundle: Bundle;
@@ -32,13 +25,7 @@ interface BundleRowProps {
   onToggle: () => void;
 }
 
-export function BundleRow({
-  bundle,
-  messages,
-  unreadCount,
-  isExpanded,
-  onToggle,
-}: BundleRowProps) {
+export function BundleRow({ bundle, messages, unreadCount, isExpanded, onToggle }: BundleRowProps) {
   const { t } = useTranslation();
   const latestPreview = useMemo(() => {
     if (messages.length === 0) return '';
@@ -60,9 +47,7 @@ export function BundleRow({
       <CardHeader>
         <View className="flex-row items-center gap-2">
           <MaterialCommunityIcons
-            name={
-              (bundle.icon || 'folder-outline') as MaterialCommunityIconName
-            }
+            name={(bundle.icon || 'folder-outline') as MaterialCommunityIconName}
             size={20}
             color={bundle.color}
           />
@@ -70,19 +55,12 @@ export function BundleRow({
             <CardTitle>{bundle.name}</CardTitle>
           </View>
           {unreadCount > 0 && (
-            <Badge
-              color="primary"
-              variant="subtle"
-              content={unreadCount}
-              size="small"
-            />
+            <Badge color="primary" variant="subtle" content={unreadCount} size="small" />
           )}
           <Text variant="caption-1-regular">{messages.length}</Text>
           {isExpanded ? <RiArrowUpSLine /> : <RiArrowDownSLine />}
         </View>
-        {!isExpanded && (
-          <CardDescription numberOfLines={1}>{latestPreview}</CardDescription>
-        )}
+        {!isExpanded && <CardDescription numberOfLines={1}>{latestPreview}</CardDescription>}
       </CardHeader>
     </Card>
   );

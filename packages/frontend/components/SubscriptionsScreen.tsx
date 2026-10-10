@@ -18,11 +18,7 @@ import { useOxy } from '@oxy.so/services';
  */
 
 import { useMinimizeOnScroll } from '@oxy.so/bloom/tab-bar';
-import {
-  FlashList,
-  type FlashListProps,
-  type FlashListRef,
-} from '@shopify/flash-list';
+import { FlashList, type FlashListProps, type FlashListRef } from '@shopify/flash-list';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useWindowDimensions, RefreshControl, View } from 'react-native';
 import Animated, { type AnimatedProps } from 'react-native-reanimated';
@@ -73,20 +69,11 @@ function SubscriptionsContent() {
   const { t } = useTranslation();
   const { user } = useOxy();
 
-  const {
-    data,
-    isLoading,
-    isRefetching,
-    refetch,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useSubscriptions();
+  const { data, isLoading, isRefetching, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useSubscriptions();
 
   const unsubscribeMutation = useUnsubscribe();
-  const [unsubscribingAddress, setUnsubscribingAddress] = useState<
-    string | null
-  >(null);
+  const [unsubscribingAddress, setUnsubscribingAddress] = useState<string | null>(null);
 
   // Offset pagination over a live aggregate: a message arriving between two
   // page fetches shifts every sender's rank, so a sender already on screen can
@@ -237,9 +224,7 @@ function SubscriptionsContent() {
                   only the header stays put, same as the inbox. */}
               {subscriptions.length > 0 && (
                 <View className="px-4 py-3">
-                  <Text variant="caption-1-regular">
-                    {t('subscriptions.delayNotice')}
-                  </Text>
+                  <Text variant="caption-1-regular">{t('subscriptions.delayNotice')}</Text>
                 </View>
               )}
             </>
@@ -250,10 +235,7 @@ function SubscriptionsContent() {
           onEndReachedThreshold={0.3}
           {...scrollBinding}
           refreshControl={
-            <RefreshControl
-              refreshing={isRefetching && !isFetchingNextPage}
-              onRefresh={refetch}
-            />
+            <RefreshControl refreshing={isRefetching && !isFetchingNextPage} onRefresh={refetch} />
           }
           contentContainerStyle={{
             ...(subscriptions.length === 0 ? { flexGrow: 1 } : undefined),

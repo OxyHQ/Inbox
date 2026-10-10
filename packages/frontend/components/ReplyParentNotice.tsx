@@ -20,7 +20,11 @@ import {
 import { useTranslation } from '@/lib/i18n';
 import type { ReplyParentState } from '@/hooks/useReplyParent';
 
-export function ReplyParentNotice({ state }: { state: Pick<ReplyParentState, 'status' | 'retry'> }) {
+export function ReplyParentNotice({
+  state,
+}: {
+  state: Pick<ReplyParentState, 'status' | 'retry'>;
+}) {
   const { t } = useTranslation();
   if (state.status !== 'error') return null;
 

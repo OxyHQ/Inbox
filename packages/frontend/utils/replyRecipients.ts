@@ -66,8 +66,17 @@ export function buildReplyRecipients(
 
   if (own(parent.from)) {
     const seen = new Set<string>();
-    const to = uniqueAddresses(parentTo.filter((a) => !own(a)), seen);
-    const cc = mode === 'reply-all' ? uniqueAddresses(parentCc.filter((a) => !own(a)), seen) : [];
+    const to = uniqueAddresses(
+      parentTo.filter((a) => !own(a)),
+      seen,
+    );
+    const cc =
+      mode === 'reply-all'
+        ? uniqueAddresses(
+            parentCc.filter((a) => !own(a)),
+            seen,
+          )
+        : [];
     return { to, cc };
   }
 
@@ -76,8 +85,14 @@ export function buildReplyRecipients(
   const to = uniqueAddresses([primary], seen);
   if (mode === 'reply') return { to, cc: [] };
 
-  const others = uniqueAddresses(parentTo.filter((a) => !own(a)), seen);
-  const cc = uniqueAddresses(parentCc.filter((a) => !own(a)), seen);
+  const others = uniqueAddresses(
+    parentTo.filter((a) => !own(a)),
+    seen,
+  );
+  const cc = uniqueAddresses(
+    parentCc.filter((a) => !own(a)),
+    seen,
+  );
   return { to: [...to, ...others], cc };
 }
 

@@ -1,11 +1,7 @@
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
 import { useTranslation } from '@/lib/i18n';
 import { Admonition } from '@oxy.so/bloom/admonition';
-import {
-  SettingsCard,
-  SettingsRow,
-  SettingsSection,
-} from '@oxy.so/bloom/settings-modal';
+import { SettingsCard, SettingsRow, SettingsSection } from '@oxy.so/bloom/settings-modal';
 import { Switch } from '@oxy.so/bloom/switch';
 import { Platform, View } from 'react-native';
 
@@ -22,9 +18,7 @@ export function NotificationsSection() {
   if (Platform.OS === 'web') {
     return (
       <View style={{ gap: 24 }}>
-        <Admonition type="info">
-          {t('ui.settings.notifications.webNotice')}
-        </Admonition>
+        <Admonition type="info">{t('ui.settings.notifications.webNotice')}</Admonition>
       </View>
     );
   }
@@ -46,9 +40,7 @@ export function NotificationsSection() {
           </SettingsRow>
         </SettingsCard>
       </SettingsSection>
-      <Admonition type="info">
-        {t('ui.settings.notifications.deviceNotice')}
-      </Admonition>
+      <Admonition type="info">{t('ui.settings.notifications.deviceNotice')}</Admonition>
     </View>
   );
 }

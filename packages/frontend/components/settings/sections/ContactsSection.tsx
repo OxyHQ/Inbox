@@ -12,16 +12,13 @@ import type { Contact } from '@/schemas/emailSchemas';
 import { Button, IconButton } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
 import { RiDeleteBin6Line, RiEditLine } from '@oxy.so/bloom/icons';
-import {
-  SettingsProfilePage,
-} from '@oxy.so/bloom/settings-modal';
+import { SettingsProfilePage } from '@oxy.so/bloom/settings-modal';
 import { Switch } from '@oxy.so/bloom/switch';
 import { Textarea } from '@oxy.so/bloom/textarea';
 import { toast } from '@oxy.so/bloom/toast';
 import { useCallback, useMemo, useState } from 'react';
 import { View } from 'react-native';
-const isValidEmail = (email: string) =>
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
 export function ContactsSection() {
   const { t } = useTranslation();
@@ -29,12 +26,7 @@ export function ContactsSection() {
   const [search, setSearch] = useState('');
   // Searched once the user pauses typing, not once per keystroke.
   const searchQuery = useDebouncedValue(search, 250);
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useContacts(searchQuery);
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useContacts(searchQuery);
   // A contact created or deleted between two page reads shifts every offset
   // after it, so the next page can repeat a row already shown: keep the first.
   const contacts = useMemo(() => {
@@ -77,12 +69,7 @@ export function ContactsSection() {
   }, []);
 
   const startEdit = useCallback(
-    (
-      contact: Pick<
-        Contact,
-        '_id' | 'name' | 'email' | 'company' | 'notes' | 'starred'
-      >,
-    ) => {
+    (contact: Pick<Contact, '_id' | 'name' | 'email' | 'company' | 'notes' | 'starred'>) => {
       setEditingId(contact._id);
       setName(contact.name);
       setEmail(contact.email);
@@ -94,9 +81,7 @@ export function ContactsSection() {
   );
 
   const formValid = name.trim().length > 0 && isValidEmail(email.trim());
-  const submitting = editingId
-    ? updateContact.isPending
-    : createContact.isPending;
+  const submitting = editingId ? updateContact.isPending : createContact.isPending;
 
   const handleSubmit = useCallback(() => {
     if (!formValid) {
@@ -182,15 +167,9 @@ export function ContactsSection() {
             emptyState: {
               variant: 'compact',
               illustration: <EmptyStateSticker name="conversation" size={80} />,
-              title: t(
-                search.trim()
-                  ? 'ui.settings.contacts.noMatch'
-                  : 'empty.contactsTitle',
-              ),
+              title: t(search.trim() ? 'ui.settings.contacts.noMatch' : 'empty.contactsTitle'),
               description: t(
-                search.trim()
-                  ? 'empty.contactsNoMatchDescription'
-                  : 'empty.contactsDescription',
+                search.trim() ? 'empty.contactsNoMatchDescription' : 'empty.contactsDescription',
               ),
               action: search.trim()
                 ? { label: t('search.clear'), onPress: () => setSearch('') }
@@ -255,9 +234,7 @@ export function ContactsSection() {
           {
             key: 'form',
             label: t(
-              editingId
-                ? 'ui.settings.contacts.editContact'
-                : 'ui.settings.contacts.addContact',
+              editingId ? 'ui.settings.contacts.editContact' : 'ui.settings.contacts.addContact',
             ),
             rows: [
               {

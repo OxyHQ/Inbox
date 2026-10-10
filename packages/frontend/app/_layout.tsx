@@ -21,14 +21,8 @@ import { ConnectionStatusToasts } from '@oxy.so/bloom/connection-status';
 import { createStickersClient } from '@oxy.so/stickers';
 import { StickersProvider } from '@oxy.so/stickers/react';
 
-import {
-  INBOX_ACCOUNT_QUERIES,
-  queryClient,
-} from '@/hooks/queries/queryClient';
-import {
-  ThemeProvider as AppThemeProvider,
-  useThemeContext,
-} from '@/contexts/theme-context';
+import { INBOX_ACCOUNT_QUERIES, queryClient } from '@/hooks/queries/queryClient';
+import { ThemeProvider as AppThemeProvider, useThemeContext } from '@/contexts/theme-context';
 import { InboxPrefsProvider } from '@/contexts/inbox-prefs-context';
 import { LocaleProvider, useTranslation } from '@/lib/i18n';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -111,14 +105,8 @@ function RootLayoutContent() {
 function GatedNavigator() {
   const { t } = useTranslation();
   return (
-    <RequireOxyAuth
-      prompt="hard"
-      title={t('auth.gate.title')}
-      subtitle={t('auth.gate.subtitle')}
-    >
-      <Stack
-        screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}
-      >
+    <RequireOxyAuth prompt="hard" title={t('auth.gate.title')} subtitle={t('auth.gate.subtitle')}>
+      <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
         <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" options={{ headerShown: false }} />
       </Stack>
@@ -148,10 +136,7 @@ function ScopedInboxPrefsProvider({ children }: { children: ReactNode }) {
 
 function InboxMediaProvider({ children }: { children: ReactNode }) {
   const { oxyServices } = useOxy();
-  const stickersClient = useMemo(
-    () => createStickersClient(oxyServices),
-    [oxyServices],
-  );
+  const stickersClient = useMemo(() => createStickersClient(oxyServices), [oxyServices]);
   const resolve = useCallback<ImageResolver>(
     (id, variant) => oxyServices.assets.publicUrl(id, variant),
     [oxyServices],

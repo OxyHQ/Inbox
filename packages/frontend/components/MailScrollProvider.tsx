@@ -1,7 +1,4 @@
-import {
-  ScrollRestorationProvider,
-  type ScrollRouterAdapter,
-} from '@oxy.so/bloom/scroll';
+import { ScrollRestorationProvider, type ScrollRouterAdapter } from '@oxy.so/bloom/scroll';
 import { expoRouterScrollAdapter } from '@oxy.so/bloom/scroll/expo-router';
 import type { ReactNode } from 'react';
 
@@ -15,8 +12,6 @@ const mailScrollAdapter: ScrollRouterAdapter = {
 
 export function MailScrollProvider({ children }: { children: ReactNode }) {
   return (
-    <ScrollRestorationProvider adapter={mailScrollAdapter}>
-      {children}
-    </ScrollRestorationProvider>
+    <ScrollRestorationProvider adapter={mailScrollAdapter}>{children}</ScrollRestorationProvider>
   );
 }

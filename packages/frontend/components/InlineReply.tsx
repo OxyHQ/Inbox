@@ -94,10 +94,7 @@ export function InlineReply({ message, mode, onClose }: InlineReplyProps) {
     onFinished: onClose,
   });
 
-  const handleSmartReplySelect = useCallback(
-    (text: string) => session.insertText(text),
-    [session],
-  );
+  const handleSmartReplySelect = useCallback((text: string) => session.insertText(text), [session]);
 
   return (
     <Card radius="panel" clipContent>

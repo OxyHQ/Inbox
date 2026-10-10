@@ -11,11 +11,7 @@ interface UnreadableThreadEntryProps {
 }
 
 /** Keep its place in the conversation and preserve both recovery actions. */
-export function UnreadableThreadEntry({
-  row,
-  onRetry,
-  onOpenRaw,
-}: UnreadableThreadEntryProps) {
+export function UnreadableThreadEntry({ row, onRetry, onOpenRaw }: UnreadableThreadEntryProps) {
   const { t } = useTranslation();
   const id = row._id;
   return (

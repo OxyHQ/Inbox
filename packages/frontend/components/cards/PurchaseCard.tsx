@@ -15,9 +15,7 @@ export function PurchaseCard({ data }: PurchaseCardProps) {
   const colors = useColors();
 
   const formattedAmount =
-    data.amount != null
-      ? formatMoney(locale, data.amount, data.currency)
-      : null;
+    data.amount != null ? formatMoney(locale, data.amount, data.currency) : null;
 
   return (
     <Card appearance="subtle">
@@ -27,32 +25,23 @@ export function PurchaseCard({ data }: PurchaseCardProps) {
       <CardBody>
         <View style={styles.body}>
           {data.merchant && (
-            <Text style={[styles.merchant, { color: colors.text }]}>
-              {data.merchant}
-            </Text>
+            <Text style={[styles.merchant, { color: colors.text }]}>{data.merchant}</Text>
           )}
           {formattedAmount && (
-            <Text style={[styles.amount, { color: colors.text }]}>
-              {formattedAmount}
-            </Text>
+            <Text style={[styles.amount, { color: colors.text }]}>{formattedAmount}</Text>
           )}
           {data.orderNumber && (
             <View style={styles.row}>
               <Text style={[styles.label, { color: colors.secondaryText }]}>
                 {t('cards.purchase.order')}
               </Text>
-              <Text style={[styles.value, { color: colors.text }]}>
-                {data.orderNumber}
-              </Text>
+              <Text style={[styles.value, { color: colors.text }]}>{data.orderNumber}</Text>
             </View>
           )}
           {Array.isArray(data.items) && data.items.length > 0 && (
             <View style={styles.items}>
               {data.items.slice(0, 3).map((item: string, i: number) => (
-                <Text
-                  key={i}
-                  style={[styles.item, { color: colors.secondaryText }]}
-                >
+                <Text key={i} style={[styles.item, { color: colors.secondaryText }]}>
                   · {item}
                 </Text>
               ))}

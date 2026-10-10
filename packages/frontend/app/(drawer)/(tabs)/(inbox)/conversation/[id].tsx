@@ -42,10 +42,7 @@ export default function ConversationScreen() {
       <Head>
         <title>{pageTitle}</title>
       </Head>
-      <MessageDetail
-        mode={isDesktop ? 'embedded' : 'standalone'}
-        messageId={id}
-      />
+      <MessageDetail mode={isDesktop ? 'embedded' : 'standalone'} messageId={id} />
     </>
   );
 }

@@ -11,7 +11,11 @@ jest.mock('@/lib/i18n', () => ({ useTranslation: () => ({ t }) }));
 const moveMessage = jest.fn().mockResolvedValue(undefined);
 const bulkMoveMessages = jest.fn().mockResolvedValue({ matched: 1, modified: 1 });
 jest.mock('@/hooks/useEmail', () => {
-  const state = { _api: { moveMessage, bulkMoveMessages }, selectedMessageId: null, viewMode: null };
+  const state = {
+    _api: { moveMessage, bulkMoveMessages },
+    selectedMessageId: null,
+    viewMode: null,
+  };
   const useEmailStore = (selector: (s: unknown) => unknown) => selector(state);
   useEmailStore.getState = () => state;
   useEmailStore.setState = jest.fn();
@@ -37,13 +41,19 @@ function setup(...messages: Message[]) {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: 0 } } });
   const list: MessagesInfinite = {
     pageParams: [undefined],
-    pages: [{ data: messages, pagination: { total: messages.length, limit: 50, offset: 0, hasMore: false } }],
+    pages: [
+      {
+        data: messages,
+        pagination: { total: messages.length, limit: 50, offset: 0, hasMore: false },
+      },
+    ],
   };
   client.setQueryData(emailKeys.messages.root, list);
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  const ids = () => client.getQueryData<MessagesInfinite>(emailKeys.messages.root)?.pages[0].data.map((m) => m._id);
+  const ids = () =>
+    client.getQueryData<MessagesInfinite>(emailKeys.messages.root)?.pages[0].data.map((m) => m._id);
   return { client, wrapper, ids };
 }
 
@@ -62,10 +72,17 @@ it('offers Undo after archiving, which puts the row back and moves it to its fol
   const { result } = renderHook(() => useArchiveMessage(), { wrapper });
 
   await act(async () => {
-    await result.current.mutateAsync({ messageId: 'a', archiveMailboxId: 'archive', kind: 'archive' });
+    await result.current.mutateAsync({
+      messageId: 'a',
+      archiveMailboxId: 'archive',
+      kind: 'archive',
+    });
   });
   expect(ids()).toEqual(['b']);
-  expect(toast.success).toHaveBeenCalledWith('ui.mutations.archived', expect.objectContaining({ action: expect.any(Object) }));
+  expect(toast.success).toHaveBeenCalledWith(
+    'ui.mutations.archived',
+    expect.objectContaining({ action: expect.any(Object) }),
+  );
 
   act(() => undoAction()());
   expect(ids()).toEqual(['a', 'b']);

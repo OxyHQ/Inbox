@@ -18,10 +18,7 @@ import { useColors } from '@/constants/theme';
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
 import { useDailyBrief } from '@/hooks/queries/useDailyBrief';
 import { useTranslation } from '@/lib/i18n';
-import {
-  INBOX_DAILY_BRIEF_SECTIONS,
-  type InboxDailyBriefItem,
-} from '@/services/inboxInferenceApi';
+import { INBOX_DAILY_BRIEF_SECTIONS, type InboxDailyBriefItem } from '@/services/inboxInferenceApi';
 import { formatRowTime } from '@/utils/dateFormat';
 
 const SECTION_TITLE = {

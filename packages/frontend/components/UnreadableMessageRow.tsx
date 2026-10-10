@@ -1,9 +1,4 @@
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@oxy.so/bloom/card';
+import { Card, CardHeader, CardTitle, CardDescription } from '@oxy.so/bloom/card';
 import { useTranslation } from '@/lib/i18n';
 import type { UnreadableMessage } from '@/services/emailApi';
 
@@ -13,10 +8,7 @@ interface UnreadableMessageRowProps {
 }
 
 /** Keep an unreadable message visible and addressable without inventing its content. */
-export function UnreadableMessageRow({
-  message,
-  onOpen,
-}: UnreadableMessageRowProps) {
+export function UnreadableMessageRow({ message, onOpen }: UnreadableMessageRowProps) {
   const { t } = useTranslation();
   const id = message._id;
   return (

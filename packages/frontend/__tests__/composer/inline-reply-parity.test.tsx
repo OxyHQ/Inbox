@@ -51,7 +51,9 @@ jest.mock('react-native', () => ({
   ScrollView: ({ children }: any) => <div data-testid="scroll">{children}</div>,
 }));
 jest.mock('@/lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
-jest.mock('@/constants/theme', () => ({ useColors: () => ({ error: 'red', secondaryText: 'grey' }) }));
+jest.mock('@/constants/theme', () => ({
+  useColors: () => ({ error: 'red', secondaryText: 'grey' }),
+}));
 jest.mock('@oxy.so/services', () => ({
   useOxy: () => ({ user: { username: 'nate' }, showBottomSheet: mockShowBottomSheet }),
 }));
@@ -60,15 +62,21 @@ jest.mock('@oxy.so/bloom', () => ({
   Dialog: ({ title, label, children, actions }: any) => (
     <div role="dialog" aria-label={title ?? label}>
       {children}
-      {actions?.map((action: any) => <button key={action.label}>{action.label}</button>)}
+      {actions?.map((action: any) => (
+        <button key={action.label}>{action.label}</button>
+      ))}
     </div>
   ),
   useDialogControl: () => ({ open: mockDialogOpen, close: jest.fn() }),
   toast: jest.fn(),
 }));
 jest.mock('@oxy.so/bloom/card', () => ({ Card: ({ children }: any) => <div>{children}</div> }));
-jest.mock('@oxy.so/bloom/admonition', () => ({ Admonition: ({ children }: any) => <div>{children}</div> }));
-jest.mock('@oxy.so/bloom/typography', () => ({ Text: ({ children }: any) => <span>{children}</span> }));
+jest.mock('@oxy.so/bloom/admonition', () => ({
+  Admonition: ({ children }: any) => <div>{children}</div>,
+}));
+jest.mock('@oxy.so/bloom/typography', () => ({
+  Text: ({ children }: any) => <span>{children}</span>,
+}));
 jest.mock('@oxy.so/bloom/text-field', () => ({
   TextFieldInput: ({ label, value }: any) => <input aria-label={label} value={value} readOnly />,
 }));
@@ -79,12 +87,16 @@ jest.mock('@oxy.so/bloom/button', () => ({
   ),
 }));
 jest.mock('@oxy.so/bloom/icons', () => new Proxy({}, { get: () => () => null }));
-jest.mock('@oxy.so/bloom/mail-thread', () => ({ MailQuoteToggle: ({ children }: any) => <div>{children}</div> }));
+jest.mock('@oxy.so/bloom/mail-thread', () => ({
+  MailQuoteToggle: ({ children }: any) => <div>{children}</div>,
+}));
 jest.mock('@oxy.so/bloom/mail-compose', () => ({
   MailComposeSurface: ({ title, onAttach, attachments, onDiscard, footer, children }: any) => (
     <section aria-label={title}>
       {onAttach && <button onClick={onAttach}>attach</button>}
-      {attachments.map((item: any) => <span key={item.id}>{item.name}</span>)}
+      {attachments.map((item: any) => (
+        <span key={item.id}>{item.name}</span>
+      ))}
       <button onClick={onDiscard}>discard</button>
       {footer}
       {children}
@@ -96,11 +108,15 @@ jest.mock('@/components/MailAddressFields', () => ({
     <div>{onSubjectChange ? 'fields with subject' : 'fields without subject'}</div>
   ),
 }));
-jest.mock('@/components/AiComposeToolbar', () => ({ AiComposeToolbar: () => <div>ai toolbar</div> }));
+jest.mock('@/components/AiComposeToolbar', () => ({
+  AiComposeToolbar: () => <div>ai toolbar</div>,
+}));
 jest.mock('@/components/RichTextEditor', () => ({ RichTextEditor: () => <div>editor</div> }));
 jest.mock('@/components/TemplatePicker', () => ({ TemplatePicker: () => <div>templates</div> }));
 jest.mock('@/components/ScheduleSendSheet', () => ({ ScheduleSendSheet: () => null }));
-jest.mock('@/components/SmartReplyChips', () => ({ SmartReplyChips: () => <div>smart replies</div> }));
+jest.mock('@/components/SmartReplyChips', () => ({
+  SmartReplyChips: () => <div>smart replies</div>,
+}));
 
 const message = {
   _id: 'message-1',

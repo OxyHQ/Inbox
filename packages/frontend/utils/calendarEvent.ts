@@ -35,7 +35,10 @@ const pad = (n: number) => String(n).padStart(2, '0');
 /** `20260415T090000Z`, or `20260415` for an all-day value. */
 function icsValue(date: Date, allDay: boolean): string {
   if (allDay) return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}`;
-  return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  return date
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d{3}/, '');
 }
 
 /**

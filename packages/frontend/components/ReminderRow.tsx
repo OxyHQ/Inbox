@@ -38,7 +38,10 @@ export function formatReminderTime(
   // "Today, 9:00 AM" at noon instead of overdue.
   if (date.getTime() < now.getTime())
     return t('time.overdueAt', {
-      day: diffDays === 0 ? t('time.today') : date.toLocaleDateString(locale, { month: 'short', day: 'numeric' }),
+      day:
+        diffDays === 0
+          ? t('time.today')
+          : date.toLocaleDateString(locale, { month: 'short', day: 'numeric' }),
       time,
     });
   if (diffDays === 0) return t('time.todayAt', { time });
@@ -49,12 +52,7 @@ export function formatReminderTime(
   });
 }
 
-export function ReminderRow({
-  reminder,
-  onToggleComplete,
-  onPress,
-  onDelete,
-}: ReminderRowProps) {
+export function ReminderRow({ reminder, onToggleComplete, onPress, onDelete }: ReminderRowProps) {
   const { t, locale } = useTranslation();
   return (
     <Item
@@ -70,9 +68,7 @@ export function ReminderRow({
           {reminder.text}
         </Button>
       }
-      subtitle={
-        reminder.remindAt ? formatReminderTime(reminder.remindAt, t, locale) : undefined
-      }
+      subtitle={reminder.remindAt ? formatReminderTime(reminder.remindAt, t, locale) : undefined}
       trailing={
         <IconButton
           accessibilityLabel={t('common.delete')}

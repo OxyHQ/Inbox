@@ -37,14 +37,13 @@ async function optimisticContacts(
 ): Promise<{ prev: ContactsSnapshot }> {
   await queryClient.cancelQueries({ queryKey: emailKeys.contacts.root });
   const prev = queryClient.getQueriesData<unknown>({ queryKey: emailKeys.contacts.root });
-  queryClient.setQueriesData<unknown>({ queryKey: emailKeys.contacts.root }, (old: unknown) => applyToContacts(old, updater));
+  queryClient.setQueriesData<unknown>({ queryKey: emailKeys.contacts.root }, (old: unknown) =>
+    applyToContacts(old, updater),
+  );
   return { prev };
 }
 
-function restoreContacts(
-  queryClient: ReturnType<typeof useQueryClient>,
-  prev: ContactsSnapshot,
-) {
+function restoreContacts(queryClient: ReturnType<typeof useQueryClient>, prev: ContactsSnapshot) {
   prev.forEach(([key, data]) => queryClient.setQueryData(key, data));
 }
 

@@ -67,8 +67,7 @@ export const emailKeys = {
     root: ['mailboxes'] as const,
     list: (userId: string | null) => ['mailboxes', userId] as const,
   },
-  search: (options: SearchOptions, userId: string | null) =>
-    ['search', options, userId] as const,
+  search: (options: SearchOptions, userId: string | null) => ['search', options, userId] as const,
   /** Broad key for reconciling every active search after a realtime reconnect. */
   searchRoot: ['search'] as const,
   quota: (userId: string | null) => ['quota', userId] as const,
@@ -99,8 +98,7 @@ export const emailKeys = {
 
 /** Query/mutation keys for Inbox's bounded product-inference features. */
 export const aiKeys = {
-  threadSummary: (messageId: string | undefined) =>
-    ['threadSummary', messageId] as const,
+  threadSummary: (messageId: string | undefined) => ['threadSummary', messageId] as const,
   smartReplies: (messageId: string | undefined) => ['smartReplies', messageId] as const,
   /** Mutation key for the unified AI compose operations. */
   compose: ['inbox-ai', 'compose'] as const,

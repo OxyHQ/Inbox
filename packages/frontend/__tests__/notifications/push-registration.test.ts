@@ -60,8 +60,7 @@ function harness(
     environment: {
       requestNotificationPermission,
       getExpoPushToken,
-      pushTokenPlatform: () =>
-        overrides.platform === undefined ? 'android' : overrides.platform,
+      pushTokenPlatform: () => (overrides.platform === undefined ? 'android' : overrides.platform),
     },
     requestNotificationPermission,
     getExpoPushToken,
@@ -75,7 +74,10 @@ describe('registerInstallationPushToken', () => {
     const { registrar, environment } = harness();
 
     await expect(
-      registerInstallationPushToken(registrar, environment, { clientId: OXY_CLIENT_ID, channel: CHANNEL }),
+      registerInstallationPushToken(registrar, environment, {
+        clientId: OXY_CLIENT_ID,
+        channel: CHANNEL,
+      }),
     ).resolves.toEqual({ status: 'registered', expoPushToken: EXPO_TOKEN });
 
     expect(registrar.registerPushToken).toHaveBeenCalledTimes(1);
@@ -103,7 +105,10 @@ describe('registerInstallationPushToken', () => {
   it('omits deviceId entirely rather than sending an empty one', async () => {
     const { registrar, environment } = harness();
 
-    await registerInstallationPushToken(registrar, environment, { clientId: OXY_CLIENT_ID, channel: CHANNEL });
+    await registerInstallationPushToken(registrar, environment, {
+      clientId: OXY_CLIENT_ID,
+      channel: CHANNEL,
+    });
 
     expect(registrar.registerPushToken.mock.calls[0][0]).not.toHaveProperty('deviceId');
   });
@@ -111,7 +116,10 @@ describe('registerInstallationPushToken', () => {
   it('only ever sends an Expo push token — the shape the push service accepts', async () => {
     const { registrar, environment } = harness();
 
-    await registerInstallationPushToken(registrar, environment, { clientId: OXY_CLIENT_ID, channel: CHANNEL });
+    await registerInstallationPushToken(registrar, environment, {
+      clientId: OXY_CLIENT_ID,
+      channel: CHANNEL,
+    });
 
     const sent: unknown = registrar.registerPushToken.mock.calls[0][0];
     const token = (sent as { expoPushToken: string }).expoPushToken;
@@ -122,7 +130,10 @@ describe('registerInstallationPushToken', () => {
     const { registrar, environment, requestNotificationPermission } = harness({ platform: null });
 
     await expect(
-      registerInstallationPushToken(registrar, environment, { clientId: OXY_CLIENT_ID, channel: CHANNEL }),
+      registerInstallationPushToken(registrar, environment, {
+        clientId: OXY_CLIENT_ID,
+        channel: CHANNEL,
+      }),
     ).resolves.toEqual({ status: 'skipped', reason: 'unsupported-platform' });
 
     expect(requestNotificationPermission).not.toHaveBeenCalled();
@@ -133,7 +144,10 @@ describe('registerInstallationPushToken', () => {
     const { registrar, environment, getExpoPushToken } = harness({ permission: false });
 
     await expect(
-      registerInstallationPushToken(registrar, environment, { clientId: OXY_CLIENT_ID, channel: CHANNEL }),
+      registerInstallationPushToken(registrar, environment, {
+        clientId: OXY_CLIENT_ID,
+        channel: CHANNEL,
+      }),
     ).resolves.toEqual({ status: 'skipped', reason: 'permission-not-granted' });
 
     expect(getExpoPushToken).not.toHaveBeenCalled();
@@ -144,7 +158,10 @@ describe('registerInstallationPushToken', () => {
     const { registrar, environment } = harness({ token: null });
 
     await expect(
-      registerInstallationPushToken(registrar, environment, { clientId: OXY_CLIENT_ID, channel: CHANNEL }),
+      registerInstallationPushToken(registrar, environment, {
+        clientId: OXY_CLIENT_ID,
+        channel: CHANNEL,
+      }),
     ).resolves.toEqual({ status: 'skipped', reason: 'no-token' });
 
     expect(registrar.registerPushToken).not.toHaveBeenCalled();
@@ -155,7 +172,10 @@ describe('registerInstallationPushToken', () => {
     registrar.registerPushToken.mockRejectedValue(new Error('not an Expo push token'));
 
     await expect(
-      registerInstallationPushToken(registrar, environment, { clientId: OXY_CLIENT_ID, channel: CHANNEL }),
+      registerInstallationPushToken(registrar, environment, {
+        clientId: OXY_CLIENT_ID,
+        channel: CHANNEL,
+      }),
     ).rejects.toThrow('not an Expo push token');
   });
 });

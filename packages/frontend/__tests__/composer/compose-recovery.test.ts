@@ -57,7 +57,10 @@ describe('compose recovery', () => {
   });
 
   it('rejects malformed records and clears valid records', async () => {
-    window.localStorage.setItem(key, JSON.stringify({ snapshot: { body: 42 }, savedAt: Date.now() }));
+    window.localStorage.setItem(
+      key,
+      JSON.stringify({ snapshot: { body: 42 }, savedAt: Date.now() }),
+    );
     await expect(loadComposeRecovery(key)).resolves.toBeNull();
 
     await saveComposeRecovery(key, {

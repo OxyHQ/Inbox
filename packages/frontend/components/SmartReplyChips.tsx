@@ -23,10 +23,7 @@ interface SmartReplyChipsProps {
   onSelectReply: (text: string) => void;
 }
 
-export function SmartReplyChips({
-  message,
-  onSelectReply,
-}: SmartReplyChipsProps) {
+export function SmartReplyChips({ message, onSelectReply }: SmartReplyChipsProps) {
   const { t } = useTranslation();
   const { prefs } = useInboxPrefs();
   const [hasRequestedReplies, setHasRequestedReplies] = useState(false);
@@ -45,16 +42,10 @@ export function SmartReplyChips({
   if (!hasRequestedReplies) {
     return (
       <View className="gap-2">
-        <Button
-          appearance="subtle"
-          leading={<RiSparklingLine />}
-          onPress={handleGenerateReplies}
-        >
+        <Button appearance="subtle" leading={<RiSparklingLine />} onPress={handleGenerateReplies}>
           {t('smartReply.generate')}
         </Button>
-        <Text variant="caption-1-regular">
-          {t('smartReply.notice')}
-        </Text>
+        <Text variant="caption-1-regular">{t('smartReply.notice')}</Text>
       </View>
     );
   }

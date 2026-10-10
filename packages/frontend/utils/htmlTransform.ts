@@ -51,7 +51,10 @@ function isSafeEmailUrl(value: string): boolean {
 }
 
 function isSafeSrcset(value: string): boolean {
-  const entries = value.split(',').map((entry) => entry.trim()).filter(Boolean);
+  const entries = value
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
   return entries.length > 0 && entries.every((entry) => isSafeEmailUrl(entry.split(/\s+/)[0]));
 }
 
@@ -93,7 +96,11 @@ export function sanitizeEmailHtml(html: string): string {
           node.attribs.style = sanitizeCss(value);
         } else if (['srcset', 'imagesrcset'].includes(name)) {
           if (!isSafeSrcset(value)) delete node.attribs[name];
-        } else if (['href', 'src', 'xlink:href', 'action', 'formaction', 'poster', 'background'].includes(name)) {
+        } else if (
+          ['href', 'src', 'xlink:href', 'action', 'formaction', 'poster', 'background'].includes(
+            name,
+          )
+        ) {
           if (!isSafeEmailUrl(value)) delete node.attribs[name];
         }
       }
@@ -124,8 +131,7 @@ type HtmlNode = ReturnType<typeof parseDocument>['children'][number];
 type HtmlElement = Extract<HtmlNode, { attribs: Record<string, string> }>;
 
 const INTERNAL_DOMAINS = ['oxy.so', 'localhost', '127.0.0.1'];
-const TRANSPARENT_PIXEL =
-  'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+const TRANSPARENT_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
 /** Stands in for the document's URL when resolving a reference without a scheme. */
 const RELATIVE_BASE = new URL('https://relative.invalid/');
 /** Where `resolveFaviconForImageUrl` points (it only ever changes the path). */
@@ -259,7 +265,8 @@ const isCssNonPrintable = (ch: string) => /^[\u0000-\u0008\u000b\u000e-\u001f\u0
 const isCssEscape = (css: string, i: number) => css[i] === '\\' && css[i + 1] !== '\n';
 
 function safeCodePoint(codePoint: number): string {
-  const valid = codePoint > 0 && codePoint <= 0x10ffff && (codePoint < 0xd800 || codePoint > 0xdfff);
+  const valid =
+    codePoint > 0 && codePoint <= 0x10ffff && (codePoint < 0xd800 || codePoint > 0xdfff);
   return valid ? String.fromCodePoint(codePoint) : '\uFFFD';
 }
 
@@ -485,8 +492,10 @@ function rewriteCssUrls(
  */
 function cssLoadsOnlyRoutedUrls(css: string, proxyBaseUrl: string): boolean {
   const decoded = css
-    .replace(/\\(?:([0-9a-fA-F]{1,6})[ \t\n]?|([\s\S]))/g, (_match, hex: string | undefined, ch: string | undefined) =>
-      hex ? safeCodePoint(parseInt(hex, 16)) : (ch ?? ''),
+    .replace(
+      /\\(?:([0-9a-fA-F]{1,6})[ \t\n]?|([\s\S]))/g,
+      (_match, hex: string | undefined, ch: string | undefined) =>
+        hex ? safeCodePoint(parseInt(hex, 16)) : (ch ?? ''),
     )
     .toLowerCase();
   if (decoded.includes('@import')) return false;
@@ -496,7 +505,10 @@ function cssLoadsOnlyRoutedUrls(css: string, proxyBaseUrl: string): boolean {
     if (candidate.startsWith(proxyPrefix)) return true;
     try {
       const url = new URL(/^https?:/.test(candidate) ? candidate : `https:${candidate}`);
-      return isInternalHost(url.hostname) || (url.origin === FAVICON_ORIGIN && url.pathname.startsWith('/favicons/'));
+      return (
+        isInternalHost(url.hostname) ||
+        (url.origin === FAVICON_ORIGIN && url.pathname.startsWith('/favicons/'))
+      );
     } catch {
       return false;
     }
@@ -550,7 +562,8 @@ function replaceMediaElement(node: HtmlElement, options: ProxyOptions): HtmlNode
     anchor.attribs.href = href;
     const label = parseDocument('-').children[0];
     if (label.type === 'text') {
-      label.data = (node.name === 'audio' ? options.audioLinkLabel : options.videoLinkLabel) || href;
+      label.data =
+        (node.name === 'audio' ? options.audioLinkLabel : options.videoLinkLabel) || href;
       DomUtils.appendChild(anchor, label);
     }
     replacement.push(anchor);
@@ -570,7 +583,11 @@ function replaceMediaElement(node: HtmlElement, options: ProxyOptions): HtmlNode
  * remote that cannot be routed is replaced by a transparent pixel; `<video>` /
  * `<audio>` become links.
  */
-export function proxyExternalImages(html: string, proxyBaseUrl: string, options: ProxyOptions = {}): string {
+export function proxyExternalImages(
+  html: string,
+  proxyBaseUrl: string,
+  options: ProxyOptions = {},
+): string {
   if (!html || !proxyBaseUrl) return html;
 
   const document = parseDocument(html);
@@ -587,7 +604,8 @@ export function proxyExternalImages(html: string, proxyBaseUrl: string, options:
         continue;
       }
       // Every attribute a browser fetches media from without a click.
-      if (IMAGE_SRC_TAGS.has(node.name) && node.attribs.src) node.attribs.src = rewrite(node.attribs.src);
+      if (IMAGE_SRC_TAGS.has(node.name) && node.attribs.src)
+        node.attribs.src = rewrite(node.attribs.src);
       if (node.attribs.poster) node.attribs.poster = rewrite(node.attribs.poster);
       for (const name of ['href', 'xlink:href']) {
         if (node.name !== 'a' && node.name !== 'area' && node.attribs[name]) {

@@ -88,16 +88,23 @@ export const queryClient = new QueryClient({
   },
 });
 
-queryClient.setMutationDefaults<unknown, Error, ToggleStarVariables>(INBOX_MUTATION_KEYS.toggleStar, {
-  networkMode: 'offlineFirst',
-  ...RETRY_IDEMPOTENT,
-  mutationFn: async ({ messageId, starred }) => activeEmailApi().updateFlags(messageId, { starred }),
-});
-queryClient.setMutationDefaults<unknown, Error, ToggleReadVariables>(INBOX_MUTATION_KEYS.toggleRead, {
-  networkMode: 'offlineFirst',
-  ...RETRY_IDEMPOTENT,
-  mutationFn: async ({ messageId, seen }) => activeEmailApi().updateFlags(messageId, { seen }),
-});
+queryClient.setMutationDefaults<unknown, Error, ToggleStarVariables>(
+  INBOX_MUTATION_KEYS.toggleStar,
+  {
+    networkMode: 'offlineFirst',
+    ...RETRY_IDEMPOTENT,
+    mutationFn: async ({ messageId, starred }) =>
+      activeEmailApi().updateFlags(messageId, { starred }),
+  },
+);
+queryClient.setMutationDefaults<unknown, Error, ToggleReadVariables>(
+  INBOX_MUTATION_KEYS.toggleRead,
+  {
+    networkMode: 'offlineFirst',
+    ...RETRY_IDEMPOTENT,
+    mutationFn: async ({ messageId, seen }) => activeEmailApi().updateFlags(messageId, { seen }),
+  },
+);
 queryClient.setMutationDefaults<void, Error, ArchiveVariables>(INBOX_MUTATION_KEYS.archive, {
   networkMode: 'offlineFirst',
   ...RETRY_IDEMPOTENT,

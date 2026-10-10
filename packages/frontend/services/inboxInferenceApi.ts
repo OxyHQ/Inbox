@@ -212,7 +212,10 @@ async function* streamInboxText(
     await response.body?.cancel().catch(() => undefined);
     throw new Error(`Inbox AI request failed (${response.status}).`);
   }
-  if (response.headers.get('content-type')?.split(';', 1)[0]?.trim().toLowerCase() !== SSE_CONTENT_TYPE) {
+  if (
+    response.headers.get('content-type')?.split(';', 1)[0]?.trim().toLowerCase() !==
+    SSE_CONTENT_TYPE
+  ) {
     await response.body?.cancel().catch(() => undefined);
     throw new Error('Inbox AI returned an invalid stream type.');
   }
@@ -332,28 +335,40 @@ export function streamInboxDraft(
  * other not-yet-covered endpoints in `schemas/emailSchemas.ts`.
  */
 export const INBOX_DAILY_BRIEF_SECTIONS = ['needs_you', 'today', 'earlier'] as const;
-export const inboxDailyBriefSchema = z.object({
-  schemaVersion: z.literal(1),
-  requestId: z.string().min(1).max(128),
-  generationId: z.string().min(1).max(128).optional(),
-  summary: z.string().max(400),
-  counts: z.object({
-    received: z.number().int().nonnegative(),
-    unread: z.number().int().nonnegative(),
-    starred: z.number().int().nonnegative(),
-    earlierUnread: z.number().int().nonnegative(),
-  }).strict(),
-  items: z.array(z.object({
-    messageId: z.string().min(1).max(128),
-    section: z.enum(INBOX_DAILY_BRIEF_SECTIONS),
-    note: z.string().max(200),
-    from: z.object({ name: z.string().max(998).nullable(), address: z.string().max(320) }).strict(),
-    subject: z.string().max(998),
-    receivedAt: z.string().datetime(),
-    unread: z.boolean(),
-    hasAttachments: z.boolean(),
-  }).strict()).max(20),
-}).strict();
+export const inboxDailyBriefSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    requestId: z.string().min(1).max(128),
+    generationId: z.string().min(1).max(128).optional(),
+    summary: z.string().max(400),
+    counts: z
+      .object({
+        received: z.number().int().nonnegative(),
+        unread: z.number().int().nonnegative(),
+        starred: z.number().int().nonnegative(),
+        earlierUnread: z.number().int().nonnegative(),
+      })
+      .strict(),
+    items: z
+      .array(
+        z
+          .object({
+            messageId: z.string().min(1).max(128),
+            section: z.enum(INBOX_DAILY_BRIEF_SECTIONS),
+            note: z.string().max(200),
+            from: z
+              .object({ name: z.string().max(998).nullable(), address: z.string().max(320) })
+              .strict(),
+            subject: z.string().max(998),
+            receivedAt: z.string().datetime(),
+            unread: z.boolean(),
+            hasAttachments: z.boolean(),
+          })
+          .strict(),
+      )
+      .max(20),
+  })
+  .strict();
 export type InboxDailyBrief = z.infer<typeof inboxDailyBriefSchema>;
 export type InboxDailyBriefItem = InboxDailyBrief['items'][number];
 

@@ -39,7 +39,10 @@ export function useCreateTemplate() {
         createdAt: now,
         updatedAt: now,
       };
-      const { prev } = await optimisticTemplates(queryClient, (templates) => [...templates, optimistic]);
+      const { prev } = await optimisticTemplates(queryClient, (templates) => [
+        ...templates,
+        optimistic,
+      ]);
       return { prev };
     },
     onError: (_err, _vars, context) => {

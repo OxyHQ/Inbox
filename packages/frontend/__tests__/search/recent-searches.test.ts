@@ -1,15 +1,26 @@
-import { addRecentSearch, mergeRecentSearches, recentSearchesStorageKey } from '@/hooks/useRecentSearches';
+import {
+  addRecentSearch,
+  mergeRecentSearches,
+  recentSearchesStorageKey,
+} from '@/hooks/useRecentSearches';
 
 describe('recent searches', () => {
   it('deduplicates, trims, and caps private search history', () => {
-    expect(mergeRecentSearches(['  budget ', 'budget', '', 42, 'one', 'two', 'three', 'four', 'five', 'six', 'seven'])).toEqual([
-      'budget',
-      'one',
-      'two',
-      'three',
-      'four',
-      'five',
-    ]);
+    expect(
+      mergeRecentSearches([
+        '  budget ',
+        'budget',
+        '',
+        42,
+        'one',
+        'two',
+        'three',
+        'four',
+        'five',
+        'six',
+        'seven',
+      ]),
+    ).toEqual(['budget', 'one', 'two', 'three', 'four', 'five']);
   });
 
   it('puts a newly submitted query first', () => {

@@ -1,7 +1,4 @@
-import {
-  SearchSessionProvider,
-  useSearchSessionState,
-} from '@/contexts/search-session-context';
+import { SearchSessionProvider, useSearchSessionState } from '@/contexts/search-session-context';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { __setOxyState } from '../../__mocks__/oxyhq-services';
 
@@ -10,8 +7,7 @@ function SearchFixture() {
   const [query, setQuery] = useSearchSessionState('query');
   const [submitted, setSubmitted] = useSearchSessionState('submittedQuery');
   const [filters, setFilters] = useSearchSessionState('filters');
-  const [interpretation, setInterpretation] =
-    useSearchSessionState('nlInterpretation');
+  const [interpretation, setInterpretation] = useSearchSessionState('nlInterpretation');
   const [parsed, setParsed] = useSearchSessionState('nlParsedOptions');
   return (
     <>
@@ -62,9 +58,7 @@ const empty = {
   parsed: null,
 };
 beforeEach(() => {
-  act(() =>
-    __setOxyState({ user: { id: 'account-a' }, isAuthenticated: true }),
-  );
+  act(() => __setOxyState({ user: { id: 'account-a' }, isAuthenticated: true }));
 });
 
 it('retains the complete search session when its list unmounts for a tab or width change', () => {

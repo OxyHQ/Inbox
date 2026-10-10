@@ -2,11 +2,7 @@ import React, { type ReactNode } from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-import {
-  __resetOxyState,
-  __setOxyState,
-  makeMockOxyServices,
-} from '@/__mocks__/oxyhq-services';
+import { __resetOxyState, __setOxyState, makeMockOxyServices } from '@/__mocks__/oxyhq-services';
 import { useAiCompose } from '@/hooks/mutations/useAiCompose';
 import { useDailyBrief } from '@/hooks/queries/useDailyBrief';
 import {
@@ -45,7 +41,9 @@ function abortError(): Error {
   return error;
 }
 
-function wrapper(queryClient: QueryClient): ({ children }: { children: ReactNode }) => React.JSX.Element {
+function wrapper(
+  queryClient: QueryClient,
+): ({ children }: { children: ReactNode }) => React.JSX.Element {
   return function QueryWrapper({ children }: { children: ReactNode }): React.JSX.Element {
     return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
@@ -118,7 +116,8 @@ describe('Inbox inference hooks', () => {
     const rendered = renderHook(() => useAiCompose(), { wrapper: wrapper(queryClient) });
     let outcome: Promise<unknown> = Promise.resolve();
     act(() => {
-      outcome = rendered.result.current.streamDraft('Write a note', 'friendly', onChunk)
+      outcome = rendered.result.current
+        .streamDraft('Write a note', 'friendly', onChunk)
         .catch((error: unknown) => error);
     });
 
@@ -144,27 +143,31 @@ describe('Inbox inference hooks', () => {
       requestId: 'req_brief',
       summary: 'Ana needs the numbers by Friday.',
       counts: { received: 1, unread: 1, starred: 0, earlierUnread: 0 },
-      items: [{
-        messageId: 'msg_ana',
-        section: 'needs_you',
-        note: 'Wants the quarterly numbers by Friday.',
-        from: { name: 'Ana', address: 'ana@example.com' },
-        subject: 'Quarterly numbers',
-        receivedAt: '2026-09-03T08:00:00.000Z',
-        unread: true,
-        hasAttachments: false,
-      }],
+      items: [
+        {
+          messageId: 'msg_ana',
+          section: 'needs_you',
+          note: 'Wants the quarterly numbers by Friday.',
+          from: { name: 'Ana', address: 'ana@example.com' },
+          subject: 'Quarterly numbers',
+          receivedAt: '2026-09-03T08:00:00.000Z',
+          unread: true,
+          hasAttachments: false,
+        },
+      ],
     });
 
     const queryClient = new QueryClient();
-    const rendered = renderHook(
-      ({ enabled }: { enabled: boolean }) => useDailyBrief({ enabled }),
-      { initialProps: { enabled: false }, wrapper: wrapper(queryClient) },
-    );
+    const rendered = renderHook(({ enabled }: { enabled: boolean }) => useDailyBrief({ enabled }), {
+      initialProps: { enabled: false },
+      wrapper: wrapper(queryClient),
+    });
     expect(mockFetchInboxDailyBrief).not.toHaveBeenCalled();
 
     rendered.rerender({ enabled: true });
-    await waitFor(() => expect(rendered.result.current.brief?.summary).toBe('Ana needs the numbers by Friday.'));
+    await waitFor(() =>
+      expect(rendered.result.current.brief?.summary).toBe('Ana needs the numbers by Friday.'),
+    );
     expect(mockFetchInboxDailyBrief).toHaveBeenCalledWith(
       oxyServices.http,
       { startAt: '2026-09-02T21:00:00.000Z', endAt: '2026-09-03T21:00:00.000Z', locale: 'es' },

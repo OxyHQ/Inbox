@@ -4,12 +4,7 @@ import { useEmailStore } from '@/hooks/useEmail';
 import { useTranslation } from '@/lib/i18n';
 import { BottomBar } from '@oxy.so/bloom/bottom-bar';
 import { Fab } from '@oxy.so/bloom/fab';
-import {
-  RiEditLine,
-  RiInbox2Line,
-  RiSearchLine,
-  RiSettings3Line,
-} from '@oxy.so/bloom/icons';
+import { RiEditLine, RiInbox2Line, RiSearchLine, RiSettings3Line } from '@oxy.so/bloom/icons';
 import { useOxy } from '@oxy.so/services';
 import { usePathname, useRouter } from 'expo-router';
 import { useKeyboardState } from 'react-native-keyboard-controller';

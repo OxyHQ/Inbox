@@ -112,9 +112,7 @@ export function CreateReminderSheet({
     () => createReminderDraft(draftKey, editReminder),
     [draftKey, editReminder],
   );
-  const [storedDraft, setStoredDraft] = useState<ReminderDraft>(
-    () => initialDraft,
-  );
+  const [storedDraft, setStoredDraft] = useState<ReminderDraft>(() => initialDraft);
   const draft = storedDraft.key === draftKey ? storedDraft : initialDraft;
 
   useEffect(() => {
@@ -130,10 +128,7 @@ export function CreateReminderSheet({
       setStoredDraft((previous) => ({
         key: draftKey,
         text: nextText,
-        selectedTime:
-          previous.key === draftKey
-            ? previous.selectedTime
-            : initialDraft.selectedTime,
+        selectedTime: previous.key === draftKey ? previous.selectedTime : initialDraft.selectedTime,
       }));
     },
     [draftKey, initialDraft.selectedTime],
@@ -194,8 +189,7 @@ export function CreateReminderSheet({
         <Text variant="body-semibold">{t('reminder.create.whenLabel')}</Text>
         <View className="gap-2">
           {presets.map((preset) => {
-            const isSelected =
-              draft.selectedTime?.getTime() === preset.date.getTime();
+            const isSelected = draft.selectedTime?.getTime() === preset.date.getTime();
             return (
               <Button
                 key={preset.label}

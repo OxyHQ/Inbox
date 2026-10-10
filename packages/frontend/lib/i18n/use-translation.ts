@@ -16,10 +16,7 @@ interface UseTranslationResult {
 export function useTranslation(): UseTranslationResult {
   const { locale, setLocale } = useLocale();
 
-  const t = useCallback<TranslateFn>(
-    (key, vars) => translate(locale, key, vars),
-    [locale],
-  );
+  const t = useCallback<TranslateFn>((key, vars) => translate(locale, key, vars), [locale]);
 
   return { t, locale, setLocale };
 }

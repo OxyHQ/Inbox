@@ -1,11 +1,7 @@
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
 import { useTranslation } from '@/lib/i18n';
 import { Admonition } from '@oxy.so/bloom/admonition';
-import {
-  SettingsCard,
-  SettingsRow,
-  SettingsSection,
-} from '@oxy.so/bloom/settings-modal';
+import { SettingsCard, SettingsRow, SettingsSection } from '@oxy.so/bloom/settings-modal';
 import { Switch } from '@oxy.so/bloom/switch';
 import { View } from 'react-native';
 export function AISection() {

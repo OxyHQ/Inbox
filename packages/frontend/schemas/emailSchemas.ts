@@ -204,19 +204,21 @@ export const EmailTemplateSchema = z.object({
 
 export const EmailOutboxSchema = emailOutboxSchema;
 
-export const SavedEmailSearchFiltersSchema = z.object({
-  q: z.string().optional(),
-  from: z.string().optional(),
-  to: z.string().optional(),
-  subject: z.string().optional(),
-  hasAttachment: z.boolean().optional(),
-  dateAfter: z.string().optional(),
-  dateBefore: z.string().optional(),
-  mailbox: z.string().optional(),
-  starred: z.boolean().optional(),
-  unread: z.boolean().optional(),
-  label: z.string().optional(),
-}).default({});
+export const SavedEmailSearchFiltersSchema = z
+  .object({
+    q: z.string().optional(),
+    from: z.string().optional(),
+    to: z.string().optional(),
+    subject: z.string().optional(),
+    hasAttachment: z.boolean().optional(),
+    dateAfter: z.string().optional(),
+    dateBefore: z.string().optional(),
+    mailbox: z.string().optional(),
+    starred: z.boolean().optional(),
+    unread: z.boolean().optional(),
+    label: z.string().optional(),
+  })
+  .default({});
 
 export const SavedEmailSearchSchema = z.object({
   id: z.string(),

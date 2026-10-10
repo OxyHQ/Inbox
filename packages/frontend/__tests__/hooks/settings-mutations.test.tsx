@@ -23,7 +23,8 @@ jest.mock('@oxy.so/bloom', () => ({ toast }));
 
 jest.mock('@/lib/i18n', () => ({
   useTranslation: () => ({
-    t: (key: string, vars?: Record<string, unknown>) => (vars ? `${key}:${JSON.stringify(vars)}` : key),
+    t: (key: string, vars?: Record<string, unknown>) =>
+      vars ? `${key}:${JSON.stringify(vars)}` : key,
   }),
 }));
 
@@ -36,7 +37,12 @@ import { markUnsubscribed, useUnsubscribe } from '@/hooks/mutations/useUnsubscri
 import { useDeleteContact } from '@/hooks/mutations/useContactMutations';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import { nextContactsOffset, useContacts, type ContactsPage } from '@/hooks/queries/useContacts';
-import { isLabelNameTaken, useCreateLabel, useDeleteLabel, useUpdateLabel } from '@/hooks/queries/useLabels';
+import {
+  isLabelNameTaken,
+  useCreateLabel,
+  useDeleteLabel,
+  useUpdateLabel,
+} from '@/hooks/queries/useLabels';
 import type { Contact, Label, Subscription } from '@/services/emailApi';
 import { httpStatus } from '@/utils/httpStatus';
 
@@ -53,7 +59,9 @@ function setup() {
     return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   }
   const invalidatedRoots = () =>
-    invalidate.mock.calls.map(([filters]) => (filters as { queryKey?: readonly unknown[] })?.queryKey?.[0]);
+    invalidate.mock.calls.map(
+      ([filters]) => (filters as { queryKey?: readonly unknown[] })?.queryKey?.[0],
+    );
   return { queryClient, invalidate, invalidatedRoots, wrapper: Wrapper };
 }
 
@@ -80,7 +88,9 @@ describe('labels', () => {
     const { wrapper } = setup();
     const { result } = renderHook(() => useUpdateLabel(), { wrapper });
     await act(async () => {
-      await result.current.mutateAsync({ labelId: 'a', updates: { name: 'Receipts' } }).catch(() => undefined);
+      await result.current
+        .mutateAsync({ labelId: 'a', updates: { name: 'Receipts' } })
+        .catch(() => undefined);
     });
     expect(toast.error).toHaveBeenCalledTimes(1);
     expect(toast.error).toHaveBeenCalledWith('ui.mutations.labelNameTaken:{"name":"Receipts"}');
@@ -142,17 +152,32 @@ describe('folders', () => {
 
 describe('subscriptions', () => {
   const sub = (id: string): Subscription =>
-    ({ _id: id, name: id, messageCount: 3, readCount: 0, hasListUnsubscribe: true, type: 'list-unsubscribe' }) as Subscription;
+    ({
+      _id: id,
+      name: id,
+      messageCount: 3,
+      readCount: 0,
+      hasListUnsubscribe: true,
+      type: 'list-unsubscribe',
+    }) as Subscription;
   type Cache = InfiniteData<{ data: Subscription[]; pagination: unknown }>;
   const seed = (): Cache => ({
-    pages: [{ data: [sub('news@a.com'), sub('promo@b.com')], pagination: { total: 2, limit: 30, offset: 0, hasMore: false } }],
+    pages: [
+      {
+        data: [sub('news@a.com'), sub('promo@b.com')],
+        pagination: { total: 2, limit: 30, offset: 0, hasMore: false },
+      },
+    ],
     pageParams: [0],
   });
 
   it('marks the row unsubscribed instead of removing it', () => {
     const next = markUnsubscribed(seed() as never, 'news@a.com', '2026-10-10T00:00:00.000Z');
     expect(next.pages[0].data).toHaveLength(2);
-    expect(next.pages[0].data[0]).toMatchObject({ unsubscribed: true, unsubscribedAt: '2026-10-10T00:00:00.000Z' });
+    expect(next.pages[0].data[0]).toMatchObject({
+      unsubscribed: true,
+      unsubscribedAt: '2026-10-10T00:00:00.000Z',
+    });
     expect(next.pages[0].data[1].unsubscribed).toBeUndefined();
   });
 
@@ -169,7 +194,10 @@ describe('subscriptions', () => {
       ['news@a.com', true],
       ['promo@b.com', false],
     ]);
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: emailKeys.subscriptions, refetchType: 'none' });
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: emailKeys.subscriptions,
+      refetchType: 'none',
+    });
   });
 
   it('restores the row when the unsubscribe fails', async () => {
@@ -187,7 +215,8 @@ describe('subscriptions', () => {
 });
 
 describe('contacts', () => {
-  const contact = (i: number) => ({ _id: `c${i}`, name: `C ${i}`, email: `c${i}@x.com` }) as Contact;
+  const contact = (i: number) =>
+    ({ _id: `c${i}`, name: `C ${i}`, email: `c${i}@x.com` }) as Contact;
   const page = (offset: number, count: number, total: number): ContactsPage => ({
     data: Array.from({ length: count }, (_, i) => contact(offset + i)),
     pagination: { total, limit: 100, offset, hasMore: offset + 100 < total },
@@ -196,11 +225,18 @@ describe('contacts', () => {
   it('pages on, and stops at the end or at an empty page', () => {
     expect(nextContactsOffset(page(0, 100, 250))).toBe(100);
     expect(nextContactsOffset(page(200, 50, 250))).toBeUndefined();
-    expect(nextContactsOffset({ data: [], pagination: { total: 9, limit: 100, offset: 0, hasMore: true } })).toBeUndefined();
+    expect(
+      nextContactsOffset({
+        data: [],
+        pagination: { total: 9, limit: 100, offset: 0, hasMore: true },
+      }),
+    ).toBeUndefined();
   });
 
-  it('reads past the API\'s 100-row cap one page at a time', async () => {
-    api.listContacts.mockImplementation(({ offset }: { offset: number }) => Promise.resolve(page(offset, offset === 0 ? 100 : 50, 150)));
+  it("reads past the API's 100-row cap one page at a time", async () => {
+    api.listContacts.mockImplementation(({ offset }: { offset: number }) =>
+      Promise.resolve(page(offset, offset === 0 ? 100 : 50, 150)),
+    );
     const { wrapper } = setup();
     const { result } = renderHook(() => useContacts(), { wrapper });
     await waitFor(() => expect(result.current.hasNextPage).toBe(true));
@@ -209,20 +245,27 @@ describe('contacts', () => {
       await result.current.fetchNextPage();
     });
     expect(api.listContacts).toHaveBeenLastCalledWith({ q: undefined, limit: 100, offset: 100 });
-    await waitFor(() => expect(result.current.data!.pages.flatMap((p) => p.data)).toHaveLength(150));
+    await waitFor(() =>
+      expect(result.current.data!.pages.flatMap((p) => p.data)).toHaveLength(150),
+    );
     expect(result.current.hasNextPage).toBe(false);
   });
 
   it('applies an optimistic delete to the paged cache', async () => {
     api.deleteContact.mockReturnValue(new Promise(() => undefined));
     const { queryClient, wrapper } = setup();
-    queryClient.setQueryData(emailKeys.contacts.list(undefined), { pages: [page(0, 3, 3)], pageParams: [0] });
+    queryClient.setQueryData(emailKeys.contacts.list(undefined), {
+      pages: [page(0, 3, 3)],
+      pageParams: [0],
+    });
     const { result } = renderHook(() => useDeleteContact(), { wrapper });
     act(() => {
       result.current.mutate('c1');
     });
     await waitFor(() => {
-      const cache = queryClient.getQueryData<InfiniteData<ContactsPage>>(emailKeys.contacts.list(undefined))!;
+      const cache = queryClient.getQueryData<InfiniteData<ContactsPage>>(
+        emailKeys.contacts.list(undefined),
+      )!;
       expect(cache.pages[0].data.map((c) => c._id)).toEqual(['c0', 'c2']);
     });
   });

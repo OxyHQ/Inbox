@@ -57,3 +57,50 @@ it('recognizes plaintext citations appended to HTML by mail composers', () => {
   expect(parts.quoted).toContain('On Oct 6, Nate wrote:');
   expect(parts.quoted).toContain('Previous text');
 });
+
+describe('the visible part of a reply', () => {
+  it('keeps images, line breaks and rules outside the quote', () => {
+    const parts = splitHtmlQuote(
+      '<div dir="ltr">Hi Bob,<br>See the chart:<br><img src="cid:chart@x"><hr></div>' +
+        '<div class="gmail_quote"><div class="gmail_attr">On Mon, Oct 5, 2026 at 9:00 AM Bob &lt;bob@x.com&gt; wrote:<br></div>' +
+        '<blockquote class="gmail_quote">old<br>text<img src="cid:old@x"></blockquote></div>',
+    );
+    expect(parts.body).toBe('<div dir="ltr">Hi Bob,<br>See the chart:<br><img src="cid:chart@x"><hr></div>');
+    // The quote still carries only the path to quoted content.
+    expect(parts.quoted).not.toContain('chart@x');
+    expect(parts.quoted).not.toContain('<hr>');
+    expect(parts.quoted).toContain('cid:old@x');
+  });
+
+  it('does not fold a Gmail forward', () => {
+    const forward =
+      '<div dir="ltr"><br><div class="gmail_quote gmail_quote_container"><div class="gmail_attr">---------- Forwarded message ---------<br>' +
+      'From: Acme &lt;news@acme.com&gt;<br>Date: Mon, Oct 5, 2026<br>Subject: Your invoice<br></div><div>Invoice body</div></div></div>';
+    expect(splitHtmlQuote(forward)).toEqual({ body: forward });
+    const withNote = `<div>FYI</div>${forward}`;
+    expect(splitHtmlQuote(withNote)).toEqual({ body: withNote });
+    const localized = '<p>Mira</p><div class="gmail_quote">---------- Mensaje reenviado ---------<br>De: Ana</div>';
+    expect(splitHtmlQuote(localized)).toEqual({ body: localized });
+  });
+
+  it('does not fold an Outlook or Apple Mail forward', () => {
+    const outlook = '<p>See below</p><hr><div id="divRplyFwdMsg"><b>From:</b> Ann<br><b>Subject:</b> FW: Contract</div><div>The contract</div>';
+    expect(splitHtmlQuote(outlook)).toEqual({ body: outlook });
+    const apple = '<div>Note</div><div>Begin forwarded message:</div><br><blockquote type="cite"><div>Original</div></blockquote>';
+    expect(splitHtmlQuote(apple)).toEqual({ body: apple });
+  });
+
+  it('never folds a message down to nothing', () => {
+    const citationOnly = '<div class="gmail_quote"><div class="gmail_attr">On Oct 6, Nate &lt;nate@oxy.so&gt; wrote:</div><blockquote>Previous</blockquote></div>';
+    expect(splitHtmlQuote(citationOnly)).toEqual({ body: citationOnly });
+    const outlookOnly = '<html><head><style>p{}</style></head><body><hr><div id="divRplyFwdMsg">From: Nate</div><p>Original</p></body></html>';
+    expect(splitHtmlQuote(outlookOnly)).toEqual({ body: outlookOnly });
+    expect(splitTextQuote(`${attribution}\n> Earlier email`)).toEqual({ body: `${attribution}\n> Earlier email` });
+  });
+
+  it('still folds when what is left is only an image', () => {
+    const parts = splitHtmlQuote('<img src="cid:sig"><blockquote type="cite">Old</blockquote>');
+    expect(parts.body).toBe('<img src="cid:sig">');
+    expect(parts.quoted).toContain('Old');
+  });
+});

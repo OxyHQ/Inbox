@@ -38,24 +38,47 @@ function icsValue(date: Date, allDay: boolean): string {
   return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 }
 
-/** RFC 5545 TEXT escaping. Applied ONCE, to text with real line breaks. */
+/**
+ * RFC 5545 TEXT escaping (§3.3.11): `\\`, `\;`, `\,` and `\n`. Applied ONCE, to
+ * text with real line breaks. The `;` used to be written as the JS literal
+ * '\;' — which is just ';' — so a semicolon in a title went out unescaped.
+ */
 function escapeText(value: string): string {
   return value
     .replace(/\\/g, '\\\\')
-    .replace(/;/g, '\;')
+    .replace(/;/g, '\\;')
     .replace(/,/g, '\\,')
     .replace(/\r?\n/g, '\\n');
 }
 
-/** Lines longer than 75 octets are folded, as RFC 5545 §3.1 requires. */
+const MAX_LINE_OCTETS = 75;
+
+function utf8Length(codePoint: number): number {
+  return codePoint < 0x80 ? 1 : codePoint < 0x800 ? 2 : codePoint < 0x10000 ? 3 : 4;
+}
+
+/**
+ * Lines longer than 75 OCTETS are folded, as RFC 5545 §3.1 requires: by UTF-8
+ * bytes, never inside a character. It used to cut every 74 UTF-16 units —
+ * up to 222 bytes of CJK on one line, and an emoji cut in half, its two
+ * surrogates encoded as two U+FFFD.
+ */
 function fold(line: string): string {
   const out: string[] = [];
-  let rest = line;
-  while (rest.length > 74) {
-    out.push(rest.slice(0, 74));
-    rest = ` ${rest.slice(74)}`;
+  let current = '';
+  let octets = 0;
+  for (const char of line) {
+    const size = utf8Length(char.codePointAt(0)!);
+    if (octets + size > MAX_LINE_OCTETS) {
+      out.push(current);
+      // A continuation line starts with one space, which counts.
+      current = ' ';
+      octets = 1;
+    }
+    current += char;
+    octets += size;
   }
-  out.push(rest);
+  out.push(current);
   return out.join('\r\n');
 }
 
@@ -67,7 +90,25 @@ function eventUid(data: CardData, times: CalendarTimes): string {
   return `${(hash >>> 0).toString(36)}-${icsValue(times.start, false)}@inbox.oxy.so`;
 }
 
-export function generateIcs(data: CardData, times: CalendarTimes, now = new Date()): string {
+/** The words an export writes into the event, in the app's language. */
+export interface CalendarLabels {
+  /** A line naming the organizer in the notes, e.g. `Organizer: Ann`. */
+  organizer: (name: string) => string;
+  /** The title of an event that has none. */
+  untitled: string;
+}
+
+const ENGLISH_LABELS: CalendarLabels = {
+  organizer: (name) => `Organizer: ${name}`,
+  untitled: 'Event',
+};
+
+export function generateIcs(
+  data: CardData,
+  times: CalendarTimes,
+  now = new Date(),
+  labels: CalendarLabels = ENGLISH_LABELS,
+): string {
   const dateParam = times.allDay ? ';VALUE=DATE' : '';
   const lines: string[] = [
     'BEGIN:VCALENDAR',
@@ -82,9 +123,9 @@ export function generateIcs(data: CardData, times: CalendarTimes, now = new Date
     `DTSTART${dateParam}:${icsValue(times.start, times.allDay)}`,
     `DTEND${dateParam}:${icsValue(times.end, times.allDay)}`,
   ];
-  if (data.title) lines.push(`SUMMARY:${escapeText(data.title)}`);
+  lines.push(`SUMMARY:${escapeText(data.title || labels.untitled)}`);
   if (data.location) lines.push(`LOCATION:${escapeText(data.location)}`);
-  const description = [data.description, data.organizer && `Organizer: ${data.organizer}`]
+  const description = [data.description, data.organizer && labels.organizer(data.organizer)]
     .filter(Boolean)
     .join('\n');
   // Joined with a real line break, then escaped — it used to be joined with a
@@ -94,10 +135,14 @@ export function generateIcs(data: CardData, times: CalendarTimes, now = new Date
   return lines.map(fold).join('\r\n');
 }
 
-export function googleCalendarUrl(data: CardData, times: CalendarTimes): string {
+export function googleCalendarUrl(
+  data: CardData,
+  times: CalendarTimes,
+  labels: CalendarLabels = ENGLISH_LABELS,
+): string {
   const params = new URLSearchParams({
     action: 'TEMPLATE',
-    text: data.title || 'Event',
+    text: data.title || labels.untitled,
     dates: `${icsValue(times.start, times.allDay)}/${icsValue(times.end, times.allDay)}`,
   });
   if (data.location) params.set('location', data.location);

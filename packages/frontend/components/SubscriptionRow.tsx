@@ -59,6 +59,9 @@ export function SubscriptionRow({
   const colors = useColors();
 
   const isBlockOnly = subscription.type === 'frequent';
+  // Once it worked, the way out is spent: the row stays (its mail is still in
+  // the mailbox) but says so, and offers nothing more to press.
+  const isDone = subscription.unsubscribed === true;
 
   const cadence = formatCadence(subscription);
   const readPercent = subscription.messageCount
@@ -91,7 +94,7 @@ export function SubscriptionRow({
         <View style={styles.details}>
           <Text style={[styles.stats, { color: colors.text }]} numberOfLines={1}>
             <Text style={{ color: colors.secondaryText }}>
-              {subscription.messageCount} {subscription.messageCount === 1 ? 'email' : 'emails'}
+              {t('subscriptions.messageCount', { count: subscription.messageCount })}
             </Text>
             {` ${detail}`}
           </Text>
@@ -101,15 +104,21 @@ export function SubscriptionRow({
         </View>
       }
       trailing={
-        <Button
-          appearance={isBlockOnly ? 'solid' : 'outline'}
-          tone={isBlockOnly ? 'danger' : 'neutral'}
-          onPress={handlePress}
-          disabled={isUnsubscribing}
-          loading={isUnsubscribing}
-        >
-          {t(isBlockOnly ? 'subscriptions.block' : 'subscriptions.unsubscribe')}
-        </Button>
+        isDone ? (
+          <Button appearance="outline" tone="neutral" disabled>
+            {t(isBlockOnly ? 'subscriptions.blocked' : 'subscriptions.unsubscribed')}
+          </Button>
+        ) : (
+          <Button
+            appearance={isBlockOnly ? 'solid' : 'outline'}
+            tone={isBlockOnly ? 'danger' : 'neutral'}
+            onPress={handlePress}
+            disabled={isUnsubscribing}
+            loading={isUnsubscribing}
+          >
+            {t(isBlockOnly ? 'subscriptions.block' : 'subscriptions.unsubscribe')}
+          </Button>
+        )
       }
     />
   );

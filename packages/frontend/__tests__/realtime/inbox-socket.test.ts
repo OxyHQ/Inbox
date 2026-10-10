@@ -51,11 +51,19 @@ jest.mock('@/lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string, vars?: Record<string, string>) => `${key}:${vars?.sender ?? ''}` }),
 }));
 
+let pathname = '/';
+jest.mock('expo-router', () => ({ usePathname: () => pathname }));
+
 const recordInboxMetric = jest.fn();
 jest.mock('@/utils/inboxTelemetry', () => ({ recordInboxMetric }));
 
 import { renderHook } from '@testing-library/react';
 import { useInboxSocket } from '@/hooks/useInboxSocket';
+import {
+  __resetNewMailAttention,
+  claimNewMailAnnouncement,
+  noteSettingsOpen,
+} from '@/lib/notifications/new-mail-attention';
 
 const emailNew = {
   id: 'row-abc',
@@ -77,6 +85,8 @@ function mount() {
 beforeEach(() => {
   jest.clearAllMocks();
   viewMode = null;
+  pathname = '/';
+  __resetNewMailAttention();
 });
 
 describe('subscription', () => {
@@ -131,6 +141,48 @@ describe('email:new', () => {
     mount();
     handlers.get('email:new')!(emailNew);
     expect(toast.info).not.toHaveBeenCalled();
+  });
+
+  it('toasts in Search even though the last folder browsed is where the mail landed', () => {
+    // `viewMode` keeps the folder while Search is on screen; the list is not.
+    viewMode = { type: 'mailbox', mailbox: { _id: 'mb-1' } };
+    pathname = '/search';
+    mount();
+    handlers.get('email:new')!(emailNew);
+    expect(toast.info).toHaveBeenCalledWith('inbox.toast.newEmail:Alice');
+  });
+
+  it('toasts in Subscriptions too', () => {
+    viewMode = { type: 'mailbox', mailbox: { _id: 'mb-1' } };
+    pathname = '/subscriptions';
+    mount();
+    handlers.get('email:new')!(emailNew);
+    expect(toast.info).toHaveBeenCalledTimes(1);
+  });
+
+  it('toasts while the settings modal covers the list', () => {
+    viewMode = { type: 'mailbox', mailbox: { _id: 'mb-1' } };
+    noteSettingsOpen(true);
+    mount();
+    handlers.get('email:new')!(emailNew);
+    expect(toast.info).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not toast a message whose push already showed the OS banner', () => {
+    viewMode = { type: 'mailbox', mailbox: { _id: 'mb-OTHER' } };
+    expect(claimNewMailAnnouncement(emailNew.id)).toBe(true); // the push got there first
+    mount();
+    handlers.get('email:new')!(emailNew);
+    expect(toast.info).not.toHaveBeenCalled();
+    // The cache is still updated: only the announcement is deduplicated.
+    expect(setQueriesData).toHaveBeenCalled();
+  });
+
+  it('claims the message, so a push arriving after it stays quiet', () => {
+    mount();
+    handlers.get('email:new')!(emailNew);
+    expect(toast.info).toHaveBeenCalledTimes(1);
+    expect(claimNewMailAnnouncement(emailNew.id)).toBe(false);
   });
 
   it('ignores a malformed payload instead of writing junk into the cache', () => {

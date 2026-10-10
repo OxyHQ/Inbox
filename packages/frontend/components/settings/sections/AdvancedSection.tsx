@@ -688,7 +688,10 @@ export function AdvancedSection() {
                   key: 'import',
                   label: t('ui.settings.advanced.import'),
                   description: importResult
-                    ? `Imported ${importResult.imported} of ${importResult.total} emails.`
+                    ? t('ui.settings.advanced.imported', {
+                        imported: importResult.imported,
+                        count: importResult.total,
+                      })
                     : t('ui.settings.advanced.importDescription'),
                   rows: [
                     {

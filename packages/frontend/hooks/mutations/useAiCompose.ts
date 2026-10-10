@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import { toast } from '@oxy.so/bloom';
 import { useOxy } from '@oxy.so/services';
+import { useTranslation } from '@/lib/i18n';
 import { runInboxCompose, streamInboxDraft } from '@/services/inboxInferenceApi';
 import { aiKeys } from '@/hooks/queries/queryKeys';
 
@@ -34,6 +36,7 @@ interface UseAiComposeReturn {
 }
 
 export function useAiCompose(): UseAiComposeReturn {
+  const { t } = useTranslation();
   const { oxyServices } = useOxy();
   const mountedRef = useRef(false);
   const streamControllerRef = useRef<AbortController | null>(null);
@@ -98,6 +101,12 @@ export function useAiCompose(): UseAiComposeReturn {
             body: operation.body,
           })).text.trim().replace(/^["']|["']$/g, '');
       }
+    },
+    // The toolbar leaves the text as it was on failure; this says why nothing
+    // happened. An abort is a superseded or unmounted request, not a failure.
+    onError: (error) => {
+      if (error.name === 'AbortError' || !mountedRef.current) return;
+      toast.error(t('ai.toast.failed'));
     },
   });
 

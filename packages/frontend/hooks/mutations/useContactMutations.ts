@@ -3,7 +3,29 @@ import { toast } from '@oxy.so/bloom';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import type { Contact } from '@/services/emailApi';
+import type { ContactsInfinite } from '@/hooks/queries/useContacts';
 import { useTranslation } from '@/lib/i18n';
+
+type ContactsSnapshot = [readonly unknown[], unknown][];
+
+/**
+ * Apply `updater` to one cached contacts list. The list is an infinite query
+ * (`{ pages: [{ data, pagination }] }`); the updater runs over every page's
+ * rows, and a prepend (`create`) lands on the first page only. Anything else
+ * under the `contacts` root — an entry restored from before the list was
+ * paginated — is left alone rather than reshaped.
+ */
+function applyToContacts(
+  old: unknown,
+  updater: (prev: Contact[], pageIndex: number) => Contact[],
+): unknown {
+  const cache = old as ContactsInfinite | undefined;
+  if (!cache || !Array.isArray(cache.pages)) return old;
+  return {
+    ...cache,
+    pages: cache.pages.map((page, index) => ({ ...page, data: updater(page.data, index) })),
+  };
+}
 
 /**
  * Apply an optimistic updater across every cached `['contacts', …]` variant
@@ -11,17 +33,17 @@ import { useTranslation } from '@/lib/i18n';
  */
 async function optimisticContacts(
   queryClient: ReturnType<typeof useQueryClient>,
-  updater: (prev: Contact[]) => Contact[],
-): Promise<{ prev: [readonly unknown[], Contact[] | undefined][] }> {
+  updater: (prev: Contact[], pageIndex: number) => Contact[],
+): Promise<{ prev: ContactsSnapshot }> {
   await queryClient.cancelQueries({ queryKey: emailKeys.contacts.root });
-  const prev = queryClient.getQueriesData<Contact[]>({ queryKey: emailKeys.contacts.root });
-  queryClient.setQueriesData<Contact[]>({ queryKey: emailKeys.contacts.root }, (old) => updater(old ?? []));
+  const prev = queryClient.getQueriesData<unknown>({ queryKey: emailKeys.contacts.root });
+  queryClient.setQueriesData<unknown>({ queryKey: emailKeys.contacts.root }, (old: unknown) => applyToContacts(old, updater));
   return { prev };
 }
 
 function restoreContacts(
   queryClient: ReturnType<typeof useQueryClient>,
-  prev: [readonly unknown[], Contact[] | undefined][],
+  prev: ContactsSnapshot,
 ) {
   prev.forEach(([key, data]) => queryClient.setQueryData(key, data));
 }
@@ -59,7 +81,9 @@ export function useCreateContact() {
         createdAt: now,
         updatedAt: now,
       };
-      const { prev } = await optimisticContacts(queryClient, (contacts) => [optimistic, ...contacts]);
+      const { prev } = await optimisticContacts(queryClient, (contacts, page) =>
+        page === 0 ? [optimistic, ...contacts] : contacts,
+      );
       return { prev };
     },
     onError: (err: Error, _vars, context) => {

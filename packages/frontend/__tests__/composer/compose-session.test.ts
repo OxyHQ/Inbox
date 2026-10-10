@@ -50,6 +50,7 @@ import { __setOxyState } from '@oxy.so/services';
 import { useComposeSession, type ComposeSessionOptions } from '@/hooks/useComposeSession';
 import { MessageSchema } from '@/schemas/emailSchemas';
 import { wireMessage } from '../fixtures/wire';
+import { composeRecoveryStorageKey, saveComposeRecovery } from '@/utils/composeRecovery';
 
 const DRAFT_FLAGS = { seen: true, starred: false, answered: false, forwarded: false, draft: true, pinned: false };
 
@@ -313,6 +314,100 @@ describe('a new message', () => {
     });
 
     expect(discardDraft).toHaveBeenCalledWith('created-1');
+  });
+});
+
+describe('a reply or a link', () => {
+  it('starts with nothing unsaved: no junk draft, and closing saves nothing', async () => {
+    const onFinished = jest.fn();
+    const { result } = renderHook(() =>
+      useComposeSession(
+        options({ initial: { to: 'ann@example.com', subject: 'Re: Plan' }, onFinished }),
+      ),
+    );
+    await settle();
+    await advance(8_000);
+
+    expect(result.current.isDirty).toBe(false);
+    expect(saveDraft).not.toHaveBeenCalled();
+    await act(async () => {
+      await result.current.saveAndClose();
+    });
+    expect(saveDraft).not.toHaveBeenCalled();
+    expect(onFinished).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('an address that does not parse yet', () => {
+  it('keeps the edits unsaved, since the server draft left it out', async () => {
+    const { result } = renderHook(() => useComposeSession(options()));
+    await settle();
+    act(() => {
+      result.current.setTo('bob@example');
+      result.current.updateBody('Hello');
+    });
+    await advance(8_000);
+
+    expect(saveDraft).toHaveBeenCalledTimes(1);
+    expect(result.current.isDirty).toBe(true);
+  });
+});
+
+describe('a recovered message whose send was queued', () => {
+  async function recoverQueued() {
+    await saveComposeRecovery(composeRecoveryStorageKey('user-1', 'new'), {
+      to: 'ann@example.com',
+      cc: '',
+      bcc: '',
+      subject: 'Plan',
+      body: 'Queued text',
+      attachments: [],
+      idempotencyKey: 'inbox-send-queued',
+      queued: true,
+    });
+    const rendered = renderHook(() => useComposeSession(options()));
+    await settle();
+    return rendered;
+  }
+
+  it('sends again as the same message while it is unchanged', async () => {
+    const { result } = await recoverQueued();
+    expect(result.current.alreadyQueued).toBe(true);
+
+    await act(async () => {
+      await result.current.send();
+    });
+    expect(sendWithUndo.mock.calls[0][0]).toMatchObject({ idempotencyKey: 'inbox-send-queued' });
+  });
+
+  it('is a new message once it is edited, with a new key', async () => {
+    const { result } = await recoverQueued();
+    act(() => result.current.updateBody('Something else entirely'));
+    await settle();
+    expect(result.current.alreadyQueued).toBe(false);
+
+    await act(async () => {
+      await result.current.send();
+    });
+    expect(sendWithUndo.mock.calls[0][0].idempotencyKey).not.toBe('inbox-send-queued');
+  });
+});
+
+describe('discarding inside the undo window', () => {
+  it('calls the send off', async () => {
+    const cancel = jest.fn(() => true);
+    sendWithUndo.mockReturnValue({ cancel });
+    const { result } = renderHook(() => useComposeSession(options()));
+    await settle();
+    act(() => result.current.setTo('ann@example.com'));
+    await act(async () => {
+      await result.current.send();
+    });
+
+    await act(async () => {
+      await result.current.discardDraft();
+    });
+    expect(cancel).toHaveBeenCalledTimes(1);
   });
 });
 

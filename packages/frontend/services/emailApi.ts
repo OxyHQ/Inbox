@@ -6,6 +6,7 @@
  * All responses validated with zod schemas at runtime.
  */
 
+import { chunk } from '@oxy.so/utils/text';
 import { z } from 'zod';
 import type { OxyServices } from '@oxy.so/core';
 
@@ -181,6 +182,24 @@ function parseMessageStrict(item: unknown, source: string): Message {
 }
 
 /** Long enough for a synchronous SMTP relay; see `sendMessage`. */
+/** The most message ids one bulk request may carry (`bulk*Schema` in the API). */
+export const BULK_LIMIT = 100;
+
+const BulkResultSchema = z.object({ matched: z.number(), modified: z.number() });
+
+async function inBatches(
+  ids: string[],
+  run: (batch: string[]) => Promise<{ matched: number; modified: number }>,
+): Promise<{ matched: number; modified: number }> {
+  const total = { matched: 0, modified: 0 };
+  for (const batch of chunk(ids, BULK_LIMIT)) {
+    const result = await run(batch);
+    total.matched += result.matched;
+    total.modified += result.modified;
+  }
+  return total;
+}
+
 const SEND_TIMEOUT_MS = 60_000;
 
 // ─── API Client ────────────────────────────────────────────────────
@@ -287,20 +306,28 @@ export function createEmailApi(http: HttpService) {
 
     // ─── Bulk Operations ──────────────────────────────────────────────
 
+    // The API takes at most BULK_LIMIT ids per request, and one conversation
+    // can hold more than that: a selection or a long thread is sent in batches,
+    // one after another. Both operations set state, so a batch that is repeated
+    // after a partial failure does no harm.
     async bulkUpdateFlags(
       messageIds: string[],
       flags: Partial<MessageFlags>,
     ): Promise<{ matched: number; modified: number }> {
-      const res = await http.post('/email/messages/bulk/flags', { messageIds, flags });
-      return z.object({ matched: z.number(), modified: z.number() }).parse(res);
+      return inBatches(messageIds, async (batch) => {
+        const res = await http.post('/email/messages/bulk/flags', { messageIds: batch, flags });
+        return BulkResultSchema.parse(res);
+      });
     },
 
     async bulkMoveMessages(
       messageIds: string[],
       mailboxId: string,
     ): Promise<{ matched: number; modified: number }> {
-      const res = await http.post('/email/messages/bulk/move', { messageIds, mailboxId });
-      return z.object({ matched: z.number(), modified: z.number() }).parse(res);
+      return inBatches(messageIds, async (batch) => {
+        const res = await http.post('/email/messages/bulk/move', { messageIds: batch, mailboxId });
+        return BulkResultSchema.parse(res);
+      });
     },
 
     // ─── Labels ─────────────────────────────────────────────────────

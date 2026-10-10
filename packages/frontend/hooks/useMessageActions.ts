@@ -132,7 +132,8 @@ export function useMessageActions() {
 
   const snooze = useCallback(
     (conversation: Message[], until: string) => {
-      for (const message of conversation) snoozeMutation.mutate({ messageId: message._id, until });
+      if (conversation.length === 0) return;
+      snoozeMutation.mutate({ messageIds: conversation.map((m) => m._id), until });
     },
     [snoozeMutation],
   );

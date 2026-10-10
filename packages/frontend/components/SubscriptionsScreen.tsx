@@ -105,6 +105,12 @@ function SubscriptionsContent() {
     }
     return merged;
   }, [data]);
+  // The piles are for deciding what to keep; a sender already unsubscribed
+  // from is decided, and stays only in the list below, marked as such.
+  const activeSubscriptions = useMemo(
+    () => subscriptions.filter((sub) => !sub.unsubscribed),
+    [subscriptions],
+  );
 
   const handleBack = useGoBack();
 
@@ -224,7 +230,7 @@ function SubscriptionsContent() {
           ListHeaderComponent={
             <>
               <SubscriptionStacks
-                subscriptions={subscriptions}
+                subscriptions={activeSubscriptions}
                 onSelect={handleSelectSubscription}
               />
               {/* Scrolls with the list rather than sitting in a fixed band:

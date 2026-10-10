@@ -33,12 +33,18 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { toast } from '@oxy.so/bloom';
 import { useOxy, useOxyEvent } from '@oxy.so/services';
+import { usePathname } from 'expo-router';
 
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { useEmailStore } from '@/hooks/useEmail';
 import { invalidateMailViews } from '@/hooks/queries/invalidateMailViews';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import { useTranslation } from '@/lib/i18n';
+import {
+  claimNewMailAnnouncement,
+  isLookingAtMailbox,
+  noteCurrentPath,
+} from '@/lib/notifications/new-mail-attention';
 import type { Mailbox, Message } from '@/services/emailApi';
 import type { MessagesPage } from '@/utils/messageCache';
 import { recordInboxMetric } from '@/utils/inboxTelemetry';
@@ -247,6 +253,12 @@ export function useInboxSocket() {
   const { t } = useTranslation();
   const viewMode = useEmailStore((s) => s.viewMode);
   const userId = user?.id ?? null;
+  // `viewMode` keeps the last folder while Search, Subscriptions or Settings
+  // is on screen; the route says whether a mail list is actually showing.
+  const pathname = usePathname();
+  useEffect(() => {
+    noteCurrentPath(pathname);
+  }, [pathname]);
 
   const onEmailNew = useCallback(
     (payload: unknown) => {
@@ -283,9 +295,12 @@ export function useInboxSocket() {
       // 4. Toast only when the user is looking somewhere else. When they are
       //    already on the folder it landed in, the new row IS the notification.
       //    Never for mail filed as spam: every spam message used to pop a
-      //    toast naming its sender.
-      const isViewingTargetMailbox =
-        viewMode?.type === 'mailbox' && viewMode.mailbox._id === payload.mailboxId;
+      //    toast naming its sender. And never when the push for the same
+      //    message already showed its OS banner: one message, one notification.
+      //    Claimed whether or not it toasts, so a push arriving after this
+      //    stays quiet too.
+      const firstAnnouncement = claimNewMailAnnouncement(payload.id);
+      const isViewingTargetMailbox = isLookingAtMailbox(viewMode, payload.mailboxId);
       const target = queryClient
         .getQueryData<Mailbox[]>(emailKeys.mailboxes.list(userId))
         ?.find((mb) => mb._id === payload.mailboxId);
@@ -293,7 +308,7 @@ export function useInboxSocket() {
         target?.specialUse === SPECIAL_USE.SPAM ||
         target?.specialUse === SPECIAL_USE.TRASH ||
         /^(spam|junk|trash)$/i.test(payload.folder);
-      if (!isViewingTargetMailbox && !isQuietFolder) {
+      if (firstAnnouncement && !isViewingTargetMailbox && !isQuietFolder) {
         toast.info(t('inbox.toast.newEmail', { sender: payload.from.name ?? payload.from.address }));
       }
 

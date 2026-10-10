@@ -235,8 +235,9 @@ function ComposeSessionForm({
   const [showScheduleSheet, setShowScheduleSheet] = useState(false);
 
   const handleClose = useCallback(() => {
-    // Nothing unsaved: close. Otherwise ask whether to keep it.
-    if (session.hasContent && session.isDirty) {
+    // Nothing unsaved, or already on its way: close. Otherwise ask whether to
+    // keep it.
+    if (session.hasContent && session.isDirty && !session.sending) {
       saveDraftDialog.open();
     } else {
       void session.saveAndClose();

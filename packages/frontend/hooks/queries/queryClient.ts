@@ -22,6 +22,12 @@ import { useEmailStore } from '@/hooks/useEmail';
 
 import { MEMORY_ONLY_QUERY_ROOTS, PERSISTED_QUERY_ROOTS } from '@/hooks/queries/queryKeys';
 
+/**
+ * For mutations that set state (a flag, a folder, a label set) and so may be
+ * repeated safely: one retry, which is also what parks them while offline.
+ */
+export const RETRY_IDEMPOTENT = { retry: 1 } as const;
+
 export const INBOX_MUTATION_KEYS = {
   toggleStar: ['inbox', 'message', 'toggle-star'] as const,
   toggleRead: ['inbox', 'message', 'toggle-read'] as const,
@@ -68,29 +74,40 @@ export const queryClient = new QueryClient({
       networkMode: 'offlineFirst',
     },
     mutations: {
-      // Offline-first: pause and queue mutations when offline (see useMessageMutations).
       networkMode: 'offlineFirst',
-      retry: 1,
+      // No retry unless the mutation is safe to repeat. A retry re-sends a
+      // request that may already have committed: a draft save that timed out
+      // was saved twice (or answered 409 and forked), a create made two labels,
+      // an unsubscribe mailed the sender twice. And with no retry there is
+      // nothing to pause on while offline — a draft save or a send fails at once
+      // instead of hanging until the network returns and then firing unasked.
+      // The idempotent message actions opt in with `RETRY_IDEMPOTENT`, and are
+      // queued offline and replayed when the network is back.
+      retry: 0,
     },
   },
 });
 
 queryClient.setMutationDefaults<unknown, Error, ToggleStarVariables>(INBOX_MUTATION_KEYS.toggleStar, {
   networkMode: 'offlineFirst',
+  ...RETRY_IDEMPOTENT,
   mutationFn: async ({ messageId, starred }) => activeEmailApi().updateFlags(messageId, { starred }),
 });
 queryClient.setMutationDefaults<unknown, Error, ToggleReadVariables>(INBOX_MUTATION_KEYS.toggleRead, {
   networkMode: 'offlineFirst',
+  ...RETRY_IDEMPOTENT,
   mutationFn: async ({ messageId, seen }) => activeEmailApi().updateFlags(messageId, { seen }),
 });
 queryClient.setMutationDefaults<void, Error, ArchiveVariables>(INBOX_MUTATION_KEYS.archive, {
   networkMode: 'offlineFirst',
+  ...RETRY_IDEMPOTENT,
   mutationFn: async ({ messageId, archiveMailboxId }) => {
     await activeEmailApi().moveMessage(messageId, archiveMailboxId);
   },
 });
 queryClient.setMutationDefaults<void, Error, DeleteVariables>(INBOX_MUTATION_KEYS.delete, {
   networkMode: 'offlineFirst',
+  ...RETRY_IDEMPOTENT,
   mutationFn: async ({ messageId, trashMailboxId, isInTrash }) => {
     const api = activeEmailApi();
     if (isInTrash) await api.deleteMessage(messageId, true);

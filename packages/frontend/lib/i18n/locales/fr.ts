@@ -280,6 +280,7 @@ const fr: LocaleDict = {
   },
 
   message: {
+    unreadState: 'Non lu',
     draftLabel: 'Brouillon',
     draftTo: 'Brouillon pour {{recipients}}',
     detail: {
@@ -290,6 +291,14 @@ const fr: LocaleDict = {
       messagesInConversation_other: '{{count}} messages dans cette conversation',
       toRecipients: 'à {{recipients}}',
       ccRecipients: ', cc : {{recipients}}',
+      openVideo: 'Ouvrir la vidéo',
+      openAudio: "Ouvrir l'audio",
+    },
+    print: {
+      from: 'De :',
+      to: 'À :',
+      cc: 'Cc :',
+      date: 'Date :',
     },
     actions: {
       editDraft: 'Modifier le brouillon',
@@ -498,6 +507,7 @@ const fr: LocaleDict = {
       placeholder: 'ex. Décline poliment la réunion et propose plutôt la semaine prochaine',
     },
     toast: {
+      failed: 'L\'IA n\'a pas pu le faire pour l\'instant. Ton texte n\'a pas changé.',
       keptYourEdits: 'Tu as continué à écrire, ton texte a donc été conservé.',
       applied: 'Réécrit par l\'IA.',
     },
@@ -634,6 +644,10 @@ const fr: LocaleDict = {
     },
     unsubscribe: 'Se désabonner',
     block: 'Bloquer',
+    unsubscribed: 'Désabonné',
+    blocked: 'Bloqué',
+    messageCount_one: '{{count}} courriel',
+    messageCount_other: '{{count}} courriels',
     frequency: {
       twentyPlus: '20+ courriels récents',
       tenToTwenty: '10-20 courriels récents',
@@ -721,6 +735,7 @@ const fr: LocaleDict = {
       summary: 'Détails du colis',
     },
     event: {
+      organizer: 'Organisateur : {{name}}',
       header: 'Événement',
       addToCalendar: 'Ajouter au calendrier',
       googleCalendar: 'Google Agenda',
@@ -741,6 +756,7 @@ const fr: LocaleDict = {
     sizeBytes: '{{value}} o',
     sizeKb: '{{value}} Ko',
     sizeMb: '{{value}} Mo',
+    previewAlt: 'Aperçu de la pièce jointe',
   },
 
   settings: {
@@ -754,6 +770,9 @@ const fr: LocaleDict = {
       title: 'Une erreur s\'est produite',
     },
     me: 'Me',
+    layoutDirection: {
+      restartRequired: 'Redémarre Inbox pour adapter le sens de l\'affichage à cette langue.',
+    },
     settings: {
       manageOxyAccount: 'Gérer le compte Oxy',
       landing: {
@@ -768,7 +787,7 @@ const fr: LocaleDict = {
           appearance: 'Apparence', appearanceDescription: 'Thème et couleur d\'accent',
           notifications: 'Notifications', notificationsDescription: 'Alertes push et e-mail',
           inbox: 'Boîte de réception', inboxDescription: 'Densité, lecture et actions de balayage',
-          privacy: 'Confidentialité', privacyDescription: 'Protection contre le pistage et confiance des expéditeurs',
+          privacy: 'Confidentialité', privacyDescription: 'Proxy d\'images et blocage des traqueurs',
           labels: 'Libellés', labelsDescription: 'Organise ta boîte avec des libellés personnalisés',
           contacts: 'Contacts', contactsDescription: 'Les personnes à qui tu écris, pour rédiger plus vite',
           ai: 'Fonctions IA', aiDescription: 'Résumé, réponses rapides et catégorisation',
@@ -801,7 +820,7 @@ const fr: LocaleDict = {
         accentColor: 'Couleur d\'accent',
       },
       notifications: {
-        deviceNotice: 'Les autorisations de notification du système se gèrent dans les réglages de l\'appareil.',
+        deviceNotice: 'Les autorisations de notification du système se gèrent dans les réglages de l\'appareil.', webNotice: 'Les notifications push sont disponibles dans l\'app Inbox pour Android. Tant qu\'Inbox est ouvert dans ton navigateur, les nouveaux courriels s\'affichent ici dès leur arrivée.',
         alerts: 'Alertes', push: 'Notifications push', pushDescription: 'Sois averti de l\'arrivée de nouveaux messages.',
         digest: 'Récapitulatif quotidien par e-mail', digestDescription: 'Un résumé des messages non lus, une fois par jour.',
         sound: 'Son', playSound: 'Jouer un son', soundDescription: 'Un court carillon à chaque nouveau message.',
@@ -816,13 +835,15 @@ const fr: LocaleDict = {
         swipeA11y: 'Action de balayage {{label}} : {{value}}, appuie pour changer', swipeHint: 'Appuie sur une ligne pour alterner entre Archiver · Supprimer · Marquer comme lu · Reporter · Aucune.',
       },
       privacy: {
-        info: 'Les protections de la vie privée sont activées par défaut. Des réglages par fonction arrivent bientôt.',
-        tracking: 'Protection contre le pistage', blockImages: 'Bloquer les images distantes', blockImagesDescription: 'Ne pas charger les images de serveurs externes tant que tu ne les autorises pas.',
-        hideIp: 'Masquer l\'IP aux expéditeurs', hideIpDescription: 'Les images et les polices passent par le proxy de confidentialité d\'Oxy.',
-        stripTracking: 'Supprimer les paramètres de pistage', stripTrackingDescription: 'Retire les jetons de pistage des liens dans les messages.',
-        trust: 'Confiance des expéditeurs', verification: 'Vérification des expéditeurs', verificationDescription: 'Indique si les messages sont signés par le domaine qu\'ils revendiquent.',
-        blockList: 'Gérer la liste de blocage', blockListTitle: 'Liste de blocage', blockListEmpty: 'Aucun expéditeur n\'est bloqué pour le moment.',
-        why: 'Pourquoi ces réglages par défaut ?', whyDescription: 'Oxy protège ta vie privée par défaut : les expéditeurs ne voient jamais ton IP, ta position ni tes accusés de lecture, et les pixels de pistage sont bloqués en bordure de réseau. Nous proposerons des exceptions plus fines, par message et par expéditeur, à mesure que les protections évolueront.',
+        info: 'Ces protections s\'appliquent à chaque message et sont toujours actives.',
+        images: 'Images distantes',
+        alwaysOn: 'Toujours actif',
+        proxy: 'Les images passent par Oxy',
+        proxyDescription: 'Les images et polices de tes courriels sont récupérées par le proxy d\'Oxy : les expéditeurs ne voient jamais ton adresse IP ni ta localisation.',
+        trackers: 'Traqueurs connus bloqués',
+        trackersDescription: 'Les images provenant de services de pistage connus sont remplacées par une image vide.',
+        why: 'Ce que les expéditeurs peuvent encore voir',
+        whyDescription: 'Les images se chargent automatiquement : un expéditeur peut donc savoir qu\'un message a été ouvert, mais pas ton adresse IP ni ta localisation.',
       },
       labels: {
         color: 'Couleur',
@@ -842,7 +863,7 @@ const fr: LocaleDict = {
         your: 'Tes libellés', empty: 'Pas encore de libellés. Crée le premier ci-dessous pour organiser tes messages.', create: 'Créer un libellé', labelName: 'Nom du libellé', saveName: 'Enregistrer le nom du libellé', rename: 'Renommer {{name}}', delete: 'Supprimer {{name}}', builtIn: 'Intégré', pick: 'Choisir {{color}}', newName: 'Nom du nouveau libellé', creating: 'Création…', add: 'Ajouter un libellé', deleteTitle: 'Supprimer le libellé ?', deleteDescription: '« {{name}} » sera retiré de tous les messages auxquels il est appliqué.',
       },
       contacts: {
-        your: 'Tes contacts', search: 'Rechercher des contacts', edit: 'Modifier {{name}}', delete: 'Supprimer {{name}}', editContact: 'Modifier le contact', addContact: 'Ajouter un contact', name: 'Nom', email: 'Courriel', company: 'Entreprise (facultatif)', notes: 'Notes (facultatif)', star: 'Mettre ce contact en favori', saving: 'Enregistrement…', adding: 'Ajout…', saveChanges: 'Enregistrer les modifications', deleteTitle: 'Supprimer le contact ?', deleteDescription: '« {{name}} » sera retiré de tes contacts.', noMatch: 'Aucun contact ne correspond à ta recherche.', empty: 'Pas encore de contacts. Ajoute ci-dessous tes destinataires fréquents pour rédiger plus vite.',
+        your: 'Tes contacts', search: 'Rechercher des contacts', edit: 'Modifier {{name}}', delete: 'Supprimer {{name}}', editContact: 'Modifier le contact', addContact: 'Ajouter un contact', name: 'Nom', email: 'Courriel', company: 'Entreprise (facultatif)', notes: 'Notes (facultatif)', star: 'Mettre ce contact en favori', saving: 'Enregistrement…', adding: 'Ajout…', saveChanges: 'Enregistrer les modifications', deleteTitle: 'Supprimer le contact ?', deleteDescription: '« {{name}} » sera retiré de tes contacts.', noMatch: 'Aucun contact ne correspond à ta recherche.', loadMore: 'Charger plus de contacts', showing: '{{shown}} sur {{total}} affichés', empty: 'Pas encore de contacts. Ajoute ci-dessous tes destinataires fréquents pour rédiger plus vite.',
       },
       ai: {
         dailyBrief: 'Résumé quotidien', recap: 'Récap de la boîte', recapDescription: 'Un court résumé généré à partir des compteurs de ta boîte (non lus, favoris, pièces jointes). Il ne lit pas le contenu des messages.', smartReply: 'Réponses rapides', summary: 'Résumé de conversation', summaryTitle: 'Proposer un résumé', summaryDescription: 'Affiche un bouton Résumer sur les conversations. Une conversation n\'est envoyée à Oxy et Kaana que lorsque tu appuies dessus.', suggestions: 'Suggestions en un geste', suggestionsDescription: 'Trois suggestions de réponse contextuelles au-dessus du message, générées via Oxy et Kaana.', priority: 'Indicateurs de priorité', priorityTitle: 'Mettre en avant les courriels probablement urgents', priorityDescription: 'Signale les messages comme Urgent, Action requise ou Important grâce à des heuristiques de mots-clés sur l\'appareil — pas un vrai modèle d\'IA.', tip: 'Les indicateurs de priorité fonctionnent sur l\'appareil à partir d\'heuristiques de mots-clés. Le résumé quotidien, les réponses rapides et les résumés de conversation utilisent une inférence Oxy limitée via Kaana ; Demander à Alia reste l\'agent distinct.',
@@ -865,14 +886,14 @@ const fr: LocaleDict = {
         deleteTemplateDescription: '« {{name}} » sera retiré de tes modèles enregistrés.',
         sizePlaceholder: 'ex. 5 Mo',
         contains: 'contient', equals: 'est égal à', notContains: 'ne contient pas', startsWith: 'commence par', endsWith: 'se termine par', largerThan: 'supérieur à (octets)', smallerThan: 'inférieur à (octets)',
-        filters: 'Filtres et règles', noFilters: 'Pas encore de filtres. Les filtres appliquent automatiquement aux messages entrants des actions comme archiver, mettre en favori ou marquer comme lu.', filterName: 'Nom du filtre', whenMessage: 'Quand, dans un message, le champ', sizeBytes: 'Taille en octets', value: 'Valeur', then: 'alors', creating: 'Création…', addFilter: 'Ajouter un filtre', editingTemplate: 'Modification du modèle', templates: 'Modèles', templateName: 'Nom du modèle', subjectOptional: 'Objet (facultatif)', templateBody: 'Corps du modèle', saveChanges: 'Enregistrer les modifications', addTemplate: 'Ajouter un modèle', bundles: 'Groupes', bundleHint: 'Les groupes rassemblent automatiquement les courriels liés. Active-les et choisis leur ordre d\'affichage dans ta boîte.', import: 'Importation', importDescription: 'Importe des courriels depuis des fichiers .eml. Les messages importés arrivent dans ta boîte de réception et peuvent être déplacés ou libellés comme n\'importe quel autre courriel.', importing: 'Importation…', importButton: 'Choisir des fichiers .eml', imported: '{{imported}} courriel(s) importé(s) sur {{total}}.', conditions: '{{conditions}} condition(s) · {{actions}} action(s)', deleteFilter: 'Supprimer {{name}}', editTemplate: 'Modifier {{name}}', deleteTemplate: 'Supprimer {{name}}', moveUp: 'Monter {{name}}', moveDown: 'Descendre {{name}}',
+        filters: 'Filtres et règles', noFilters: 'Pas encore de filtres. Les filtres appliquent automatiquement aux messages entrants des actions comme archiver, mettre en favori ou marquer comme lu.', filterName: 'Nom du filtre', whenMessage: 'Quand, dans un message, le champ', sizeBytes: 'Taille en octets', value: 'Valeur', then: 'alors', creating: 'Création…', addFilter: 'Ajouter un filtre', editingTemplate: 'Modification du modèle', templates: 'Modèles', templateName: 'Nom du modèle', subjectOptional: 'Objet (facultatif)', templateBody: 'Corps du modèle', saveChanges: 'Enregistrer les modifications', addTemplate: 'Ajouter un modèle', bundles: 'Groupes', bundleHint: 'Les groupes rassemblent automatiquement les courriels liés. Active-les et choisis leur ordre d\'affichage dans ta boîte.', import: 'Importation', importDescription: 'Importe des courriels depuis des fichiers .eml. Les messages importés arrivent dans ta boîte de réception et peuvent être déplacés ou libellés comme n\'importe quel autre courriel.', importing: 'Importation…', importButton: 'Choisir des fichiers .eml', imported_one: 'Courriel importé : {{imported}} sur {{count}}.', imported_other: 'Courriels importés : {{imported}} sur {{count}}.', conditions: '{{conditions}} condition(s) · {{actions}} action(s)', deleteFilter: 'Supprimer {{name}}', editTemplate: 'Modifier {{name}}', deleteTemplate: 'Supprimer {{name}}', moveUp: 'Monter {{name}}', moveDown: 'Descendre {{name}}',
       },
       about: { legal: 'Mentions légales et assistance', terms: 'Conditions d\'utilisation', privacy: 'Politique de confidentialité', help: 'Centre d\'aide', status: 'État du système', version: 'Version {{version}} · {{platform}}', madeBy: 'Fait avec ❤️ sur la 🌎 par Oxy™.', linkUnavailable: 'Impossible d\'ouvrir le lien dans cet environnement.', linkFailed: 'Échec de l\'ouverture du lien.' },
     },
-    drawer: { unread: '{{name}}, {{count}} non lus', labels: 'Libellés', folders: 'Dossiers', createFolder: 'Créer un dossier', folderHint: 'Appuie sur + pour créer un dossier. Appuie longuement sur un dossier pour le supprimer.', signedOutTitle: 'Connecte-toi pour gérer ton courrier', signedOutSubtitle: 'Accède à tes boîtes, à tes libellés et rédige de nouveaux messages.', notSignedIn: 'Non connecté', newFolder: 'Nouveau dossier', folderName: 'Nom du dossier', creatingFolder: 'Création…', createFolderButton: 'Créer le dossier', deleteFolderTitle: 'Supprimer le dossier ?', deleteFolderDescription: '« {{name}} » et son organisation seront supprimés. Les messages qu\'il contient ne sont pas supprimés.' },
+    drawer: { unread: '{{name}}, {{count}} non lus', labels: 'Libellés', folders: 'Dossiers', createFolder: 'Créer un dossier', folderHint: 'Appuie sur + pour créer un dossier. Appuie longuement sur un dossier pour le supprimer.', signedOutTitle: 'Connecte-toi pour gérer ton courrier', signedOutSubtitle: 'Accède à tes boîtes, à tes libellés et rédige de nouveaux messages.', notSignedIn: 'Non connecté', newFolder: 'Nouveau dossier', folderName: 'Nom du dossier', creatingFolder: 'Création…', createFolderButton: 'Créer le dossier', deleteFolderTitle: 'Supprimer le dossier ?', deleteFolderDescription: '« {{name}} » sera supprimé. Les messages qu\'il contient seront déplacés dans Archives.' },
     event: { sharingUnavailable: 'Le partage est indisponible. Essaie plutôt « Google Agenda ».', openFailed: 'Impossible d\'ouvrir le fichier de calendrier.' },
     message: { loadError: 'Impossible de charger ce message', loadErrorDescription: 'Vérifie ta connexion et réessaie.', notFound: 'Message introuvable', notFoundDescription: 'Ce message a peut-être été supprimé ou déplacé.', conversationMessages_one: '{{count}} message dans cette conversation', conversationMessages_other: '{{count}} messages dans cette conversation', summaryTitle: 'Générer un résumé IA de la conversation', summaryDescription: 'Oxy envoie un contexte de conversation limité à Kaana pour le résumer.' },
-    mutations: { starFailed: 'Impossible de mettre à jour l\'étoile.', readFailed: 'Impossible de mettre à jour l\'état de lecture.', archived: 'Conversation archivée.', archiveFailed: 'Impossible d\'archiver la conversation.', deleteFailed: 'Impossible de supprimer la conversation.', deletedForever: 'Conversation supprimée définitivement.', trashed: 'Conversation placée dans la corbeille.', sending: 'Envoi du message…', sendCancelled: 'Message annulé.', labelsFailed: 'Impossible de mettre à jour les libellés.', pinFailed: 'Impossible d\'épingler.', snoozed: 'Message mis en attente.', snoozeFailed: 'Impossible de mettre le message en attente.', unsnoozed: 'Mise en attente annulée.', unsnoozeFailed: 'Impossible d\'annuler la mise en attente.', bulkFailed: 'Impossible de mettre à jour les messages.', bulkUpdated: 'Messages mis à jour.', moveFailed: 'Impossible de déplacer les messages.', queuedDescription: 'Il n\'a pas encore été distribué. Suis-le dans Réglages → Avancé → File d\'envoi.', retryQueued: 'Message remis en file pour un nouvel essai.', retryFailed: 'Impossible de réessayer le message.', queuedCancelled: 'Message en file annulé.', cancelFailed: 'Impossible d\'annuler le message.', bundleUpdateFailed: 'Impossible de mettre à jour le groupe.', bundleReorderFailed: 'Impossible de réorganiser le groupe.', contactCreateFailed: 'Impossible de créer le contact', contactUpdateFailed: 'Impossible de mettre à jour le contact', contactDeleteFailed: 'Impossible de supprimer le contact', filterCreateFailed: 'Impossible de créer le filtre', filterUpdateFailed: 'Impossible de mettre à jour le filtre', filterDeleteFailed: 'Impossible de supprimer le filtre', mailboxCreated: 'Dossier créé.', mailboxCreateFailed: 'Impossible de créer le dossier.', mailboxDeleted: 'Dossier supprimé.', mailboxDeleteFailed: 'Impossible de supprimer le dossier.', reminderCreateFailed: 'Impossible de créer le rappel', reminderUpdateFailed: 'Impossible de mettre à jour le rappel', reminderDeleteFailed: 'Impossible de supprimer le rappel', templateCreateFailed: 'Impossible de créer le modèle', templateUpdateFailed: 'Impossible de mettre à jour le modèle', templateDeleteFailed: 'Impossible de supprimer le modèle', labelCreateFailed: 'Impossible de créer le libellé.', labelUpdateFailed: 'Impossible de mettre à jour le libellé.', labelDeleteFailed: 'Impossible de supprimer le libellé.', unsubscribeFailed: 'Impossible de se désabonner' },
+    mutations: { starFailed: 'Impossible de mettre à jour l\'étoile.', readFailed: 'Impossible de mettre à jour l\'état de lecture.', archived: 'Conversation archivée.', archiveFailed: 'Impossible d\'archiver la conversation.', deleteFailed: 'Impossible de supprimer la conversation.', deletedForever: 'Conversation supprimée définitivement.', trashed: 'Conversation placée dans la corbeille.', sending: 'Envoi du message…', sendCancelled: 'Message annulé.', labelsFailed: 'Impossible de mettre à jour les libellés.', pinFailed: 'Impossible d\'épingler.', snoozed: 'Message mis en attente.', snoozeFailed: 'Impossible de mettre le message en attente.', unsnoozed: 'Mise en attente annulée.', unsnoozeFailed: 'Impossible d\'annuler la mise en attente.', bulkFailed: 'Impossible de mettre à jour les messages.', bulkUpdated: 'Messages mis à jour.', moveFailed: 'Impossible de déplacer les messages.', queuedDescription: 'Il n\'a pas encore été distribué. Suis-le dans Réglages → Avancé → File d\'envoi.', retryQueued: 'Message remis en file pour un nouvel essai.', retryFailed: 'Impossible de réessayer le message.', queuedCancelled: 'Message en file annulé.', cancelFailed: 'Impossible d\'annuler le message.', bundleUpdateFailed: 'Impossible de mettre à jour le groupe.', bundleReorderFailed: 'Impossible de réorganiser le groupe.', contactCreateFailed: 'Impossible de créer le contact', contactUpdateFailed: 'Impossible de mettre à jour le contact', contactDeleteFailed: 'Impossible de supprimer le contact', filterCreateFailed: 'Impossible de créer le filtre', filterUpdateFailed: 'Impossible de mettre à jour le filtre', filterDeleteFailed: 'Impossible de supprimer le filtre', mailboxCreated: 'Dossier créé.', mailboxCreateFailed: 'Impossible de créer le dossier.', mailboxDeleted: 'Dossier supprimé.', mailboxDeleteFailed: 'Impossible de supprimer le dossier.', reminderCreateFailed: 'Impossible de créer le rappel', reminderUpdateFailed: 'Impossible de mettre à jour le rappel', reminderDeleteFailed: 'Impossible de supprimer le rappel', templateCreateFailed: 'Impossible de créer le modèle', templateUpdateFailed: 'Impossible de mettre à jour le modèle', templateDeleteFailed: 'Impossible de supprimer le modèle', labelCreateFailed: 'Impossible de créer le libellé.', labelUpdateFailed: 'Impossible de mettre à jour le libellé.', labelDeleteFailed: 'Impossible de supprimer le libellé.', labelNameTaken: 'Un libellé nommé « {{name}} » existe déjà.', unsubscribeFailed: 'Impossible de se désabonner' },
   },
 
   auth: {

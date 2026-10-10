@@ -12,11 +12,11 @@ interface TripCardProps {
 }
 
 export function TripCard({ data }: TripCardProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const colors = useColors();
 
   const departureTime = data.departureTime
-    ? formatCardDate(data.departureTime, {
+    ? formatCardDate(locale, data.departureTime, {
         weekday: 'short',
         month: 'short',
         day: 'numeric',
@@ -26,7 +26,7 @@ export function TripCard({ data }: TripCardProps) {
     : null;
 
   const arrivalTime = data.arrivalTime
-    ? formatCardDate(data.arrivalTime, {
+    ? formatCardDate(locale, data.arrivalTime, {
         hour: 'numeric',
         minute: '2-digit',
       }, true)
@@ -87,12 +87,12 @@ export function TripCard({ data }: TripCardProps) {
               </Text>
               {data.checkIn && (
                 <Text style={[styles.time, { color: colors.secondaryText }]}>
-                  {formatCardDate(data.checkIn, {
+                  {formatCardDate(locale, data.checkIn, {
                     month: 'short',
                     day: 'numeric',
                   })}
                   {data.checkOut
-                    ? ` – ${formatCardDate(data.checkOut, { month: 'short', day: 'numeric' })}`
+                    ? ` – ${formatCardDate(locale, data.checkOut, { month: 'short', day: 'numeric' })}`
                     : ''}
                 </Text>
               )}

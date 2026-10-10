@@ -16,6 +16,7 @@ const toast = Object.assign(jest.fn(), {
   info: jest.fn(),
   warning: jest.fn(),
   error: jest.fn(),
+  dismiss: jest.fn(),
 });
 
 jest.mock('@oxy.so/bloom', () => ({ toast }));
@@ -146,6 +147,53 @@ describe('undo', () => {
 
     expect(sendMessage).not.toHaveBeenCalled();
     expect(onSuccess).not.toHaveBeenCalled();
+  });
+});
+
+describe('after the window', () => {
+  /**
+   * The toast pauses while hovered or while the page is hidden; the send's
+   * timer does not. Undo used to stay pressable after the message had gone —
+   * it said "cancelled" and reopened the composer for a message that left.
+   */
+  it('dismisses the toast when the send fires, and Undo then does nothing', async () => {
+    sendMessage.mockResolvedValue({ messageId: '<a@oxy.so>', queued: false, message: 'Message sent' });
+    const onCancel = jest.fn();
+    toast.mockReturnValueOnce('undo-toast');
+
+    const { result } = renderHook(() => useSendMessageWithUndo());
+    let pending: { cancel: () => boolean } | undefined;
+    await act(async () => {
+      pending = result.current.sendWithUndo(recipients, { onCancel });
+    });
+    await elapseUndoWindow();
+
+    expect(toast.dismiss).toHaveBeenCalledWith('undo-toast');
+    const options = toast.mock.calls[0][1] as { action: { onClick: () => void } };
+    act(() => {
+      options.action.onClick();
+    });
+    expect(onCancel).not.toHaveBeenCalled();
+    expect(pending?.cancel()).toBe(false);
+    expect(sendMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancel() inside the window stops the send, as Discard does', async () => {
+    const onCancel = jest.fn();
+    const { result } = renderHook(() => useSendMessageWithUndo());
+    let pending: { cancel: () => boolean } | undefined;
+    await act(async () => {
+      pending = result.current.sendWithUndo(recipients, { onCancel });
+    });
+    let cancelled = false;
+    act(() => {
+      cancelled = pending?.cancel() ?? false;
+    });
+    await elapseUndoWindow();
+
+    expect(cancelled).toBe(true);
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(sendMessage).not.toHaveBeenCalled();
   });
 });
 

@@ -148,6 +148,14 @@ export const SubscriptionSchema = z.object({
   hasListUnsubscribe: z.boolean(),
   type: z.enum(['list-unsubscribe', 'pattern-match', 'frequent']),
   senderAvatarPath: z.string().nullable().optional(),
+  /**
+   * Set once an unsubscribe (or block) for this sender succeeded. Optional:
+   * an API from before the field still returns the row without it, and the
+   * row then reads as still subscribed.
+   */
+  unsubscribed: z.boolean().optional(),
+  /** When it happened (ISO 8601). */
+  unsubscribedAt: z.string().nullable().optional(),
 });
 
 export const UnsubscribeResultSchema = z.object({

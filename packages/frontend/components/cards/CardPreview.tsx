@@ -33,11 +33,11 @@ const CARD_CONFIG: Record<
   package: { icon: RiBox3Line, tone: 'support' },
 };
 
-function getSummary(card: MessageCard, t: TranslateFn): string {
+function getSummary(card: MessageCard, t: TranslateFn, locale: string): string {
   const d = card.data;
   // A value the extractor got wrong is left out, never shown as "Invalid Date".
   const day = (value: string | null | undefined) =>
-    formatCardDate(value, { month: 'short', day: 'numeric' });
+    formatCardDate(locale, value, { month: 'short', day: 'numeric' });
   const join = (parts: (string | null | undefined | false)[], fallback: string) =>
     parts.filter(Boolean).join(' · ') || fallback;
   switch (card.type) {
@@ -51,13 +51,13 @@ function getSummary(card: MessageCard, t: TranslateFn): string {
         t('cards.trip.summary'),
       );
     case 'purchase':
-      return join([d.merchant, d.amount != null && formatMoney(d.amount, d.currency)], t('cards.purchase.summary'));
+      return join([d.merchant, d.amount != null && formatMoney(locale, d.amount, d.currency)], t('cards.purchase.summary'));
     case 'event':
       return join([d.title, day(d.startTime)], t('cards.event.summary'));
     case 'bill': {
       const due = day(d.dueDate);
       return join(
-        [d.biller, d.amount != null && formatMoney(d.amount, d.currency), due && t('cards.bill.due', { date: due })],
+        [d.biller, d.amount != null && formatMoney(locale, d.amount, d.currency), due && t('cards.bill.due', { date: due })],
         t('cards.bill.summary'),
       );
     }
@@ -71,12 +71,12 @@ function getSummary(card: MessageCard, t: TranslateFn): string {
 }
 
 export function CardPreview({ card }: CardPreviewProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const config = CARD_CONFIG[card.type] ?? {
     icon: RiFileTextLine,
     tone: 'neutral' as const,
   };
-  const summary = getSummary(card, t);
+  const summary = getSummary(card, t, locale);
   if (!summary) return null;
   return (
     <Chip appearance="subtle" tone={config.tone} leadingIcon={config.icon}>

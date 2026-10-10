@@ -29,6 +29,16 @@ export function emailMessageIdFromPush(data: unknown): string | null {
   return messageId;
 }
 
+/**
+ * The mailbox a mail push says the message landed in, or `null`. Only ever
+ * compared against the folder on screen — never trusted for anything else.
+ */
+export function emailMailboxIdFromPush(data: unknown): string | null {
+  if (emailMessageIdFromPush(data) === null) return null;
+  const { mailboxId } = data as { mailboxId?: unknown };
+  return typeof mailboxId === 'string' && mailboxId.length > 0 ? mailboxId : null;
+}
+
 const claimedEmailMessageIds = new Set<string>();
 
 /** Claim a message id for navigation (dedupes cold-launch vs warm tap). */

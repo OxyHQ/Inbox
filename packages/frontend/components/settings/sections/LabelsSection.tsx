@@ -1,5 +1,6 @@
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
 import {
+  isLabelNameTaken,
   useCreateLabel,
   useDeleteLabel,
   useLabels,
@@ -64,9 +65,15 @@ export function LabelsSection() {
     name: string;
   } | null>(null);
 
+  // Failures are reported by the mutation hooks — one toast each, including
+  // "a label with that name already exists" for the server's 409.
   const handleCreate = useCallback(() => {
     const name = newLabelName.trim();
     if (!name) return;
+    if (isLabelNameTaken(labels, name)) {
+      toast.error(t('ui.mutations.labelNameTaken', { name }));
+      return;
+    }
     createLabel.mutate(
       { name, color: newLabelColor },
       {
@@ -75,21 +82,25 @@ export function LabelsSection() {
           setNewLabelColor(DEFAULT_NEW_COLOR);
           toast.success(t('common.success'));
         },
-        onError: (err: unknown) => {
-          const message =
-            err instanceof Error
-              ? err.message
-              : t('ui.mutations.labelCreateFailed');
-          toast.error(message);
-        },
       },
     );
-  }, [newLabelName, newLabelColor, createLabel, t]);
+  }, [newLabelName, newLabelColor, labels, createLabel, t]);
 
   const handleUpdateName = useCallback(
     (labelId: string) => {
       const name = editingLabelName.trim();
       if (!name) return;
+      const current = labels.find((l) => l._id === labelId);
+      if (current?.name === name) {
+        // Nothing changed: close the editor without a round trip.
+        setEditingLabelId(null);
+        setEditingLabelName('');
+        return;
+      }
+      if (isLabelNameTaken(labels, name, labelId)) {
+        toast.error(t('ui.mutations.labelNameTaken', { name }));
+        return;
+      }
       updateLabel.mutate(
         { labelId, updates: { name } },
         {
@@ -97,17 +108,10 @@ export function LabelsSection() {
             setEditingLabelId(null);
             setEditingLabelName('');
           },
-          onError: (err: unknown) => {
-            const message =
-              err instanceof Error
-                ? err.message
-                : t('ui.mutations.labelUpdateFailed');
-            toast.error(message);
-          },
         },
       );
     },
-    [editingLabelName, updateLabel, t],
+    [editingLabelName, labels, updateLabel, t],
   );
 
   const handleDelete = useCallback(() => {
@@ -116,13 +120,6 @@ export function LabelsSection() {
       onSuccess: () => {
         toast.success(t('common.success'));
         setLabelPendingDelete(null);
-      },
-      onError: (err: unknown) => {
-        const message =
-          err instanceof Error
-            ? err.message
-            : t('ui.mutations.labelDeleteFailed');
-        toast.error(message);
       },
     });
   }, [labelPendingDelete, deleteLabel, t]);

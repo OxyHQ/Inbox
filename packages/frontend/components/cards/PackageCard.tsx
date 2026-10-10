@@ -13,11 +13,11 @@ interface PackageCardProps {
 }
 
 export function PackageCard({ data }: PackageCardProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const colors = useColors();
 
   const estimatedDelivery = data.estimatedDelivery
-    ? formatCardDate(data.estimatedDelivery, {
+    ? formatCardDate(locale, data.estimatedDelivery, {
         weekday: 'short',
         month: 'short',
         day: 'numeric',

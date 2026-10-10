@@ -9,6 +9,37 @@ import {
 
 Object.defineProperty(globalThis, 'TextEncoder', { value: NodeTextEncoder });
 
+const PROXY = 'https://api.example/email/proxy';
+
+/** The original URL inside a proxy URL, or null when `value` is not one. */
+function proxiedUrl(value: string | null | undefined): string | null {
+  if (!value?.startsWith(`${PROXY}?url=`)) return null;
+  return new TextDecoder().decode(
+    Uint8Array.from(atob(new URL(value).searchParams.get('url')!), (c) => c.charCodeAt(0)),
+  );
+}
+
+function imageSources(html: string): (string | null)[] {
+  const document = new DOMParser().parseFromString(html, 'text/html');
+  return [...document.querySelectorAll('img')].map((img) => img.getAttribute('src'));
+}
+
+/**
+ * Every http(s) or protocol-relative URL left in `html` once CSS escapes are
+ * decoded and the entities parsed, that is NOT the proxy. A tracker survives
+ * only if it shows up here.
+ */
+function unproxiedUrls(html: string): string[] {
+  const decoded = new DOMParser()
+    .parseFromString(`<textarea>${html.replace(/<\/textarea/gi, '')}</textarea>`, 'text/html')
+    .querySelector('textarea')!.value
+    .replace(/\\([0-9a-f]{1,6}) ?/gi, (_m, hex: string) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/\\(.)/g, '$1');
+  return (decoded.match(/(?:https?:|[\\/]{2})[^\s"'()<>]*/gi) ?? []).filter(
+    (url) => !url.startsWith(PROXY) && !/^(?:https?:)?[\\/]*$/.test(url),
+  );
+}
+
 describe('email HTML security boundary', () => {
   it('removes active content and rejects dangerous URLs in normal attributes', () => {
     const html = sanitizeEmailHtml(
@@ -69,16 +100,24 @@ describe('email HTML security boundary', () => {
     expect(html).toContain('src="https://api.clarity.surf/favicons/example.com"');
   });
 
-  it('does not proxy malformed image URLs containing a second absolute URL', () => {
-    const malformed =
-      'https://cdn.example/logo.svg;a=https://cdn.example/certificate.pem';
+  it('proxies URLs that carry a second URL, and withholds only one that does not parse', () => {
+    // Gmail's image proxy (the original after `#`), Cloudinary's fetch, and a
+    // broken template's concatenation are ordinary URLs the proxy accepts.
     const html = proxyExternalImages(
-      `<img src="${malformed}">`,
-      'https://api.example/email/proxy',
+      '<img src="https://ci3.googleusercontent.com/meips/ADKq_N=s0-d-e1-ft#https://cdn.shop.com/logo.png">' +
+        '<img src="https://res.cloudinary.com/demo/image/fetch/https://upload.example/a.jpg">' +
+        '<img src="https://cdn.example/logo.svg;a=https://cdn.example/certificate.pem">' +
+        '<img src="https://exa mple.com/broken.png">',
+      PROXY,
     );
-
-    expect(html).toContain('data:image/gif;base64,');
-    expect(html).not.toContain('/email/proxy');
+    const sources = imageSources(html);
+    expect(sources.slice(0, 3).map(proxiedUrl)).toEqual([
+      // The fragment never reaches a server.
+      'https://ci3.googleusercontent.com/meips/ADKq_N=s0-d-e1-ft',
+      'https://res.cloudinary.com/demo/image/fetch/https://upload.example/a.jpg',
+      'https://cdn.example/logo.svg;a=https://cdn.example/certificate.pem',
+    ]);
+    expect(sources[3]).toMatch(/^data:image\/gif;base64,/);
   });
 
   it('preserves query parameters and proxies protocol-relative resources after serialization', () => {
@@ -103,7 +142,8 @@ describe('email HTML security boundary', () => {
         '<div style="background-image:image-set(\'https://tracker.example/d.png\' 1x)"></div><a href="https://site.example/">link</a>',
       'https://api.example/email/proxy',
     );
-    expect(html).not.toMatch(/(["'(\s])https?:\/\/tracker\.example/i);
+    // The <video> is a link now (see "video and audio"): a link loads nothing.
+    expect(html.replace(/<a [^>]*>[^<]*<\/a>/g, '')).not.toMatch(/(["'(\s])https?:\/\/tracker\.example/i);
     expect(html).toContain('href="https://site.example/"');
   });
 
@@ -124,5 +164,129 @@ describe('email HTML security boundary', () => {
     expect(resolveCidImages('<img src="cid:known"><img src="cid:unknown">', {
       known: 'https://files.example/known',
     })).toBe('<img src="https://files.example/known"><img src="cid:unknown">');
+  });
+
+  describe('tracking-proxy bypasses', () => {
+    const rewrite = (html: string) => proxyExternalImages(sanitizeEmailHtml(html), PROXY);
+
+    it('proxies backslash, slash-less and protocol-relative URLs, as a browser reads them', () => {
+      // The detector itself sees through entities and CSS escapes.
+      expect(unproxiedUrls('<img src="https://t.example/x.gif"><i style="background:u\\72l(&quot;\\68ttps://t.example/y.gif&quot;)">')).toEqual([
+        'https://t.example/x.gif',
+        'https://t.example/y.gif',
+      ]);
+      const html = rewrite(
+        '<img src="https:\\\\t.example\\a.gif"><img src="https:t.example/b.gif"><img src="\\\\t.example\\c.gif">' +
+          '<img src="/\\t.example/d.gif"><img src="HTTPS://t.example/e.gif">' +
+          '<img srcset="https:\\\\t.example\\f.gif 1x, //t.example/g.gif 2x">' +
+          '<div style="background:url(https:\\\\t.example\\h.gif)"></div>',
+      );
+      expect(unproxiedUrls(html)).toEqual([]);
+      expect(imageSources(html).slice(0, 5).map(proxiedUrl)).toEqual([
+        'https://t.example/a.gif',
+        'https://t.example/b.gif',
+        // The sanitizer already refuses a scheme-less `\\host` src outright.
+        null,
+        'https://t.example/d.gif',
+        'https://t.example/e.gif',
+      ]);
+      // On its own, the proxy pass reads it as the browser does: another host.
+      expect(proxiedUrl(imageSources(proxyExternalImages('<img src="\\\\t.example\\c.gif">', PROXY))[0])).toBe(
+        'https://t.example/c.gif',
+      );
+      const srcset = new DOMParser().parseFromString(html, 'text/html').querySelectorAll('img')[5].getAttribute('srcset')!;
+      expect(srcset.split(', ').map((candidate) => proxiedUrl(candidate.split(' ')[0]))).toEqual([
+        'https://t.example/f.gif',
+        'https://t.example/g.gif',
+      ]);
+    });
+
+    it('decodes CSS escapes before deciding what loads', () => {
+      const html = rewrite(
+        '<style>div{background:u\\72l(https://t.example/a.gif)} p{background:\\75 rl("https://t.example/b.gif")}' +
+          '@\\69mport "https://t.example/c.css"; @import url(https://t.example/d.css) screen;</style>' +
+          '<div style="background-image:u\\72l(https://t.example/e.gif)">x</div>',
+      );
+      expect(unproxiedUrls(html)).toEqual([]);
+      expect(html).not.toMatch(/import/i);
+      expect(html.match(/api\.example\/email\/proxy/g)).toHaveLength(3);
+    });
+
+    it('reads quotes inside quoted URLs the way CSS does', () => {
+      const html = rewrite(
+        '<style>a{background:url("https://t.example/a\'b.gif")} b{list-style:url("https://t.example/q\\"q.gif")}' +
+          ' i{background:url(https://t.example/x\\).gif)} u{background:url("https://t.example/p.gif?x=\')")}</style>' +
+          '<div style=\'background:url("https://t.example/c&#39;d.gif")\'>x</div>',
+      );
+      expect(unproxiedUrls(html)).toEqual([]);
+      const document = new DOMParser().parseFromString(html, 'text/html');
+      const css = [
+        ...[...document.querySelectorAll('style')].map((style) => style.textContent),
+        ...[...document.querySelectorAll('[style]')].map((element) => element.getAttribute('style')),
+      ].join('\n');
+      const proxied = [...css.matchAll(/url\("([^"]+)"\)/g)].map((match) => proxiedUrl(match[1]));
+      expect(proxied).toEqual([
+        "https://t.example/a'b.gif",
+        'https://t.example/q%22q.gif',
+        'https://t.example/x).gif',
+        "https://t.example/p.gif?x=%27)",
+        "https://t.example/c'd.gif",
+      ]);
+    });
+
+    it('proxies image-set() strings and keeps local references untouched', () => {
+      const html = rewrite(
+        '<style>a{background:image-set("https://t.example/1x.png" 1x, url(https://t.example/2x.png) 2x)}' +
+          ' b{behavior:url(#default#VML);background:url(cid:logo@x)}</style>',
+      );
+      expect(unproxiedUrls(html)).toEqual([]);
+      expect(html).toContain('url("#default#VML")');
+      expect(html).toContain('url("cid:logo@x")');
+    });
+
+    it('drops a stylesheet that would still load something unrouted', () => {
+      // `--x` is a string, not a URL, until var() puts it in image-set().
+      const html = rewrite(
+        '<style>:root{--x:"https://t.example/var.gif"} a{background:image-set(var(--x) 1x)}</style><p style="color:red">x</p>',
+      );
+      expect(unproxiedUrls(html)).toEqual([]);
+      expect(html).toContain('<style></style>');
+      expect(html).toContain('style="color:red"');
+    });
+
+    it('does not rewrite url( in the text of the mail', () => {
+      expect(sanitizeEmailHtml('<p>call url(foo) or @import x;</p>')).toBe('<p>call url(foo) or @import x;</p>');
+    });
+  });
+
+  describe('video and audio', () => {
+    it('become their fallback content and a link to the original, never a load', () => {
+      const html = proxyExternalImages(
+        sanitizeEmailHtml(
+          '<video poster="https://t.example/poster.jpg" src="https://cdn.example/clip.mp4"><track src="https://t.example/subs.vtt">Your client cannot play video.</video>' +
+            '<audio><source src="https:\\\\cdn.example\\song.mp3"></audio><audio src="javascript:alert(1)"></audio>',
+        ),
+        PROXY,
+        { videoLinkLabel: 'Open video', audioLinkLabel: 'Open audio' },
+      );
+      const document = new DOMParser().parseFromString(html, 'text/html');
+      expect(document.querySelector('video, audio, source, track')).toBeNull();
+      expect([...document.querySelectorAll('a')].map((a) => [a.getAttribute('href'), a.textContent])).toEqual([
+        ['https://cdn.example/clip.mp4', 'Open video'],
+        ['https://cdn.example/song.mp3', 'Open audio'],
+      ]);
+      expect(document.body.textContent).toContain('Your client cannot play video.');
+      expect(html).not.toMatch(/t\.example|javascript/);
+    });
+
+    it('labels the link with its URL when no label is given', () => {
+      expect(proxyExternalImages('<video src="https://cdn.example/a.mp4"></video>', PROXY)).toBe(
+        '<a href="https://cdn.example/a.mp4">https://cdn.example/a.mp4</a>',
+      );
+    });
+  });
+
+  it('removes hyperlink-auditing pings', () => {
+    expect(sanitizeEmailHtml('<a href="https://site.example/" ping="https://t.example/ping">x</a>')).not.toContain('ping');
   });
 });

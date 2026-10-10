@@ -37,8 +37,22 @@ export function buildReplyHeaders(parent: Pick<Message, 'messageId' | 'reference
     .filter((id): id is string => id !== null);
   return {
     ...(inReplyTo ? { inReplyTo } : {}),
-    references: [...new Set(chain)],
+    references: trimReferences([...new Set(chain)]),
   };
+}
+
+/** The most ids `References` may carry (`sendMessageSchema` in the API). */
+const MAX_REFERENCES = 100;
+
+/**
+ * A long thread's chain, cut to what the API accepts. The thread's first
+ * message and the most recent ones are what threading relies on (RFC 5322
+ * §3.6.4), so the middle goes. Uncut, every reply in a thread past a hundred
+ * messages was refused with a 400.
+ */
+function trimReferences(ids: string[]): string[] {
+  if (ids.length <= MAX_REFERENCES) return ids;
+  return [ids[0], ...ids.slice(ids.length - (MAX_REFERENCES - 1))];
 }
 
 /**
@@ -52,5 +66,5 @@ export function draftReplyHeaders(draft: Pick<Message, 'inReplyTo' | 'references
     .map(toRfcMessageId)
     .filter((id): id is string => id !== null);
   if (!inReplyTo && references.length === 0) return undefined;
-  return { ...(inReplyTo ? { inReplyTo } : {}), references: [...new Set(references)] };
+  return { ...(inReplyTo ? { inReplyTo } : {}), references: trimReferences([...new Set(references)]) };
 }

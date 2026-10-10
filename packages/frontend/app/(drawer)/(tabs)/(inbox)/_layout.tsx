@@ -3,15 +3,17 @@ import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 
 import { useDialogControl } from '@oxy.so/bloom';
 import { useOxy } from '@oxy.so/services';
-import { Stack, usePathname, useRouter } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { useCallback, useMemo } from 'react';
 
 import { KeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp';
+import { useSearchFocus } from '@/contexts/search-focus-context';
 import { useToggleStar } from '@/hooks/mutations/useMessageMutations';
 import { useCurrentList } from '@/hooks/useCurrentList';
 import { useEmailStore } from '@/hooks/useEmail';
 import { useMessageActions } from '@/hooks/useMessageActions';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useLeaveRemovedRows } from '@/hooks/useLeaveRemovedRows';
 import {
   buildReplyRecipients,
   joinAddresses,
@@ -23,7 +25,7 @@ export default function InboxLayout() {
   const router = useRouter();
   const { user } = useOxy();
   const isDesktop = useIsDesktopLayout();
-  const pathname = usePathname();
+  const segments = useSegments();
   const selectedMessageId = useEmailStore((s) => s.selectedMessageId);
 
   // The list as it is on screen — the same view, the same conversation rows.
@@ -31,39 +33,36 @@ export default function InboxLayout() {
   const messageActions = useMessageActions();
   const toggleStar = useToggleStar();
 
+  // The row that holds the selected message. In conversation view a row is
+  // named by its newest message, so a reply arriving in the open conversation
+  // renamed it — and a conversation opened by an older message (from search,
+  // a reminder, a notification) never had the row's name. Every shortcut then
+  // did nothing, and `j` jumped to the top.
   const currentIndex = useMemo(() => {
     if (!selectedMessageId) return -1;
-    return rows.findIndex((m) => m._id === selectedMessageId);
-  }, [selectedMessageId, rows]);
+    const exact = rows.findIndex((m) => m._id === selectedMessageId);
+    if (exact !== -1) return exact;
+    return rows.findIndex((row) => conversationOf(row._id).some((m) => m._id === selectedMessageId));
+  }, [selectedMessageId, rows, conversationOf]);
 
   const currentMessage = useMemo(() => {
     if (currentIndex === -1) return null;
     return rows[currentIndex] ?? null;
   }, [currentIndex, rows]);
 
-  /**
-   * Select a row and, on desktop, show it — or show nothing. Used by j/k and
-   * after Archive/Delete: the mutation moved the list's selection on, but the
-   * reading pane kept showing the message just archived, so the next `e`
-   * archived one the user had never seen.
-   */
+  /** Select a row and, on desktop, show it. Used by j/k. */
   const showRow = useCallback(
-    (row: (typeof rows)[number] | null) => {
-      useEmailStore.setState({ selectedMessageId: row?._id ?? null });
+    (row: (typeof rows)[number]) => {
+      useEmailStore.setState({ selectedMessageId: row._id });
       if (!isDesktop) return;
       // A draft is selected but not opened: opening it means the composer,
       // which is not where stepping through the list should land.
-      if (!row) router.replace('/');
-      else if (!row.flags.draft) router.replace(`/conversation/${row._id}`);
+      if (!row.flags.draft) router.replace(`/conversation/${row._id}`);
     },
     [isDesktop, router],
   );
 
-  /** The row after the current one, else the one before, else none. */
-  const neighbourRow = useCallback(
-    () => rows[currentIndex + 1] ?? (currentIndex > 0 ? rows[currentIndex - 1] : null) ?? null,
-    [rows, currentIndex],
-  );
+  const leaveRemovedRows = useLeaveRemovedRows();
 
   const handleCompose = useCallback(() => {
     router.push('/compose');
@@ -130,17 +129,17 @@ export default function InboxLayout() {
 
   const handleArchive = useCallback(() => {
     if (!currentMessage) return;
-    const next = neighbourRow();
-    messageActions.archive(conversationOf(currentMessage._id));
-    showRow(next);
-  }, [currentMessage, neighbourRow, messageActions, conversationOf, showRow]);
+    const conversation = conversationOf(currentMessage._id);
+    leaveRemovedRows(conversation.map((m) => m._id));
+    messageActions.archive(conversation);
+  }, [currentMessage, leaveRemovedRows, messageActions, conversationOf]);
 
   const handleDelete = useCallback(() => {
     if (!currentMessage) return;
-    const next = neighbourRow();
-    messageActions.deleteConversation(conversationOf(currentMessage._id));
-    showRow(next);
-  }, [currentMessage, neighbourRow, messageActions, conversationOf, showRow]);
+    const conversation = conversationOf(currentMessage._id);
+    leaveRemovedRows(conversation.map((m) => m._id));
+    messageActions.deleteConversation(conversation);
+  }, [currentMessage, leaveRemovedRows, messageActions, conversationOf]);
 
   const handleNextMessage = useCallback(() => {
     if (currentIndex < rows.length - 1) showRow(rows[currentIndex + 1]);
@@ -163,6 +162,13 @@ export default function InboxLayout() {
     if (currentMessage) messageActions.setRead(conversationOf(currentMessage._id), false);
   }, [currentMessage, messageActions, conversationOf]);
 
+  // `/`, as the help lists it: the search tab, with its input focused.
+  const { focusInput } = useSearchFocus();
+  const handleFocusSearch = useCallback(() => {
+    router.navigate('/search');
+    focusInput();
+  }, [router, focusInput]);
+
   const helpControl = useDialogControl();
   const handleShowHelp = useCallback(() => {
     helpControl.open();
@@ -181,9 +187,12 @@ export default function InboxLayout() {
     onToggleStar: handleToggleStar,
     onMarkUnread: handleMarkUnread,
     onShowHelp: handleShowHelp,
-    // Only where this stack is on screen: the layout stays mounted under the
-    // Search and Settings tabs, where `j` used to switch tabs on the user.
-    enabled: isDesktop && !pathname.startsWith('/search') && !pathname.startsWith('/settings'),
+    onFocusSearch: handleFocusSearch,
+    // Only on a list or a conversation of this stack. The layout stays mounted
+    // under every other screen — Search, Settings, Subscriptions, the
+    // composer — where `j` used to navigate away and `e` archived a message
+    // that was not on screen.
+    enabled: isDesktop && segments.includes('(inbox)') && !segments.includes('compose'),
   });
 
   return (

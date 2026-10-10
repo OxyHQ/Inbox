@@ -13,7 +13,7 @@ import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
  * label from the drawer.
  */
 
-import { useLocalSearchParams } from 'expo-router';
+import { useIsFocused, useLocalSearchParams } from 'expo-router';
 import Head from 'expo-router/head';
 import { useEffect, useMemo } from 'react';
 
@@ -45,10 +45,12 @@ export default function LabelViewRoute() {
 
   // Sync URL → Zustand once we have a resolved label. While labels are still
   // loading we skip so we don't blow away another view's selection.
+  // Only while on screen: see MailboxView. Coming back here re-selects it.
+  const isFocused = useIsFocused();
   useEffect(() => {
-    if (!label) return;
+    if (!isFocused || !label) return;
     selectLabel(label._id, label.name);
-  }, [label, selectLabel]);
+  }, [isFocused, label, selectLabel]);
 
   return (
     <>

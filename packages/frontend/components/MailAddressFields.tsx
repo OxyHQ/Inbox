@@ -36,7 +36,15 @@ function RecipientField({
   trailing?: React.ReactNode;
 }) {
   const { recipients, query } = splitRecipientInput(value);
-  const { data: suggestions = [] } = useContactSuggestions(query.trim());
+  const { data: fetched = [] } = useContactSuggestions(query.trim());
+  // Only for the query being typed: the last list is kept while the next one
+  // loads, and without this it stayed on screen after a pick — offering the
+  // address just added, which a second tap added twice.
+  const added = new Set(recipients.map((item) => item.address.toLowerCase()));
+  const suggestions =
+    query.trim().length >= 2
+      ? fetched.filter((item) => !added.has(item.address.toLowerCase()))
+      : [];
   const join = (items: readonly MailRecipient[], next: string) =>
     onChange(
       [...items.map((item) => item.address), next.trimStart()].join(', '),

@@ -8,12 +8,12 @@
  * not an ISO 4217 code — and the extractor returns "$" or "€" — which took the
  * whole inbox row down with it.
  */
-export function formatMoney(amount: number, currency: string | null | undefined): string {
+export function formatMoney(locale: string, amount: number, currency: string | null | undefined): string {
   const code = (currency || 'USD').trim();
   try {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency: code }).format(amount);
+    return new Intl.NumberFormat(locale, { style: 'currency', currency: code }).format(amount);
   } catch {
-    const number = new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
+    const number = new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
     return code ? `${code} ${number}`.trim() : number;
   }
 }
@@ -39,15 +39,19 @@ export function isDateOnly(value: string | null | undefined): boolean {
   return !!value && DATE_ONLY.test(value.trim());
 }
 
-/** A card date as text, or null when it cannot be read. */
+/**
+ * A card date as text in the app's locale (not the device's), or null when it
+ * cannot be read.
+ */
 export function formatCardDate(
+  locale: string,
   value: string | null | undefined,
   options: Intl.DateTimeFormatOptions,
   withTime = false,
 ): string | null {
   const date = parseCardDate(value);
   if (!date) return null;
-  return withTime && !isDateOnly(value) ? date.toLocaleString(undefined, options) : date.toLocaleDateString(undefined, options);
+  return withTime && !isDateOnly(value) ? date.toLocaleString(locale, options) : date.toLocaleDateString(locale, options);
 }
 
 /** Whether a due date has passed. A date-only due date is due all of that day. */

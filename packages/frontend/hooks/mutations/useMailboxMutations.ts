@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
+import { invalidateMailViews } from '@/hooks/queries/invalidateMailViews';
 import { toast } from '@oxy.so/bloom';
 import { useTranslation } from '@/lib/i18n';
 
@@ -36,7 +37,10 @@ export function useDeleteMailbox() {
     },
     onSuccess: () => {
       toast.success(t('ui.mutations.mailboxDeleted'));
-      queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
+      // A deleted folder's messages move to Archive on the server, so every
+      // view that shows mail (Archive's list, its count, search, an open
+      // message whose mailbox changed) is stale — not only the folder list.
+      invalidateMailViews(queryClient);
     },
     onError: () => {
       toast.error(t('ui.mutations.mailboxDeleteFailed'));

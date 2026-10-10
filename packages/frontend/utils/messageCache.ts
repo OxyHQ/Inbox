@@ -14,6 +14,7 @@
 
 import type { InfiniteData, QueryClient, QueryKey } from '@tanstack/react-query';
 import { emailKeys } from '@/hooks/queries/queryKeys';
+import { invalidateMailViews } from '@/hooks/queries/invalidateMailViews';
 import type { Mailbox, Message, Pagination, ThreadData, UnreadableMessage } from '@/services/emailApi';
 
 /** One page of a `['messages', ...]` infinite list. */
@@ -194,39 +195,102 @@ export function mergeServerMessage(
 // ─── Snapshot / rollback ─────────────────────────────────────────────
 
 export interface MessageSnapshot {
-  messageId: string;
+  messageIds: string[];
   userId: string | null;
   prevMessages: [QueryKey, MessagesInfinite | undefined][];
-  prevMessage: Message | null | undefined;
+  prevDetails: [string, Message | null | undefined][];
   prevThreads: [QueryKey, ThreadData | undefined][];
-  prevMailboxes: [QueryKey, Mailbox[] | undefined][];
 }
 
 /**
- * Snapshot the current state of all message caches for a given message so a
- * failed mutation can restore them via `restoreSnapshot`.
+ * Capture the messages a mutation is about to change, so a failure can put
+ * them back with `restoreSnapshot`.
  */
 export function snapshotForRollback(
   queryClient: QueryClient,
-  messageId: string,
+  messageIds: string | readonly string[],
   userId: string | null,
 ): MessageSnapshot {
+  const ids = typeof messageIds === 'string' ? [messageIds] : [...messageIds];
   return {
-    messageId,
+    messageIds: ids,
     userId,
     prevMessages: queryClient.getQueriesData<MessagesInfinite>({ queryKey: emailKeys.messages.root }),
-    prevMessage: queryClient.getQueryData<Message | null>(emailKeys.message.detail(messageId, userId)),
+    prevDetails: ids.map((id) => [id, queryClient.getQueryData<Message | null>(emailKeys.message.detail(id, userId))]),
     prevThreads: queryClient.getQueriesData<ThreadData>({ queryKey: emailKeys.thread.root }),
-    prevMailboxes: queryClient.getQueriesData<Mailbox[]>({ queryKey: emailKeys.mailboxes.root }),
   };
 }
 
-/** Restore all caches captured by `snapshotForRollback`. */
+/**
+ * `current` with the snapshot's messages put back as they were in `prev`: a
+ * changed one replaced by its old version, a removed one re-inserted after the
+ * row it followed, one that was not there before taken out again. Everything
+ * else is left as it is NOW.
+ */
+function restoreRows(current: Message[][], prev: Message[], ids: ReadonlySet<string>): Message[][] {
+  const before = new Map(prev.filter((m) => ids.has(m._id)).map((m) => [m._id, m]));
+  const pages = current.map((rows) =>
+    rows.filter((m) => !ids.has(m._id) || before.has(m._id)).map((m) => before.get(m._id) ?? m),
+  );
+  const present = new Set(pages.flat().map((m) => m._id));
+  prev.forEach((message, index) => {
+    if (!ids.has(message._id) || present.has(message._id)) return;
+    let anchor: string | null = null;
+    for (let i = index - 1; i >= 0; i -= 1) {
+      if (present.has(prev[i]._id)) {
+        anchor = prev[i]._id;
+        break;
+      }
+    }
+    if (anchor === null) {
+      if (pages.length > 0) pages[0].unshift(message);
+    } else {
+      for (const rows of pages) {
+        const at = rows.findIndex((m) => m._id === anchor);
+        if (at !== -1) {
+          rows.splice(at + 1, 0, message);
+          break;
+        }
+      }
+    }
+    present.add(message._id);
+  });
+  return pages;
+}
+
+/**
+ * Undo a failed mutation's optimistic changes — for ITS messages only.
+ *
+ * Restoring whole cached lists, as this used to, also undid every change made
+ * since the snapshot: archive A then B, A fails, and B came back although its
+ * archive had succeeded. Then the views are re-read, because the server is the
+ * one that knows what the failure left behind.
+ */
 export function restoreSnapshot(queryClient: QueryClient, snapshot: MessageSnapshot): void {
-  snapshot.prevMessages.forEach(([key, data]) => queryClient.setQueryData(key, data));
-  queryClient.setQueryData(emailKeys.message.detail(snapshot.messageId, snapshot.userId), snapshot.prevMessage);
-  snapshot.prevThreads.forEach(([key, data]) => queryClient.setQueryData(key, data));
-  snapshot.prevMailboxes.forEach(([key, data]) => queryClient.setQueryData(key, data));
+  const ids = new Set(snapshot.messageIds);
+  for (const [key, prev] of snapshot.prevMessages) {
+    if (!prev) continue;
+    queryClient.setQueryData<MessagesInfinite>(key, (current) => {
+      if (!current) return current;
+      const pages = restoreRows(
+        current.pages.map((page) => page.data),
+        flatMessages(prev),
+        ids,
+      );
+      return { ...current, pages: current.pages.map((page, i) => ({ ...page, data: pages[i] })) };
+    });
+  }
+  for (const [key, prev] of snapshot.prevThreads) {
+    if (!prev) continue;
+    queryClient.setQueryData<ThreadData>(key, (current) =>
+      current ? { ...current, messages: restoreRows([current.messages], prev.messages, ids)[0] } : current,
+    );
+  }
+  for (const [id, prev] of snapshot.prevDetails) {
+    queryClient.setQueryData(emailKeys.message.detail(id, snapshot.userId), prev);
+  }
+  // Counts are not restored by hand: other changes moved them too.
+  invalidateMailViews(queryClient);
 }
 
 /** Cancel in-flight queries for the message caches before an optimistic update. */

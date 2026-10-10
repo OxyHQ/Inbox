@@ -23,6 +23,7 @@ import {
   useSaveDraft,
   useSendMessage,
   useSendMessageWithUndo,
+  type PendingSend,
 } from '@/hooks/mutations/useMessageMutations';
 import { useEmailStore } from '@/hooks/useEmail';
 import { useTranslation } from '@/lib/i18n';
@@ -75,6 +76,30 @@ function fileMetadataToAttachment(file: FileMetadata): ComposerAttachment {
     contentType: file.contentType || 'application/octet-stream',
     size: file.length,
   };
+}
+
+/** What decides whether there is something unsaved: only what the user can see. */
+function contentKeyOf(fields: {
+  to: string;
+  cc: string;
+  bcc: string;
+  subject: string;
+  body: string;
+  attachments: readonly ComposerAttachment[];
+}): string {
+  return JSON.stringify([
+    fields.to,
+    fields.cc,
+    fields.bcc,
+    fields.subject,
+    fields.body,
+    fields.attachments.map(({ fileId, name, contentType, size }) => ({ fileId, name, contentType, size })),
+  ]);
+}
+
+/** Every address field parses: a save of it keeps exactly what was typed. */
+function recipientsAllParse(...fields: string[]): boolean {
+  return fields.every((value) => parseComposeRecipients(value).invalid.length === 0);
 }
 
 function isDraftConflict(error: unknown): boolean {
@@ -201,6 +226,8 @@ export function useComposeSession({
   const createdDraftRef = useRef(false);
   /** A send is under way or done: no server save may land after it. */
   const sentRef = useRef(false);
+  /** The send waiting out its undo window; discarding the session calls it off. */
+  const pendingSendRef = useRef<PendingSend | null>(null);
   /** Discarded: nothing may write the draft again. */
   const discardedRef = useRef(false);
   const mountedRef = useRef(true);
@@ -236,15 +263,14 @@ export function useComposeSession({
     }),
     [to, cc, bcc, subject, body, attachments, replyTo, idempotencyKey, alreadyQueued],
   );
-  // The idempotency key and the queued mark are not content: what decides
-  // whether there is something unsaved is only what the user can see.
-  const contentKey = JSON.stringify([to, cc, bcc, subject, body, snapshot.attachments]);
-  // A reopened draft starts saved; anything else starts with nothing saved.
-  const [savedContentKey, setSavedContentKey] = useState<string | null>(() =>
-    draft
-      ? JSON.stringify([seed.to, seed.cc, seed.bcc, seed.subject, seed.body, seed.attachments])
-      : null,
-  );
+  // The idempotency key and the queued mark are not content.
+  const contentKey = contentKeyOf({ to, cc, bcc, subject, body, attachments });
+  // The session starts with nothing unsaved: a reopened draft is saved as it
+  // is, and the fields a reply or a link starts with are not the user's
+  // writing. Treating them as unsaved autosaved a junk draft for every reply
+  // left open, and closing an untouched reply saved one.
+  const [seedContentKey] = useState(() => contentKeyOf(seed));
+  const [savedContentKey, setSavedContentKey] = useState<string>(seedContentKey);
 
   const hasContent = Boolean(
     to.trim() ||
@@ -266,6 +292,21 @@ export function useComposeSession({
   }, []);
 
   // ── Local crash recovery ──────────────────────────────────────────
+  /**
+   * The content of a recovered snapshot whose send was queued. Sending it again
+   * reuses its idempotency key — the same message to the API. Once the content
+   * differs it is a different message, and a new key: with the old one the API
+   * answered with the queued message's outcome and the new one never left.
+   */
+  const queuedContentKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!alreadyQueued || queuedContentKeyRef.current === null) return;
+    if (contentKey === queuedContentKeyRef.current) return;
+    queuedContentKeyRef.current = null;
+    setAlreadyQueued(false);
+    setIdempotencyKey(newSendIdempotencyKey());
+  }, [alreadyQueued, contentKey]);
+
   useEffect(() => {
     let cancelled = false;
     void loadComposeRecovery(recoveryKey).then((record) => {
@@ -278,7 +319,19 @@ export function useComposeSession({
         (!draft || record.savedAt > Date.parse(draft.date));
       if (record && usable) {
         if (record.snapshot.idempotencyKey) setIdempotencyKey(record.snapshot.idempotencyKey);
-        setAlreadyQueued(record.snapshot.queued === true);
+        const queued = record.snapshot.queued === true;
+        setAlreadyQueued(queued);
+        queuedContentKeyRef.current = queued
+          ? contentKeyOf({
+              ...record.snapshot,
+              attachments: (record.snapshot.attachments ?? []).map((attachment) => ({
+                fileId: attachment.fileId,
+                name: attachment.name ?? attachment.fileId,
+                contentType: attachment.contentType ?? 'application/octet-stream',
+                size: attachment.size ?? 0,
+              })),
+            })
+          : null;
         setTo(record.snapshot.to);
         setCc(record.snapshot.cc);
         setBcc(record.snapshot.bcc);
@@ -314,6 +367,12 @@ export function useComposeSession({
         const block = signatureBlock(settings.signature, isWeb);
         signatureRef.current = block;
         updateBody(block);
+        // The signature is where the session starts, not something to save.
+        setSavedContentKey((saved) =>
+          saved === seedContentKey
+            ? contentKeyOf({ ...seed, body: block })
+            : saved,
+        );
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -352,11 +411,15 @@ export function useComposeSession({
           if (!draftIdRef.current) createdDraftRef.current = true;
           draftIdRef.current = saved._id;
           draftRevisionRef.current = saved.draftRevision;
+          // An address that does not parse yet (`bob@example`) is left out of
+          // the server draft. The edits stay unsaved, and the local snapshot
+          // keeps them, so closing still asks and reopening still has them.
+          const complete = recipientsAllParse(current.to, current.cc, current.bcc);
           if (mountedRef.current) {
-            setSavedContentKey(key);
+            if (complete) setSavedContentKey(key);
             setDraftSaveState('saved');
           }
-          void clearComposeRecovery(recoveryKey);
+          if (complete) void clearComposeRecovery(recoveryKey);
           return true;
         } catch (error) {
           if (isDraftConflict(error)) {
@@ -537,7 +600,8 @@ export function useComposeSession({
 
     sentRef.current = true;
     await settleSaves();
-    sendWithUndo(messagePayload(recipients), {
+    if (discardedRef.current) return;
+    pendingSendRef.current = sendWithUndo(messagePayload(recipients), {
       onSuccess: () => {
         void clearComposeRecovery(recoveryKey);
         finish();
@@ -551,9 +615,11 @@ export function useComposeSession({
         finish();
       },
       onError: () => {
+        pendingSendRef.current = null;
         sentRef.current = false;
       },
       onCancel: () => {
+        pendingSendRef.current = null;
         sentRef.current = false;
       },
     });
@@ -614,12 +680,18 @@ export function useComposeSession({
 
   /** Save now and close. Nothing to save closes at once. */
   const saveAndClose = useCallback(async () => {
+    // Sent, or waiting out its undo window: the message is on its way and there
+    // is no draft to keep. Closing leaves the send to finish.
+    if (sentRef.current) {
+      finish();
+      return;
+    }
     if (!hasContent) {
       void clearComposeRecovery(recoveryKey);
       finish();
       return;
     }
-    if (!isDirty && draftIdRef.current) {
+    if (!isDirty) {
       finish();
       return;
     }
@@ -634,6 +706,10 @@ export function useComposeSession({
 
   const deleteServerDraft = useCallback(async () => {
     discardedRef.current = true;
+    // Discarded inside the undo window: the message the user threw away must
+    // not go out after the composer has closed.
+    pendingSendRef.current?.cancel();
+    pendingSendRef.current = null;
     void clearComposeRecovery(recoveryKey);
     await settleSaves();
     const draftId = draftIdRef.current;
@@ -651,6 +727,8 @@ export function useComposeSession({
    */
   const discardChanges = useCallback(async () => {
     discardedRef.current = true;
+    pendingSendRef.current?.cancel();
+    pendingSendRef.current = null;
     if (createdDraftRef.current) {
       finish();
       await deleteServerDraft();

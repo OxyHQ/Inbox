@@ -1018,7 +1018,7 @@ const fr: LocaleDict = {
         whenMessage: 'Quand, dans un message, le champ',
         sizeBytes: 'Taille en octets',
         value: 'Valeur',
-        then: 'alors',
+        thenAction: 'alors',
         creating: 'Création…',
         addFilter: 'Ajouter un filtre',
         editingTemplate: 'Modification du modèle',

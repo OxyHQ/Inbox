@@ -1062,7 +1062,7 @@ const ar: LocaleDict = {
         whenMessage: 'عندما يكون حقل الرسالة',
         sizeBytes: 'الحجم بالبايت',
         value: 'القيمة',
-        then: 'ثم',
+        thenAction: 'ثم',
         creating: 'جارٍ الإنشاء…',
         addFilter: 'إضافة عامل تصفية',
         editingTemplate: 'تعديل القالب',

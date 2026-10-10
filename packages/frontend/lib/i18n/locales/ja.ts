@@ -1003,7 +1003,7 @@ const ja: LocaleDict = {
         whenMessage: 'メッセージの',
         sizeBytes: 'サイズ (バイト)',
         value: '値',
-        then: 'の場合',
+        thenAction: 'の場合',
         creating: '作成中…',
         addFilter: 'フィルターを追加',
         editingTemplate: 'テンプレートを編集中',

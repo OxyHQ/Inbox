@@ -1015,7 +1015,7 @@ const ca: LocaleDict = {
         whenMessage: 'Camp del missatge',
         sizeBytes: 'Mida en bytes',
         value: 'Valor',
-        then: 'aleshores',
+        thenAction: 'aleshores',
         creating: 'Creant…',
         addFilter: 'Afegeix un filtre',
         editingTemplate: 'Editant la plantilla',

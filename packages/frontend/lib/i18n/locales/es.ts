@@ -1005,7 +1005,7 @@ const es: LocaleDict = {
         whenMessage: 'Campo del mensaje',
         sizeBytes: 'Tamaño en bytes',
         value: 'Valor',
-        then: 'entonces',
+        thenAction: 'entonces',
         creating: 'Creando…',
         addFilter: 'Añadir filtro',
         editingTemplate: 'Editando plantilla',

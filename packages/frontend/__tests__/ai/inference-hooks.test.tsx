@@ -22,7 +22,10 @@ jest.mock('@oxy.so/bloom', () => ({
     return mockToast;
   },
 }));
-jest.mock('@/lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+jest.mock('@/lib/i18n', () => ({
+  useTranslation: () => ({ t: (key: string) => key }),
+  useLocale: () => ({ locale: 'es' }),
+}));
 
 jest.mock('@/services/inboxInferenceApi', () => ({
   inboxLocalDayWindow: jest.fn(),
@@ -161,6 +164,8 @@ describe('Inbox inference hooks', () => {
       { initialProps: { enabled: true }, wrapper: wrapper(queryClient) },
     );
     await waitFor(() => expect(firstSignal).toBeDefined());
+    // The brief is written in the UI language.
+    expect(mockStreamInboxDailyBrief.mock.calls[0]?.[1]).toMatchObject({ locale: 'es' });
 
     act(() => rendered.rerender({ enabled: false }));
     await waitFor(() => expect(firstSignal?.aborted).toBe(true));

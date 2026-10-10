@@ -246,7 +246,7 @@ describe('Inbox point-inference API client', () => {
       endAt: '2026-09-03T21:00:00.000Z',
     };
     await expect(
-      collect(streamInboxDailyBrief(client as never, dayWindow)),
+      collect(streamInboxDailyBrief(client as never, { ...dayWindow, locale: 'es' })),
     ).resolves.toEqual(['Hello']);
 
     expect(client.requestAuthenticatedResponse).toHaveBeenNthCalledWith(1, {
@@ -271,7 +271,7 @@ describe('Inbox point-inference API client', () => {
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
       },
-      body: JSON.stringify({ ...dayWindow, stream: true }),
+      body: JSON.stringify({ ...dayWindow, locale: 'es', stream: true }),
       signal: undefined,
     });
   });

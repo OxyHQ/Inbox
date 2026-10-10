@@ -328,8 +328,11 @@ export function streamInboxDraft(
 
 export function streamInboxDailyBrief(
   http: HttpService,
-  window: Pick<InboxDailyBriefWindow, 'startAt' | 'endAt'>,
+  request: Pick<InboxDailyBriefWindow, 'startAt' | 'endAt'> & {
+    /** The language the brief is written in (BCP 47). */
+    locale?: string;
+  },
   signal?: AbortSignal,
 ): AsyncGenerator<string> {
-  return streamInboxText(http, DAILY_BRIEF_PATH, { ...window, stream: true }, signal);
+  return streamInboxText(http, DAILY_BRIEF_PATH, { ...request, stream: true }, signal);
 }

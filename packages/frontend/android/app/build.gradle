@@ -104,6 +104,17 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            // Populated only when the Oxy release keystore properties are
+            // available; otherwise this config stays empty and the release
+            // buildType falls back to signingConfigs.debug below.
+            if (project.hasProperty('OXY_UPLOAD_STORE_FILE')) {
+                storeFile file(project.property('OXY_UPLOAD_STORE_FILE'))
+                storePassword project.property('OXY_UPLOAD_STORE_PASSWORD')
+                keyAlias project.property('OXY_UPLOAD_KEY_ALIAS')
+                keyPassword project.property('OXY_UPLOAD_KEY_PASSWORD')
+            }
+        }
     }
     buildTypes {
         debug {
@@ -112,11 +123,11 @@ android {
         release {
             // Caution! In production, you need to generate your own keystore file.
             // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig project.hasProperty('OXY_UPLOAD_STORE_FILE') ? signingConfigs.release : signingConfigs.debug
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
             minifyEnabled enableMinifyInReleaseBuilds
-            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             def enablePngCrunchInRelease = findProperty('android.enablePngCrunchInReleaseBuilds') ?: 'true'
             crunchPngs enablePngCrunchInRelease.toBoolean()
         }

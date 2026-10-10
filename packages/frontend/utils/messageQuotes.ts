@@ -107,7 +107,7 @@ export function splitHtmlQuote(html: string): MessageParts {
         node.attribs.id?.toLowerCase() === 'divrplyfwdmsg' &&
         !isOutlookForward(DomUtils.textContent(node))
       ) {
-        nodes.slice(index).forEach((sibling) => quoted.add(sibling));
+        for (const sibling of nodes.slice(index)) quoted.add(sibling);
         return;
       }
       visit(node.children);

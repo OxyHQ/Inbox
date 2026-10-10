@@ -196,6 +196,7 @@ function HtmlBodyWeb({ html }: HtmlBodyProps) {
     [html, isDark, colors, videoLinkLabel, audioLinkLabel],
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: wrappedHtml is the trigger — a new srcDoc reloads the iframe, and the observers must re-attach to the new document.
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;

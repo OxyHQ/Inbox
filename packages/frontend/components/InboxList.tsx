@@ -506,6 +506,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       : viewMode?.type === 'label'
         ? `label:${viewMode.labelId}`
         : (viewMode?.type ?? 'none');
+  // biome-ignore lint/correctness/useExhaustiveDependencies: viewKey is the trigger — the selection clears when the view changes.
   useEffect(() => {
     clearSelection();
   }, [viewKey, clearSelection]);

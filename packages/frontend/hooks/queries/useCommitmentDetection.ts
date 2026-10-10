@@ -82,17 +82,16 @@ function parseDeadlineFromText(text: string, sentDate: Date): Date | undefined {
   return undefined;
 }
 
-function extractCommitments(message: Message): Commitment[] {
+function extractCommitments(message: Pick<Message, 'text' | 'date'>): Commitment[] {
   const text = message.text || '';
   const commitments: Commitment[] = [];
   const sentDate = new Date(message.date);
   const now = new Date();
 
   for (const { pattern, type } of COMMITMENT_PATTERNS) {
-    // Reset regex state
-    pattern.lastIndex = 0;
-    let match;
-    while ((match = pattern.exec(text)) !== null) {
+    // matchAll iterates a copy of the regex, so the shared pattern's lastIndex
+    // never carries over between messages.
+    for (const match of text.matchAll(pattern)) {
       const matchedText = match[0];
 
       // Look for deadline in surrounding context (50 chars around match)
@@ -140,10 +139,15 @@ function extractCommitments(message: Message): Commitment[] {
  * Detects commitments in a sent message.
  */
 export function useCommitmentDetection(message: Message | null | undefined): Commitment[] {
-  return useMemo(() => {
-    if (!message) return [];
-    return extractCommitments(message);
-  }, [message?._id, message?.text]);
+  // Keyed by what the scan reads: the text and the sent date (the deadlines are
+  // relative to it), not by the message object, which a refetch rebuilds.
+  const hasMessage = message != null;
+  const text = message?.text;
+  const date = message?.date ?? '';
+  return useMemo(
+    () => (hasMessage ? extractCommitments({ text, date }) : []),
+    [hasMessage, text, date],
+  );
 }
 
 /**

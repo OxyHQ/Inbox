@@ -15,6 +15,7 @@ function ResetTabBarOnRouteChange() {
   const pathname = usePathname();
   const expandTabBar = useExpandTabBar();
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname is the trigger — the bar re-expands on every route change.
   useEffect(() => {
     expandTabBar();
   }, [expandTabBar, pathname]);

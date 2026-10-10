@@ -76,6 +76,7 @@ export function ThreadSummary({ messageId, messages, minMessages = 1 }: ThreadSu
                 <View className="gap-2">
                   <Text variant="caption-1-medium">{t('threadSummary.keyPoints')}</Text>
                   {keyPoints.map((point, index) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: a read-only list that never reorders; points can repeat.
                     <Text key={index} selectable>
                       • {point}
                     </Text>
@@ -87,6 +88,7 @@ export function ThreadSummary({ messageId, messages, minMessages = 1 }: ThreadSu
                   <Divider />
                   <Text variant="caption-1-medium">{t('threadSummary.actionItems')}</Text>
                   {actionItems.map((item, index) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: a read-only list that never reorders; items can repeat.
                     <View key={index} className="gap-1">
                       <Text selectable>{item.text}</Text>
                       {item.owner && <Text variant="caption-1-regular">{item.owner}</Text>}

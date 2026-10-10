@@ -859,6 +859,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           <Card appearance="outline">
             <CardBody>
               {currentMessage.highlights.map((h, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: a read-only list that never reorders; labels can repeat.
                 <View key={i} style={styles.highlightRow}>
                   <Text style={[styles.highlightLabel, { color: colors.secondaryText }]}>
                     {h.label}

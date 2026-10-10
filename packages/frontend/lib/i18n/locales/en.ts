@@ -733,6 +733,7 @@ const en: LocaleDict = {
       summary: 'Package details',
     },
     event: {
+      organizer: 'Organizer: {{name}}',
       header: 'Event',
       addToCalendar: 'Add to Calendar',
       googleCalendar: 'Google Calendar',

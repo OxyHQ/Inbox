@@ -735,6 +735,7 @@ const it: LocaleDict = {
       summary: 'Dettagli pacco',
     },
     event: {
+      organizer: 'Organizzatore: {{name}}',
       header: 'Evento',
       addToCalendar: 'Aggiungi al calendario',
       googleCalendar: 'Google Calendar',

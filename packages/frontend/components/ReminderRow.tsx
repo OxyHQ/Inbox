@@ -11,6 +11,7 @@ import { Item } from '@oxy.so/bloom/item';
  */
 
 import type { Reminder } from '@/services/emailApi';
+import { calendarDaysBetween } from '@/utils/calendarDays';
 
 interface ReminderRowProps {
   reminder: Reminder;
@@ -27,14 +28,7 @@ export function formatReminderTime(
   now = new Date(),
 ): string {
   const date = new Date(dateStr);
-  // Calendar days apart, counted on the calendar. Subtracting local midnights
-  // and flooring was off by one across a DST change: the day after
-  // spring-forward is 23 hours away, 0.96 of a day — "Today".
-  const diffDays = Math.round(
-    (Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) -
-      Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) /
-      86_400_000,
-  );
+  const diffDays = calendarDaysBetween(now, date);
   const time = date.toLocaleTimeString(locale, {
     hour: 'numeric',
     minute: '2-digit',

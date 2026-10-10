@@ -3,7 +3,12 @@ import { RiCalendarLine } from '@oxy.so/bloom/icons';
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';
 import type { CardData } from '@/services/emailApi';
-import { calendarTimes, generateIcs, googleCalendarUrl } from '@/utils/calendarEvent';
+import {
+  calendarTimes,
+  generateIcs,
+  googleCalendarUrl,
+  type CalendarLabels,
+} from '@/utils/calendarEvent';
 import { formatCardDate } from '@/utils/cardFormat';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { toast } from '@oxy.so/bloom';
@@ -36,9 +41,17 @@ export function EventCard({ data }: EventCardProps) {
       ? formatCardDate(locale, data.endTime, { hour: 'numeric', minute: '2-digit' }, true)
       : null;
 
+  const labels = useMemo<CalendarLabels>(
+    () => ({
+      organizer: (name) => t('cards.event.organizer', { name }),
+      untitled: t('cards.event.defaultTitle'),
+    }),
+    [t],
+  );
+
   const handleAddToCalendar = useCallback(async () => {
     if (!times) return;
-    const icsContent = generateIcs(data, times);
+    const icsContent = generateIcs(data, times, new Date(), labels);
 
     if (Platform.OS === 'web') {
       // Web: create a Blob and trigger download
@@ -79,12 +92,12 @@ export function EventCard({ data }: EventCardProps) {
         toast.error(message);
       }
     }
-  }, [data, t, times]);
+  }, [data, labels, t, times]);
 
   const handleOpenGoogleCalendar = useCallback(() => {
     if (!times) return;
-    void Linking.openURL(googleCalendarUrl(data, times));
-  }, [data, times]);
+    void Linking.openURL(googleCalendarUrl(data, times, labels));
+  }, [data, labels, times]);
 
   return (
     <Card appearance="subtle">

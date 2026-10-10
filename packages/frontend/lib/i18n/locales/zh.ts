@@ -732,6 +732,7 @@ const zh: LocaleDict = {
       summary: '包裹详情',
     },
     event: {
+      organizer: '组织者：{{name}}',
       header: '活动',
       addToCalendar: '添加到日历',
       googleCalendar: 'Google 日历',

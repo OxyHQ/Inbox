@@ -734,6 +734,7 @@ const ko: LocaleDict = {
       summary: '배송 상세',
     },
     event: {
+      organizer: '주최자: {{name}}',
       header: '이벤트',
       addToCalendar: '캘린더에 추가',
       googleCalendar: 'Google 캘린더',

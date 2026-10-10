@@ -799,6 +799,7 @@ const ar: LocaleDict = {
       summary: 'تفاصيل الطرد',
     },
     event: {
+      organizer: 'المنظِّم: {{name}}',
       header: 'فعالية',
       addToCalendar: 'إضافة إلى التقويم',
       googleCalendar: 'Google Calendar',

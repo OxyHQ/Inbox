@@ -90,7 +90,25 @@ function eventUid(data: CardData, times: CalendarTimes): string {
   return `${(hash >>> 0).toString(36)}-${icsValue(times.start, false)}@inbox.oxy.so`;
 }
 
-export function generateIcs(data: CardData, times: CalendarTimes, now = new Date()): string {
+/** The words an export writes into the event, in the app's language. */
+export interface CalendarLabels {
+  /** A line naming the organizer in the notes, e.g. `Organizer: Ann`. */
+  organizer: (name: string) => string;
+  /** The title of an event that has none. */
+  untitled: string;
+}
+
+const ENGLISH_LABELS: CalendarLabels = {
+  organizer: (name) => `Organizer: ${name}`,
+  untitled: 'Event',
+};
+
+export function generateIcs(
+  data: CardData,
+  times: CalendarTimes,
+  now = new Date(),
+  labels: CalendarLabels = ENGLISH_LABELS,
+): string {
   const dateParam = times.allDay ? ';VALUE=DATE' : '';
   const lines: string[] = [
     'BEGIN:VCALENDAR',
@@ -105,9 +123,9 @@ export function generateIcs(data: CardData, times: CalendarTimes, now = new Date
     `DTSTART${dateParam}:${icsValue(times.start, times.allDay)}`,
     `DTEND${dateParam}:${icsValue(times.end, times.allDay)}`,
   ];
-  if (data.title) lines.push(`SUMMARY:${escapeText(data.title)}`);
+  lines.push(`SUMMARY:${escapeText(data.title || labels.untitled)}`);
   if (data.location) lines.push(`LOCATION:${escapeText(data.location)}`);
-  const description = [data.description, data.organizer && `Organizer: ${data.organizer}`]
+  const description = [data.description, data.organizer && labels.organizer(data.organizer)]
     .filter(Boolean)
     .join('\n');
   // Joined with a real line break, then escaped — it used to be joined with a
@@ -117,10 +135,14 @@ export function generateIcs(data: CardData, times: CalendarTimes, now = new Date
   return lines.map(fold).join('\r\n');
 }
 
-export function googleCalendarUrl(data: CardData, times: CalendarTimes): string {
+export function googleCalendarUrl(
+  data: CardData,
+  times: CalendarTimes,
+  labels: CalendarLabels = ENGLISH_LABELS,
+): string {
   const params = new URLSearchParams({
     action: 'TEMPLATE',
-    text: data.title || 'Event',
+    text: data.title || labels.untitled,
     dates: `${icsValue(times.start, times.allDay)}/${icsValue(times.end, times.allDay)}`,
   });
   if (data.location) params.set('location', data.location);

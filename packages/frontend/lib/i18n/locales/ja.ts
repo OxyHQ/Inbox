@@ -734,6 +734,7 @@ const ja: LocaleDict = {
       summary: '荷物の詳細',
     },
     event: {
+      organizer: '主催者: {{name}}',
       header: 'イベント',
       addToCalendar: 'カレンダーに追加',
       googleCalendar: 'Google カレンダー',

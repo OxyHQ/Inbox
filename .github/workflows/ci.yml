@@ -55,8 +55,12 @@ jobs:
 
       # Biome owns formatting and almost all linting (root biome.json). `ci`
       # never writes; it fails on unformatted files and on error-level rules.
+      # The warning baseline was cleared to zero, and `--error-on-warnings`
+      # keeps it there: a rule whose recommended level is `warn`
+      # (noExplicitAny, noNonNullAssertion, ...) fails the build too, instead
+      # of building up unseen.
       - name: Biome (format + lint)
-        run: bunx biome ci .
+        run: bunx biome ci --error-on-warnings .
 
       # The minimal Expo ESLint (packages/frontend/eslint.config.js) keeps only
       # what Biome cannot check: eslint-plugin-expo's EXPO_PUBLIC_* inlining

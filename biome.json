@@ -59,23 +59,7 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "preset": "recommended",
-      "a11y": {
-        "useButtonType": "warn",
-        "noSvgWithoutTitle": "warn"
-      },
-      "correctness": {
-        "useExhaustiveDependencies": "warn",
-        "noUnsafeOptionalChaining": "warn"
-      },
-      "suspicious": {
-        "noControlCharactersInRegex": "warn",
-        "noThenProperty": "warn",
-        "noArrayIndexKey": "warn",
-        "useIterableCallbackReturn": "warn",
-        "noImplicitAnyLet": "warn",
-        "noAssignInExpressions": "warn"
-      }
+      "preset": "recommended"
     }
   }
 }

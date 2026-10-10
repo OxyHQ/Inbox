@@ -78,7 +78,7 @@ jest.mock('@/lib/i18n', () => ({
 }));
 jest.mock('@/utils/inboxTelemetry', () => ({ recordInboxMetric: jest.fn() }));
 
-import React from 'react';
+import type React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 
 import { createEmailApi } from '@/services/emailApi';

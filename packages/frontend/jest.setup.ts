@@ -19,5 +19,3 @@ declare global {
 (globalThis as { __DEV__?: boolean }).__DEV__ = false;
 (globalThis as { TextEncoder?: typeof TextEncoder }).TextEncoder = TextEncoder;
 (globalThis as { TextDecoder?: typeof TextDecoder }).TextDecoder = TextDecoder;
-
-export {};

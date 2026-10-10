@@ -9,7 +9,7 @@
  */
 
 import { ScrollViewStyleReset } from 'expo-router/html';
-import { type PropsWithChildren } from 'react';
+import type { PropsWithChildren } from 'react';
 
 const DEFAULT_TITLE = 'Inbox by Oxy';
 const DEFAULT_DESCRIPTION = 'Email by Oxy. Federated, encrypted, simple.';

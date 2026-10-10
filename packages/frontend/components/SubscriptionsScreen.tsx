@@ -19,7 +19,8 @@ import { useOxy } from '@oxy.so/services';
 
 import { useMinimizeOnScroll } from '@oxy.so/bloom/tab-bar';
 import { FlashList, type FlashListProps, type FlashListRef } from '@shopify/flash-list';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import type React from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useWindowDimensions, RefreshControl, View } from 'react-native';
 import Animated, { type AnimatedProps } from 'react-native-reanimated';
 

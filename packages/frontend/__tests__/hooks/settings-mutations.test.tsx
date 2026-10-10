@@ -28,7 +28,7 @@ jest.mock('@/lib/i18n', () => ({
   }),
 }));
 
-import { type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider, type InfiniteData } from '@tanstack/react-query';
 

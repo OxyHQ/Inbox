@@ -9,7 +9,8 @@
  */
 
 import { useTheme } from '@oxy.so/bloom/theme';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type React from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, Platform, StyleSheet } from 'react-native';
 import { getProxyBaseUrl, proxyExternalImages, sanitizeEmailHtml } from '../utils/htmlTransform';
 import { useTranslation } from '@/lib/i18n';

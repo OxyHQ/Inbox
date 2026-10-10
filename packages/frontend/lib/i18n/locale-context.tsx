@@ -1,5 +1,6 @@
 import { LocaleProvider as BloomLocaleProvider } from '@oxy.so/bloom/locale';
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
+import type React from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
 import { I18nManager, Platform } from 'react-native';
 import { toast } from '@oxy.so/bloom/toast';
 import { useOxy, useUpdateProfile } from '@oxy.so/services';

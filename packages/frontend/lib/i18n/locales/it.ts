@@ -138,7 +138,12 @@ const it: LocaleDict = {
   },
 
 
+  label: {
+    notFound: 'Etichetta non trovata',
+  },
+
   inbox: {
+    loadErrorTitle: 'Impossibile caricare la posta',
     unreadable: {
       section: "Impossibile visualizzare",
       title: "Impossibile visualizzare questo messaggio",

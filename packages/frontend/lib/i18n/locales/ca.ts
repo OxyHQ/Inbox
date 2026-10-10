@@ -139,7 +139,12 @@ const ca: LocaleDict = {
   },
 
 
+  label: {
+    notFound: 'No s\'ha trobat l\'etiqueta',
+  },
+
   inbox: {
+    loadErrorTitle: 'No s\'ha pogut carregar el correu',
     unreadable: {
       section: "No s'han pogut mostrar",
       title: "No s'ha pogut mostrar aquest missatge",

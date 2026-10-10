@@ -137,7 +137,12 @@ const ko: LocaleDict = {
   },
 
 
+  label: {
+    notFound: '라벨을 찾을 수 없습니다',
+  },
+
   inbox: {
+    loadErrorTitle: '메일을 불러올 수 없습니다',
     unreadable: {
       section: "표시할 수 없음",
       title: "이 메시지를 표시할 수 없습니다",

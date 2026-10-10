@@ -135,7 +135,12 @@ const zh: LocaleDict = {
   },
 
 
+  label: {
+    notFound: '找不到标签',
+  },
+
   inbox: {
+    loadErrorTitle: '无法加载你的邮件',
     unreadable: {
       section: "无法显示",
       title: "无法显示此邮件",

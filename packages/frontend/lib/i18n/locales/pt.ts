@@ -138,7 +138,12 @@ const pt: LocaleDict = {
   },
 
 
+  label: {
+    notFound: 'Marcador não encontrado',
+  },
+
   inbox: {
+    loadErrorTitle: 'Não foi possível carregar seus e-mails',
     unreadable: {
       section: "Não foi possível mostrar",
       title: "Não foi possível mostrar esta mensagem",

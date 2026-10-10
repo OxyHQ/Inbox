@@ -137,7 +137,12 @@ const ja: LocaleDict = {
   },
 
 
+  label: {
+    notFound: 'ラベルが見つかりません',
+  },
+
   inbox: {
+    loadErrorTitle: 'メールを読み込めませんでした',
     unreadable: {
       section: "表示できません",
       title: "このメッセージを表示できませんでした",

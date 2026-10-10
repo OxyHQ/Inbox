@@ -144,7 +144,12 @@ const en: LocaleDict = {
   },
 
 
+  label: {
+    notFound: 'Label not found',
+  },
+
   inbox: {
+    loadErrorTitle: 'Couldn\'t load your mail',
     unreadable: {
       section: "Couldn't display",
       title: "This message couldn't be displayed",

@@ -3,20 +3,14 @@ import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 
 import { useDialogControl } from '@oxy.so/bloom';
 import { useOxy } from '@oxy.so/services';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import { useCallback, useMemo } from 'react';
 
 import { KeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp';
-import { SPECIAL_USE } from '@/constants/mailbox';
-import {
-  useArchiveMessage,
-  useDeleteMessage,
-  useToggleRead,
-  useToggleStar,
-} from '@/hooks/mutations/useMessageMutations';
-import { useMailboxes } from '@/hooks/queries/useMailboxes';
-import { useMessages } from '@/hooks/queries/useMessages';
+import { useToggleStar } from '@/hooks/mutations/useMessageMutations';
+import { useCurrentList } from '@/hooks/useCurrentList';
 import { useEmailStore } from '@/hooks/useEmail';
+import { useMessageActions } from '@/hooks/useMessageActions';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import {
   buildReplyRecipients,
@@ -29,36 +23,47 @@ export default function InboxLayout() {
   const router = useRouter();
   const { user } = useOxy();
   const isDesktop = useIsDesktopLayout();
-  const currentMailbox = useEmailStore((s) => s.currentMailbox);
+  const pathname = usePathname();
   const selectedMessageId = useEmailStore((s) => s.selectedMessageId);
 
-  const { data: mailboxes = [] } = useMailboxes();
-  const inboxMailboxId = useMemo(
-    () => mailboxes.find((m) => m.specialUse === SPECIAL_USE.INBOX)?._id,
-    [mailboxes],
-  );
-  const { data: messagesData } = useMessages({
-    mailboxId: currentMailbox?._id ?? inboxMailboxId,
-  });
-  const messages = useMemo(
-    () => messagesData?.pages.flatMap((p) => p.data) ?? [],
-    [messagesData],
-  );
-
+  // The list as it is on screen — the same view, the same conversation rows.
+  const { rows, conversationOf } = useCurrentList();
+  const messageActions = useMessageActions();
   const toggleStar = useToggleStar();
-  const toggleRead = useToggleRead();
-  const archiveMutation = useArchiveMessage();
-  const deleteMutation = useDeleteMessage();
 
   const currentIndex = useMemo(() => {
     if (!selectedMessageId) return -1;
-    return messages.findIndex((m) => m._id === selectedMessageId);
-  }, [selectedMessageId, messages]);
+    return rows.findIndex((m) => m._id === selectedMessageId);
+  }, [selectedMessageId, rows]);
 
   const currentMessage = useMemo(() => {
     if (currentIndex === -1) return null;
-    return messages[currentIndex] ?? null;
-  }, [currentIndex, messages]);
+    return rows[currentIndex] ?? null;
+  }, [currentIndex, rows]);
+
+  /**
+   * Select a row and, on desktop, show it — or show nothing. Used by j/k and
+   * after Archive/Delete: the mutation moved the list's selection on, but the
+   * reading pane kept showing the message just archived, so the next `e`
+   * archived one the user had never seen.
+   */
+  const showRow = useCallback(
+    (row: (typeof rows)[number] | null) => {
+      useEmailStore.setState({ selectedMessageId: row?._id ?? null });
+      if (!isDesktop) return;
+      // A draft is selected but not opened: opening it means the composer,
+      // which is not where stepping through the list should land.
+      if (!row) router.replace('/');
+      else if (!row.flags.draft) router.replace(`/conversation/${row._id}`);
+    },
+    [isDesktop, router],
+  );
+
+  /** The row after the current one, else the one before, else none. */
+  const neighbourRow = useCallback(
+    () => rows[currentIndex + 1] ?? (currentIndex > 0 ? rows[currentIndex - 1] : null) ?? null,
+    [rows, currentIndex],
+  );
 
   const handleCompose = useCallback(() => {
     router.push('/compose');
@@ -124,71 +129,39 @@ export default function InboxLayout() {
   }, [selectedMessageId, currentMessage, router, isDesktop]);
 
   const handleArchive = useCallback(() => {
-    if (selectedMessageId) {
-      const archiveBox = mailboxes.find(
-        (m) => m.specialUse === SPECIAL_USE.ARCHIVE,
-      );
-      if (archiveBox) {
-        archiveMutation.mutate({
-          messageId: selectedMessageId,
-          archiveMailboxId: archiveBox._id,
-        });
-      }
-    }
-  }, [selectedMessageId, mailboxes, archiveMutation]);
+    if (!currentMessage) return;
+    const next = neighbourRow();
+    messageActions.archive(conversationOf(currentMessage._id));
+    showRow(next);
+  }, [currentMessage, neighbourRow, messageActions, conversationOf, showRow]);
 
   const handleDelete = useCallback(() => {
-    if (selectedMessageId) {
-      const trashBox = mailboxes.find(
-        (m) => m.specialUse === SPECIAL_USE.TRASH,
-      );
-      const isInTrash = currentMailbox?.specialUse === SPECIAL_USE.TRASH;
-      deleteMutation.mutate({
-        messageId: selectedMessageId,
-        trashMailboxId: trashBox?._id,
-        isInTrash,
-      });
-    }
-  }, [selectedMessageId, mailboxes, currentMailbox, deleteMutation]);
+    if (!currentMessage) return;
+    const next = neighbourRow();
+    messageActions.deleteConversation(conversationOf(currentMessage._id));
+    showRow(next);
+  }, [currentMessage, neighbourRow, messageActions, conversationOf, showRow]);
 
   const handleNextMessage = useCallback(() => {
-    if (currentIndex < messages.length - 1) {
-      const nextMessage = messages[currentIndex + 1];
-      useEmailStore.setState({ selectedMessageId: nextMessage._id });
-      // A draft is selected but not opened: opening it means the composer,
-      // which is not where stepping through the list should land.
-      if (isDesktop && !nextMessage.flags.draft) {
-        router.replace(`/conversation/${nextMessage._id}`);
-      }
-    }
-  }, [currentIndex, messages, router, isDesktop]);
+    if (currentIndex < rows.length - 1) showRow(rows[currentIndex + 1]);
+  }, [currentIndex, rows, showRow]);
 
   const handlePrevMessage = useCallback(() => {
-    if (currentIndex > 0) {
-      const prevMessage = messages[currentIndex - 1];
-      useEmailStore.setState({ selectedMessageId: prevMessage._id });
-      // A draft is selected but not opened: opening it means the composer,
-      // which is not where stepping through the list should land.
-      if (isDesktop && !prevMessage.flags.draft) {
-        router.replace(`/conversation/${prevMessage._id}`);
-      }
-    }
-  }, [currentIndex, messages, router, isDesktop]);
+    if (currentIndex > 0) showRow(rows[currentIndex - 1]);
+  }, [currentIndex, rows, showRow]);
 
   const handleToggleStar = useCallback(() => {
-    if (selectedMessageId && currentMessage) {
+    if (currentMessage) {
       toggleStar.mutate({
-        messageId: selectedMessageId,
+        messageId: currentMessage._id,
         starred: !currentMessage.flags.starred,
       });
     }
-  }, [selectedMessageId, currentMessage, toggleStar]);
+  }, [currentMessage, toggleStar]);
 
   const handleMarkUnread = useCallback(() => {
-    if (selectedMessageId) {
-      toggleRead.mutate({ messageId: selectedMessageId, seen: false });
-    }
-  }, [selectedMessageId, toggleRead]);
+    if (currentMessage) messageActions.setRead(conversationOf(currentMessage._id), false);
+  }, [currentMessage, messageActions, conversationOf]);
 
   const helpControl = useDialogControl();
   const handleShowHelp = useCallback(() => {
@@ -208,7 +181,9 @@ export default function InboxLayout() {
     onToggleStar: handleToggleStar,
     onMarkUnread: handleMarkUnread,
     onShowHelp: handleShowHelp,
-    enabled: isDesktop,
+    // Only where this stack is on screen: the layout stays mounted under the
+    // Search and Settings tabs, where `j` used to switch tabs on the user.
+    enabled: isDesktop && !pathname.startsWith('/search') && !pathname.startsWith('/settings'),
   });
 
   return (

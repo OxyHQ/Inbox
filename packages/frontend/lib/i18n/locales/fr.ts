@@ -138,7 +138,12 @@ const fr: LocaleDict = {
   },
 
 
+  label: {
+    notFound: 'Libellé introuvable',
+  },
+
   inbox: {
+    loadErrorTitle: 'Impossible de charger vos e-mails',
     unreadable: {
       section: "Affichage impossible",
       title: "Ce message n'a pas pu être affiché",

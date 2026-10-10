@@ -139,7 +139,12 @@ const es: LocaleDict = {
   },
 
 
+  label: {
+    notFound: 'Etiqueta no encontrada',
+  },
+
   inbox: {
+    loadErrorTitle: 'No se pudo cargar tu correo',
     unreadable: {
       section: "No se pudieron mostrar",
       title: "No se pudo mostrar este mensaje",

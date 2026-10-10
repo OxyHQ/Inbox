@@ -138,7 +138,12 @@ const ar: LocaleDict = {
   },
 
 
+  label: {
+    notFound: 'لم يتم العثور على التصنيف',
+  },
+
   inbox: {
+    loadErrorTitle: 'تعذّر تحميل بريدك',
     unreadable: {
       section: "تعذّر العرض",
       title: "تعذّر عرض هذه الرسالة",

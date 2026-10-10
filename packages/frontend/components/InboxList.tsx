@@ -62,7 +62,6 @@ import {
 import { useBundles } from '@/hooks/queries/useBundles';
 import { useFollowUp } from '@/hooks/queries/useFollowUp';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
-import { useMessages } from '@/hooks/queries/useMessages';
 import {
   useNeedsResponse,
   type NeedsResponseReason,
@@ -80,7 +79,7 @@ import type {
   UnreadableMessage,
 } from '@/services/emailApi';
 import { messageRoute } from '@/utils/messageRoute';
-import { groupThreads } from '@/utils/threadGrouping';
+import { useCurrentList } from '@/hooks/useCurrentList';
 import { AliaChatSheet, type AliaChatSheetRef } from '@alia.onl/sdk';
 import { VoiceSession } from '@alia.onl/sdk/voice';
 
@@ -216,7 +215,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   );
   const { isAuthenticated, user } = useOxy();
   const { prefs } = useInboxPrefs();
-  const { conversationView, density, showPreviews } =
+  const { density, showPreviews } =
     useInboxDisplayPrefs();
   const messageActions = useMessageActions();
 
@@ -231,41 +230,23 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
 
   const { data: mailboxes = [] } = useMailboxes();
 
-  /**
-   * Falls back to the Inbox when nothing has been selected yet.
-   *
-   * The route→store sync lives in `MailboxView`, which renders inside the
-   * detail `<Slot/>`. On desktop that Slot is only mounted when a message is
-   * open, so without this fallback the list would sit empty on first load —
-   * `useMessages` is gated on `enabled: hasFilter`, and no mailbox id means no
-   * request at all.
-   */
-  const inboxMailboxId = useMemo(
-    () => mailboxes.find((m) => m.specialUse === SPECIAL_USE.INBOX)?._id,
-    [mailboxes],
-  );
-
-  const messagesOptions = useMemo(() => {
-    if (!viewMode) return { mailboxId: currentMailbox?._id ?? inboxMailboxId };
-    switch (viewMode.type) {
-      case 'mailbox':
-        return { mailboxId: viewMode.mailbox._id };
-      case 'starred':
-        return { starred: true };
-      case 'label':
-        return { label: viewMode.labelName };
-    }
-  }, [viewMode, currentMailbox, inboxMailboxId]);
-
   const {
-    data,
-    isLoading,
-    isRefetching,
-    isFetchingNextPage,
-    refetch,
-    fetchNextPage,
-    hasNextPage,
-  } = useMessages(messagesOptions);
+    query: {
+      isLoading,
+      isError,
+      isRefetching,
+      isFetchingNextPage,
+      refetch,
+      fetchNextPage,
+      hasNextPage,
+    },
+    options: messagesOptions,
+    listReady,
+    messages,
+    unreadable,
+    rows: displayMessages,
+    conversationOf,
+  } = useCurrentList();
   const bundleView = useEmailStore((s) => s.bundleView);
   const expandedBundles = useEmailStore((s) => s.expandedBundles);
   const toggleBundle = useEmailStore((s) => s.toggleBundle);
@@ -289,41 +270,12 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const updateReminderMutation = useUpdateReminder();
   const deleteReminderMutation = useDeleteReminder();
 
-  const messages = useMemo(
-    () => data?.pages.flatMap((p) => p.data) ?? [],
-    [data],
-  );
-  const unreadable = useMemo(
-    () => data?.pages.flatMap((p) => p.unreadable ?? []) ?? [],
-    [data],
-  );
-
-  // Thread grouping is a post-process over the fetched list (single query, no
-  // duplicate list): collapse to one row per conversation when the pref is on.
-  const threadGroups = useMemo(
-    () =>
-      conversationView
-        ? groupThreads(messages)
-        : messages.map((message) => ({ row: message, members: [message] })),
-    [messages, conversationView],
-  );
-  const displayMessages = useMemo(() => threadGroups.map((group) => group.row), [threadGroups]);
-  const membersByRowId = useMemo(
-    () => new Map(threadGroups.map((group) => [group.row._id, group.members])),
-    [threadGroups],
-  );
-  /** Everything a row stands for: the whole conversation in conversation view. */
-  const conversationOf = useCallback(
-    (rowId: string): Message[] => membersByRowId.get(rowId) ?? messages.filter((m) => m._id === rowId),
-    [membersByRowId, messages],
-  );
-
   const isInboxView =
     viewMode?.type === 'mailbox'
       ? viewMode.mailbox.specialUse === SPECIAL_USE.INBOX
-      : !viewMode &&
-        (currentMailbox?.specialUse === SPECIAL_USE.INBOX ||
-          Boolean(inboxMailboxId));
+      : // No view chosen yet: the list falls back to the Inbox (useCurrentList).
+        !viewMode &&
+        (currentMailbox ? currentMailbox.specialUse === SPECIAL_USE.INBOX : true);
   const isSnoozedView =
     viewMode?.type === 'mailbox'
       ? viewMode.mailbox.specialUse === SPECIAL_USE.SNOOZED
@@ -564,10 +516,19 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     unreadable,
   ]);
 
-  // Clear selection when view changes
+  // Clear the selection when the user goes to another view. Keyed by WHICH
+  // view, not by the view object: that is rebuilt whenever the mailboxes are
+  // refetched (every new mail bumps an unread count), and each rebuild wiped a
+  // selection the user was in the middle of making.
+  const viewKey =
+    viewMode?.type === 'mailbox'
+      ? `mailbox:${viewMode.mailbox._id}`
+      : viewMode?.type === 'label'
+        ? `label:${viewMode.labelId}`
+        : (viewMode?.type ?? 'none');
   useEffect(() => {
     clearSelection();
-  }, [viewMode, clearSelection]);
+  }, [viewKey, clearSelection]);
 
   const handleRefresh = useCallback(() => {
     refetch();
@@ -1043,7 +1004,21 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   );
 
   const renderEmpty = useCallback(() => {
-    if (isLoading) return null;
+    // Not "loading" to React Query while the list is still waiting for a
+    // mailbox id — but not empty either.
+    if (isLoading || (isAuthenticated && !listReady)) return null;
+    // A failed load is not "all caught up": with no cache, offline or on a
+    // server error, that is what the user used to be told.
+    if (isError) {
+      return (
+        <EmptyState
+          illustration={<EmptyStateSticker name="loadError" />}
+          title={t('inbox.loadErrorTitle')}
+          description={t('ui.message.loadErrorDescription')}
+          action={{ label: t('common.retry'), onPress: () => void refetch() }}
+        />
+      );
+    }
     return (
       <EmptyState
         illustration={<EmptyStateSticker name="inbox" />}
@@ -1056,7 +1031,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
         }
       />
     );
-  }, [isAuthenticated, isLoading, t]);
+  }, [isAuthenticated, isLoading, isError, listReady, refetch, t]);
 
   const renderFooter = useCallback(() => {
     if (!isFetchingNextPage) return null;

@@ -20,7 +20,7 @@ import { useEffect, useMemo } from 'react';
 import { InboxList } from '@/components/InboxList';
 import { MessageDetailEmpty } from '@/components/MessageDetailEmpty';
 import { useLabels } from '@/hooks/queries/useLabels';
-import { useMessages } from '@/hooks/queries/useMessages';
+import { useTranslation } from '@/lib/i18n';
 import { useEmailStore } from '@/hooks/useEmail';
 
 export default function LabelViewRoute() {
@@ -36,27 +36,12 @@ export default function LabelViewRoute() {
     return labels.find((l) => l.name.toLowerCase() === target) ?? null;
   }, [name, labels]);
 
-  // Fetch messages for the label so we can compute the unread count for the
-  // page title; the list itself is rendered by `InboxList`, which reads the
-  // same options from the store.
-  const { data: messagesData } = useMessages({ label: label?.name });
-
-  const viewLabel = useMemo(() => {
-    if (label) return label.name;
-    if (!name) return 'Label';
-    return name.charAt(0).toUpperCase() + name.slice(1);
-  }, [label, name]);
-
-  const unreadCount = useMemo(() => {
-    const messages = messagesData?.pages.flatMap((p) => p.data) ?? [];
-    return messages.filter((m) => !m.flags?.seen).length;
-  }, [messagesData]);
-
+  const { t } = useTranslation();
   const pageTitle = useMemo(() => {
-    if (!label) return `Label not found · Oxy`;
-    if (unreadCount > 0) return `(${unreadCount}) ${viewLabel} · Oxy`;
-    return `${viewLabel} · Oxy`;
-  }, [label, unreadCount, viewLabel]);
+    const suffix = t('app.titleSuffix');
+    if (label) return `${label.name} ${suffix}`;
+    return `${t('label.notFound')} ${suffix}`;
+  }, [label, t]);
 
   // Sync URL → Zustand once we have a resolved label. While labels are still
   // loading we skip so we don't blow away another view's selection.

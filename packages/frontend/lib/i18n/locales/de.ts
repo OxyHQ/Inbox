@@ -138,7 +138,12 @@ const de: LocaleDict = {
   },
 
 
+  label: {
+    notFound: 'Label nicht gefunden',
+  },
+
   inbox: {
+    loadErrorTitle: 'Deine E-Mails konnten nicht geladen werden',
     unreadable: {
       section: "Nicht darstellbar",
       title: "Diese Nachricht konnte nicht angezeigt werden",

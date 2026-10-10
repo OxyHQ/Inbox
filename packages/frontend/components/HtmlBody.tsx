@@ -20,6 +20,7 @@ interface HtmlBodyProps {
 }
 
 const ALLOWED_EXTERNAL_LINK_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
+// biome-ignore lint/suspicious/noControlCharactersInRegex: strips the C0 controls and spaces a URL parser ignores around an href.
 const CONTROL_OR_SPACE_BOUNDARY = /^[\u0000-\u0020]+|[\u0000-\u0020]+$/g;
 
 /**

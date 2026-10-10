@@ -38,6 +38,7 @@ const DANGEROUS_TAGS = [
 const DANGEROUS_URL_SCHEMES = /^(?:javascript|data|vbscript|file):/i;
 
 function isSafeEmailUrl(value: string): boolean {
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: browsers drop control characters inside a scheme (`java\u0000script:`), so they are removed before the scheme check.
   const trimmed = value.trim().replace(/[\u0000-\u001f\u007f\s]+/g, '');
   if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('/')) return true;
   if (DANGEROUS_URL_SCHEMES.test(trimmed)) return false;
@@ -167,6 +168,7 @@ function classifyResourceUrl(value: string): ResourceUrl {
   // tab and newline inside it.
   const cleaned = value
     .replace(/[\t\n\r]/g, '')
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: strips the C0 controls and spaces a URL parser ignores at either end.
     .replace(/^[\u0000-\u0020]+|[\u0000-\u0020]+$/g, '');
   if (!cleaned) return { kind: 'inert' };
   const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(cleaned)?.[1].toLowerCase();
@@ -260,6 +262,7 @@ const CSS_SPACE = /^[ \t\n]$/;
 const isCssSpace = (ch: string | undefined) => ch !== undefined && CSS_SPACE.test(ch);
 const isCssNameChar = (ch: string | undefined) =>
   ch !== undefined && (/^[A-Za-z0-9_-]$/.test(ch) || ch.charCodeAt(0) >= 0x80);
+// biome-ignore lint/suspicious/noControlCharactersInRegex: the CSS Syntax spec's non-printable code points, matched on purpose.
 const isCssNonPrintable = (ch: string) => /^[\u0000-\u0008\u000b\u000e-\u001f\u007f]$/.test(ch);
 /** `\` starts an escape unless a newline follows it (input is preprocessed). */
 const isCssEscape = (css: string, i: number) => css[i] === '\\' && css[i + 1] !== '\n';
@@ -400,6 +403,7 @@ function skipCssAtRule(css: string, i: number): number {
 
 /** A CSS string literal that reads back as exactly `value`. */
 function cssString(value: string): string {
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: control characters are hex-escaped so the CSS string reads back exactly.
   return `"${value.replace(/[\u0000-\u001f\u007f"\\<>]/g, (ch) => `\\${ch.charCodeAt(0).toString(16)} `)}"`;
 }
 

@@ -42,7 +42,11 @@ import { calendarDaysBetween } from '@oxy.so/utils/date';
 import { dateFormatter, formatRowTime } from '@/utils/dateFormat';
 
 const TIME: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' };
-const WEEKDAY_MONTH_DAY: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric' };
+const WEEKDAY_MONTH_DAY: Intl.DateTimeFormatOptions = {
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+};
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://api.oxy.so';
 
@@ -58,9 +62,7 @@ function displayName(address: { name?: string | null; address: string }): string
 function getSenderName(message: Message, t: TranslateFn): string {
   if (message.flags.draft) {
     const recipients = [...message.to, ...message.cc].map(displayName).join(', ');
-    return recipients
-      ? t('message.draftTo', { recipients })
-      : t('message.draftLabel');
+    return recipients ? t('message.draftTo', { recipients }) : t('message.draftLabel');
   }
   return displayName(message.from);
 }
@@ -131,12 +133,7 @@ function getAttachmentInfo(
       label: att.name,
       color: tokens.infoSubtleForeground,
     };
-  if (
-    ct.includes('zip') ||
-    ct.includes('rar') ||
-    ct.includes('tar') ||
-    ct.includes('gz')
-  )
+  if (ct.includes('zip') || ct.includes('rar') || ct.includes('tar') || ct.includes('gz'))
     return {
       icon: 'zip-box-outline',
       hugeIcon: FileZipIcon as unknown as IconSvgElement,
@@ -228,29 +225,21 @@ function MessageRowInner({
     actions.push({
       key: 'read',
       icon: RiMailOpenLine,
-      label: t(
-        message.flags.seen
-          ? 'message.actions.markUnread'
-          : 'selection.markRead',
-      ),
+      label: t(message.flags.seen ? 'message.actions.markUnread' : 'selection.markRead'),
       onPress: () => onToggleRead(message._id, !message.flags.seen),
     });
   if (onPin && !isPinPending)
     actions.push({
       key: 'pin',
       icon: RiPushpinLine,
-      label: t(
-        message.flags.pinned ? 'message.actions.unpin' : 'message.actions.pin',
-      ),
+      label: t(message.flags.pinned ? 'message.actions.unpin' : 'message.actions.pin'),
       onPress: () => onPin(message._id),
     });
   return (
     <MailRow
       sender={{
         name: getSenderName(message, t),
-        avatar: message.senderAvatarPath
-          ? `${API_URL}${message.senderAvatarPath}`
-          : undefined,
+        avatar: message.senderAvatarPath ? `${API_URL}${message.senderAvatarPath}` : undefined,
       }}
       subject={message.subject || t('message.detail.noSubject')}
       snippet={showPreviews ? getPreview(message) : undefined}
@@ -266,14 +255,10 @@ function MessageRowInner({
       selected={isSelected}
       checked={!!isMultiSelected}
       onCheckedChange={
-        isSelectionMode && onToggleSelect
-          ? () => onToggleSelect(message._id)
-          : undefined
+        isSelectionMode && onToggleSelect ? () => onToggleSelect(message._id) : undefined
       }
       onPress={() =>
-        isSelectionMode && onToggleSelect
-          ? onToggleSelect(message._id)
-          : onSelect(message)
+        isSelectionMode && onToggleSelect ? onToggleSelect(message._id) : onSelect(message)
       }
       onLongPress={onLongPress ? () => onLongPress(message._id) : undefined}
       density={density}
@@ -284,8 +269,7 @@ function MessageRowInner({
         select: t('selection.select'),
         attachment: t('search.filters.hasAttachment'),
         starred: t('drawer.starred'),
-        threadCount: (count) =>
-          t('ui.message.conversationMessages', { count }),
+        threadCount: (count) => t('ui.message.conversationMessages', { count }),
         unread: t('message.unreadState'),
       }}
     />
@@ -327,9 +311,7 @@ function MessageRowExtrasInner({
             );
           })}
           {message.labels.length > 3 && (
-            <Text
-              style={[styles.moreLabelText, { color: colors.secondaryText }]}
-            >
+            <Text style={[styles.moreLabelText, { color: colors.secondaryText }]}>
               +{message.labels.length - 3}
             </Text>
           )}
@@ -358,23 +340,12 @@ function MessageRowExtrasInner({
                     {isImage ? (
                       <AttachmentThumbnail fileId={att.fileId} size={40} />
                     ) : Platform.OS === 'web' ? (
-                      <HugeiconsIcon
-                        icon={info.hugeIcon}
-                        size={20}
-                        color={info.color}
-                      />
+                      <HugeiconsIcon icon={info.hugeIcon} size={20} color={info.color} />
                     ) : (
-                      <MaterialCommunityIcons
-                        name={info.icon}
-                        size={20}
-                        color={info.color}
-                      />
+                      <MaterialCommunityIcons name={info.icon} size={20} color={info.color} />
                     )}
                     <Text
-                      style={[
-                        styles.railCardLabel,
-                        { color: colors.secondaryText },
-                      ]}
+                      style={[styles.railCardLabel, { color: colors.secondaryText }]}
                       numberOfLines={1}
                     >
                       {info.label}

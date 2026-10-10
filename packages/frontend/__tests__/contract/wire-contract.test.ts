@@ -2,7 +2,12 @@ const recordInboxMetric = jest.fn();
 jest.mock('@/utils/inboxTelemetry', () => ({ recordInboxMetric }));
 
 import { createEmailApi } from '@/services/emailApi';
-import { ContactSchema, EmailFilterSchema, LabelSchema, MessageSchema } from '@/schemas/emailSchemas';
+import {
+  ContactSchema,
+  EmailFilterSchema,
+  LabelSchema,
+  MessageSchema,
+} from '@/schemas/emailSchemas';
 import { ampAttachment, wireContact, wireMessage } from '../fixtures/wire';
 
 /**
@@ -13,7 +18,11 @@ import { ampAttachment, wireContact, wireMessage } from '../fixtures/wire';
 describe('email wire contract, as the app parses it', () => {
   it('parses an attachment whose contentId is null', () => {
     const parsed = MessageSchema.parse(wireMessage({ attachments: [ampAttachment] }));
-    expect(parsed.attachments[0]).toMatchObject({ contentType: 'text/x-amp-html', contentId: null, isInline: false });
+    expect(parsed.attachments[0]).toMatchObject({
+      contentType: 'text/x-amp-html',
+      contentId: null,
+      isInline: false,
+    });
   });
 
   it('parses a contact whose company and notes are null', () => {
@@ -23,10 +32,19 @@ describe('email wire contract, as the app parses it', () => {
   it('keeps a card whose confidence and extractedAt are null', () => {
     const parsed = MessageSchema.parse(
       wireMessage({
-        card: { type: 'package', data: { carrier: 'UPS', trackingNumber: '1Z' }, confidence: null, extractedAt: null },
+        card: {
+          type: 'package',
+          data: { carrier: 'UPS', trackingNumber: '1Z' },
+          confidence: null,
+          extractedAt: null,
+        },
       }),
     );
-    expect(parsed.card).toMatchObject({ type: 'package', data: { carrier: 'UPS' }, confidence: null });
+    expect(parsed.card).toMatchObject({
+      type: 'package',
+      data: { carrier: 'UPS' },
+      confidence: null,
+    });
   });
 
   it('drops only the card, never the message, when the card has no payload', () => {
@@ -70,7 +88,9 @@ describe('email wire contract, as the app parses it', () => {
       updatedAt: '2026-09-27T05:56:22.583Z',
     };
     expect(EmailFilterSchema.parse(filter).actions).toHaveLength(2);
-    expect(EmailFilterSchema.safeParse({ ...filter, actions: [{ type: 'explode' }] }).success).toBe(false);
+    expect(EmailFilterSchema.safeParse({ ...filter, actions: [{ type: 'explode' }] }).success).toBe(
+      false,
+    );
   });
 
   it('lists contacts with null fields through the API client', async () => {

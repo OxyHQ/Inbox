@@ -16,15 +16,12 @@ import { COLOR_PRESET_REGISTRY, FREE_COLOR_NAMES } from '@oxy.so/bloom/theme';
 /** The same General page and compact Select composition used by Bloom's settings template. */
 export function AppearanceSection() {
   const { t } = useTranslation();
-  const { themePreference, setThemePreference, colorPreset, setColorPreset } =
-    useThemeContext();
+  const { themePreference, setThemePreference, colorPreset, setColorPreset } = useThemeContext();
   const modes = (['light', 'system', 'dark'] as const).map((value) => ({
     value,
     label: t(`ui.settings.appearance.${value}`),
   }));
-  const presets = COLOR_PRESET_REGISTRY.filter((preset) =>
-    FREE_COLOR_NAMES.includes(preset.name),
-  );
+  const presets = COLOR_PRESET_REGISTRY.filter((preset) => FREE_COLOR_NAMES.includes(preset.name));
   return (
     <SettingsGeneralPage
       sections={[
@@ -49,10 +46,7 @@ export function AppearanceSection() {
                     className="h-8 gap-1 px-2 py-1.5"
                   >
                     <SelectValue>
-                      {() =>
-                        modes.find((mode) => mode.value === themePreference)
-                          ?.label
-                      }
+                      {() => modes.find((mode) => mode.value === themePreference)?.label}
                     </SelectValue>
                     <SelectIcon />
                   </SelectTrigger>
@@ -87,9 +81,8 @@ export function AppearanceSection() {
                   >
                     <SelectValue>
                       {() =>
-                        COLOR_PRESET_REGISTRY.find(
-                          (preset) => preset.name === colorPreset,
-                        )?.displayName
+                        COLOR_PRESET_REGISTRY.find((preset) => preset.name === colorPreset)
+                          ?.displayName
                       }
                     </SelectValue>
                     <SelectIcon />

@@ -7,7 +7,9 @@ describe('isOwnAddress', () => {
   it('matches the primary address, the account email and plus-addresses, case-insensitively', () => {
     expect(isOwnAddress('Nate@Oxy.so', me)).toBe(true);
     expect(isOwnAddress('nate+receipts@oxy.so', me)).toBe(true);
-    expect(isOwnAddress('me@elsewhere.com', { username: 'nate', email: 'me@elsewhere.com' })).toBe(true);
+    expect(isOwnAddress('me@elsewhere.com', { username: 'nate', email: 'me@elsewhere.com' })).toBe(
+      true,
+    );
     expect(isOwnAddress('nathan@oxy.so', me)).toBe(false);
     expect(isOwnAddress('nate@other.com', me)).toBe(false);
   });
@@ -17,7 +19,11 @@ describe('buildReplyRecipients', () => {
   const incoming = {
     from: { name: 'AWS', address: 'support@amazon.com' },
     to: [{ address: 'nate@oxy.so' }, { address: 'ops@example.com' }],
-    cc: [{ address: 'NATE@oxy.so' }, { address: 'finance@example.com' }, { address: 'ops@example.com' }],
+    cc: [
+      { address: 'NATE@oxy.so' },
+      { address: 'finance@example.com' },
+      { address: 'ops@example.com' },
+    ],
   };
 
   it('replies to the sender only', () => {
@@ -27,7 +33,11 @@ describe('buildReplyRecipients', () => {
   });
 
   it('honours Reply-To', () => {
-    const r = buildReplyRecipients({ ...incoming, replyTo: { address: 'cases@amazon.com' } }, 'reply', me);
+    const r = buildReplyRecipients(
+      { ...incoming, replyTo: { address: 'cases@amazon.com' } },
+      'reply',
+      me,
+    );
     expect(addresses(r.to)).toEqual(['cases@amazon.com']);
   });
 

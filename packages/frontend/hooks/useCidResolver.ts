@@ -56,7 +56,9 @@ export function useCidResolver(
             if (!att.contentId) return;
             try {
               cidMap[normalizeContentId(att.contentId)] = await oxyServices.assets.url(att.fileId);
-            } catch { /* that image stays a cid: reference */ }
+            } catch {
+              /* that image stays a cid: reference */
+            }
           }),
         );
         newEntries.push([msg._id, cidMap]);

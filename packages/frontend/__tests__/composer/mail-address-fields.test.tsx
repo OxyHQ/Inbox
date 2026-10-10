@@ -37,9 +37,7 @@ jest.mock('@oxy.so/bloom/mail-compose', () => ({
         <button
           key={item.id}
           onClick={() =>
-            onRecipientsChange(
-              recipients.filter((other: any) => other.id !== item.id),
-            )
+            onRecipientsChange(recipients.filter((other: any) => other.id !== item.id))
           }
         >
           {item.address}
@@ -60,9 +58,7 @@ jest.mock('@oxy.so/bloom/mail-compose', () => ({
   ),
 }));
 jest.mock('@oxy.so/bloom/button', () => ({
-  Button: ({ children, onPress }: any) => (
-    <button onClick={onPress}>{children}</button>
-  ),
+  Button: ({ children, onPress }: any) => <button onClick={onPress}>{children}</button>,
 }));
 jest.mock('@oxy.so/bloom/text-field', () => ({ TextFieldInput: () => null }));
 function Fixture() {

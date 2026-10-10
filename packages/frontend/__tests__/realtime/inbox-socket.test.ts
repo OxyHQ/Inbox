@@ -48,7 +48,9 @@ jest.mock('@/hooks/useEmail', () => ({
 }));
 
 jest.mock('@/lib/i18n', () => ({
-  useTranslation: () => ({ t: (key: string, vars?: Record<string, string>) => `${key}:${vars?.sender ?? ''}` }),
+  useTranslation: () => ({
+    t: (key: string, vars?: Record<string, string>) => `${key}:${vars?.sender ?? ''}`,
+  }),
 }));
 
 let pathname = '/';
@@ -95,7 +97,11 @@ describe('subscription', () => {
     // No socket.io-client involvement at all: everything goes through the
     // SDK's already-authenticated connection.
     expect(useOxyEvent).toHaveBeenCalledTimes(3);
-    expect([...handlers.keys()].sort()).toEqual(['email:changed', 'email:new', 'email:unread_count']);
+    expect([...handlers.keys()].sort()).toEqual([
+      'email:changed',
+      'email:new',
+      'email:unread_count',
+    ]);
   });
 });
 
@@ -206,7 +212,9 @@ describe('email:unread_count', () => {
     handlers.get('email:unread_count')!({ mailboxId: 'mb-1', unread: 4 });
 
     const updater = setQueryData.mock.calls.at(-1)![1] as (old: unknown) => unknown;
-    expect(updater([{ _id: 'mb-1', unseenMessages: 99 }])).toEqual([{ _id: 'mb-1', unseenMessages: 4 }]);
+    expect(updater([{ _id: 'mb-1', unseenMessages: 99 }])).toEqual([
+      { _id: 'mb-1', unseenMessages: 4 },
+    ]);
   });
 
   it('returns the same array when nothing changed, so nothing re-renders', () => {
@@ -232,14 +240,20 @@ describe('email:changed', () => {
     // A draft sent from another device: it is deleted, and it may be open here,
     // in a conversation, in search results or in a bundle.
     for (let i = 0; i < 50; i++) {
-      handlers.get('email:changed')!({ id: `row-${i}`, mailboxIds: ['mb-drafts'], reason: 'deleted' });
+      handlers.get('email:changed')!({
+        id: `row-${i}`,
+        mailboxIds: ['mb-drafts'],
+        reason: 'deleted',
+      });
     }
     expect(invalidateQueries).not.toHaveBeenCalled();
     jest.advanceTimersByTime(300);
     jest.useRealTimers();
     // One reconcile for the whole burst: six roots, once each.
     expect(invalidateQueries).toHaveBeenCalledTimes(6);
-    const keys = invalidateQueries.mock.calls.map(([filters]) => (filters as { queryKey: unknown[] }).queryKey[0]);
+    const keys = invalidateQueries.mock.calls.map(
+      ([filters]) => (filters as { queryKey: unknown[] }).queryKey[0],
+    );
     expect(keys).toEqual(
       expect.arrayContaining(['messages', 'message', 'thread', 'search', 'bundles', 'mailboxes']),
     );

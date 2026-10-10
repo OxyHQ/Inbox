@@ -10,12 +10,7 @@ import jaInbox from './locales/ja';
 import koInbox from './locales/ko';
 import zhInbox from './locales/zh';
 import arInbox from './locales/ar';
-import type {
-  Locale,
-  LocaleDict,
-  LocaleNode,
-  TranslationVars,
-} from './types';
+import type { Locale, LocaleDict, LocaleNode, TranslationVars } from './types';
 
 /**
  * Inbox-namespaced dictionaries loaded at module init. All 11 supported

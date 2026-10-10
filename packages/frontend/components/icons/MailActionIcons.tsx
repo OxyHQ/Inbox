@@ -14,14 +14,7 @@ function createMailActionIcon(path: string) {
     ref,
   ) {
     return (
-      <Svg
-        {...props}
-        ref={ref}
-        width={size}
-        height={size}
-        viewBox="0 -960 960 960"
-        fill="none"
-      >
+      <Svg {...props} ref={ref} width={size} height={size} viewBox="0 -960 960 960" fill="none">
         <Path d={path} fill={fill} />
       </Svg>
     );

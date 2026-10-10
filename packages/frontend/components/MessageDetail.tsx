@@ -1,15 +1,8 @@
 import { BREAKPOINTS, tokens } from '@oxy.so/bloom/styles';
 import { TopEdgeProvider, useBottomEdgeInset, useTopEdgeInset } from '@oxy.so/bloom/layout';
 import { useTheme } from '@oxy.so/bloom/theme';
-import {
-  PageFooter,
-  PageFooterProvider,
-  usePageFooterInset,
-} from '@oxy.so/bloom/page-footer';
-import {
-  Card,
-  CardBody,
-} from '@oxy.so/bloom/card';
+import { PageFooter, PageFooterProvider, usePageFooterInset } from '@oxy.so/bloom/page-footer';
+import { Card, CardBody } from '@oxy.so/bloom/card';
 import { EmptyState } from '@oxy.so/bloom/empty-state';
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
 import { Text } from '@oxy.so/bloom/typography';
@@ -34,11 +27,7 @@ import {
   RiStarLine,
   RiTimeLine,
 } from '@oxy.so/bloom/icons';
-import {
-  MailMessage,
-  MailThread,
-  type MailThreadMessage,
-} from '@oxy.so/bloom/mail-thread';
+import { MailMessage, MailThread, type MailThreadMessage } from '@oxy.so/bloom/mail-thread';
 import { PageHeader } from '@oxy.so/bloom/page-header';
 /**
  * Reusable message detail view.
@@ -170,28 +159,16 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const colors = useColors();
   const { t, locale } = useTranslation();
 
-  const {
-    data: currentMessage,
-    isLoading,
-    isError,
-    refetch,
-  } = useMessage(messageId);
+  const { data: currentMessage, isLoading, isError, refetch } = useMessage(messageId);
   const {
     data: threadData,
     refetch: refetchThread,
     isPending: threadLoading,
   } = useThread(messageId);
-  const threadMessages = useMemo(
-    () => threadData?.messages ?? [],
-    [threadData],
-  );
-  const threadUnreadable = useMemo(
-    () => threadData?.unreadable ?? [],
-    [threadData],
-  );
+  const threadMessages = useMemo(() => threadData?.messages ?? [], [threadData]);
+  const threadUnreadable = useMemo(() => threadData?.unreadable ?? [], [threadData]);
   const sortedThread = useMemo(() => {
-    if (threadMessages.length === 0)
-      return currentMessage ? [currentMessage] : [];
+    if (threadMessages.length === 0) return currentMessage ? [currentMessage] : [];
     return [...threadMessages].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
     );
@@ -206,7 +183,9 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     const members = sortedThread.filter(
       (m) => m.mailboxId === currentMessage.mailboxId && !m.flags.draft,
     );
-    return members.some((m) => m._id === currentMessage._id) ? members : [...members, currentMessage];
+    return members.some((m) => m._id === currentMessage._id)
+      ? members
+      : [...members, currentMessage];
   }, [sortedThread, currentMessage]);
 
   const emailApi = useEmailStore((s) => s._api);
@@ -219,13 +198,9 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const togglePin = useTogglePin();
 
   const [snoozeVisible, setSnoozeVisible] = useState(false);
-  const [replyMode, setReplyMode] = useState<
-    'reply' | 'reply-all' | 'forward' | null
-  >(null);
+  const [replyMode, setReplyMode] = useState<'reply' | 'reply-all' | 'forward' | null>(null);
   const [replyTargetId, setReplyTargetId] = useState<string | null>(null);
-  const [expandedMessages, setExpandedMessages] = useState<Set<string>>(
-    new Set([messageId]),
-  );
+  const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set([messageId]));
   const [messageMenuId, setMessageMenuId] = useState<string | null>(null);
 
   const moreMenuControl = useDialogControl();
@@ -248,7 +223,14 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     if (threadLoading) return;
     markedReadFor.current = messageId;
     messageActions.setRead(sortedThread, true, { quiet: true });
-  }, [prefs.markReadOnOpen, currentMessage, messageId, threadLoading, sortedThread, messageActions]);
+  }, [
+    prefs.markReadOnOpen,
+    currentMessage,
+    messageId,
+    threadLoading,
+    sortedThread,
+    messageActions,
+  ]);
 
   const backFallback = pathname.startsWith('/search') ? '/search' : '/';
   const handleBack = useGoBack(backFallback);
@@ -353,7 +335,10 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     },
     [currentMessage, router, sortedThread],
   );
-  const handleReply = useCallback((targetMsgId?: string) => openReply('reply', targetMsgId), [openReply]);
+  const handleReply = useCallback(
+    (targetMsgId?: string) => openReply('reply', targetMsgId),
+    [openReply],
+  );
   const handleReplyAll = useCallback(
     (targetMsgId?: string) => openReply('reply-all', targetMsgId),
     [openReply],
@@ -425,11 +410,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         const { content } = await emailApi.exportMessage(sourceId);
         await saveEmlFile(content, emlFilename(subject), t);
       } catch (err: unknown) {
-        toast.error(
-          err instanceof Error
-            ? err.message
-            : t('message.toast.downloadFailed'),
-        );
+        toast.error(err instanceof Error ? err.message : t('message.toast.downloadFailed'));
       }
     },
     [emailApi, t],
@@ -453,12 +434,15 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   // Resolve CID inline image references to signed File Manager URLs
   const resolvedHtmlMap = useCidResolver(sortedThread, oxyServices, messageId);
   const messageParts = useMemo(
-    () => new Map(sortedThread.map((message) => [
-      message._id,
-      message.html
-        ? splitHtmlQuote(resolvedHtmlMap[message._id] ?? message.html)
-        : splitTextQuote(message.text ?? ''),
-    ])),
+    () =>
+      new Map(
+        sortedThread.map((message) => [
+          message._id,
+          message.html
+            ? splitHtmlQuote(resolvedHtmlMap[message._id] ?? message.html)
+            : splitTextQuote(message.text ?? ''),
+        ]),
+      ),
     [sortedThread, resolvedHtmlMap],
   );
 
@@ -491,7 +475,10 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           await Linking.openURL(url);
           return;
         }
-        const download = await FileSystem.downloadAsync(url, cacheDirectory + safeDownloadFilename(filename));
+        const download = await FileSystem.downloadAsync(
+          url,
+          cacheDirectory + safeDownloadFilename(filename),
+        );
         // An expired link or a refusal downloads an error page; never hand
         // that to the share sheet as the user's file.
         if (download.status < 200 || download.status >= 300) {
@@ -546,8 +533,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         try {
           await Print.printAsync({ html: printHtml });
         } catch (err: unknown) {
-          const message =
-            err instanceof Error ? err.message : t('message.toast.printFailed');
+          const message = err instanceof Error ? err.message : t('message.toast.printFailed');
           toast.error(message);
         }
       })();
@@ -596,20 +582,12 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
       <View className="flex-1">
         {standaloneToolbar}
         <EmptyState
-          illustration={
-            <EmptyStateSticker name={isError ? 'loadError' : 'notFound'} />
-          }
+          illustration={<EmptyStateSticker name={isError ? 'loadError' : 'notFound'} />}
           title={t(isError ? 'ui.message.loadError' : 'ui.message.notFound')}
           description={t(
-            isError
-              ? 'ui.message.loadErrorDescription'
-              : 'ui.message.notFoundDescription',
+            isError ? 'ui.message.loadErrorDescription' : 'ui.message.notFoundDescription',
           )}
-          action={
-            isError
-              ? { label: t('common.retry'), onPress: () => void refetch() }
-              : undefined
-          }
+          action={isError ? { label: t('common.retry'), onPress: () => void refetch() } : undefined}
         />
       </View>
     );
@@ -627,9 +605,8 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   };
   const toThreadMessage = (msg: Message): MailThreadMessage => {
     const parts = messageParts.get(msg._id)!;
-    const renderBody = (content: string) => msg.html
-      ? <HtmlBody html={content} />
-      : <Text selectable>{content}</Text>;
+    const renderBody = (content: string) =>
+      msg.html ? <HtmlBody html={content} /> : <Text selectable>{content}</Text>;
     return {
       id: msg._id,
       sender: {
@@ -653,8 +630,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
       unread: !msg.flags.seen,
       starred: msg.flags.starred,
       onStarredChange: (starred) => {
-        if (!toggleStar.isPending)
-          toggleStar.mutate({ messageId: msg._id, starred });
+        if (!toggleStar.isPending) toggleStar.mutate({ messageId: msg._id, starred });
       },
       // A draft is the user's own unsent message: it is finished and sent,
       // not replied to or forwarded.
@@ -670,10 +646,10 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
       attachments: msg.attachments
         .filter((attachment) => !(msg.html && attachment.isInline && attachment.contentId))
         .map((attachment) => ({
-        id: attachment.fileId,
-        name: attachment.name,
-        onPress: () => handleAttachment(attachment.fileId, attachment.name),
-      })),
+          id: attachment.fileId,
+          name: attachment.name,
+          onPress: () => handleAttachment(attachment.fileId, attachment.name),
+        })),
       menu: msg.flags.draft ? (
         <IconButton
           accessibilityLabel={t('message.actions.editDraft')}
@@ -693,9 +669,11 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
       ...(msg.flags.draft ? { time: t('message.draftLabel') } : {}),
       children: (
         <>
-          {parts.body.trim()
-            ? renderBody(parts.body)
-            : parts.quoted ? null : <Text>{t('message.detail.emptyMessage')}</Text>}
+          {parts.body.trim() ? (
+            renderBody(parts.body)
+          ) : parts.quoted ? null : (
+            <Text>{t('message.detail.emptyMessage')}</Text>
+          )}
           {msg.flags.draft && (
             <View style={{ alignItems: 'flex-start', marginTop: tokens.space.sm }}>
               <Button leadingIcon={RiDraftLine} onPress={() => handleEditDraft(msg)}>
@@ -736,7 +714,9 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           <ButtonGroup>
             <ButtonGroupItem
               iconOnly
-              accessibilityLabel={t(archived ? 'message.actions.moveToInbox' : 'message.actions.archive')}
+              accessibilityLabel={t(
+                archived ? 'message.actions.moveToInbox' : 'message.actions.archive',
+              )}
               leadingIcon={archived ? RiInbox2Line : RiArchiveLine}
               onPress={handleArchive}
             />
@@ -749,13 +729,9 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
             <ButtonGroupItem
               iconOnly
               accessibilityLabel={t(
-                currentMessage.flags.starred
-                  ? 'message.actions.unstar'
-                  : 'message.actions.star',
+                currentMessage.flags.starred ? 'message.actions.unstar' : 'message.actions.star',
               )}
-              leadingIcon={
-                currentMessage.flags.starred ? RiStarFill : RiStarLine
-              }
+              leadingIcon={currentMessage.flags.starred ? RiStarFill : RiStarLine}
               onPress={handleStar}
               disabled={toggleStar.isPending}
             />
@@ -771,11 +747,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
       <Dialog control={moreMenuControl} label={t('message.actions.more')}>
         <View className="gap-2">
-          <Button
-            appearance="subtle"
-            leading={<RiMailLine />}
-            onPress={handleMarkUnread}
-          >
+          <Button appearance="subtle" leading={<RiMailLine />} onPress={handleMarkUnread}>
             {t('message.actions.markUnread')}
           </Button>
           <Button
@@ -787,11 +759,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
             }}
             disabled={togglePin.isPending}
           >
-            {t(
-              currentMessage.flags.pinned
-                ? 'message.actions.unpin'
-                : 'message.actions.pin',
-            )}
+            {t(currentMessage.flags.pinned ? 'message.actions.unpin' : 'message.actions.pin')}
           </Button>
           <Button
             appearance="subtle"
@@ -892,17 +860,10 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
             <CardBody>
               {currentMessage.highlights.map((h, i) => (
                 <View key={i} style={styles.highlightRow}>
-                  <Text
-                    style={[
-                      styles.highlightLabel,
-                      { color: colors.secondaryText },
-                    ]}
-                  >
+                  <Text style={[styles.highlightLabel, { color: colors.secondaryText }]}>
                     {h.label}
                   </Text>
-                  <Text style={[styles.highlightValue, { color: colors.text }]}>
-                    {h.value}
-                  </Text>
+                  <Text style={[styles.highlightValue, { color: colors.text }]}>{h.value}</Text>
                 </View>
               ))}
             </CardBody>
@@ -910,10 +871,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         )}
 
         {/* Stale thread banner - gentle nudge to reply */}
-        <StaleThreadBanner
-          staleInfo={staleInfo}
-          onReply={() => handleReply()}
-        />
+        <StaleThreadBanner staleInfo={staleInfo} onReply={() => handleReply()} />
 
         {/* Bloom owns the conversation chrome; Inbox retains safe HTML and unreadable entries. */}
         {threadUnreadable.length === 0 ? (
@@ -939,9 +897,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
                   key={entry.message._id}
                   {...toThreadMessage(entry.message)}
                   expanded={expandedMessages.has(entry.message._id)}
-                  onExpandedChange={() =>
-                    toggleMessageExpanded(entry.message._id)
-                  }
+                  onExpandedChange={() => toggleMessageExpanded(entry.message._id)}
                   strings={threadStrings}
                 />
               ),
@@ -951,15 +907,11 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
         {/* Inline reply - appears at bottom of thread, inside scroll area */}
         {replyMode && (
-          <View
-            style={[styles.inlineReplyWrapper, { marginTop: tokens.space.md }]}
-          >
+          <View style={[styles.inlineReplyWrapper, { marginTop: tokens.space.md }]}>
             <InlineReply
               key={`${replyMode}:${replyTargetId ?? currentMessage._id}`}
               message={
-                (replyTargetId
-                  ? sortedThread.find((m) => m._id === replyTargetId)
-                  : undefined) ??
+                (replyTargetId ? sortedThread.find((m) => m._id === replyTargetId) : undefined) ??
                 (currentMessage.flags.draft ? replyableMessage : currentMessage) ??
                 currentMessage
               }
@@ -1026,10 +978,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           actions={
             <>
               {threadDraft && (
-                <Button
-                  leadingIcon={RiDraftLine}
-                  onPress={() => handleEditDraft(threadDraft)}
-                >
+                <Button leadingIcon={RiDraftLine} onPress={() => handleEditDraft(threadDraft)}>
                   {t('message.actions.editDraft')}
                 </Button>
               )}

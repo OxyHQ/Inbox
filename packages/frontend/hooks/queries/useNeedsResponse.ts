@@ -48,7 +48,7 @@ export function getNeedsResponseReason(message: Message): NeedsResponseReason | 
 
   // Skip messages from no-reply addresses
   const fromAddress = message.from.address.toLowerCase();
-  if (INFORMATIONAL_PATTERNS.some(p => p.test(fromAddress))) {
+  if (INFORMATIONAL_PATTERNS.some((p) => p.test(fromAddress))) {
     return null;
   }
 
@@ -57,12 +57,12 @@ export function getNeedsResponseReason(message: Message): NeedsResponseReason | 
   const combined = `${subject} ${text}`.slice(0, 2000);
 
   // Skip if looks like informational
-  if (INFORMATIONAL_PATTERNS.some(p => p.test(combined))) {
+  if (INFORMATIONAL_PATTERNS.some((p) => p.test(combined))) {
     return null;
   }
 
   if (WAITING_PATTERN.test(combined)) return 'waiting';
-  if (DIRECT_REQUEST_PATTERNS.some(p => p.test(combined))) return 'request';
+  if (DIRECT_REQUEST_PATTERNS.some((p) => p.test(combined))) return 'request';
   if (QUESTION_PATTERN.test(combined)) return 'question';
 
   return null;
@@ -70,7 +70,7 @@ export function getNeedsResponseReason(message: Message): NeedsResponseReason | 
 
 export function useNeedsResponse(
   messages: Message[] | undefined,
-  limit = 5
+  limit = 5,
 ): UseNeedsResponseResult {
   const result = useMemo(() => {
     if (!messages || messages.length === 0) {
@@ -86,7 +86,7 @@ export function useNeedsResponse(
 
     // Sort by date descending (most recent first)
     const sorted = [...filtered].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     );
 
     return {

@@ -90,7 +90,9 @@ describe('usePushRegistration', () => {
 
     renderHook(() => usePushRegistration());
 
-    await waitFor(() => expect(oxyServices.notifications.registerPushToken).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(oxyServices.notifications.registerPushToken).toHaveBeenCalledTimes(1),
+    );
     expect(oxyServices.notifications.registerPushToken).toHaveBeenCalledWith({
       expoPushToken: MOCK_EXPO_PUSH_TOKEN,
       platform: 'ios',
@@ -103,7 +105,9 @@ describe('usePushRegistration', () => {
 
     renderHook(() => usePushRegistration());
 
-    await waitFor(() => expect(oxyServices.notifications.registerPushToken).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(oxyServices.notifications.registerPushToken).toHaveBeenCalledTimes(1),
+    );
     expect(oxyServices.notifications.registerPushToken).toHaveBeenCalledWith(
       expect.objectContaining({ deviceId: 'device-9' }),
     );
@@ -128,7 +132,9 @@ describe('usePushRegistration', () => {
       __setOxyState({ isAuthenticated: true, canUsePrivateApi: true });
     });
 
-    await waitFor(() => expect(oxyServices.notifications.registerPushToken).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(oxyServices.notifications.registerPushToken).toHaveBeenCalledTimes(1),
+    );
   });
 
   it('does not register while the preference is off', async () => {
@@ -149,7 +155,9 @@ describe('usePushRegistration', () => {
     const oxyServices = installSession({ canUsePrivateApi: true });
 
     const { rerender } = renderHook(() => usePushRegistration());
-    await waitFor(() => expect(oxyServices.notifications.registerPushToken).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(oxyServices.notifications.registerPushToken).toHaveBeenCalledTimes(1),
+    );
 
     pushNotifications = false;
     await act(async () => {
@@ -157,27 +165,35 @@ describe('usePushRegistration', () => {
     });
 
     expect(oxyServices.notifications.unregisterPushToken).toHaveBeenCalledTimes(1);
-    expect(oxyServices.notifications.unregisterPushToken).toHaveBeenCalledWith(MOCK_EXPO_PUSH_TOKEN);
+    expect(oxyServices.notifications.unregisterPushToken).toHaveBeenCalledWith(
+      MOCK_EXPO_PUSH_TOKEN,
+    );
   });
 
   it('retires the registered token on unmount', async () => {
     const oxyServices = installSession({ canUsePrivateApi: true });
 
     const { unmount } = renderHook(() => usePushRegistration());
-    await waitFor(() => expect(oxyServices.notifications.registerPushToken).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(oxyServices.notifications.registerPushToken).toHaveBeenCalledTimes(1),
+    );
 
     await act(async () => {
       unmount();
     });
 
-    expect(oxyServices.notifications.unregisterPushToken).toHaveBeenCalledWith(MOCK_EXPO_PUSH_TOKEN);
+    expect(oxyServices.notifications.unregisterPushToken).toHaveBeenCalledWith(
+      MOCK_EXPO_PUSH_TOKEN,
+    );
   });
 
   it('does not attempt a retirement once the bearer is gone', async () => {
     const oxyServices = installSession({ canUsePrivateApi: true });
 
     const { unmount } = renderHook(() => usePushRegistration());
-    await waitFor(() => expect(oxyServices.notifications.registerPushToken).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(oxyServices.notifications.registerPushToken).toHaveBeenCalledTimes(1),
+    );
 
     // Sign-out: `DELETE /notifications/push-token` is scoped to the identity
     // holding the bearer, so with none left the call could only 401.
@@ -212,9 +228,13 @@ describe('usePushRegistration', () => {
       await Promise.resolve();
     });
 
-    await waitFor(() => expect(oxyServices.notifications.registerPushToken).toHaveBeenCalledTimes(1));
     await waitFor(() =>
-      expect(oxyServices.notifications.unregisterPushToken).toHaveBeenCalledWith(MOCK_EXPO_PUSH_TOKEN),
+      expect(oxyServices.notifications.registerPushToken).toHaveBeenCalledTimes(1),
+    );
+    await waitFor(() =>
+      expect(oxyServices.notifications.unregisterPushToken).toHaveBeenCalledWith(
+        MOCK_EXPO_PUSH_TOKEN,
+      ),
     );
   });
 
@@ -224,12 +244,14 @@ describe('usePushRegistration', () => {
 
     renderHook(() => usePushRegistration());
 
-    await waitFor(() => expect(oxyServices.notifications.registerPushToken).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(oxyServices.notifications.registerPushToken).toHaveBeenCalledTimes(1),
+    );
     await settle();
 
-    expect(entries.filter((entry) => entry.level === 'warn').map((entry) => entry.message)).toEqual([
-      '[inbox] push token registration failed',
-    ]);
+    expect(entries.filter((entry) => entry.level === 'warn').map((entry) => entry.message)).toEqual(
+      ['[inbox] push token registration failed'],
+    );
     expect(oxyServices.notifications.unregisterPushToken).not.toHaveBeenCalled();
   });
 });

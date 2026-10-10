@@ -34,11 +34,7 @@ const MAX_ENTRIES = 150;
 
 // App shell files cached on install. Keep this list short — large entries
 // here block the install step. Anything else gets cached on first fetch.
-const APP_SHELL = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-];
+const APP_SHELL = ['/', '/index.html', '/manifest.json'];
 
 // ─── Install ────────────────────────────────────────────────────────
 
@@ -49,7 +45,7 @@ self.addEventListener('install', (event) => {
         // Non-fatal: shell will be cached on first fetch instead
         console.warn('[SW] Failed to pre-cache app shell:', err);
       });
-    })
+    }),
   );
   // Activate immediately without waiting for existing clients
   self.skipWaiting();
@@ -60,12 +56,8 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
-      return Promise.all(
-        keys
-          .filter((key) => key !== CACHE_NAME)
-          .map((key) => caches.delete(key))
-      );
-    })
+      return Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)));
+    }),
   );
   // Take control of all open clients immediately
   self.clients.claim();
@@ -208,17 +200,17 @@ self.addEventListener('fetch', (event) => {
 // browser's language: a service worker has no access to the app's i18n, and
 // they were English for everyone.
 const FALLBACK_STRINGS = {
-  en: { title: "New email", body: "You have a new message." },
-  es: { title: "Correo nuevo", body: "Tienes un mensaje nuevo." },
-  ca: { title: "Correu nou", body: "Tens un missatge nou." },
-  de: { title: "Neue E-Mail", body: "Du hast eine neue Nachricht." },
-  fr: { title: "Nouveau courriel", body: "Tu as un nouveau message." },
-  it: { title: "Nuova email", body: "Hai un nuovo messaggio." },
-  pt: { title: "Novo email", body: "Tens uma nova mensagem." },
-  ja: { title: "新着メール", body: "新しいメッセージがあります。" },
-  ko: { title: "새 메일", body: "새 메시지가 있어요." },
-  zh: { title: "新邮件", body: "你有一封新邮件。" },
-  ar: { title: "رسالة جديدة", body: "لديك رسالة جديدة." },
+  en: { title: 'New email', body: 'You have a new message.' },
+  es: { title: 'Correo nuevo', body: 'Tienes un mensaje nuevo.' },
+  ca: { title: 'Correu nou', body: 'Tens un missatge nou.' },
+  de: { title: 'Neue E-Mail', body: 'Du hast eine neue Nachricht.' },
+  fr: { title: 'Nouveau courriel', body: 'Tu as un nouveau message.' },
+  it: { title: 'Nuova email', body: 'Hai un nuovo messaggio.' },
+  pt: { title: 'Novo email', body: 'Tens uma nova mensagem.' },
+  ja: { title: '新着メール', body: '新しいメッセージがあります。' },
+  ko: { title: '새 메일', body: '새 메시지가 있어요.' },
+  zh: { title: '新邮件', body: '你有一封新邮件。' },
+  ar: { title: 'رسالة جديدة', body: 'لديك رسالة جديدة.' },
 };
 
 function fallbackStrings() {
@@ -258,9 +250,7 @@ self.addEventListener('push', (event) => {
   }
 
   const notification = notificationPayload(data);
-  event.waitUntil(
-    self.registration.showNotification(notification.title, notification.options),
-  );
+  event.waitUntil(self.registration.showNotification(notification.title, notification.options));
 });
 
 self.addEventListener('notificationclick', (event) => {

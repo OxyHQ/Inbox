@@ -87,8 +87,7 @@ function getSnapshot(): MockOxyState {
   return state;
 }
 
-export const useOxy = (): MockOxyState =>
-  useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+export const useOxy = (): MockOxyState => useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
 // ---------------------------------------------------------------------------
 // Device notifications — the SDK's `expo-notifications` adapter

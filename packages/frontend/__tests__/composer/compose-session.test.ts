@@ -52,7 +52,14 @@ import { MessageSchema } from '@/schemas/emailSchemas';
 import { wireMessage } from '../fixtures/wire';
 import { composeRecoveryStorageKey, saveComposeRecovery } from '@/utils/composeRecovery';
 
-const DRAFT_FLAGS = { seen: true, starred: false, answered: false, forwarded: false, draft: true, pinned: false };
+const DRAFT_FLAGS = {
+  seen: true,
+  starred: false,
+  answered: false,
+  forwarded: false,
+  draft: true,
+  pinned: false,
+};
 
 function savedDraft(overrides: Record<string, unknown> = {}) {
   return MessageSchema.parse(
@@ -68,7 +75,14 @@ function savedDraft(overrides: Record<string, unknown> = {}) {
       text: 'Half written',
       html: null,
       attachments: [
-        { fileId: 'f1', name: 'plan.pdf', contentType: 'application/pdf', size: 2048, contentId: null, isInline: false },
+        {
+          fileId: 'f1',
+          name: 'plan.pdf',
+          contentType: 'application/pdf',
+          size: 2048,
+          contentId: null,
+          isInline: false,
+        },
       ],
       inReplyTo: '<parent@example.com>',
       references: ['<root@example.com>', '<parent@example.com>'],
@@ -120,7 +134,9 @@ afterEach(() => {
 
 describe('reopening a saved draft', () => {
   it('seeds every field from the draft and starts saved', async () => {
-    const { result } = renderHook(() => useComposeSession(options({ draft: savedDraft(), recoveryIdentity: 'draft:draft-1' })));
+    const { result } = renderHook(() =>
+      useComposeSession(options({ draft: savedDraft(), recoveryIdentity: 'draft:draft-1' })),
+    );
     await settle();
 
     // The recipient fields hold bare addresses (`joinAddresses`).
@@ -139,14 +155,20 @@ describe('reopening a saved draft', () => {
   });
 
   it('saves edits over the same draft, at its revision', async () => {
-    const { result } = renderHook(() => useComposeSession(options({ draft: savedDraft(), recoveryIdentity: 'draft:draft-1' })));
+    const { result } = renderHook(() =>
+      useComposeSession(options({ draft: savedDraft(), recoveryIdentity: 'draft:draft-1' })),
+    );
     await settle();
 
     act(() => result.current.setSubject('Plan v2'));
     await advance(8_000);
 
     expect(saveDraft).toHaveBeenCalledWith(
-      expect.objectContaining({ existingDraftId: 'draft-1', expectedRevision: 3, subject: 'Plan v2' }),
+      expect.objectContaining({
+        existingDraftId: 'draft-1',
+        expectedRevision: 3,
+        subject: 'Plan v2',
+      }),
     );
   });
 
@@ -183,7 +205,9 @@ describe('reopening a saved draft', () => {
   });
 
   it('schedules it by its id too', async () => {
-    const { result } = renderHook(() => useComposeSession(options({ draft: savedDraft(), recoveryIdentity: 'draft:draft-1' })));
+    const { result } = renderHook(() =>
+      useComposeSession(options({ draft: savedDraft(), recoveryIdentity: 'draft:draft-1' })),
+    );
     await settle();
 
     const when = new Date(Date.now() + 3_600_000);
@@ -200,7 +224,9 @@ describe('reopening a saved draft', () => {
   it('keeps the draft when only the unsaved changes are discarded', async () => {
     const onFinished = jest.fn();
     const { result } = renderHook(() =>
-      useComposeSession(options({ draft: savedDraft(), recoveryIdentity: 'draft:draft-1', onFinished })),
+      useComposeSession(
+        options({ draft: savedDraft(), recoveryIdentity: 'draft:draft-1', onFinished }),
+      ),
     );
     await settle();
     act(() => result.current.setSubject('Never mind'));
@@ -214,7 +240,9 @@ describe('reopening a saved draft', () => {
   });
 
   it('deletes it when the draft itself is discarded', async () => {
-    const { result } = renderHook(() => useComposeSession(options({ draft: savedDraft(), recoveryIdentity: 'draft:draft-1' })));
+    const { result } = renderHook(() =>
+      useComposeSession(options({ draft: savedDraft(), recoveryIdentity: 'draft:draft-1' })),
+    );
     await settle();
 
     await act(async () => {
@@ -370,7 +398,9 @@ describe('closing with nothing written', () => {
 
   it('saves none when it is left by navigating away either', async () => {
     getSettings.mockResolvedValue({ signature: 'Nate' });
-    const { result, unmount } = renderHook(() => useComposeSession(options({ insertSignature: true })));
+    const { result, unmount } = renderHook(() =>
+      useComposeSession(options({ insertSignature: true })),
+    );
     await settle();
     act(() => result.current.updateBody(`${result.current.body}\n`));
 
@@ -507,7 +537,9 @@ describe('the signature', () => {
   it('is not content: no draft is saved and closing does not ask', async () => {
     getSettings.mockResolvedValue({ signature: 'Nate' });
     const onFinished = jest.fn();
-    const { result } = renderHook(() => useComposeSession(options({ insertSignature: true, onFinished })));
+    const { result } = renderHook(() =>
+      useComposeSession(options({ insertSignature: true, onFinished })),
+    );
     await settle();
 
     expect(result.current.body).toBe('\n\n--\nNate');
@@ -547,7 +579,9 @@ describe('the signature', () => {
   it('is not inserted into a reopened draft', async () => {
     getSettings.mockResolvedValue({ signature: 'Nate' });
     const { result } = renderHook(() =>
-      useComposeSession(options({ draft: savedDraft(), recoveryIdentity: 'draft:draft-1', insertSignature: false })),
+      useComposeSession(
+        options({ draft: savedDraft(), recoveryIdentity: 'draft:draft-1', insertSignature: false }),
+      ),
     );
     await settle();
 

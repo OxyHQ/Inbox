@@ -58,7 +58,10 @@ type ViewModeLike = { type: string; mailbox?: { _id: string } } | null | undefin
  * Whether the user is looking at the list of `mailboxId` right now, so a new
  * row appearing in it is notification enough.
  */
-export function isLookingAtMailbox(viewMode: ViewModeLike, mailboxId: string | null | undefined): boolean {
+export function isLookingAtMailbox(
+  viewMode: ViewModeLike,
+  mailboxId: string | null | undefined,
+): boolean {
   if (!mailboxId || settingsOpen) return false;
   if (currentPath !== null && NON_LIST_ROUTE.test(currentPath)) return false;
   return viewMode?.type === 'mailbox' && viewMode.mailbox?._id === mailboxId;

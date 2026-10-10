@@ -75,9 +75,7 @@ export function ComposeForm({ draftId, forward, ...props }: ComposeFormProps) {
 
   if (draftId && draftQuery.data && !draftQuery.data.flags.draft) {
     // Sent or moved out of Drafts since the link to it was made.
-    return (
-      <ComposeLoadError onClose={closeCompose} title={t('compose.draftGone')} />
-    );
+    return <ComposeLoadError onClose={closeCompose} title={t('compose.draftGone')} />;
   }
 
   return (

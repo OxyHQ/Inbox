@@ -13,7 +13,9 @@ const summarize = jest.mocked(runInboxThreadSummary);
 const messages = [{ _id: 'one' }] as Message[];
 
 function setup() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: Infinity } },
+  });
   const wrapper = ({ children }: React.PropsWithChildren) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
@@ -23,7 +25,9 @@ function setup() {
 beforeEach(() => {
   summarize.mockReset();
   summarize.mockImplementation(async (_http, id) => ({
-    summary: `Summary for ${id}`, keyPoints: [], actionItems: [],
+    summary: `Summary for ${id}`,
+    keyPoints: [],
+    actionItems: [],
   }));
 });
 
@@ -43,7 +47,8 @@ it('summarizes a single-message thread on open and reuses its cached result on r
 it('waits for readable messages and requests the selected thread when navigation changes', async () => {
   const { wrapper, client } = setup();
   const hook = renderHook(({ id, rows }) => useThreadSummary(id, rows), {
-    wrapper, initialProps: { id: 'one', rows: [] as Message[] },
+    wrapper,
+    initialProps: { id: 'one', rows: [] as Message[] },
   });
   expect(summarize).not.toHaveBeenCalled();
   hook.rerender({ id: 'one', rows: messages });

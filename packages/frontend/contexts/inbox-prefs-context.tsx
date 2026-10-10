@@ -73,7 +73,13 @@ function isMessageDensity(value: unknown): value is MessageDensity {
 }
 
 function isSwipeAction(value: unknown): value is SwipeAction {
-  return value === 'archive' || value === 'delete' || value === 'mark-read' || value === 'snooze' || value === 'none';
+  return (
+    value === 'archive' ||
+    value === 'delete' ||
+    value === 'mark-read' ||
+    value === 'snooze' ||
+    value === 'none'
+  );
 }
 
 function readBoolean(value: unknown, fallback: boolean): boolean {
@@ -82,15 +88,19 @@ function readBoolean(value: unknown, fallback: boolean): boolean {
 
 /** Merge persisted data without allowing stale or malformed values into the UI. */
 export function mergeInboxPrefs(value: unknown): InboxPrefs {
-  const stored = value && typeof value === 'object' ? value as Record<string, unknown> : {};
+  const stored = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
 
   return {
     density: isMessageDensity(stored.density) ? stored.density : DEFAULT_INBOX_PREFS.density,
     conversationView: readBoolean(stored.conversationView, DEFAULT_INBOX_PREFS.conversationView),
     markReadOnOpen: readBoolean(stored.markReadOnOpen, DEFAULT_INBOX_PREFS.markReadOnOpen),
     showPreviews: readBoolean(stored.showPreviews, DEFAULT_INBOX_PREFS.showPreviews),
-    leftSwipeAction: isSwipeAction(stored.leftSwipeAction) ? stored.leftSwipeAction : DEFAULT_INBOX_PREFS.leftSwipeAction,
-    rightSwipeAction: isSwipeAction(stored.rightSwipeAction) ? stored.rightSwipeAction : DEFAULT_INBOX_PREFS.rightSwipeAction,
+    leftSwipeAction: isSwipeAction(stored.leftSwipeAction)
+      ? stored.leftSwipeAction
+      : DEFAULT_INBOX_PREFS.leftSwipeAction,
+    rightSwipeAction: isSwipeAction(stored.rightSwipeAction)
+      ? stored.rightSwipeAction
+      : DEFAULT_INBOX_PREFS.rightSwipeAction,
     pushNotifications: readBoolean(stored.pushNotifications, DEFAULT_INBOX_PREFS.pushNotifications),
     aiBrief: readBoolean(stored.aiBrief, DEFAULT_INBOX_PREFS.aiBrief),
     aiSmartReply: readBoolean(stored.aiSmartReply, DEFAULT_INBOX_PREFS.aiSmartReply),

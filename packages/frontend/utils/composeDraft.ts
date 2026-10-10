@@ -1,7 +1,4 @@
-import {
-  isValidRecipientEmail,
-  parseRecipientList,
-} from '@/schemas/emailSchemas';
+import { isValidRecipientEmail, parseRecipientList } from '@/schemas/emailSchemas';
 import type { ComposeRecoverySnapshot } from './composeRecovery';
 import type { ReplyHeaders } from './replyHeaders';
 import { stripHtml } from './stripHtml';
@@ -53,19 +50,11 @@ export function buildComposeDraftPayload(
   replyHeaders?: ReplyHeaders,
 ) {
   return {
-    to: snapshot.to.trim()
-      ? parseComposeRecipients(snapshot.to).addresses
-      : undefined,
-    cc: snapshot.cc.trim()
-      ? parseComposeRecipients(snapshot.cc).addresses
-      : undefined,
-    bcc: snapshot.bcc.trim()
-      ? parseComposeRecipients(snapshot.bcc).addresses
-      : undefined,
+    to: snapshot.to.trim() ? parseComposeRecipients(snapshot.to).addresses : undefined,
+    cc: snapshot.cc.trim() ? parseComposeRecipients(snapshot.cc).addresses : undefined,
+    bcc: snapshot.bcc.trim() ? parseComposeRecipients(snapshot.bcc).addresses : undefined,
     subject: snapshot.subject || undefined,
-    text: web
-      ? stripHtml(snapshot.body) || undefined
-      : snapshot.body || undefined,
+    text: web ? stripHtml(snapshot.body) || undefined : snapshot.body || undefined,
     html: web ? snapshot.body || undefined : undefined,
     // RFC threading headers of the parent, never `snapshot.replyTo` — that is
     // the parent's row id, and a row id in `In-Reply-To` detaches the reply.

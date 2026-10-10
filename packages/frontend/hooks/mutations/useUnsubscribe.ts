@@ -24,7 +24,9 @@ export function markUnsubscribed(
     pages: cache.pages.map((page) => ({
       ...page,
       data: page.data.map((s) =>
-        s._id === senderAddress ? { ...s, unsubscribed: true, unsubscribedAt: s.unsubscribedAt ?? at } : s,
+        s._id === senderAddress
+          ? { ...s, unsubscribed: true, unsubscribedAt: s.unsubscribedAt ?? at }
+          : s,
       ),
     })),
   };
@@ -56,9 +58,8 @@ export function useUnsubscribe() {
       // sender still has mail in the mailbox; the API now reports the state
       // per sender (`unsubscribed`, `unsubscribedAt`), and the row says so.
       const unsubscribedAt = new Date().toISOString();
-      queryClient.setQueryData<SubscriptionsInfinite>(
-        emailKeys.subscriptions,
-        (old) => (old ? markUnsubscribed(old, senderAddress, unsubscribedAt) : old),
+      queryClient.setQueryData<SubscriptionsInfinite>(emailKeys.subscriptions, (old) =>
+        old ? markUnsubscribed(old, senderAddress, unsubscribedAt) : old,
       );
 
       return { prev };
@@ -84,7 +85,10 @@ export function useUnsubscribe() {
       // would hand the sender back as still subscribed, and the row would flip
       // back to an active button under the user's finger. The next visit
       // reads the server's state.
-      void queryClient.invalidateQueries({ queryKey: emailKeys.subscriptions, refetchType: 'none' });
+      void queryClient.invalidateQueries({
+        queryKey: emailKeys.subscriptions,
+        refetchType: 'none',
+      });
       // A block moves the sender's mail; every view that shows it is stale.
       invalidateMailViews(queryClient);
     },

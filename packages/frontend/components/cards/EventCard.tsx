@@ -32,7 +32,13 @@ export function EventCard({ data }: EventCardProps) {
         data.startTime,
         times.allDay
           ? { weekday: 'short', month: 'short', day: 'numeric' }
-          : { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' },
+          : {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+            },
         true,
       )
     : null;
@@ -87,8 +93,7 @@ export function EventCard({ data }: EventCardProps) {
           toast.error(t('ui.event.sharingUnavailable'));
         }
       } catch (err: unknown) {
-        const message =
-          err instanceof Error ? err.message : t('ui.event.openFailed');
+        const message = err instanceof Error ? err.message : t('ui.event.openFailed');
         toast.error(message);
       }
     }
@@ -106,18 +111,10 @@ export function EventCard({ data }: EventCardProps) {
       </CardHeader>
       <CardBody>
         <View style={styles.body}>
-          {data.title && (
-            <Text style={[styles.title, { color: colors.text }]}>
-              {data.title}
-            </Text>
-          )}
+          {data.title && <Text style={[styles.title, { color: colors.text }]}>{data.title}</Text>}
           {startTime && (
             <View style={styles.row}>
-              <MaterialCommunityIcons
-                name="clock-outline"
-                size={14}
-                color={colors.secondaryText}
-              />
+              <MaterialCommunityIcons name="clock-outline" size={14} color={colors.secondaryText} />
               <Text style={[styles.time, { color: colors.secondaryText }]}>
                 {startTime}
                 {endTime ? ` – ${endTime}` : ''}

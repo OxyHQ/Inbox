@@ -51,26 +51,46 @@ beforeEach(() => jest.clearAllMocks());
 
 it('marks only the unread messages of a conversation read, in one request', () => {
   const { result } = renderHook(() => useMessageActions());
-  result.current.setRead([msg('a', 'inbox', false), msg('b', 'inbox', true), msg('c', 'inbox', false)], true, { quiet: true });
-  expect(bulkFlags.mutate).toHaveBeenCalledWith({ messageIds: ['a', 'c'], flags: { seen: true }, quiet: true });
+  result.current.setRead(
+    [msg('a', 'inbox', false), msg('b', 'inbox', true), msg('c', 'inbox', false)],
+    true,
+    { quiet: true },
+  );
+  expect(bulkFlags.mutate).toHaveBeenCalledWith({
+    messageIds: ['a', 'c'],
+    flags: { seen: true },
+    quiet: true,
+  });
 });
 
 it('archives every message of a conversation', () => {
   const { result } = renderHook(() => useMessageActions());
   result.current.archive([msg('a', 'inbox'), msg('b', 'inbox')]);
-  expect(bulkMove.mutate).toHaveBeenCalledWith({ messageIds: ['a', 'b'], mailboxId: 'archive', kind: 'archive' });
+  expect(bulkMove.mutate).toHaveBeenCalledWith({
+    messageIds: ['a', 'b'],
+    mailboxId: 'archive',
+    kind: 'archive',
+  });
 });
 
 it('deletes for good only what is already in Trash', () => {
   const { result } = renderHook(() => useMessageActions());
   result.current.deleteConversation([msg('a', 'inbox'), msg('b', 'trash')]);
-  expect(bulkDelete.mutate).toHaveBeenCalledWith({ toTrash: ['a'], permanent: ['b'], trashMailboxId: 'trash' });
+  expect(bulkDelete.mutate).toHaveBeenCalledWith({
+    toTrash: ['a'],
+    permanent: ['b'],
+    trashMailboxId: 'trash',
+  });
 });
 
 it('moves a single Inbox message to Trash, whatever folder was browsed last', () => {
   const { result } = renderHook(() => useMessageActions());
   result.current.deleteConversation([msg('a', 'inbox')]);
-  expect(deleteMutation.mutate).toHaveBeenCalledWith({ messageId: 'a', trashMailboxId: 'trash', isInTrash: false });
+  expect(deleteMutation.mutate).toHaveBeenCalledWith({
+    messageId: 'a',
+    trashMailboxId: 'trash',
+    isInTrash: false,
+  });
 });
 
 it('moves an archived conversation back to the Inbox instead of archiving it again', () => {
@@ -78,7 +98,11 @@ it('moves an archived conversation back to the Inbox instead of archiving it aga
   const conversation = [msg('a', 'archive'), msg('b', 'archive')];
   expect(result.current.isArchived(conversation)).toBe(true);
   result.current.archive(conversation);
-  expect(bulkMove.mutate).toHaveBeenCalledWith({ messageIds: ['a', 'b'], mailboxId: 'inbox', kind: 'inbox' });
+  expect(bulkMove.mutate).toHaveBeenCalledWith({
+    messageIds: ['a', 'b'],
+    mailboxId: 'inbox',
+    kind: 'inbox',
+  });
 });
 
 it('archives a conversation only partly in Archive', () => {
@@ -86,5 +110,9 @@ it('archives a conversation only partly in Archive', () => {
   const conversation = [msg('a', 'archive'), msg('b', 'inbox')];
   expect(result.current.isArchived(conversation)).toBe(false);
   result.current.archive(conversation);
-  expect(bulkMove.mutate).toHaveBeenCalledWith({ messageIds: ['a', 'b'], mailboxId: 'archive', kind: 'archive' });
+  expect(bulkMove.mutate).toHaveBeenCalledWith({
+    messageIds: ['a', 'b'],
+    mailboxId: 'archive',
+    kind: 'archive',
+  });
 });

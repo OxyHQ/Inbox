@@ -100,7 +100,9 @@ export async function enqueue(mutation: Omit<OfflineMutation, 'id' | 'timestamp'
     // Request Background Sync if available
     if ('serviceWorker' in navigator && 'SyncManager' in window) {
       const registration = await navigator.serviceWorker.ready;
-      await (registration as unknown as { sync: { register: (tag: string) => Promise<void> } }).sync.register('offline-mutations');
+      await (
+        registration as unknown as { sync: { register: (tag: string) => Promise<void> } }
+      ).sync.register('offline-mutations');
     }
   } catch {
     // Fall back to localStorage if IndexedDB fails

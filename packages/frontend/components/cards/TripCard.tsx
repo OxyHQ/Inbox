@@ -16,20 +16,30 @@ export function TripCard({ data }: TripCardProps) {
   const colors = useColors();
 
   const departureTime = data.departureTime
-    ? formatCardDate(locale, data.departureTime, {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-      }, true)
+    ? formatCardDate(
+        locale,
+        data.departureTime,
+        {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+        },
+        true,
+      )
     : null;
 
   const arrivalTime = data.arrivalTime
-    ? formatCardDate(locale, data.arrivalTime, {
-        hour: 'numeric',
-        minute: '2-digit',
-      }, true)
+    ? formatCardDate(
+        locale,
+        data.arrivalTime,
+        {
+          hour: 'numeric',
+          minute: '2-digit',
+        },
+        true,
+      )
     : null;
 
   return (
@@ -46,17 +56,9 @@ export function TripCard({ data }: TripCardProps) {
           )}
           {(data.departure || data.arrival) && (
             <View style={styles.route}>
-              <Text style={[styles.city, { color: colors.text }]}>
-                {data.departure || '—'}
-              </Text>
-              <MaterialCommunityIcons
-                name="arrow-right"
-                size={16}
-                color={colors.secondaryText}
-              />
-              <Text style={[styles.city, { color: colors.text }]}>
-                {data.arrival || '—'}
-              </Text>
+              <Text style={[styles.city, { color: colors.text }]}>{data.departure || '—'}</Text>
+              <MaterialCommunityIcons name="arrow-right" size={16} color={colors.secondaryText} />
+              <Text style={[styles.city, { color: colors.text }]}>{data.arrival || '—'}</Text>
             </View>
           )}
           {departureTime && (
@@ -77,14 +79,8 @@ export function TripCard({ data }: TripCardProps) {
           )}
           {data.hotel && (
             <View style={styles.codeRow}>
-              <MaterialCommunityIcons
-                name="bed-outline"
-                size={14}
-                color={colors.secondaryText}
-              />
-              <Text style={[styles.hotelText, { color: colors.text }]}>
-                {data.hotel}
-              </Text>
+              <MaterialCommunityIcons name="bed-outline" size={14} color={colors.secondaryText} />
+              <Text style={[styles.hotelText, { color: colors.text }]}>{data.hotel}</Text>
               {data.checkIn && (
                 <Text style={[styles.time, { color: colors.secondaryText }]}>
                   {formatCardDate(locale, data.checkIn, {

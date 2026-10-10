@@ -76,7 +76,11 @@ export function isBodyBlank(body: string, signature: string | null, web: boolean
 }
 
 /** Text quoted under a reply: `> ` on every line, after an attribution line. */
-export function quotedReply(message: Pick<Message, 'text'>, attribution: string, web: boolean): string {
+export function quotedReply(
+  message: Pick<Message, 'text'>,
+  attribution: string,
+  web: boolean,
+): string {
   const quoted = (message.text ?? '')
     .split(/\r?\n/)
     .map((line) => `> ${line}`)
@@ -88,7 +92,11 @@ export function quotedReply(message: Pick<Message, 'text'>, attribution: string,
 }
 
 /** The body of a forward: the header block, then the original's text. */
-export function forwardedBody(message: Pick<Message, 'text'>, header: string, web: boolean): string {
+export function forwardedBody(
+  message: Pick<Message, 'text'>,
+  header: string,
+  web: boolean,
+): string {
   return textToEditorContent(`${header}${message.text ?? ''}`, web);
 }
 
@@ -119,7 +127,10 @@ export function sanitizeEditorHtml(html: string): string {
 
 /** The editor content a saved draft is reopened with. */
 export function draftToEditorContent(draft: Pick<Message, 'text' | 'html'>, web: boolean): string {
-  if (web) return draft.html ? sanitizeEditorHtml(draft.html) : textToEditorContent(draft.text ?? '', true);
+  if (web)
+    return draft.html
+      ? sanitizeEditorHtml(draft.html)
+      : textToEditorContent(draft.text ?? '', true);
   return draft.text ?? (draft.html ? stripHtml(draft.html) : '');
 }
 

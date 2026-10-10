@@ -22,16 +22,18 @@ describe('stripHtml — the text part of what the web composer sends', () => {
   });
 
   it('quotes a blockquote with "> "', () => {
-    expect(stripHtml('Hi<div>Bob wrote:</div><blockquote type="cite">one<br>two</blockquote>')).toBe(
-      'Hi\nBob wrote:\n> one\n> two',
-    );
+    expect(
+      stripHtml('Hi<div>Bob wrote:</div><blockquote type="cite">one<br>two</blockquote>'),
+    ).toBe('Hi\nBob wrote:\n> one\n> two');
   });
 
   it('decodes entities, lists paragraphs and items, and drops what is never shown', () => {
     expect(stripHtml('<p>One &amp; two</p><ul><li>x</li><li>y</li></ul><ol><li>a</li></ol>')).toBe(
       'One & two\n\n- x\n- y\n1. a',
     );
-    expect(stripHtml('<style>p{}</style><script>x()</script>It&#39;s <b>fine</b>')).toBe("It's fine");
+    expect(stripHtml('<style>p{}</style><script>x()</script>It&#39;s <b>fine</b>')).toBe(
+      "It's fine",
+    );
   });
 
   it('never makes the markup live: an onerror handler does not run', () => {
@@ -47,7 +49,14 @@ function msg(id: string, seen = false): Message {
     wireMessage({
       _id: id,
       id,
-      flags: { seen, starred: false, answered: false, forwarded: false, draft: false, pinned: false },
+      flags: {
+        seen,
+        starred: false,
+        answered: false,
+        forwarded: false,
+        draft: false,
+        pinned: false,
+      },
     }),
   );
 }
@@ -55,7 +64,12 @@ function msg(id: string, seen = false): Message {
 function list(...messages: Message[]): MessagesInfinite {
   return {
     pageParams: [undefined],
-    pages: [{ data: messages, pagination: { total: messages.length, limit: 50, offset: 0, hasMore: false } }],
+    pages: [
+      {
+        data: messages,
+        pagination: { total: messages.length, limit: 50, offset: 0, hasMore: false },
+      },
+    ],
   };
 }
 
@@ -98,7 +112,9 @@ describe('bulk requests stay within the API limit', () => {
 
     const result = await api.bulkMoveMessages(messageIds, 'archive');
 
-    const sizes = http.post.mock.calls.map(([, body]) => (body as { messageIds: string[] }).messageIds.length);
+    const sizes = http.post.mock.calls.map(
+      ([, body]) => (body as { messageIds: string[] }).messageIds.length,
+    );
     expect(sizes).toEqual([100, 100, 50]);
     expect(result).toEqual({ matched: 3, modified: 3 });
   });

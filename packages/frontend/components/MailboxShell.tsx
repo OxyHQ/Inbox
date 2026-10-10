@@ -9,21 +9,14 @@ import { LogoIcon } from '@/assets/logo';
 import { useInboxSettings } from '@/components/settings/InboxSettings';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { useColors } from '@/constants/theme';
-import {
-  useCreateMailbox,
-  useDeleteMailbox,
-} from '@/hooks/mutations/useMailboxMutations';
+import { useCreateMailbox, useDeleteMailbox } from '@/hooks/mutations/useMailboxMutations';
 import { useLabels } from '@/hooks/queries/useLabels';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
 import { useEmailStore } from '@/hooks/useEmail';
 import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 import { useTranslation } from '@/lib/i18n';
 import type { Mailbox } from '@/services/emailApi';
-import {
-  APP_SHELL_DEFAULTS,
-  AppShell,
-  AppShellSplitPanes,
-} from '@oxy.so/bloom/app-shell';
+import { APP_SHELL_DEFAULTS, AppShell, AppShellSplitPanes } from '@oxy.so/bloom/app-shell';
 import { Button } from '@oxy.so/bloom/button';
 import { ContentPanel } from '@oxy.so/bloom/content-panel';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
@@ -120,24 +113,12 @@ export function MailboxShell({ children }: { children: ReactNode }) {
   //   /                → inbox (the app's root view)
   //   /<view>          → system mailbox (sent, drafts, etc.)
   //   /label/<name>    → label view (owned by app/.../label/[name].tsx)
-  const pathSegments = useMemo(
-    () => pathname.split('/').filter(Boolean),
-    [pathname],
-  );
+  const pathSegments = useMemo(() => pathname.split('/').filter(Boolean), [pathname]);
   const isLabelRoute = pathSegments[0]?.toLowerCase() === 'label';
-  const activeLabelName = isLabelRoute
-    ? (pathSegments[1]?.toLowerCase() ?? null)
-    : null;
-  const currentView = isLabelRoute
-    ? 'label'
-    : pathSegments[0]?.toLowerCase() || 'inbox';
+  const activeLabelName = isLabelRoute ? (pathSegments[1]?.toLowerCase() ?? null) : null;
+  const currentView = isLabelRoute ? 'label' : pathSegments[0]?.toLowerCase() || 'inbox';
 
-  const {
-    primaryMailboxes,
-    snoozedMailbox,
-    secondaryMailboxes,
-    customFolders,
-  } = useMemo(() => {
+  const { primaryMailboxes, snoozedMailbox, secondaryMailboxes, customFolders } = useMemo(() => {
     const order: Record<string, number> = {
       [SPECIAL_USE.INBOX]: 0,
       [SPECIAL_USE.SENT]: 1,
@@ -148,23 +129,14 @@ export function MailboxShell({ children }: { children: ReactNode }) {
       [SPECIAL_USE.ARCHIVE]: 6,
     };
     const sorted = mailboxes
-      .filter((m): m is Mailbox & { specialUse: string } =>
-        Boolean(m.specialUse),
-      )
-      .sort(
-        (a, b) => (order[a.specialUse] ?? 99) - (order[b.specialUse] ?? 99),
-      );
+      .filter((m): m is Mailbox & { specialUse: string } => Boolean(m.specialUse))
+      .sort((a, b) => (order[a.specialUse] ?? 99) - (order[b.specialUse] ?? 99));
 
     return {
-      primaryMailboxes: sorted.filter((m) =>
-        PRIMARY_SPECIAL_USE.has(m.specialUse),
-      ),
-      snoozedMailbox:
-        sorted.find((m) => m.specialUse === SPECIAL_USE.SNOOZED) ?? null,
+      primaryMailboxes: sorted.filter((m) => PRIMARY_SPECIAL_USE.has(m.specialUse)),
+      snoozedMailbox: sorted.find((m) => m.specialUse === SPECIAL_USE.SNOOZED) ?? null,
       secondaryMailboxes: sorted.filter(
-        (m) =>
-          !PRIMARY_SPECIAL_USE.has(m.specialUse) &&
-          m.specialUse !== SPECIAL_USE.SNOOZED,
+        (m) => !PRIMARY_SPECIAL_USE.has(m.specialUse) && m.specialUse !== SPECIAL_USE.SNOOZED,
       ),
       // User-created folders have no specialUse. They are addressable via the
       // `[view]` route using the mailbox id as the segment.
@@ -221,7 +193,11 @@ export function MailboxShell({ children }: { children: ReactNode }) {
           // then failed to load. Go to the Inbox instead.
           const { viewMode } = useEmailStore.getState();
           if (viewMode?.type === 'mailbox' && viewMode.mailbox._id === deletedId) {
-            useEmailStore.setState({ viewMode: null, currentMailbox: null, selectedMessageId: null });
+            useEmailStore.setState({
+              viewMode: null,
+              currentMailbox: null,
+              selectedMessageId: null,
+            });
             router.replace('/');
           }
         },
@@ -238,17 +214,15 @@ export function MailboxShell({ children }: { children: ReactNode }) {
         onClose?.();
         return;
       }
-      const viewMap: Record<
-        string,
-        'sent' | 'drafts' | 'trash' | 'spam' | 'archive' | 'snoozed'
-      > = {
-        [SPECIAL_USE.SENT]: 'sent',
-        [SPECIAL_USE.DRAFTS]: 'drafts',
-        [SPECIAL_USE.TRASH]: 'trash',
-        [SPECIAL_USE.SPAM]: 'spam',
-        [SPECIAL_USE.ARCHIVE]: 'archive',
-        [SPECIAL_USE.SNOOZED]: 'snoozed',
-      };
+      const viewMap: Record<string, 'sent' | 'drafts' | 'trash' | 'spam' | 'archive' | 'snoozed'> =
+        {
+          [SPECIAL_USE.SENT]: 'sent',
+          [SPECIAL_USE.DRAFTS]: 'drafts',
+          [SPECIAL_USE.TRASH]: 'trash',
+          [SPECIAL_USE.SPAM]: 'spam',
+          [SPECIAL_USE.ARCHIVE]: 'archive',
+          [SPECIAL_USE.SNOOZED]: 'snoozed',
+        };
       const view = viewMap[mailbox.specialUse];
       if (!view) return;
       router.push({
@@ -306,9 +280,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
     [currentView],
   );
 
-  const mailboxItem = (
-    mailbox: Mailbox & { specialUse: string },
-  ): SidebarNavItem => ({
+  const mailboxItem = (mailbox: Mailbox & { specialUse: string }): SidebarNavItem => ({
     key: mailbox._id,
     label: mailboxLabel(mailbox),
     icon: MAILBOX_ICONS[mailbox.specialUse] ?? RiFolderLine,
@@ -341,9 +313,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
               },
             ]
           : []),
-        ...(moreExpanded || collapsed
-          ? secondaryMailboxes.map(mailboxItem)
-          : []),
+        ...(moreExpanded || collapsed ? secondaryMailboxes.map(mailboxItem) : []),
         ...labels.map((label) => ({
           key: `label:${label.name.toLowerCase()}`,
           label: label.name,
@@ -388,9 +358,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
         ? 'starred'
         : viewMode?.type === 'mailbox'
           ? viewMode.mailbox._id
-          : mailboxes.find(
-              (mailbox) => mailbox.specialUse === SPECIAL_USE.INBOX,
-            )?._id;
+          : mailboxes.find((mailbox) => mailbox.specialUse === SPECIAL_USE.INBOX)?._id;
   const selected =
     pathSegments[0] === 'conversation' || pathSegments[0] === 'compose'
       ? selectedMailbox
@@ -488,20 +456,11 @@ export function MailboxShell({ children }: { children: ReactNode }) {
             },
           }}
           list={
-            <ContentPanel
-              framedFrom={BREAKPOINTS.md}
-              chrome="none"
-              fill
-              overlaySizing="panel"
-            >
+            <ContentPanel framedFrom={BREAKPOINTS.md} chrome="none" fill overlaySizing="panel">
               {pathname.startsWith('/search') ? (
-                <SearchList
-                  replaceNavigation={pathname.includes('/conversation/')}
-                />
+                <SearchList replaceNavigation={pathname.includes('/conversation/')} />
               ) : (
-                <InboxList
-                  replaceNavigation={pathname.includes('/conversation/')}
-                />
+                <InboxList replaceNavigation={pathname.includes('/conversation/')} />
               )}
             </ContentPanel>
           }

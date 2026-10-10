@@ -35,6 +35,7 @@ export function InlineReply({ message, mode, onClose }: InlineReplyProps) {
   const { t } = useTranslation();
   const { user } = useOxy();
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Seeded once for this reply; the recipients do not follow later edits.
   const initial = useMemo(() => {
     const recipients =
       mode === 'forward'
@@ -51,8 +52,6 @@ export function InlineReply({ message, mode, onClose }: InlineReplyProps) {
         ? message.subject
         : `${prefix} ${message.subject}`,
     };
-    // Seeded once for this reply; the recipients do not follow later edits.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const trailer = useMemo(
@@ -95,10 +94,7 @@ export function InlineReply({ message, mode, onClose }: InlineReplyProps) {
     onFinished: onClose,
   });
 
-  const handleSmartReplySelect = useCallback(
-    (text: string) => session.insertText(text),
-    [session],
-  );
+  const handleSmartReplySelect = useCallback((text: string) => session.insertText(text), [session]);
 
   return (
     <Card radius="panel" clipContent>

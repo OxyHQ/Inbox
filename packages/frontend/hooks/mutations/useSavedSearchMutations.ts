@@ -22,7 +22,13 @@ export function useCreateSavedSearch() {
       const now = new Date().toISOString();
       queryClient.setQueryData<SavedEmailSearch[]>(key, [
         ...(previous ?? []),
-        { id: `optimistic:${Date.now()}`, ...data, order: previous?.length ?? 0, createdAt: now, updatedAt: now },
+        {
+          id: `optimistic:${Date.now()}`,
+          ...data,
+          order: previous?.length ?? 0,
+          createdAt: now,
+          updatedAt: now,
+        },
       ]);
       return { previous };
     },
@@ -46,7 +52,10 @@ export function useDeleteSavedSearch() {
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: key });
       const previous = queryClient.getQueryData<SavedEmailSearch[]>(key);
-      queryClient.setQueryData<SavedEmailSearch[]>(key, (old) => old?.filter((item) => item.id !== id) ?? []);
+      queryClient.setQueryData<SavedEmailSearch[]>(
+        key,
+        (old) => old?.filter((item) => item.id !== id) ?? [],
+      );
       return { previous };
     },
     onError: (error: unknown, _id, context) => {

@@ -2,10 +2,7 @@ import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { parseByteSize } from '@/utils/byteSize';
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
 import { OutboundQueueSection } from '@/components/settings/OutboundQueueSection';
-import {
-  useReorderBundle,
-  useUpdateBundle,
-} from '@/hooks/mutations/useBundleMutations';
+import { useReorderBundle, useUpdateBundle } from '@/hooks/mutations/useBundleMutations';
 import {
   useCreateFilter,
   useDeleteFilter,
@@ -21,10 +18,7 @@ import { useFilters } from '@/hooks/queries/useFilters';
 import { useTemplates } from '@/hooks/queries/useTemplates';
 import { useEmailStore } from '@/hooks/useEmail';
 import { useTranslation } from '@/lib/i18n';
-import type {
-  EmailFilterAction,
-  EmailFilterCondition,
-} from '@/services/emailApi';
+import type { EmailFilterAction, EmailFilterCondition } from '@/services/emailApi';
 import { Button, IconButton } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
 import {
@@ -33,16 +27,11 @@ import {
   RiDeleteBin6Line,
   RiEditLine,
 } from '@oxy.so/bloom/icons';
-import {
-  SettingsProfilePage,
-} from '@oxy.so/bloom/settings-modal';
+import { SettingsProfilePage } from '@oxy.so/bloom/settings-modal';
 import { Switch } from '@oxy.so/bloom/switch';
 import { Textarea } from '@oxy.so/bloom/textarea';
 import { toast } from '@oxy.so/bloom/toast';
-import {
-  EMAIL_FILTER_CONDITION_FIELDS,
-  EMAIL_FILTER_CONDITION_OPERATORS,
-} from '@oxy.so/contracts';
+import { EMAIL_FILTER_CONDITION_FIELDS, EMAIL_FILTER_CONDITION_OPERATORS } from '@oxy.so/contracts';
 import { useCallback, useMemo, useState } from 'react';
 import { Platform, View } from 'react-native';
 import { SettingsPreferenceSelect } from '../SettingsPreferenceSelect';
@@ -75,26 +64,25 @@ const OPERATOR_LABEL_KEYS: Record<FilterOperator, string> = {
   'less-than': 'ui.settings.advanced.smallerThan',
 };
 
-const SIZE_OPERATOR_SET = new Set<FilterOperator>([
-  'greater-than',
-  'less-than',
-]);
+const SIZE_OPERATOR_SET = new Set<FilterOperator>(['greater-than', 'less-than']);
 
-const FIELD_OPTIONS: { value: FilterField; labelKey: string }[] =
-  EMAIL_FILTER_CONDITION_FIELDS.map((value) => ({
+const FIELD_OPTIONS: { value: FilterField; labelKey: string }[] = EMAIL_FILTER_CONDITION_FIELDS.map(
+  (value) => ({
     value,
     labelKey: FIELD_LABEL_KEYS[value],
-  }));
+  }),
+);
 
 const TEXT_OPERATORS: { value: FilterOperator; labelKey: string }[] =
-  EMAIL_FILTER_CONDITION_OPERATORS.filter(
-    (value) => !SIZE_OPERATOR_SET.has(value),
-  ).map((value) => ({ value, labelKey: OPERATOR_LABEL_KEYS[value] }));
+  EMAIL_FILTER_CONDITION_OPERATORS.filter((value) => !SIZE_OPERATOR_SET.has(value)).map(
+    (value) => ({ value, labelKey: OPERATOR_LABEL_KEYS[value] }),
+  );
 
 const SIZE_OPERATORS: { value: FilterOperator; labelKey: string }[] =
-  EMAIL_FILTER_CONDITION_OPERATORS.filter((value) =>
-    SIZE_OPERATOR_SET.has(value),
-  ).map((value) => ({ value, labelKey: OPERATOR_LABEL_KEYS[value] }));
+  EMAIL_FILTER_CONDITION_OPERATORS.filter((value) => SIZE_OPERATOR_SET.has(value)).map((value) => ({
+    value,
+    labelKey: OPERATOR_LABEL_KEYS[value],
+  }));
 
 const ACTION_OPTIONS: { value: FilterActionType; labelKey: string }[] = [
   { value: 'archive', labelKey: 'message.actions.archive' },
@@ -126,10 +114,7 @@ export function AdvancedSection() {
   const updateBundle = useUpdateBundle();
   const reorderBundle = useReorderBundle();
 
-  const sortedBundles = useMemo(
-    () => [...bundles].sort((a, b) => a.order - b.order),
-    [bundles],
-  );
+  const sortedBundles = useMemo(() => [...bundles].sort((a, b) => a.order - b.order), [bundles]);
 
   const api = useEmailStore((s) => s._api);
   const [importing, setImporting] = useState(false);
@@ -141,15 +126,12 @@ export function AdvancedSection() {
   // ─── Filter create form state ──────────────────────────────────────
   const [filterName, setFilterName] = useState('');
   const [filterField, setFilterField] = useState<FilterField>('from');
-  const [filterOperator, setFilterOperator] =
-    useState<FilterOperator>('contains');
+  const [filterOperator, setFilterOperator] = useState<FilterOperator>('contains');
   const [filterValue, setFilterValue] = useState('');
   const [filterAction, setFilterAction] = useState<FilterActionType>('archive');
 
   // ─── Template create / edit state ──────────────────────────────────
-  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(
-    null,
-  );
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [templateName, setTemplateName] = useState('');
   const [templateSubject, setTemplateSubject] = useState('');
   const [templateBody, setTemplateBody] = useState('');
@@ -187,10 +169,7 @@ export function AdvancedSection() {
             field: filterField,
             operator: filterOperator,
             // The API compares bytes; "5 MB" is sent as 5242880.
-            value:
-              filterField === 'size'
-                ? String(parseByteSize(filterValue))
-                : filterValue.trim(),
+            value: filterField === 'size' ? String(parseByteSize(filterValue)) : filterValue.trim(),
           };
     const action: EmailFilterAction = { type: filterAction };
     createFilter.mutate(
@@ -307,13 +286,7 @@ export function AdvancedSection() {
         setTemplatePendingDelete(null);
       },
     });
-  }, [
-    templatePendingDelete,
-    deleteTemplate,
-    editingTemplateId,
-    resetTemplateForm,
-    t,
-  ]);
+  }, [templatePendingDelete, deleteTemplate, editingTemplateId, resetTemplateForm, t]);
 
   const handleImportFiles = useCallback(async () => {
     if (!api || Platform.OS !== 'web') return;
@@ -392,16 +365,16 @@ export function AdvancedSection() {
                 actions: filter.actions.length,
               }),
               control: (
-                <View
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
-                >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Switch
                     accessibilityLabel={filter.name}
                     checked={filter.enabled}
                     onCheckedChange={(v) => handleToggleFilter(filter._id, v)}
                   />
                   <IconButton
-                    accessibilityLabel={t('ui.settings.advanced.deleteFilter', { name: filter.name })}
+                    accessibilityLabel={t('ui.settings.advanced.deleteFilter', {
+                      name: filter.name,
+                    })}
                     icon={<RiDeleteBin6Line />}
                     onPress={() => {
                       setFilterPendingDelete({
@@ -517,7 +490,9 @@ export function AdvancedSection() {
               control: (
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <IconButton
-                    accessibilityLabel={t('ui.settings.advanced.editTemplate', { name: template.name })}
+                    accessibilityLabel={t('ui.settings.advanced.editTemplate', {
+                      name: template.name,
+                    })}
                     icon={<RiEditLine />}
                     onPress={() =>
                       handleEditTemplate(
@@ -529,7 +504,9 @@ export function AdvancedSection() {
                     }
                   />
                   <IconButton
-                    accessibilityLabel={t('ui.settings.advanced.deleteTemplate', { name: template.name })}
+                    accessibilityLabel={t('ui.settings.advanced.deleteTemplate', {
+                      name: template.name,
+                    })}
                     icon={<RiDeleteBin6Line />}
                     onPress={() => {
                       setTemplatePendingDelete({
@@ -597,11 +574,7 @@ export function AdvancedSection() {
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     <Button
                       onPress={handleSubmitTemplate}
-                      disabled={
-                        !templateName.trim() ||
-                        !templateBody.trim() ||
-                        templateSubmitting
-                      }
+                      disabled={!templateName.trim() || !templateBody.trim() || templateSubmitting}
                       loading={templateSubmitting}
                     >
                       {t(
@@ -651,12 +624,9 @@ export function AdvancedSection() {
                           }
                         />
                         <IconButton
-                          accessibilityLabel={t(
-                            'ui.settings.advanced.moveDown',
-                            {
-                              name: bundle.name,
-                            },
-                          )}
+                          accessibilityLabel={t('ui.settings.advanced.moveDown', {
+                            name: bundle.name,
+                          })}
                           icon={<RiArrowDownSLine />}
                           disabled={index === sortedBundles.length - 1}
                           onPress={() =>
@@ -737,7 +707,9 @@ export function AdvancedSection() {
         title={t('ui.settings.advanced.deleteTemplateTitle')}
         description={
           templatePendingDelete
-            ? t('ui.settings.advanced.deleteTemplateDescription', { name: templatePendingDelete.name })
+            ? t('ui.settings.advanced.deleteTemplateDescription', {
+                name: templatePendingDelete.name,
+              })
             : ''
         }
         actions={[

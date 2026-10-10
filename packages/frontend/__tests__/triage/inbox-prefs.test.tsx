@@ -55,7 +55,11 @@ describe('Inbox preferences', () => {
     });
 
     expect(second.result.current.prefs.aiBrief).toBe(DEFAULT_INBOX_PREFS.aiBrief);
-    expect(window.localStorage.getItem(getInboxPrefsStorageKey('user-a'))).toContain('"aiBrief":true');
-    expect(window.localStorage.getItem(getInboxPrefsStorageKey('user-b'))).toContain('"aiBrief":false');
+    expect(window.localStorage.getItem(getInboxPrefsStorageKey('user-a'))).toContain(
+      '"aiBrief":true',
+    );
+    expect(window.localStorage.getItem(getInboxPrefsStorageKey('user-b'))).toContain(
+      '"aiBrief":false',
+    );
   });
 });

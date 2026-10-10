@@ -11,7 +11,9 @@ export type SearchItem =
   | { kind: 'unreadable'; row: UnreadableMessage; key: string };
 
 /** Unreadable rows across pages, each once (a row id can recur on a later page). */
-export function collectUnreadable(pages: { unreadable?: UnreadableMessage[] }[]): UnreadableMessage[] {
+export function collectUnreadable(
+  pages: { unreadable?: UnreadableMessage[] }[],
+): UnreadableMessage[] {
   const seen = new Set<string>();
   const rows: UnreadableMessage[] = [];
   for (const page of pages) {
@@ -26,9 +28,18 @@ export function collectUnreadable(pages: { unreadable?: UnreadableMessage[] }[])
   return rows;
 }
 
-export function buildSearchItems(results: Message[], unreadable: UnreadableMessage[]): SearchItem[] {
+export function buildSearchItems(
+  results: Message[],
+  unreadable: UnreadableMessage[],
+): SearchItem[] {
   return [
-    ...unreadable.map((row, index): SearchItem => ({ kind: 'unreadable', row, key: `unreadable-${row._id ?? index}` })),
+    ...unreadable.map(
+      (row, index): SearchItem => ({
+        kind: 'unreadable',
+        row,
+        key: `unreadable-${row._id ?? index}`,
+      }),
+    ),
     ...results.map((message): SearchItem => ({ kind: 'message', message, key: message._id })),
   ];
 }

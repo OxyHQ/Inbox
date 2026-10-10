@@ -30,7 +30,11 @@ interface UseAiComposeReturn {
   changeTone: (text: string, tone: ComposeTone) => Promise<string>;
   adjustLength: (text: string, direction: 'shorter' | 'longer') => Promise<string>;
   suggestSubject: (body: string) => Promise<string>;
-  streamDraft: (prompt: string, tone?: ComposeTone, onChunk?: (chunk: string) => void) => Promise<string>;
+  streamDraft: (
+    prompt: string,
+    tone?: ComposeTone,
+    onChunk?: (chunk: string) => void,
+  ) => Promise<string>;
   isLoading: boolean;
   error: Error | null;
 }
@@ -56,18 +60,24 @@ export function useAiCompose(): UseAiComposeReturn {
       const http = oxyServices.http;
       switch (operation.kind) {
         case 'draft':
-          return (await runInboxCompose(http, {
-            operation: 'draft',
-            prompt: operation.prompt,
-            tone: operation.tone,
-          })).text.trim();
+          return (
+            await runInboxCompose(http, {
+              operation: 'draft',
+              prompt: operation.prompt,
+              tone: operation.tone,
+            })
+          ).text.trim();
         case 'streamDraft': {
           let fullText = '';
-          for await (const chunk of streamInboxDraft(http, {
-            operation: 'draft',
-            prompt: operation.prompt,
-            tone: operation.tone,
-          }, operation.signal)) {
+          for await (const chunk of streamInboxDraft(
+            http,
+            {
+              operation: 'draft',
+              prompt: operation.prompt,
+              tone: operation.tone,
+            },
+            operation.signal,
+          )) {
             if (operation.signal.aborted) {
               const error = new Error('Inbox AI compose was aborted.');
               error.name = 'AbortError';
@@ -79,27 +89,37 @@ export function useAiCompose(): UseAiComposeReturn {
           return fullText.trim();
         }
         case 'polish':
-          return (await runInboxCompose(http, {
-            operation: 'polish',
-            text: operation.text,
-          })).text.trim();
+          return (
+            await runInboxCompose(http, {
+              operation: 'polish',
+              text: operation.text,
+            })
+          ).text.trim();
         case 'changeTone':
-          return (await runInboxCompose(http, {
-            operation: 'change_tone',
-            text: operation.text,
-            tone: operation.tone,
-          })).text.trim();
+          return (
+            await runInboxCompose(http, {
+              operation: 'change_tone',
+              text: operation.text,
+              tone: operation.tone,
+            })
+          ).text.trim();
         case 'adjustLength':
-          return (await runInboxCompose(http, {
-            operation: 'adjust_length',
-            text: operation.text,
-            direction: operation.direction,
-          })).text.trim();
+          return (
+            await runInboxCompose(http, {
+              operation: 'adjust_length',
+              text: operation.text,
+              direction: operation.direction,
+            })
+          ).text.trim();
         case 'suggestSubject':
-          return (await runInboxCompose(http, {
-            operation: 'suggest_subject',
-            body: operation.body,
-          })).text.trim().replace(/^["']|["']$/g, '');
+          return (
+            await runInboxCompose(http, {
+              operation: 'suggest_subject',
+              body: operation.body,
+            })
+          ).text
+            .trim()
+            .replace(/^["']|["']$/g, '');
       }
     },
     // The toolbar leaves the text as it was on failure; this says why nothing
@@ -117,12 +137,22 @@ export function useAiCompose(): UseAiComposeReturn {
     [mutateAsync],
   );
   const streamDraft = useCallback(
-    async (prompt: string, tone: ComposeTone = 'professional', onChunk?: (chunk: string) => void) => {
+    async (
+      prompt: string,
+      tone: ComposeTone = 'professional',
+      onChunk?: (chunk: string) => void,
+    ) => {
       streamControllerRef.current?.abort();
       const controller = new AbortController();
       streamControllerRef.current = controller;
       try {
-        return await mutateAsync({ kind: 'streamDraft', prompt, tone, signal: controller.signal, onChunk });
+        return await mutateAsync({
+          kind: 'streamDraft',
+          prompt,
+          tone,
+          signal: controller.signal,
+          onChunk,
+        });
       } finally {
         if (streamControllerRef.current === controller) streamControllerRef.current = null;
       }

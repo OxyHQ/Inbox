@@ -4,10 +4,7 @@ import { isValidRecipientEmail } from '@/schemas/emailSchemas';
 import type { EmailSettings } from '@/services/emailApi';
 import { Button } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
-import {
-  SettingsProfilePage,
-  SettingsValueField,
-} from '@oxy.so/bloom/settings-modal';
+import { SettingsProfilePage, SettingsValueField } from '@oxy.so/bloom/settings-modal';
 import { Switch } from '@oxy.so/bloom/switch';
 import { Textarea } from '@oxy.so/bloom/textarea';
 import { toast } from '@oxy.so/bloom/toast';
@@ -49,12 +46,8 @@ function draftsEqual(a: SettingsDraft, b: SettingsDraft): boolean {
 /** React-docs derived-state pattern: re-sync the draft only when the server
  *  snapshot changes AND the user has no pending edits. No useEffect. */
 function useDirtySettings(settingsData: EmailSettings | undefined) {
-  const [serverSnapshot, setServerSnapshot] = useState<
-    EmailSettings | undefined
-  >(settingsData);
-  const [draft, setDraft] = useState<SettingsDraft>(() =>
-    toDraft(settingsData),
-  );
+  const [serverSnapshot, setServerSnapshot] = useState<EmailSettings | undefined>(settingsData);
+  const [draft, setDraft] = useState<SettingsDraft>(() => toDraft(settingsData));
 
   if (settingsData !== serverSnapshot) {
     const isClean = draftsEqual(draft, toDraft(serverSnapshot));
@@ -66,12 +59,9 @@ function useDirtySettings(settingsData: EmailSettings | undefined) {
 
   const dirty = !draftsEqual(draft, toDraft(settingsData));
 
-  const setField = useCallback(
-    <K extends keyof SettingsDraft>(key: K, value: SettingsDraft[K]) => {
-      setDraft((prev) => ({ ...prev, [key]: value }));
-    },
-    [],
-  );
+  const setField = useCallback(<K extends keyof SettingsDraft>(key: K, value: SettingsDraft[K]) => {
+    setDraft((prev) => ({ ...prev, [key]: value }));
+  }, []);
 
   return { draft, setField, dirty };
 }
@@ -129,8 +119,7 @@ export function AccountSection() {
       {
         onSuccess: () => toast.success(t('ui.settings.account.updated')),
         onError: (err: unknown) => {
-          const message =
-            err instanceof Error ? err.message : t('ui.settings.account.saveFailed');
+          const message = err instanceof Error ? err.message : t('ui.settings.account.saveFailed');
           toast.error(message);
         },
       },
@@ -159,8 +148,7 @@ export function AccountSection() {
       await logout();
       toast.success(t('ui.settings.account.signedOut'));
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : t('ui.settings.account.signOutFailed');
+      const message = err instanceof Error ? err.message : t('ui.settings.account.signOutFailed');
       toast.error(message);
     }
   }, [logout, t]);
@@ -175,9 +163,7 @@ export function AccountSection() {
               {
                 key: 'name',
                 label: fullName,
-                control: (
-                  <SettingsValueField>{emailAddress}</SettingsValueField>
-                ),
+                control: <SettingsValueField>{emailAddress}</SettingsValueField>,
               },
             ],
           },
@@ -237,9 +223,7 @@ export function AccountSection() {
                       label: t('ui.settings.account.messagePlaceholder'),
                       control: (
                         <Textarea
-                          accessibilityLabel={t(
-                            'ui.settings.account.messagePlaceholder',
-                          )}
+                          accessibilityLabel={t('ui.settings.account.messagePlaceholder')}
                           value={autoReplyBody}
                           onChangeText={(v) => setField('autoReplyBody', v)}
                           rows={4}
@@ -279,9 +263,7 @@ export function AccountSection() {
                         <Switch
                           accessibilityLabel={t('ui.settings.account.keepCopy')}
                           checked={autoForwardKeepCopy}
-                          onCheckedChange={(v) =>
-                            setField('autoForwardKeepCopy', v)
-                          }
+                          onCheckedChange={(v) => setField('autoForwardKeepCopy', v)}
                         />
                       ),
                     },
@@ -298,11 +280,7 @@ export function AccountSection() {
                       key: 'save',
                       label: t('ui.settings.account.saveChanges'),
                       control: (
-                        <Button
-                          onPress={handleSave}
-                          disabled={saving}
-                          loading={saving}
-                        >
+                        <Button onPress={handleSave} disabled={saving} loading={saving}>
                           {t('ui.settings.account.saveChanges')}
                         </Button>
                       ),
@@ -320,10 +298,7 @@ export function AccountSection() {
                 label: t('ui.settings.account.signOut'),
                 description: t('ui.settings.account.signOutDevice'),
                 control: (
-                  <Button
-                    appearance="subtle"
-                    onPress={() => signOutDialog.open()}
-                  >
+                  <Button appearance="subtle" onPress={() => signOutDialog.open()}>
                     {t('ui.settings.account.signOut')}
                   </Button>
                 ),

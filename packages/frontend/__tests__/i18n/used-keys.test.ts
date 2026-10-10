@@ -20,7 +20,10 @@ import ko from '@/lib/i18n/locales/ko';
 import pt from '@/lib/i18n/locales/pt';
 import zh from '@/lib/i18n/locales/zh';
 
-const dictionaries = { ar, ca, de, en, es, fr, it: italian, ja, ko, pt, zh } as Record<string, unknown>;
+const dictionaries = { ar, ca, de, en, es, fr, it: italian, ja, ko, pt, zh } as Record<
+  string,
+  unknown
+>;
 const root = resolve(__dirname, '../..');
 const SKIP = new Set(['node_modules', 'dist', 'dist-android', '__tests__', '.expo', 'android']);
 
@@ -34,16 +37,20 @@ function sources(dir: string): string[] {
 }
 
 function lookup(dict: unknown, key: string): unknown {
-  return key.split('.').reduce<unknown>(
-    (node, part) => (node && typeof node === 'object' ? (node as Record<string, unknown>)[part] : undefined),
-    dict,
-  );
+  return key
+    .split('.')
+    .reduce<unknown>(
+      (node, part) =>
+        node && typeof node === 'object' ? (node as Record<string, unknown>)[part] : undefined,
+      dict,
+    );
 }
 
 const used = new Set<string>();
 for (const dir of ['app', 'components', 'hooks', 'utils', 'lib', 'contexts', 'services']) {
   for (const file of sources(join(root, dir))) {
-    for (const match of readFileSync(file, 'utf8').matchAll(/\bt\(\s*'([a-zA-Z0-9_.]+)'/g)) used.add(match[1]);
+    for (const match of readFileSync(file, 'utf8').matchAll(/\bt\(\s*'([a-zA-Z0-9_.]+)'/g))
+      used.add(match[1]);
   }
 }
 

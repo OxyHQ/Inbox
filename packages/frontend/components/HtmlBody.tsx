@@ -9,19 +9,9 @@
  */
 
 import { useTheme } from '@oxy.so/bloom/theme';
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, Platform, StyleSheet } from 'react-native';
-import {
-  getProxyBaseUrl,
-  proxyExternalImages,
-  sanitizeEmailHtml,
-} from '../utils/htmlTransform';
+import { getProxyBaseUrl, proxyExternalImages, sanitizeEmailHtml } from '../utils/htmlTransform';
 import { useTranslation } from '@/lib/i18n';
 
 interface HtmlBodyProps {
@@ -41,9 +31,7 @@ const CONTROL_OR_SPACE_BOUNDARY = /^[\u0000-\u0020]+|[\u0000-\u0020]+$/g;
  * leading/trailing control chars and whitespace are stripped before parsing
  * and the scheme is matched exactly.
  */
-export function getSafeExternalUrl(
-  href: string | null | undefined,
-): string | null {
+export function getSafeExternalUrl(href: string | null | undefined): string | null {
   const trimmedHref = href?.replace(CONTROL_OR_SPACE_BOUNDARY, '');
   if (!trimmedHref || trimmedHref.startsWith('#')) return null;
 
@@ -76,9 +64,7 @@ export function isUserInitiatedNativeNavigation(request: {
 }): boolean {
   const { navigationType } = request;
   const isAllowedType =
-    navigationType === 'click' ||
-    navigationType === 'other' ||
-    navigationType == null;
+    navigationType === 'click' || navigationType === 'other' || navigationType == null;
   return request.isTopFrame !== false && isAllowedType;
 }
 
@@ -285,7 +271,6 @@ let HtmlBodyNative: React.ComponentType<HtmlBodyProps> | null = null;
 if (Platform.OS !== 'web') {
   // The native WebView must stay out of the web bundle. This platform guard is
   // intentional: a static import makes Expo's web export resolve native code.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { WebView } = require('react-native-webview');
 
   HtmlBodyNative = function HtmlBodyNativeComponent({ html }: HtmlBodyProps) {
@@ -305,11 +290,7 @@ if (Platform.OS !== 'web') {
 
     // Open user-clicked safe links in the system browser instead of navigating the WebView.
     const handleNavigation = useCallback(
-      (request: {
-        url: string;
-        navigationType?: string | null;
-        isTopFrame?: boolean;
-      }) => {
+      (request: { url: string; navigationType?: string | null; isTopFrame?: boolean }) => {
         const { allow, open } = decideNativeNavigation(request);
         if (open) Linking.openURL(open).catch(() => undefined);
         return allow;

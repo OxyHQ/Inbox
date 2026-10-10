@@ -7,7 +7,9 @@ import { createEmailApi } from '@/services/emailApi';
 
 it('sends draftId in the body and the idempotency key as a header', async () => {
   const http = {
-    post: jest.fn().mockResolvedValue({ messageId: '<m@oxy.so>', queued: false, message: 'Message sent' }),
+    post: jest
+      .fn()
+      .mockResolvedValue({ messageId: '<m@oxy.so>', queued: false, message: 'Message sent' }),
   };
   const api = createEmailApi(http as never);
 

@@ -187,7 +187,9 @@ function moveBack(api: EmailApi, origins: Map<string, string>): Promise<unknown>
   for (const [id, mailboxId] of origins) {
     byMailbox.set(mailboxId, [...(byMailbox.get(mailboxId) ?? []), id]);
   }
-  return Promise.all([...byMailbox].map(([mailboxId, ids]) => api.bulkMoveMessages(ids, mailboxId)));
+  return Promise.all(
+    [...byMailbox].map(([mailboxId, ids]) => api.bulkMoveMessages(ids, mailboxId)),
+  );
 }
 
 export function useArchiveMessage() {
@@ -451,7 +453,15 @@ export function useUpdateMessageLabels() {
 
   return useMutation({
     ...RETRY_IDEMPOTENT,
-    mutationFn: async ({ messageId, add, remove }: { messageId: string; add: string[]; remove: string[] }) => {
+    mutationFn: async ({
+      messageId,
+      add,
+      remove,
+    }: {
+      messageId: string;
+      add: string[];
+      remove: string[];
+    }) => {
       if (!api) throw new Error('Email API not initialized');
       return await api.updateLabels(messageId, add, remove);
     },
@@ -462,8 +472,9 @@ export function useUpdateMessageLabels() {
         ...labels.filter((l) => !remove.includes(l)),
         ...add.filter((l) => !labels.includes(l)),
       ];
-      queryClient.setQueryData<Message | null>(emailKeys.message.detail(messageId, userId), (old) =>
-        old ? { ...old, labels: applyLabels(old.labels) } : old,
+      queryClient.setQueryData<Message | null>(
+        emailKeys.message.detail(messageId, userId),
+        (old) => (old ? { ...old, labels: applyLabels(old.labels) } : old),
       );
       patchMessageInList(queryClient, messageId, (m) => ({ ...m, labels: applyLabels(m.labels) }));
       return { snapshot };
@@ -527,7 +538,9 @@ export function useSnoozeMessage() {
     // snoozed.
     mutationFn: async ({ messageIds, until }: { messageIds: string[]; until: string }) => {
       if (!api) throw new Error('Email API not initialized');
-      const results = await Promise.allSettled(messageIds.map((id) => api.snoozeMessage(id, until)));
+      const results = await Promise.allSettled(
+        messageIds.map((id) => api.snoozeMessage(id, until)),
+      );
       const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected');
       if (failed) throw failed.reason;
     },
@@ -623,7 +636,9 @@ export function useBulkUpdateFlags() {
       await queryClient.cancelQueries({ queryKey: emailKeys.messages.root });
 
       const snapshot = snapshotForRollback(queryClient, messageIds, userId);
-      const prevMessages = queryClient.getQueriesData<MessagesInfinite>({ queryKey: emailKeys.messages.root });
+      const prevMessages = queryClient.getQueriesData<MessagesInfinite>({
+        queryKey: emailKeys.messages.root,
+      });
 
       if (flags.seen !== undefined) {
         // Each message once: the same message is cached in every list it
@@ -638,7 +653,10 @@ export function useBulkUpdateFlags() {
             seenIds.add(message._id);
             if (message.flags.seen !== flags.seen && message.mailboxId) {
               const delta = flags.seen ? -1 : 1;
-              unseenDeltas.set(message.mailboxId, (unseenDeltas.get(message.mailboxId) ?? 0) + delta);
+              unseenDeltas.set(
+                message.mailboxId,
+                (unseenDeltas.get(message.mailboxId) ?? 0) + delta,
+              );
             }
           }
         }
@@ -755,7 +773,9 @@ export function useBulkDeleteMessages() {
     },
     onSuccess: (_data, { permanent, toTrash }, context) => {
       if (permanent.length > 0 || toTrash.length === 0 || !api || !context) {
-        toast.success(permanent.length > 0 ? t('ui.mutations.deletedForever') : t('ui.mutations.trashed'));
+        toast.success(
+          permanent.length > 0 ? t('ui.mutations.deletedForever') : t('ui.mutations.trashed'),
+        );
         return;
       }
       toastWithUndo({
@@ -776,7 +796,10 @@ export function useBulkDeleteMessages() {
   });
 }
 
-function removeMessagesFromLists(queryClient: ReturnType<typeof useQueryClient>, messageIds: string[]) {
+function removeMessagesFromLists(
+  queryClient: ReturnType<typeof useQueryClient>,
+  messageIds: string[],
+) {
   const ids = new Set(messageIds);
   queryClient.setQueriesData<MessagesInfinite>({ queryKey: emailKeys.messages.root }, (old) => {
     if (!old) return old;

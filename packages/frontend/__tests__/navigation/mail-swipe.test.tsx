@@ -6,10 +6,7 @@ let mockTouch = true;
 jest.mock('@/lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
-jest.mock(
-  '@oxy.so/bloom/icons',
-  () => new Proxy({}, { get: () => () => null }),
-);
+jest.mock('@oxy.so/bloom/icons', () => new Proxy({}, { get: () => () => null }));
 jest.mock('@oxy.so/bloom/swipe-row', () => ({
   useSwipeAvailable: () => mockTouch,
   SwipeRow: ({ onOpenChange, actions, children }: any) => {
@@ -60,12 +57,7 @@ it('executes the configured action on a completed swipe and closes even if the r
 it('keeps disabled directions and non-touch layouts inert', () => {
   const action = jest.fn();
   const view = render(
-    <SwipeableRow
-      messageId="m"
-      leftAction="none"
-      rightAction="delete"
-      onAction={action}
-    >
+    <SwipeableRow messageId="m" leftAction="none" rightAction="delete" onAction={action}>
       Message
     </SwipeableRow>,
   );
@@ -74,12 +66,7 @@ it('keeps disabled directions and non-touch layouts inert', () => {
   expect(action).toHaveBeenCalledWith('delete', 'm');
   mockTouch = false;
   view.rerender(
-    <SwipeableRow
-      messageId="m"
-      leftAction="archive"
-      rightAction="delete"
-      onAction={action}
-    >
+    <SwipeableRow messageId="m" leftAction="archive" rightAction="delete" onAction={action}>
       Message
     </SwipeableRow>,
   );

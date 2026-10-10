@@ -33,12 +33,7 @@ const ACTION_PATTERNS = [
   /by (end of day|eod|cob|tomorrow|friday)/i,
 ];
 
-const IMPORTANT_PATTERNS = [
-  /important/i,
-  /priority/i,
-  /critical/i,
-  /\[important\]/i,
-];
+const IMPORTANT_PATTERNS = [/important/i, /priority/i, /critical/i, /\[important\]/i];
 
 export function detectImportance(message: Message): ImportanceLevel {
   const subject = message.subject || '';
@@ -107,21 +102,12 @@ export function ImportanceBadge({ message, onPress }: ImportanceBadgeProps) {
   const config = BADGE_CONFIG[importance];
 
   const badge = (
-    <Badge
-      variant="subtle"
-      color={config.color}
-      content={t(config.labelKey)}
-      size="small"
-    />
+    <Badge variant="subtle" color={config.color} content={t(config.labelKey)} size="small" />
   );
 
   if (onPress) {
     return (
-      <Chip
-        onPress={onPress}
-        color={config.color}
-        variant="subtle"
-      >
+      <Chip onPress={onPress} color={config.color} variant="subtle">
         {t(config.labelKey)}
       </Chip>
     );

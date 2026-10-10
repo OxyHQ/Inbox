@@ -29,7 +29,10 @@ export function useDailyBrief({ enabled }: { enabled: boolean }) {
   const userId = user?.id ?? null;
   // Briefs hold private account content, so a same-day account switch must
   // never reuse another account's entry; a language switch is another brief.
-  const queryKey = useMemo(() => ['daily-brief', userId, day, locale] as const, [day, locale, userId]);
+  const queryKey = useMemo(
+    () => ['daily-brief', userId, day, locale] as const,
+    [day, locale, userId],
+  );
 
   const query = useQuery({
     queryKey,
@@ -46,13 +49,15 @@ export function useDailyBrief({ enabled }: { enabled: boolean }) {
   /** Opening a message from the brief reads it: the row stops showing unread. */
   const markOpened = useCallback(
     (messageId: string) => {
-      queryClient.setQueryData<InboxDailyBrief>(queryKey, (brief) =>
-        brief && {
-          ...brief,
-          items: brief.items.map((item) =>
-            item.messageId === messageId ? { ...item, unread: false } : item,
-          ),
-        },
+      queryClient.setQueryData<InboxDailyBrief>(
+        queryKey,
+        (brief) =>
+          brief && {
+            ...brief,
+            items: brief.items.map((item) =>
+              item.messageId === messageId ? { ...item, unread: false } : item,
+            ),
+          },
       );
     },
     [queryClient, queryKey],

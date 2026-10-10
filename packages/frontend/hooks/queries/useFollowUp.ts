@@ -108,8 +108,8 @@ export function useFollowUp(
   const enabled = options.enabled ?? inboxMessages !== undefined;
   const { data: mailboxes = [] } = useMailboxes();
   const sentMailboxId = useMemo(
-    () => mailboxes.find(m => m.specialUse === SPECIAL_USE.SENT)?._id,
-    [mailboxes]
+    () => mailboxes.find((m) => m.specialUse === SPECIAL_USE.SENT)?._id,
+    [mailboxes],
   );
 
   const { data, isLoading } = useMessages(
@@ -121,14 +121,14 @@ export function useFollowUp(
       return { messages: [], count: 0 };
     }
 
-    const allSentMessages = data.pages.flatMap(p => p.data);
+    const allSentMessages = data.pages.flatMap((p) => p.data);
     const needsFollowUp = allSentMessages.filter(
       (message) => getFollowUpReason(message, inboxMessages) !== null,
     );
 
     // Sort by date descending (most recent first)
     const sorted = [...needsFollowUp].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     );
 
     // Multiple sent messages in one conversation should not create a stack of

@@ -15,7 +15,13 @@
 import type { InfiniteData, QueryClient, QueryKey } from '@tanstack/react-query';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import { invalidateMailViews } from '@/hooks/queries/invalidateMailViews';
-import type { Mailbox, Message, Pagination, ThreadData, UnreadableMessage } from '@/services/emailApi';
+import type {
+  Mailbox,
+  Message,
+  Pagination,
+  ThreadData,
+  UnreadableMessage,
+} from '@/services/emailApi';
 
 /** One page of a `['messages', ...]` infinite list. */
 export interface MessagesPage {
@@ -101,11 +107,16 @@ export function findCachedMessage(
   messageId: string,
   userId: string | null,
 ): Message | undefined {
-  for (const [, data] of queryClient.getQueriesData<MessagesInfinite>({ queryKey: emailKeys.messages.root })) {
+  for (const [, data] of queryClient.getQueriesData<MessagesInfinite>({
+    queryKey: emailKeys.messages.root,
+  })) {
     const found = flatMessages(data).find((m) => m._id === messageId);
     if (found) return found;
   }
-  return queryClient.getQueryData<Message | null>(emailKeys.message.detail(messageId, userId)) ?? undefined;
+  return (
+    queryClient.getQueryData<Message | null>(emailKeys.message.detail(messageId, userId)) ??
+    undefined
+  );
 }
 
 // ─── Optimistic patches ──────────────────────────────────────────────
@@ -161,9 +172,7 @@ export function patchMailboxUnseen(
   if (!mailboxId || delta === 0) return;
   queryClient.setQueriesData<Mailbox[]>({ queryKey: emailKeys.mailboxes.root }, (old) =>
     old?.map((mb) =>
-      mb._id === mailboxId
-        ? { ...mb, unseenMessages: Math.max(0, mb.unseenMessages + delta) }
-        : mb,
+      mb._id === mailboxId ? { ...mb, unseenMessages: Math.max(0, mb.unseenMessages + delta) } : mb,
     ),
   );
 }
@@ -215,8 +224,13 @@ export function snapshotForRollback(
   return {
     messageIds: ids,
     userId,
-    prevMessages: queryClient.getQueriesData<MessagesInfinite>({ queryKey: emailKeys.messages.root }),
-    prevDetails: ids.map((id) => [id, queryClient.getQueryData<Message | null>(emailKeys.message.detail(id, userId))]),
+    prevMessages: queryClient.getQueriesData<MessagesInfinite>({
+      queryKey: emailKeys.messages.root,
+    }),
+    prevDetails: ids.map((id) => [
+      id,
+      queryClient.getQueryData<Message | null>(emailKeys.message.detail(id, userId)),
+    ]),
     prevThreads: queryClient.getQueriesData<ThreadData>({ queryKey: emailKeys.thread.root }),
   };
 }
@@ -287,7 +301,9 @@ export function restoreSnapshot(
   for (const [key, prev] of snapshot.prevThreads) {
     if (!prev) continue;
     queryClient.setQueryData<ThreadData>(key, (current) =>
-      current ? { ...current, messages: restoreRows([current.messages], prev.messages, ids)[0] } : current,
+      current
+        ? { ...current, messages: restoreRows([current.messages], prev.messages, ids)[0] }
+        : current,
     );
   }
   for (const [id, prev] of snapshot.prevDetails) {

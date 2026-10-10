@@ -53,6 +53,20 @@ jobs:
       - name: Verify Oxy dependency health
         run: bun run doctor:oxy
 
+      # Biome owns formatting and almost all linting (root biome.json). `ci`
+      # never writes; it fails on unformatted files and on error-level rules.
+      - name: Biome (format + lint)
+        run: bunx biome ci .
+
+      # The minimal Expo ESLint (packages/frontend/eslint.config.js) keeps only
+      # what Biome cannot check: eslint-plugin-expo's EXPO_PUBLIC_* inlining
+      # guards and the React Compiler rules. `expo lint` exits non-zero on any
+      # error. This replaces the old `lint (ratchet)` job: its error count had
+      # reached 0 on main (run 38067374320), the point at which that job's own
+      # note said to delete it and make lint pass/fail here.
+      - name: Expo ESLint
+        run: bun run --cwd packages/frontend lint
+
       - run: bun run typecheck
 
       # AGENTS.md is prepended to EVERY agent session, so its bytes are paid on
@@ -93,55 +107,3 @@ jobs:
               exit 1
             }
           done
-
-  # Lint is a RATCHET, not a pass/fail gate — because it cannot be a pass/fail
-  # gate today and a permanently-red check is worse than none: it teaches
-  # everyone to ignore the X, and then it catches nothing when it goes redder.
-  #
-  # `expo lint` was already failing on OxyHQServices' main when this repo was
-  # split out: measured 2026-08-10, 19 errors there against 21 here. The two
-  # extra are not new code — a fresh lockfile resolves eslint-config-expo 57.0.1
-  # where the monorepo's lock pinned 57.0.0, and it reclassifies four
-  # `react-hooks/preserve-manual-memoization` findings as seven
-  # `react-hooks/refs`. Inbox was never in the monorepo's lint CI at all, so
-  # nothing has ever enforced this.
-  #
-  # So: green at or below the recorded count, red above it. That makes the job
-  # honest today and still catches a regression tomorrow. Lower BASELINE as the
-  # count comes down; at 0, delete this job and put `bun run lint` back in the
-  # job above.
-  lint:
-    name: lint (ratchet)
-    runs-on: ubuntu-latest
-    env:
-      BASELINE: 21
-    steps:
-      - uses: actions/checkout@v7
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.3.14
-      - run: bun install
-      - name: eslint error count must not exceed the baseline
-        run: |
-          set +e
-          out=$(bun run lint 2>&1)
-          printf '%s\n' "$out"
-          # eslint's summary line: "✖ 37 problems (21 errors, 16 warnings)"
-          errors=$(printf '%s' "$out" | grep -oE '[0-9]+ errors?' | tail -1 | grep -oE '[0-9]+')
-          if [ -z "${errors:-}" ]; then
-            # No summary line means eslint found NOTHING — or never ran. Those
-            # look identical, so distinguish them rather than assuming zero.
-            if printf '%s' "$out" | grep -qE 'Oops|Cannot find|ENOENT|error:'; then
-              echo "::error::eslint did not run; treating as failure, not as zero errors."
-              exit 1
-            fi
-            errors=0
-          fi
-          echo "eslint errors: $errors (baseline $BASELINE)"
-          if [ "$errors" -gt "$BASELINE" ]; then
-            echo "::error::eslint errors rose to $errors, above the $BASELINE baseline."
-            exit 1
-          fi
-          if [ "$errors" -lt "$BASELINE" ]; then
-            echo "::notice::eslint errors fell to $errors — lower BASELINE in ci.yml to lock it in."
-          fi

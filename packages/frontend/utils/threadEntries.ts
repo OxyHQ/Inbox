@@ -20,7 +20,10 @@ function timeOf(value: string | null | undefined): number | null {
  * Oldest first. An unreadable row is placed by its `receivedAt`; one with no
  * readable date goes last, where it is still seen.
  */
-export function buildThreadEntries(messages: Message[], unreadable: UnreadableMessage[]): ThreadEntry[] {
+export function buildThreadEntries(
+  messages: Message[],
+  unreadable: UnreadableMessage[],
+): ThreadEntry[] {
   const entries: { entry: ThreadEntry; time: number | null; order: number }[] = [];
   messages.forEach((message, order) => {
     entries.push({

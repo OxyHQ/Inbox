@@ -103,7 +103,12 @@ export interface ThreadData {
 export interface BundledMessages {
   primary: Message[];
   primaryUnreadable: UnreadableMessage[];
-  bundles: { bundle: Bundle; messages: Message[]; unreadable: UnreadableMessage[]; unreadCount: number }[];
+  bundles: {
+    bundle: Bundle;
+    messages: Message[];
+    unreadable: UnreadableMessage[];
+    unreadCount: number;
+  }[];
   pagination: Pagination;
 }
 
@@ -123,7 +128,8 @@ function readString(value: unknown, key: string): string | null {
  * it for a `Message`.
  */
 function toUnreadable(item: unknown): UnreadableMessage {
-  const from = typeof item === 'object' && item !== null ? (item as { from?: unknown }).from : undefined;
+  const from =
+    typeof item === 'object' && item !== null ? (item as { from?: unknown }).from : undefined;
   return {
     kind: 'unreadable',
     _id: readString(item, '_id'),
@@ -143,7 +149,10 @@ function toUnreadable(item: unknown): UnreadableMessage {
  * production, with the fields that failed — never the message content — and
  * the row comes back as an `UnreadableMessage` for the list to show.
  */
-function parseMessageList(items: unknown, source: string): { messages: Message[]; unreadable: UnreadableMessage[] } {
+function parseMessageList(
+  items: unknown,
+  source: string,
+): { messages: Message[]; unreadable: UnreadableMessage[] } {
   const messages: Message[] = [];
   const unreadable: UnreadableMessage[] = [];
   if (!Array.isArray(items)) return { messages, unreadable };
@@ -157,7 +166,10 @@ function parseMessageList(items: unknown, source: string): { messages: Message[]
     console.error('[inbox] message failed schema validation', {
       source,
       id: row._id,
-      issues: result.error.issues.map((issue) => ({ path: issue.path.join('.'), message: issue.message })),
+      issues: result.error.issues.map((issue) => ({
+        path: issue.path.join('.'),
+        message: issue.message,
+      })),
     });
     recordInboxMetric('message_parse_failed');
     unreadable.push(row);
@@ -175,7 +187,10 @@ function parseMessageStrict(item: unknown, source: string): Message {
   console.error('[inbox] message failed schema validation', {
     source,
     id: readString(item, '_id'),
-    issues: result.error.issues.map((issue) => ({ path: issue.path.join('.'), message: issue.message })),
+    issues: result.error.issues.map((issue) => ({
+      path: issue.path.join('.'),
+      message: issue.message,
+    })),
   });
   recordInboxMetric('message_parse_failed');
   throw result.error;
@@ -255,7 +270,10 @@ export function createEmailApi(http: HttpService) {
       if (options.cursor !== undefined) params.cursor = options.cursor;
       if (options.unseenOnly) params.unseen = 'true';
 
-      const res = (await http.get('/email/messages', { params, signal })) as PaginatedResult<unknown>;
+      const res = (await http.get('/email/messages', {
+        params,
+        signal,
+      })) as PaginatedResult<unknown>;
       const { messages, unreadable } = parseMessageList(res.data, 'list');
       return {
         data: messages,
@@ -382,12 +400,14 @@ export function createEmailApi(http: HttpService) {
         // Safe only because the key makes a repeat the same message.
         retry: true,
       });
-      return z.object({
-        messageId: z.string(),
-        queued: z.boolean().optional(),
-        scheduledAt: z.string().optional(),
-        message: z.string(),
-      }).parse(res);
+      return z
+        .object({
+          messageId: z.string(),
+          queued: z.boolean().optional(),
+          scheduledAt: z.string().optional(),
+          message: z.string(),
+        })
+        .parse(res);
     },
 
     async saveDraft(draft: {
@@ -492,14 +512,12 @@ export function createEmailApi(http: HttpService) {
       return EmailSettingsSchema.parse(res);
     },
 
-    async updateSettings(
-      settings: {
-        signature?: string;
-        autoReply?: Partial<EmailSettings['autoReply']>;
-        autoForwardTo?: string;
-        autoForwardKeepCopy?: boolean;
-      },
-    ): Promise<void> {
+    async updateSettings(settings: {
+      signature?: string;
+      autoReply?: Partial<EmailSettings['autoReply']>;
+      autoForwardTo?: string;
+      autoForwardKeepCopy?: boolean;
+    }): Promise<void> {
       await http.put('/email/settings', settings);
     },
 
@@ -512,7 +530,9 @@ export function createEmailApi(http: HttpService) {
       if (options.limit !== undefined) params.limit = String(options.limit);
       if (options.offset !== undefined) params.offset = String(options.offset);
 
-      const res = (await http.get('/email/subscriptions', { params })) as PaginatedResult<Subscription>;
+      const res = (await http.get('/email/subscriptions', {
+        params,
+      })) as PaginatedResult<Subscription>;
       return {
         data: z.array(SubscriptionSchema).parse(res.data),
         pagination: PaginationSchema.parse(res.pagination),
@@ -553,7 +573,7 @@ export function createEmailApi(http: HttpService) {
       if (options.limit !== undefined) params.limit = String(options.limit);
       if (options.offset !== undefined) params.offset = String(options.offset);
 
-      const res = await http.get('/email/messages/bundled', { params }) as {
+      const res = (await http.get('/email/messages/bundled', { params })) as {
         data: {
           primary: unknown[];
           bundles: { bundle: unknown; messages: unknown[]; unreadCount: number }[];
@@ -568,7 +588,12 @@ export function createEmailApi(http: HttpService) {
           const { messages, unreadable } = parseMessageList(b.messages, 'bundles.bundle');
           // `unreadCount` is the server's count over the raw rows, so a row
           // this client cannot read is still counted there.
-          return { bundle: BundleSchema.parse(b.bundle), messages, unreadable, unreadCount: b.unreadCount };
+          return {
+            bundle: BundleSchema.parse(b.bundle),
+            messages,
+            unreadable,
+            unreadCount: b.unreadCount,
+          };
         }),
         pagination: PaginationSchema.parse(res.pagination),
       };
@@ -607,7 +632,13 @@ export function createEmailApi(http: HttpService) {
 
     async updateReminder(
       reminderId: string,
-      updates: { text?: string; remindAt?: string; completed?: boolean; pinned?: boolean; snoozedUntil?: string | null },
+      updates: {
+        text?: string;
+        remindAt?: string;
+        completed?: boolean;
+        pinned?: boolean;
+        snoozedUntil?: string | null;
+      },
     ): Promise<Reminder> {
       const res = await http.put(`/email/reminders/${reminderId}`, updates);
       return ReminderSchema.parse(res);
@@ -656,7 +687,13 @@ export function createEmailApi(http: HttpService) {
 
     async updateContact(
       contactId: string,
-      updates: { name?: string; email?: string; company?: string; notes?: string; starred?: boolean },
+      updates: {
+        name?: string;
+        email?: string;
+        company?: string;
+        notes?: string;
+        starred?: boolean;
+      },
     ): Promise<Contact> {
       const res = await http.put(`/email/contacts/${contactId}`, updates);
       return ContactSchema.parse(res);
@@ -673,12 +710,19 @@ export function createEmailApi(http: HttpService) {
       return z.array(EmailTemplateSchema).parse(res);
     },
 
-    async createTemplate(data: { name: string; subject?: string; body: string }): Promise<EmailTemplate> {
+    async createTemplate(data: {
+      name: string;
+      subject?: string;
+      body: string;
+    }): Promise<EmailTemplate> {
       const res = await http.post('/email/templates', data);
       return EmailTemplateSchema.parse(res);
     },
 
-    async updateTemplate(templateId: string, updates: { name?: string; subject?: string; body?: string }): Promise<EmailTemplate> {
+    async updateTemplate(
+      templateId: string,
+      updates: { name?: string; subject?: string; body?: string },
+    ): Promise<EmailTemplate> {
       const res = await http.put(`/email/templates/${templateId}`, updates);
       return EmailTemplateSchema.parse(res);
     },

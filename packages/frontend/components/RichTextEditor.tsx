@@ -78,12 +78,9 @@ function WebRichTextEditor(
     if (document.queryCommandState('bold')) formats.add('bold');
     if (document.queryCommandState('italic')) formats.add('italic');
     if (document.queryCommandState('underline')) formats.add('underline');
-    if (document.queryCommandState('strikeThrough'))
-      formats.add('strikeThrough');
-    if (document.queryCommandState('insertOrderedList'))
-      formats.add('insertOrderedList');
-    if (document.queryCommandState('insertUnorderedList'))
-      formats.add('insertUnorderedList');
+    if (document.queryCommandState('strikeThrough')) formats.add('strikeThrough');
+    if (document.queryCommandState('insertOrderedList')) formats.add('insertOrderedList');
+    if (document.queryCommandState('insertUnorderedList')) formats.add('insertUnorderedList');
     setActiveFormats(formats);
   }, []);
 
@@ -176,11 +173,7 @@ function WebRichTextEditor(
 
   const handleSelectionChange = useCallback(() => {
     const selection = document.getSelection();
-    if (
-      !selection?.rangeCount ||
-      !editorRef.current?.contains(selection.anchorNode)
-    )
-      return;
+    if (!selection?.rangeCount || !editorRef.current?.contains(selection.anchorNode)) return;
     selectionRef.current = selection.getRangeAt(0).cloneRange();
     updateActiveFormats();
   }, [updateActiveFormats]);
@@ -220,9 +213,7 @@ function WebRichTextEditor(
       if (
         selectionRef.current &&
         selection &&
-        editorRef.current?.contains(
-          selectionRef.current.commonAncestorContainer,
-        )
+        editorRef.current?.contains(selectionRef.current.commonAncestorContainer)
       ) {
         selection.removeAllRanges();
         selection.addRange(selectionRef.current);
@@ -333,9 +324,7 @@ function WebRichTextEditor(
       {/* Editable area */}
       <View style={webStyles.editorWrapper}>
         {isEmpty && placeholder && (
-          <Text
-            style={[webStyles.placeholder, { color: colors.searchPlaceholder }]}
-          >
+          <Text style={[webStyles.placeholder, { color: colors.searchPlaceholder }]}>
             {placeholder}
           </Text>
         )}
@@ -360,9 +349,7 @@ function WebRichTextEditor(
   );
 }
 
-const WebEditor = React.forwardRef<RichTextEditorHandle, RichTextEditorProps>(
-  WebRichTextEditor,
-);
+const WebEditor = React.forwardRef<RichTextEditorHandle, RichTextEditorProps>(WebRichTextEditor);
 
 // ─── Native Implementation ───────────────────────────────────────────
 
@@ -396,22 +383,20 @@ function NativeRichTextEditor(
   );
 }
 
-const NativeEditor = React.forwardRef<
-  RichTextEditorHandle,
-  RichTextEditorProps
->(NativeRichTextEditor);
+const NativeEditor = React.forwardRef<RichTextEditorHandle, RichTextEditorProps>(
+  NativeRichTextEditor,
+);
 
 // ─── Exported component (platform switch) ────────────────────────────
 
-export const RichTextEditor = React.forwardRef<
-  RichTextEditorHandle,
-  RichTextEditorProps
->((props, ref) => {
-  if (Platform.OS === 'web') {
-    return <WebEditor ref={ref} {...props} />;
-  }
-  return <NativeEditor ref={ref} {...props} />;
-});
+export const RichTextEditor = React.forwardRef<RichTextEditorHandle, RichTextEditorProps>(
+  (props, ref) => {
+    if (Platform.OS === 'web') {
+      return <WebEditor ref={ref} {...props} />;
+    }
+    return <NativeEditor ref={ref} {...props} />;
+  },
+);
 
 RichTextEditor.displayName = 'RichTextEditor';
 

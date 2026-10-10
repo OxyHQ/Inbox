@@ -68,8 +68,9 @@ included. The three declared peers, the measured census and the
 - **One provider:** `OxyProvider` from `@oxy.so/services` with `clientId` +
   `authRedirectUri`. Sign-in is the in-app `OxyAccountDialog` behind
   `RequireOxyAuth` — never a redirect to auth.oxy.so.
-- **Config** comes from `@oxy.so/app-preset` (Metro, Babel, ESLint, base CSS).
-  Fix the preset upstream; never copy config back into the app.
+- **Config** comes from `@oxy.so/app-preset` (Metro, Babel, base CSS).
+  Fix the preset upstream; never copy config back into the app. Lint and
+  format are Biome plus a minimal Expo ESLint: `bun run lint`.
 - **Theming** is Bloom tokens + NativeWind classNames. Never hardcode brand
   colours, never redefine `--bloom-*`.
 - **Realtime** rides the SDK's socket via `useOxyEvent`. Never open a second

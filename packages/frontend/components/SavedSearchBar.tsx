@@ -18,18 +18,10 @@ interface SavedSearchBarProps {
   query: string;
   filters: SavedEmailSearchFilters;
   enabled: boolean;
-  onApply: (search: {
-    query: string;
-    filters: SavedEmailSearchFilters;
-  }) => void;
+  onApply: (search: { query: string; filters: SavedEmailSearchFilters }) => void;
 }
 
-export function SavedSearchBar({
-  query,
-  filters,
-  enabled,
-  onApply,
-}: SavedSearchBarProps) {
+export function SavedSearchBar({ query, filters, enabled, onApply }: SavedSearchBarProps) {
   const { t } = useTranslation();
   const { data: savedSearches = [] } = useSavedSearches();
   const createSavedSearch = useCreateSavedSearch();
@@ -56,16 +48,10 @@ export function SavedSearchBar({
         <View className="gap-2 px-4 pb-3">
           <View className="flex-row flex-wrap items-center justify-between gap-2">
             {savedSearches.length > 0 && (
-              <Text variant="caption-1-medium">
-                {t('search.ui.savedSearches')}
-              </Text>
+              <Text variant="caption-1-medium">{t('search.ui.savedSearches')}</Text>
             )}
             {enabled && (
-              <Button
-                appearance="plain"
-                leading={<RiBookmarkLine />}
-                onPress={() => setOpen(true)}
-              >
+              <Button appearance="plain" leading={<RiBookmarkLine />} onPress={() => setOpen(true)}>
                 {t('search.ui.saveSearch')}
               </Button>
             )}

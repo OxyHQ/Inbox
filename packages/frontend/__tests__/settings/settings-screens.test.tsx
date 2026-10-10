@@ -63,13 +63,25 @@ const subscription = (overrides: Partial<Subscription> = {}): Subscription => ({
 
 describe('SubscriptionRow', () => {
   it('counts messages through a plural key, not an English "email(s)"', () => {
-    render(<SubscriptionRow subscription={subscription({ messageCount: 1 })} onUnsubscribe={jest.fn()} isUnsubscribing={false} />);
+    render(
+      <SubscriptionRow
+        subscription={subscription({ messageCount: 1 })}
+        onUnsubscribe={jest.fn()}
+        isUnsubscribing={false}
+      />,
+    );
     expect(screen.getByText('subscriptions.messageCount#1')).toBeTruthy();
   });
 
   it('offers the way out while still subscribed', () => {
     const onUnsubscribe = jest.fn();
-    render(<SubscriptionRow subscription={subscription()} onUnsubscribe={onUnsubscribe} isUnsubscribing={false} />);
+    render(
+      <SubscriptionRow
+        subscription={subscription()}
+        onUnsubscribe={onUnsubscribe}
+        isUnsubscribing={false}
+      />,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'subscriptions.unsubscribe' }));
     expect(onUnsubscribe).toHaveBeenCalledWith('news@example.com', 'list-unsubscribe');
   });
@@ -78,12 +90,17 @@ describe('SubscriptionRow', () => {
     const onUnsubscribe = jest.fn();
     render(
       <SubscriptionRow
-        subscription={subscription({ unsubscribed: true, unsubscribedAt: '2026-10-10T00:00:00.000Z' })}
+        subscription={subscription({
+          unsubscribed: true,
+          unsubscribedAt: '2026-10-10T00:00:00.000Z',
+        })}
         onUnsubscribe={onUnsubscribe}
         isUnsubscribing={false}
       />,
     );
-    const button = screen.getByRole('button', { name: 'subscriptions.unsubscribed' }) as HTMLButtonElement;
+    const button = screen.getByRole('button', {
+      name: 'subscriptions.unsubscribed',
+    }) as HTMLButtonElement;
     expect(button.disabled).toBe(true);
     expect(screen.queryByRole('button', { name: 'subscriptions.unsubscribe' })).toBeNull();
   });

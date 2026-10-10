@@ -22,69 +22,65 @@ interface SearchHeaderProps {
   autoFocus?: boolean;
 }
 
-export const SearchHeader = forwardRef<TextInput, SearchHeaderProps>(
-  function SearchHeader(
-    {
-      onLeftIcon,
-      leftIcon = 'menu',
-      hideLeftIcon = false,
-      placeholder,
-      onPress,
-      value,
-      onChangeText,
-      onSubmitEditing,
-      onClear,
-      autoFocus,
-    },
-    ref,
-  ) {
-    const { t } = useTranslation();
-    const shell = useAppShell();
-    const label = placeholder ?? t('search.placeholder');
-    return (
-      <PageHeader
-        sticky={false}
-        scrim="none"
-        safeArea={false}
-        onBack={
-          !hideLeftIcon && leftIcon === 'arrow-left' ? onLeftIcon : undefined
-        }
-        backLabel={t('search.goBack')}
-        leading={
-          shell.drawerAvailable ? (
-            <ButtonGroup accessibilityLabel={t('search.openMenu')}>
-              <ButtonGroupItem
-                iconOnly
-                leadingIcon={RiMenuLine}
-                accessibilityLabel={t('search.openMenu')}
-                onPress={shell.openDrawer}
-              />
-            </ButtonGroup>
-          ) : undefined
-        }
-        title={
-          onChangeText ? (
-            <Search
-              ref={ref}
-              label={label}
-              value={value}
-              onChangeText={onChangeText}
-              onClearText={onClear}
-              onSubmitEditing={onSubmitEditing}
-              autoFocus={autoFocus}
-            />
-          ) : (
-            <Button
-              appearance="subtle"
-              leading={<RiSearchLine />}
-              onPress={onPress}
-              accessibilityLabel={label}
-            >
-              {label}
-            </Button>
-          )
-        }
-      />
-    );
+export const SearchHeader = forwardRef<TextInput, SearchHeaderProps>(function SearchHeader(
+  {
+    onLeftIcon,
+    leftIcon = 'menu',
+    hideLeftIcon = false,
+    placeholder,
+    onPress,
+    value,
+    onChangeText,
+    onSubmitEditing,
+    onClear,
+    autoFocus,
   },
-);
+  ref,
+) {
+  const { t } = useTranslation();
+  const shell = useAppShell();
+  const label = placeholder ?? t('search.placeholder');
+  return (
+    <PageHeader
+      sticky={false}
+      scrim="none"
+      safeArea={false}
+      onBack={!hideLeftIcon && leftIcon === 'arrow-left' ? onLeftIcon : undefined}
+      backLabel={t('search.goBack')}
+      leading={
+        shell.drawerAvailable ? (
+          <ButtonGroup accessibilityLabel={t('search.openMenu')}>
+            <ButtonGroupItem
+              iconOnly
+              leadingIcon={RiMenuLine}
+              accessibilityLabel={t('search.openMenu')}
+              onPress={shell.openDrawer}
+            />
+          </ButtonGroup>
+        ) : undefined
+      }
+      title={
+        onChangeText ? (
+          <Search
+            ref={ref}
+            label={label}
+            value={value}
+            onChangeText={onChangeText}
+            onClearText={onClear}
+            onSubmitEditing={onSubmitEditing}
+            autoFocus={autoFocus}
+          />
+        ) : (
+          <Button
+            appearance="subtle"
+            leading={<RiSearchLine />}
+            onPress={onPress}
+            accessibilityLabel={label}
+          >
+            {label}
+          </Button>
+        )
+      }
+    />
+  );
+});

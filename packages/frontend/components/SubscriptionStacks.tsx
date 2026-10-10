@@ -69,10 +69,7 @@ interface SubscriptionStacksProps {
   onSelect?: (subscriptionId: string) => void;
 }
 
-export function SubscriptionStacks({
-  subscriptions,
-  onSelect,
-}: SubscriptionStacksProps) {
+export function SubscriptionStacks({ subscriptions, onSelect }: SubscriptionStacksProps) {
   const { t } = useTranslation();
   const ordered = useMemo(
     () => [...subscriptions].sort((a, b) => b.messageCount - a.messageCount),
@@ -111,10 +108,7 @@ function SubscriptionColumn({
   subscription: Subscription;
   onSelect?: (subscriptionId: string) => void;
 }) {
-  const handlePress = useCallback(
-    () => onSelect?.(subscription._id),
-    [onSelect, subscription._id],
-  );
+  const handlePress = useCallback(() => onSelect?.(subscription._id), [onSelect, subscription._id]);
 
   return (
     <View style={styles.column}>
@@ -130,9 +124,7 @@ function SubscriptionColumn({
               name={subscription.name}
               size={40}
               avatarUrl={
-                subscription.senderAvatarPath
-                  ? `${API_URL}${subscription.senderAvatarPath}`
-                  : null
+                subscription.senderAvatarPath ? `${API_URL}${subscription.senderAvatarPath}` : null
               }
             />
             <Text variant="body-2-medium">{subscription.messageCount}</Text>

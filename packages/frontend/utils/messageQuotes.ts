@@ -1,12 +1,17 @@
 import { DomUtils, parseDocument } from 'htmlparser2';
 
 type HtmlNode = ReturnType<typeof parseDocument>['children'][number];
-export interface MessageParts { body: string; quoted?: string }
+export interface MessageParts {
+  body: string;
+  quoted?: string;
+}
 
 function isAttribution(value: string): boolean {
   const text = value.replace(/\s+/g, ' ').trim();
   if (text.length > 700 || !/[@\d]/.test(text)) return false;
-  return /^(?:On\b.+\bwrote:|El\b.+\bescribi[oó]:|Le\b.+\ba [eé]crit\s*:|Am\b.+\bschrieb.+:|Em\b.+\bescreveu:|Il\b.+\bha scritto:)$/i.test(text);
+  return /^(?:On\b.+\bwrote:|El\b.+\bescribi[oó]:|Le\b.+\ba [eé]crit\s*:|Am\b.+\bschrieb.+:|Em\b.+\bescreveu:|Il\b.+\bha scritto:)$/i.test(
+    text,
+  );
 }
 
 /**
@@ -75,21 +80,33 @@ export function splitHtmlQuote(html: string): MessageParts {
       }
       if (!('attribs' in node) || ['head', 'script', 'style'].includes(node.name)) return;
       const classes = (node.attribs.class ?? '').split(/\s+/);
-      const clientQuote = classes.some((name) => ['gmail_quote', 'yahoo_quoted', 'protonmail_quote'].includes(name));
+      const clientQuote = classes.some((name) =>
+        ['gmail_quote', 'yahoo_quoted', 'protonmail_quote'].includes(name),
+      );
       let previous = index - 1;
       while (previous >= 0 && !DomUtils.textContent(nodes[previous]).trim()) previous--;
-      const attribution = previous >= 0 && isAttribution(DomUtils.textContent(nodes[previous]))
-        ? nodes[previous] : undefined;
+      const attribution =
+        previous >= 0 && isAttribution(DomUtils.textContent(nodes[previous]))
+          ? nodes[previous]
+          : undefined;
       const forwarded = clientQuote
         ? isForwardHeader(DomUtils.textContent(node))
         : previous >= 0 && isAppleForwardHeader(DomUtils.textContent(nodes[previous]));
-      if (!forwarded && (clientQuote || (node.name === 'blockquote' && (node.attribs.type?.toLowerCase() === 'cite' || attribution)))) {
+      if (
+        !forwarded &&
+        (clientQuote ||
+          (node.name === 'blockquote' &&
+            (node.attribs.type?.toLowerCase() === 'cite' || attribution)))
+      ) {
         quoted.add(node);
         if (attribution) quoted.add(attribution);
         return;
       }
       // Outlook puts the original-message header and quoted tail in sibling nodes.
-      if (node.attribs.id?.toLowerCase() === 'divrplyfwdmsg' && !isOutlookForward(DomUtils.textContent(node))) {
+      if (
+        node.attribs.id?.toLowerCase() === 'divrplyfwdmsg' &&
+        !isOutlookForward(DomUtils.textContent(node))
+      ) {
         nodes.slice(index).forEach((sibling) => quoted.add(sibling));
         return;
       }
@@ -111,7 +128,9 @@ export function splitHtmlQuote(html: string): MessageParts {
     }
     if ('name' in node && ['head', 'style'].includes(node.name)) return node.cloneNode(true);
     if ('children' in node) {
-      const children = node.children.map((child) => copy(child, quoteOnly)).filter((child): child is HtmlNode => child !== null);
+      const children = node.children
+        .map((child) => copy(child, quoteOnly))
+        .filter((child): child is HtmlNode => child !== null);
       // The quote keeps only the elements on the way to quoted content. The
       // body keeps every element that is not quoted, empty or not: an <img>,
       // <br> or <hr> has no children, and dropping childless elements took
@@ -123,14 +142,16 @@ export function splitHtmlQuote(html: string): MessageParts {
     }
     return quoteOnly ? null : node.cloneNode(true);
   };
-  const copyAll = (quoteOnly: boolean) => document.children
-    .map((node) => copy(node, quoteOnly))
-    .filter((node): node is HtmlNode => node !== null);
+  const copyAll = (quoteOnly: boolean) =>
+    document.children
+      .map((node) => copy(node, quoteOnly))
+      .filter((node): node is HtmlNode => node !== null);
   const body = copyAll(false);
   // Nothing left to read outside the quote — a forward without a note, a
   // citation-only message: show it all rather than an empty body.
   if (!hasVisibleContent(body)) return { body: html };
-  const serialize = (nodes: HtmlNode[]) => nodes.map((node) => DomUtils.getOuterHTML(node)).join('');
+  const serialize = (nodes: HtmlNode[]) =>
+    nodes.map((node) => DomUtils.getOuterHTML(node)).join('');
   return { body: serialize(body), quoted: serialize(copyAll(true)) };
 }
 

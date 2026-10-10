@@ -36,7 +36,9 @@ const PLURAL = /_(zero|one|two|few|many|other)$/;
 describe('Inbox UI locale coverage', () => {
   const englishUi = flatten(en.ui);
   const englishPluralBases = new Set(
-    Object.keys(englishUi).filter((key) => PLURAL.test(key)).map((key) => key.replace(PLURAL, '')),
+    Object.keys(englishUi)
+      .filter((key) => PLURAL.test(key))
+      .map((key) => key.replace(PLURAL, '')),
   );
 
   for (const [locale, dictionary] of Object.entries(dictionaries)) {

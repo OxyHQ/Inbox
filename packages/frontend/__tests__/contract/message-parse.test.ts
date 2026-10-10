@@ -10,7 +10,11 @@ import { ampAttachment, wireMessage } from '../fixtures/wire';
  * serialises as `contentId: null`. The client schema rejected null, and the
  * whole message vanished from the inbox a second after it appeared.
  */
-const ampMail = wireMessage({ text: 'Your login verification code', html: null, attachments: [ampAttachment] });
+const ampMail = wireMessage({
+  text: 'Your login verification code',
+  html: null,
+  attachments: [ampAttachment],
+});
 
 function apiReturning(body: unknown) {
   const http = { get: jest.fn().mockResolvedValue(body) };
@@ -85,7 +89,11 @@ describe('sendMessage', () => {
   it('always sends the Idempotency-Key and a timeout that outlasts a synchronous relay', async () => {
     const post = jest.fn().mockResolvedValue({ messageId: '<a@oxy.so>', message: 'Message sent' });
     const api = createEmailApi({ post } as never);
-    await api.sendMessage({ to: [{ address: 'a@b.co' }], subject: 'Hi', idempotencyKey: 'inbox-send-k' });
+    await api.sendMessage({
+      to: [{ address: 'a@b.co' }],
+      subject: 'Hi',
+      idempotencyKey: 'inbox-send-k',
+    });
     const [, payload, config] = post.mock.calls[0];
     expect(payload).not.toHaveProperty('idempotencyKey');
     expect(config.headers).toEqual({ 'Idempotency-Key': 'inbox-send-k' });

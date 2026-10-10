@@ -1,21 +1,12 @@
 import { Field } from '@oxy.so/bloom/field';
 import { useTranslation } from '@/lib/i18n';
 import type { Mailbox } from '@/services/emailApi';
-import {
-  dateRangeFilters,
-  filtersDateRange,
-  type SearchFilters,
-} from '@/utils/searchFilters';
+import { dateRangeFilters, filtersDateRange, type SearchFilters } from '@/utils/searchFilters';
 import { Button } from '@oxy.so/bloom/button';
 import { Chip } from '@oxy.so/bloom/chip';
 import { DateRangePicker } from '@oxy.so/bloom/date-picker';
 import { Dialog } from '@oxy.so/bloom/dialog';
-import {
-  RiAttachmentLine,
-  RiFilterLine,
-  RiMailLine,
-  RiStarLine,
-} from '@oxy.so/bloom/icons';
+import { RiAttachmentLine, RiFilterLine, RiMailLine, RiStarLine } from '@oxy.so/bloom/icons';
 import {
   Select,
   SelectContent,
@@ -85,12 +76,9 @@ export function SearchFiltersBar({
   const active = Object.entries(filters).filter(([key, value]) =>
     key === 'unread' ? typeof value === 'boolean' : Boolean(value),
   );
-  const activeCount =
-    active.length - (filters.dateAfter && filters.dateBefore ? 1 : 0);
+  const activeCount = active.length - (filters.dateAfter && filters.dateBefore ? 1 : 0);
   const dateLabel = (value: string) => {
-    const date = new Date(
-      /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00` : value,
-    );
+    const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00` : value);
     return Number.isFinite(date.getTime())
       ? date.toLocaleDateString(locale, {
           month: 'short',
@@ -128,9 +116,7 @@ export function SearchFiltersBar({
       ? [
           {
             key: 'mailbox' as const,
-            label:
-              mailboxes.find((m) => m._id === filters.mailbox)?.name ??
-              filters.mailbox,
+            label: mailboxes.find((m) => m._id === filters.mailbox)?.name ?? filters.mailbox,
           },
         ]
       : []),
@@ -142,9 +128,7 @@ export function SearchFiltersBar({
           },
         ]
       : []),
-    ...(filters.unread === false
-      ? [{ key: 'unread' as const, label: t('search.ui.read') }]
-      : []),
+    ...(filters.unread === false ? [{ key: 'unread' as const, label: t('search.ui.read') }] : []),
     ...(filters.dateAfter
       ? [
           {
@@ -200,9 +184,7 @@ export function SearchFiltersBar({
             appearance="outline"
             role="checkbox"
             checked={filters.starred === true}
-            onCheckedChange={(checked) =>
-              onChange({ ...filters, starred: checked || undefined })
-            }
+            onCheckedChange={(checked) => onChange({ ...filters, starred: checked || undefined })}
             leadingIcon={RiStarLine}
           >
             {t('drawer.starred')}
@@ -219,9 +201,7 @@ export function SearchFiltersBar({
                   onChange({
                     ...filters,
                     [key]: undefined,
-                    ...(key === 'dateAfter' && filters.dateBefore
-                      ? { dateBefore: undefined }
-                      : {}),
+                    ...(key === 'dateAfter' && filters.dateBefore ? { dateBefore: undefined } : {}),
                   })
                 }
                 closeLabel={`${t('common.remove')} ${label}`}
@@ -256,9 +236,7 @@ export function SearchFiltersBar({
               <TextFieldInput
                 label={t('search.filters.from')}
                 value={draft.from ?? ''}
-                onChangeText={(from) =>
-                  updateDraft({ from: from.trim() ? from : undefined })
-                }
+                onChangeText={(from) => updateDraft({ from: from.trim() ? from : undefined })}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
@@ -267,9 +245,7 @@ export function SearchFiltersBar({
               <TextFieldInput
                 label={t('compose.fields.to')}
                 value={draft.to ?? ''}
-                onChangeText={(to) =>
-                  updateDraft({ to: to.trim() ? to : undefined })
-                }
+                onChangeText={(to) => updateDraft({ to: to.trim() ? to : undefined })}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
@@ -298,13 +274,7 @@ export function SearchFiltersBar({
             />
             <FilterSelect
               label={t('search.ui.readState')}
-              value={
-                draft.unread === undefined
-                  ? 'all'
-                  : draft.unread
-                    ? 'unread'
-                    : 'read'
-              }
+              value={draft.unread === undefined ? 'all' : draft.unread ? 'unread' : 'read'}
               onChange={(status) =>
                 updateDraft({
                   unread: status === 'all' ? undefined : status === 'unread',
@@ -331,9 +301,7 @@ export function SearchFiltersBar({
               <TextFieldInput
                 label={t('message.actions.label')}
                 value={draft.label ?? ''}
-                onChangeText={(label) =>
-                  updateDraft({ label: label.trim() ? label : undefined })
-                }
+                onChangeText={(label) => updateDraft({ label: label.trim() ? label : undefined })}
               />
             </Field>
             <View className="flex-row flex-wrap gap-2">
@@ -341,9 +309,7 @@ export function SearchFiltersBar({
                 appearance="outline"
                 role="checkbox"
                 checked={draft.hasAttachment === true}
-                onCheckedChange={(checked) =>
-                  updateDraft({ hasAttachment: checked || undefined })
-                }
+                onCheckedChange={(checked) => updateDraft({ hasAttachment: checked || undefined })}
                 leadingIcon={RiAttachmentLine}
               >
                 {t('search.filters.hasAttachment')}
@@ -352,9 +318,7 @@ export function SearchFiltersBar({
                 appearance="outline"
                 role="checkbox"
                 checked={draft.starred === true}
-                onCheckedChange={(checked) =>
-                  updateDraft({ starred: checked || undefined })
-                }
+                onCheckedChange={(checked) => updateDraft({ starred: checked || undefined })}
                 leadingIcon={RiStarLine}
               >
                 {t('drawer.starred')}

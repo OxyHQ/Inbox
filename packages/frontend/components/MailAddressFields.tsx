@@ -2,10 +2,7 @@ import { useContactSuggestions } from '@/hooks/queries/useContactSuggestions';
 import { useTranslation } from '@/lib/i18n';
 import { isValidRecipientEmail } from '@/schemas/emailSchemas';
 import { Button } from '@oxy.so/bloom/button';
-import {
-  MailRecipientField,
-  type MailRecipient,
-} from '@oxy.so/bloom/mail-compose';
+import { MailRecipientField, type MailRecipient } from '@oxy.so/bloom/mail-compose';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { useState } from 'react';
 import { View } from 'react-native';
@@ -46,9 +43,7 @@ function RecipientField({
       ? fetched.filter((item) => !added.has(item.address.toLowerCase()))
       : [];
   const join = (items: readonly MailRecipient[], next: string) =>
-    onChange(
-      [...items.map((item) => item.address), next.trimStart()].join(', '),
-    );
+    onChange([...items.map((item) => item.address), next.trimStart()].join(', '));
   return (
     <MailRecipientField
       label={label}
@@ -56,9 +51,7 @@ function RecipientField({
       value={query.trimStart()}
       onRecipientsChange={(next) => join(next, query)}
       onChangeText={(next) => join(recipients, next)}
-      onSubmit={(next) =>
-        join([...recipients, { id: next, address: next.trim() }], '')
-      }
+      onSubmit={(next) => join([...recipients, { id: next, address: next.trim() }], '')}
       suggestions={suggestions.map((item) => ({
         id: item.address,
         address: item.address,

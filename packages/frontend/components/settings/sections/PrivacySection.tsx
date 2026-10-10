@@ -1,8 +1,5 @@
 import { useTranslation } from '@/lib/i18n';
-import {
-  SettingsGeneralPage,
-  SettingsValueField,
-} from '@oxy.so/bloom/settings-modal';
+import { SettingsGeneralPage, SettingsValueField } from '@oxy.so/bloom/settings-modal';
 
 /**
  * What the reader actually gets, and nothing it does not.

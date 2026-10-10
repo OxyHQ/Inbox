@@ -77,16 +77,17 @@ export function SubscriptionRow({
     .join(', ');
 
   const handlePress = () => {
-    onUnsubscribe(
-      subscription._id,
-      isBlockOnly ? 'block' : 'list-unsubscribe',
-    );
+    onUnsubscribe(subscription._id, isBlockOnly ? 'block' : 'list-unsubscribe');
   };
 
   return (
     <Item
       leading={
-        <SenderAvatar avatarPath={subscription.senderAvatarPath} name={subscription.name} size={40} />
+        <SenderAvatar
+          avatarPath={subscription.senderAvatarPath}
+          name={subscription.name}
+          size={40}
+        />
       }
       title={subscription.name}
       titleStyle={styles.name}

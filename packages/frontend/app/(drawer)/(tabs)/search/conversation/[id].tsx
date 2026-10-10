@@ -26,10 +26,5 @@ export default function SearchConversationScreen() {
 
   if (!id) return null;
 
-  return (
-    <MessageDetail
-      mode={isDesktop ? 'embedded' : 'standalone'}
-      messageId={id}
-    />
-  );
+  return <MessageDetail mode={isDesktop ? 'embedded' : 'standalone'} messageId={id} />;
 }

@@ -83,7 +83,8 @@ export function useCurrentList() {
   );
   /** Everything a row stands for: the whole conversation in conversation view. */
   const conversationOf = useCallback(
-    (rowId: string): Message[] => membersByRowId.get(rowId) ?? messages.filter((m) => m._id === rowId),
+    (rowId: string): Message[] =>
+      membersByRowId.get(rowId) ?? messages.filter((m) => m._id === rowId),
     [membersByRowId, messages],
   );
 

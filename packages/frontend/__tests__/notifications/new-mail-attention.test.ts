@@ -55,7 +55,13 @@ describe('isLookingAtMailbox', () => {
   });
 
   it('is not the last folder browsed while Search, Subscriptions or Settings is on screen', () => {
-    for (const path of ['/search', '/search/conversation/x', '/subscriptions', '/settings/labels', '/compose']) {
+    for (const path of [
+      '/search',
+      '/search/conversation/x',
+      '/subscriptions',
+      '/settings/labels',
+      '/compose',
+    ]) {
       noteCurrentPath(path);
       expect(isLookingAtMailbox(inbox, 'mb-inbox')).toBe(false);
     }

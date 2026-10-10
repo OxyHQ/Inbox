@@ -1,12 +1,5 @@
 import { LocaleProvider as BloomLocaleProvider } from '@oxy.so/bloom/locale';
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-} from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
 import { I18nManager, Platform } from 'react-native';
 import { toast } from '@oxy.so/bloom/toast';
 import { useOxy, useUpdateProfile } from '@oxy.so/services';
@@ -53,11 +46,7 @@ export function applyNativeLayoutDirection(rtl: boolean): boolean {
  * (see ADR 0022, `@oxy.so/services`' `OxyProvider.language`).
  */
 function coerceLocale(value: string | null | undefined): Locale {
-  return coerceToSupportedLocale(
-    value,
-    SUPPORTED_LOCALES,
-    DEFAULT_LOCALE,
-  ) as Locale;
+  return coerceToSupportedLocale(value, SUPPORTED_LOCALES, DEFAULT_LOCALE) as Locale;
 }
 
 interface LocaleContextValue {
@@ -73,8 +62,7 @@ interface LocaleProviderProps {
 }
 
 export function LocaleProvider({ children }: LocaleProviderProps) {
-  const { currentLanguage, currentLanguages, isAuthenticated, setLanguage } =
-    useOxy();
+  const { currentLanguage, currentLanguages, isAuthenticated, setLanguage } = useOxy();
   const updateProfile = useUpdateProfile();
 
   // The active locale is DERIVED from the SDK's centralized `currentLanguage`
@@ -82,10 +70,7 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
   // locale — coerced to a locale this app has a dictionary for. The SDK owns
   // account-vs-device resolution and hydration, so there is nothing local to
   // store or await here.
-  const locale = useMemo<Locale>(
-    () => coerceLocale(currentLanguage),
-    [currentLanguage],
-  );
+  const locale = useMemo<Locale>(() => coerceLocale(currentLanguage), [currentLanguage]);
 
   const setLocale = useCallback(
     async (next: Locale) => {
@@ -146,9 +131,7 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
 export function useLocale(): LocaleContextValue {
   const ctx = useContext(LocaleContext);
   if (!ctx) {
-    throw new Error(
-      'useLocale must be used inside <LocaleProvider>. Check app/_layout.tsx.',
-    );
+    throw new Error('useLocale must be used inside <LocaleProvider>. Check app/_layout.tsx.');
   }
   return ctx;
 }

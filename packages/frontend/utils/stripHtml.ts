@@ -17,10 +17,38 @@ import { parseDocument } from 'htmlparser2';
 type ChildNode = ReturnType<typeof parseDocument>['children'][number];
 
 const BLOCK_TAGS = new Set([
-  'address', 'article', 'aside', 'center', 'dd', 'div', 'dl', 'dt', 'fieldset',
-  'figcaption', 'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-  'header', 'main', 'nav', 'ol', 'p', 'pre', 'section', 'table', 'tbody', 'tfoot',
-  'thead', 'tr', 'ul',
+  'address',
+  'article',
+  'aside',
+  'center',
+  'dd',
+  'div',
+  'dl',
+  'dt',
+  'fieldset',
+  'figcaption',
+  'figure',
+  'footer',
+  'form',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'header',
+  'main',
+  'nav',
+  'ol',
+  'p',
+  'pre',
+  'section',
+  'table',
+  'tbody',
+  'tfoot',
+  'thead',
+  'tr',
+  'ul',
 ]);
 
 /** Blocks that keep a blank line around them, as their margins do on screen. */
@@ -54,7 +82,9 @@ class TextWriter {
 }
 
 function tagName(node: ChildNode): string | null {
-  return node.type === 'tag' || node.type === 'script' || node.type === 'style' ? node.name.toLowerCase() : null;
+  return node.type === 'tag' || node.type === 'script' || node.type === 'style'
+    ? node.name.toLowerCase()
+    : null;
 }
 
 function render(nodes: ChildNode[], writer: TextWriter, pre: boolean): void {
@@ -84,7 +114,12 @@ function render(nodes: ChildNode[], writer: TextWriter, pre: boolean): void {
       const body = inner.out.replace(/\n+$/, '');
       writer.lineBreak();
       if (body) {
-        writer.write(`${body.split('\n').map((line) => (line ? `> ${line}` : '>')).join('\n')}\n`);
+        writer.write(
+          `${body
+            .split('\n')
+            .map((line) => (line ? `> ${line}` : '>'))
+            .join('\n')}\n`,
+        );
       }
     } else if (name === 'li') {
       writer.lineBreak();

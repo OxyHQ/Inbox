@@ -94,11 +94,7 @@ interface ScheduleSendSheetProps {
   onSchedule: (date: Date) => void;
 }
 
-export function ScheduleSendSheet({
-  visible,
-  onClose,
-  onSchedule,
-}: ScheduleSendSheetProps) {
+export function ScheduleSendSheet({ visible, onClose, onSchedule }: ScheduleSendSheetProps) {
   const { t } = useTranslation();
   const options = getScheduleOptions();
   const sheetRef = useRef<BottomSheetRef>(null);

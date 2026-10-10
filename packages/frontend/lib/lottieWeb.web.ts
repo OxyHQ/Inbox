@@ -7,8 +7,6 @@ let configured = false;
 export function configureLottieWeb(): void {
   if (configured) return;
   configured = true;
-  const wasm = Asset.fromModule(
-    require('@lottiefiles/dotlottie-web/dotlottie-player.wasm'),
-  );
+  const wasm = Asset.fromModule(require('@lottiefiles/dotlottie-web/dotlottie-player.wasm'));
   setWasmUrl(wasm.uri);
 }

@@ -56,7 +56,11 @@ describe('quotes', () => {
   });
 
   it('quotes a reply as an escaped cite blockquote on the web, built from text only', () => {
-    const html = quotedReply({ text: '<img src=x onerror=alert(1)>\nline' }, 'On Mon, Ann wrote:', true);
+    const html = quotedReply(
+      { text: '<img src=x onerror=alert(1)>\nline' },
+      'On Mon, Ann wrote:',
+      true,
+    );
     expect(html).toBe(
       '<br><br><div>On Mon, Ann wrote:</div><blockquote type="cite">&lt;img src=x onerror=alert(1)&gt;<br>line</blockquote>',
     );

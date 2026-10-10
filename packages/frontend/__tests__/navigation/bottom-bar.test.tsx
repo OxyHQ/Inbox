@@ -23,10 +23,7 @@ jest.mock('@oxy.so/bloom/bottom-bar', () => ({
   },
 }));
 jest.mock('@oxy.so/bloom/fab', () => ({ Fab: () => null }));
-jest.mock(
-  '@oxy.so/bloom/icons',
-  () => new Proxy({}, { get: () => () => null }),
-);
+jest.mock('@oxy.so/bloom/icons', () => new Proxy({}, { get: () => () => null }));
 jest.mock('@oxy.so/services', () => ({
   useOxy: () => ({ isAuthenticated: mockAuthenticated }),
 }));
@@ -37,8 +34,7 @@ jest.mock('@/contexts/search-focus-context', () => ({
   useSearchFocus: () => ({ focusInput: mockFocus }),
 }));
 jest.mock('@/hooks/useEmail', () => ({
-  useEmailStore: (selector: any) =>
-    selector({ isSelectionMode: mockSelecting }),
+  useEmailStore: (selector: any) => selector({ isSelectionMode: mockSelecting }),
 }));
 jest.mock('@/lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key }),

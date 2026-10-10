@@ -24,9 +24,7 @@ export function statusLabel(item: EmailOutbox, t: TranslateFn): string {
 
 /** Messages that still owe the user a delivery, by the queue's own reckoning. */
 export function outstandingOutbound(messages: EmailOutbox[]): EmailOutbox[] {
-  return messages.filter(
-    (item) => item.status !== 'sent' && item.status !== 'cancelled',
-  );
+  return messages.filter((item) => item.status !== 'sent' && item.status !== 'cancelled');
 }
 
 /** Of those, the ones that will not move again on their own. */
@@ -39,10 +37,7 @@ export function OutboundQueueSection() {
   const { data: messages = [], isLoading } = useOutboundMessages();
   const retry = useRetryOutboundMessage();
   const cancel = useCancelOutboundMessage();
-  const pending = useMemo(
-    () => messages.filter((item) => item.status !== 'sent'),
-    [messages],
-  );
+  const pending = useMemo(() => messages.filter((item) => item.status !== 'sent'), [messages]);
 
   if (isLoading || pending.length === 0) return null;
 

@@ -1,18 +1,12 @@
 import { useQuota } from '@/hooks/queries/useQuota';
 import { useTranslation } from '@/lib/i18n';
 import { Loading } from '@oxy.so/bloom/loading';
-import {
-  SettingsGeneralPage,
-  SettingsValueField,
-} from '@oxy.so/bloom/settings-modal';
+import { SettingsGeneralPage, SettingsValueField } from '@oxy.so/bloom/settings-modal';
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B';
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.min(
-    Math.floor(Math.log(bytes) / Math.log(k)),
-    sizes.length - 1,
-  );
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
@@ -38,9 +32,7 @@ export function StorageSection() {
           key: 'quota',
           label: t('ui.settings.storage.usage'),
           description:
-            quota && quota.percentage > 90
-              ? t('ui.settings.storage.nearlyFull')
-              : undefined,
+            quota && quota.percentage > 90 ? t('ui.settings.storage.nearlyFull') : undefined,
           rows: [
             {
               key: 'used',

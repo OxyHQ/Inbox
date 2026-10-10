@@ -47,18 +47,10 @@ describe('follow-up triage', () => {
 
   it('keeps human support addresses eligible and skips no-reply addresses', () => {
     expect(
-      getFollowUpReason(
-        makeMessage({ to: [{ address: 'support@example.com' }] }),
-        [],
-        now,
-      ),
+      getFollowUpReason(makeMessage({ to: [{ address: 'support@example.com' }] }), [], now),
     ).toBe('awaiting-reply');
     expect(
-      getFollowUpReason(
-        makeMessage({ to: [{ address: 'no-reply@example.com' }] }),
-        [],
-        now,
-      ),
+      getFollowUpReason(makeMessage({ to: [{ address: 'no-reply@example.com' }] }), [], now),
     ).toBeNull();
   });
 });

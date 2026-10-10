@@ -10,7 +10,10 @@ import { calendarDaysBetween } from '@oxy.so/utils/date';
 
 const cache = new Map<string, Intl.DateTimeFormat>();
 
-export function dateFormatter(locale: string, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+export function dateFormatter(
+  locale: string,
+  options: Intl.DateTimeFormatOptions,
+): Intl.DateTimeFormat {
   const key = `${locale}|${JSON.stringify(options)}`;
   let formatter = cache.get(key);
   if (!formatter) {
@@ -34,7 +37,11 @@ export function dateFormatter(locale: string, options: Intl.DateTimeFormatOption
 const TIME: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' };
 const WEEKDAY: Intl.DateTimeFormatOptions = { weekday: 'short' };
 const MONTH_DAY: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-const MONTH_DAY_YEAR: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: '2-digit' };
+const MONTH_DAY_YEAR: Intl.DateTimeFormatOptions = {
+  month: 'short',
+  day: 'numeric',
+  year: '2-digit',
+};
 
 export function formatRowTime(dateStr: string, yesterdayLabel: string, locale: string): string {
   const date = new Date(dateStr);

@@ -25,13 +25,7 @@ import { Loading } from '@oxy.so/bloom/loading';
 import { Text } from '@oxy.so/bloom/typography';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import {
-  useWindowDimensions,
-  type FlatList,
-  StyleSheet,
-  type TextInput,
-  View,
-} from 'react-native';
+import { useWindowDimensions, type FlatList, StyleSheet, type TextInput, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
@@ -55,11 +49,7 @@ import { useRecentSearches } from '@/hooks/useRecentSearches';
 import type { Message, SavedEmailSearchFilters } from '@/services/emailApi';
 import { messageRoute } from '@/utils/messageRoute';
 import { recordInboxMetric } from '@/utils/inboxTelemetry';
-import {
-  buildSearchItems,
-  collectUnreadable,
-  type SearchItem,
-} from '@/utils/searchItems';
+import { buildSearchItems, collectUnreadable, type SearchItem } from '@/utils/searchItems';
 import {
   collapseThreads,
   formatSearchInterpretation,
@@ -100,35 +90,25 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   const { data: mailboxes = [] } = useMailboxes();
 
   const [query, setQuery] = useSearchSessionState('query');
-  const [submittedQuery, setSubmittedQuery] =
-    useSearchSessionState('submittedQuery');
+  const [submittedQuery, setSubmittedQuery] = useSearchSessionState('submittedQuery');
   const [filters, setFilters] = useSearchSessionState('filters');
-  const [nlInterpretation, setNlInterpretation] =
-    useSearchSessionState('nlInterpretation');
-  const [nlParsedOptions, setNlParsedOptions] =
-    useSearchSessionState('nlParsedOptions');
+  const [nlInterpretation, setNlInterpretation] = useSearchSessionState('nlInterpretation');
+  const [nlParsedOptions, setNlParsedOptions] = useSearchSessionState('nlParsedOptions');
   const searchRunIdRef = useRef(0);
 
   // Natural language search hook
-  const { parseQuery: parseNL, isLoading: nlParsing } =
-    useNaturalLanguageSearch();
+  const { parseQuery: parseNL, isLoading: nlParsing } = useNaturalLanguageSearch();
 
   // Parse the submitted query for Gmail-style operators
-  const parsedQuery = useMemo(
-    () => parseSearchQuery(submittedQuery),
-    [submittedQuery],
-  );
-  const requestedMailbox =
-    nlParsedOptions?.mailbox ?? parsedQuery.mailbox ?? filters.mailbox;
+  const parsedQuery = useMemo(() => parseSearchQuery(submittedQuery), [submittedQuery]);
+  const requestedMailbox = nlParsedOptions?.mailbox ?? parsedQuery.mailbox ?? filters.mailbox;
 
   // Map mailbox name to mailbox ID
   const mailboxIdFromName = useMemo(() => {
     if (!requestedMailbox) return undefined;
     // Saved searches persist the resolved mailbox id. Keep accepting the
     // human-readable special-use names used by the parser as well.
-    const existingMailbox = mailboxes.find(
-      (mailbox) => mailbox._id === requestedMailbox,
-    );
+    const existingMailbox = mailboxes.find((mailbox) => mailbox._id === requestedMailbox);
     if (existingMailbox) return existingMailbox._id;
     const specialUseMap: Record<string, string> = {
       inbox: SPECIAL_USE.INBOX,
@@ -145,9 +125,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       return mailbox?._id;
     }
     // Try to match by name
-    const mailbox = mailboxes.find(
-      (m) => m.name.toLowerCase() === requestedMailbox,
-    );
+    const mailbox = mailboxes.find((m) => m.name.toLowerCase() === requestedMailbox);
     return mailbox?._id;
   }, [requestedMailbox, mailboxes]);
 
@@ -170,21 +148,15 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       q: nlParsedOptions?.q ?? (parsedQuery.text || undefined),
       from: nlParsedOptions?.from ?? parsedQuery.from ?? filters.from,
       to: nlParsedOptions?.to ?? parsedQuery.to ?? filters.to,
-      subject:
-        nlParsedOptions?.subject ?? parsedQuery.subject ?? filters.subject,
+      subject: nlParsedOptions?.subject ?? parsedQuery.subject ?? filters.subject,
       hasAttachment:
-        nlParsedOptions?.hasAttachment ??
-        parsedQuery.hasAttachment ??
-        filters.hasAttachment,
-      dateAfter: searchDateBound(
-        nlParsedOptions?.after ?? parsedQuery.after ?? filters.dateAfter,
-      ),
+        nlParsedOptions?.hasAttachment ?? parsedQuery.hasAttachment ?? filters.hasAttachment,
+      dateAfter: searchDateBound(nlParsedOptions?.after ?? parsedQuery.after ?? filters.dateAfter),
       dateBefore: searchDateBound(
         nlParsedOptions?.before ?? parsedQuery.before ?? filters.dateBefore,
       ),
       mailbox: mailboxIdFromName,
-      starred:
-        nlParsedOptions?.starred ?? parsedQuery.starred ?? filters.starred,
+      starred: nlParsedOptions?.starred ?? parsedQuery.starred ?? filters.starred,
       unread: nlParsedOptions?.unread ?? parsedQuery.unread ?? filters.unread,
       // Labels are parsed from Gmail-style operators. The natural-language
       // result type intentionally has no label field.
@@ -224,14 +196,8 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   // The API still needs a server-side threadId for authoritative cross-page
   // grouping when a result set is incomplete.
   const results = useMemo(() => collapseThreads(messages), [messages]);
-  const unreadable = useMemo(
-    () => collectUnreadable(searchData?.pages ?? []),
-    [searchData],
-  );
-  const items = useMemo(
-    () => buildSearchItems(results, unreadable),
-    [results, unreadable],
-  );
+  const unreadable = useMemo(() => collectUnreadable(searchData?.pages ?? []), [searchData]);
+  const items = useMemo(() => buildSearchItems(results, unreadable), [results, unreadable]);
   const total = searchData?.pages[0]?.pagination.total ?? 0;
   const hasSearched = hasSearchCriteria(searchOptions);
 
@@ -245,10 +211,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
    * value without waiting for React state to settle.
    */
   const runSearch = useCallback(
-    async (
-      rawText: string,
-      { allowAI }: { allowAI: boolean } = { allowAI: true },
-    ) => {
+    async (rawText: string, { allowAI }: { allowAI: boolean } = { allowAI: true }) => {
       const searchRunId = ++searchRunIdRef.current;
       const trimmed = rawText.trim();
       if (!trimmed) {
@@ -359,13 +322,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         runSearch(text, { allowAI: false });
       }, 300);
     },
-    [
-      runSearch,
-      setQuery,
-      setSubmittedQuery,
-      setNlInterpretation,
-      setNlParsedOptions,
-    ],
+    [runSearch, setQuery, setSubmittedQuery, setNlInterpretation, setNlParsedOptions],
   );
 
   const handleSubmit = useCallback(() => {
@@ -378,9 +335,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     rememberSearch(trimmed);
     recordInboxMetric('search_submitted', {
       hasQuery: true,
-      hasOperators: /\b(?:from|to|subject|in|is|has|label|after|before):/i.test(
-        trimmed,
-      ),
+      hasOperators: /\b(?:from|to|subject|in|is|has|label|after|before):/i.test(trimmed),
     });
     runSearch(query, { allowAI: true });
   }, [rememberSearch, runSearch, query]);
@@ -480,8 +435,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       setFilters(pickSearchFilters(saved.filters));
       // Persisted filters are the executed search, including read=false and
       // labels. Preserve legacy query-only saved searches as operator input.
-      const hasFilters =
-        hasSearchCriteria(saved.filters) || saved.filters.q !== undefined;
+      const hasFilters = hasSearchCriteria(saved.filters) || saved.filters.q !== undefined;
       setSubmittedQuery(hasFilters ? '' : saved.query);
       setNlParsedOptions(hasFilters ? { q: saved.filters.q ?? '' } : null);
       setNlInterpretation('');
@@ -519,10 +473,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     ({ item }: { item: SearchItem }) =>
       item.kind === 'unreadable' ? (
         <View style={styles.unreadableItem}>
-          <UnreadableMessageRow
-            message={item.row}
-            onOpen={openConversation}
-          />
+          <UnreadableMessageRow message={item.row} onOpen={openConversation} />
         </View>
       ) : (
         <MessageRow
@@ -564,9 +515,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           footer={
             recentSearches.length > 0 ? (
               <View style={styles.recentSearches}>
-                <Text variant="caption-1-medium">
-                  {t('search.ui.recentSearches')}
-                </Text>
+                <Text variant="caption-1-medium">{t('search.ui.recentSearches')}</Text>
                 {recentSearches.map((recent) => (
                   <Button
                     key={recent}
@@ -624,11 +573,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   const renderFooter = useCallback(() => {
     if (isFetchingNextPage) {
       return (
-        <Loading
-          size="sm"
-          accessibilityLabel={t('common.loading')}
-          style={styles.footerLoading}
-        />
+        <Loading size="sm" accessibilityLabel={t('common.loading')} style={styles.footerLoading} />
       );
     }
     if (searchFailed && items.length > 0) {
@@ -651,13 +596,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   const bottomClearance = viewportWidth < BREAKPOINTS.md ? occupiedBottom : 0;
   const onListScroll = useMailboxScrollRestoration(
     listRef,
-    JSON.stringify([
-      'search',
-      user?.id,
-      submittedQuery,
-      filters,
-      nlParsedOptions,
-    ]),
+    JSON.stringify(['search', user?.id, submittedQuery, filters, nlParsedOptions]),
     !searching && items.length > 0,
   );
 
@@ -696,8 +635,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
                 hasSearched &&
                 !searching &&
                 !nlParsing &&
-                (query.trim() === submittedQuery.trim() ||
-                  Boolean(nlParsedOptions))
+                (query.trim() === submittedQuery.trim() || Boolean(nlParsedOptions))
               }
               onApply={handleApplySavedSearch}
             />
@@ -737,10 +675,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
             {/* Result count */}
             {hasSearched && !searching && items.length > 0 && (
               <View style={styles.resultCount}>
-                <Text
-                  variant="caption-1-medium"
-                  style={{ color: colors.secondaryText }}
-                >
+                <Text variant="caption-1-medium" style={{ color: colors.secondaryText }}>
                   {t('search.results', { count: total })}
                 </Text>
               </View>

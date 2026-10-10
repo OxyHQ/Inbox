@@ -14,7 +14,8 @@ export function useRetryOutboundMessage() {
       return api.retryOutboundMessage(outboxId);
     },
     onSuccess: () => toast.success(t('ui.mutations.retryQueued')),
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t('ui.mutations.retryFailed')),
+    onError: (error: unknown) =>
+      toast.error(error instanceof Error ? error.message : t('ui.mutations.retryFailed')),
     onSettled: () => queryClient.invalidateQueries({ queryKey: emailKeys.outbox }),
   });
 }
@@ -29,7 +30,8 @@ export function useCancelOutboundMessage() {
       return api.cancelOutboundMessage(outboxId);
     },
     onSuccess: () => toast.success(t('ui.mutations.queuedCancelled')),
-    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : t('ui.mutations.cancelFailed')),
+    onError: (error: unknown) =>
+      toast.error(error instanceof Error ? error.message : t('ui.mutations.cancelFailed')),
     onSettled: () => queryClient.invalidateQueries({ queryKey: emailKeys.outbox }),
   });
 }

@@ -168,24 +168,39 @@ export function formatSearchInterpretation(
 ): string {
   const parts: string[] = [];
   const text = options.q?.trim() || options.text?.trim();
-  const t: TranslateFn = translate ?? ((key, vars) => {
-    const value = vars?.value ?? '';
-    switch (key) {
-      case 'search.nl.fromValue': return `from ${value}`;
-      case 'search.nl.toValue': return `to ${value}`;
-      case 'search.nl.subjectContains': return `subject contains "${value}"`;
-      case 'search.nl.withAttachments': return 'with attachments';
-      case 'search.nl.starred': return 'starred';
-      case 'search.nl.unread': return 'unread';
-      case 'search.nl.read': return 'read';
-      case 'search.nl.allEmails': return 'all emails';
-      case 'search.nl.inMailbox': return `in ${value}`;
-      case 'search.nl.labelValue': return `label ${value}`;
-      case 'search.nl.afterValue': return `after ${value}`;
-      case 'search.nl.beforeValue': return `before ${value}`;
-      default: return key;
-    }
-  });
+  const t: TranslateFn =
+    translate ??
+    ((key, vars) => {
+      const value = vars?.value ?? '';
+      switch (key) {
+        case 'search.nl.fromValue':
+          return `from ${value}`;
+        case 'search.nl.toValue':
+          return `to ${value}`;
+        case 'search.nl.subjectContains':
+          return `subject contains "${value}"`;
+        case 'search.nl.withAttachments':
+          return 'with attachments';
+        case 'search.nl.starred':
+          return 'starred';
+        case 'search.nl.unread':
+          return 'unread';
+        case 'search.nl.read':
+          return 'read';
+        case 'search.nl.allEmails':
+          return 'all emails';
+        case 'search.nl.inMailbox':
+          return `in ${value}`;
+        case 'search.nl.labelValue':
+          return `label ${value}`;
+        case 'search.nl.afterValue':
+          return `after ${value}`;
+        case 'search.nl.beforeValue':
+          return `before ${value}`;
+        default:
+          return key;
+      }
+    });
 
   if (text) parts.push(`"${text}"`);
   if (options.from) parts.push(t('search.nl.fromValue', { value: options.from }));
@@ -260,7 +275,10 @@ export function groupThreads(messages: Message[]): ThreadGroup[] {
     }
   });
 
-  const groups = new Map<number, { rep: Message; members: Message[]; hasUnread: boolean; hasPinned: boolean }>();
+  const groups = new Map<
+    number,
+    { rep: Message; members: Message[]; hasUnread: boolean; hasPinned: boolean }
+  >();
   const order: number[] = [];
 
   messages.forEach((message, index) => {

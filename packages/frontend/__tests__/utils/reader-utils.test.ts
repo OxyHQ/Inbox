@@ -23,7 +23,9 @@ describe('cards', () => {
 
   it('reads a date-only value as that local day', () => {
     const date = parseCardDate('2026-10-15')!;
-    expect([date.getFullYear(), date.getMonth(), date.getDate(), date.getHours()]).toEqual([2026, 9, 15, 0]);
+    expect([date.getFullYear(), date.getMonth(), date.getDate(), date.getHours()]).toEqual([
+      2026, 9, 15, 0,
+    ]);
     expect(parseCardDate('next tuesday')).toBeNull();
   });
 
@@ -34,10 +36,19 @@ describe('cards', () => {
 });
 
 describe('calendar export', () => {
-  const event = { title: 'Launch', startTime: '2026-10-15T09:00:00Z', description: 'Line one', organizer: 'Ann' };
+  const event = {
+    title: 'Launch',
+    startTime: '2026-10-15T09:00:00Z',
+    description: 'Line one',
+    organizer: 'Ann',
+  };
 
   it('carries the UID and DTSTAMP every VEVENT needs, and real line breaks in its notes', () => {
-    const ics = generateIcs(event as never, calendarTimes(event)!, new Date('2026-10-01T00:00:00Z'));
+    const ics = generateIcs(
+      event as never,
+      calendarTimes(event)!,
+      new Date('2026-10-01T00:00:00Z'),
+    );
     expect(ics).toMatch(/\r\nUID:[^\r\n]+@inbox\.oxy\.so\r\n/);
     expect(ics).toContain('DTSTAMP:20261001T000000Z');
     expect(ics).toContain('DESCRIPTION:Line one\\nOrganizer: Ann');
@@ -45,7 +56,10 @@ describe('calendar export', () => {
   });
 
   it('makes a date-only start an all-day event, and refuses an event with no readable start', () => {
-    const ics = generateIcs({ title: 'Holiday' } as never, calendarTimes({ startTime: '2026-12-25' })!);
+    const ics = generateIcs(
+      { title: 'Holiday' } as never,
+      calendarTimes({ startTime: '2026-12-25' })!,
+    );
     expect(ics).toContain('DTSTART;VALUE=DATE:20261225');
     expect(ics).toContain('DTEND;VALUE=DATE:20261226');
     expect(calendarTimes({ startTime: 'soon' })).toBeNull();

@@ -12,7 +12,9 @@
     "android": "bun run --cwd packages/frontend android",
     "build": "bun run --cwd packages/frontend build",
     "typecheck": "bun run --cwd packages/frontend typecheck",
-    "lint": "bun run --cwd packages/frontend lint",
+    "lint": "biome check . && bun run --cwd packages/frontend lint",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
     "doctor:oxy": "oxy-doctor --ci",
     "validate:agents-md": "bun ./scripts/check-agents-md-size.mjs && bun ./scripts/test-check-agents-md-size.mjs",
     "test": "bun run --cwd packages/frontend test"
@@ -32,6 +34,7 @@
     "node": ">=20"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.15",
     "@oxy.so/doctor": "1.1.0"
   }
 }

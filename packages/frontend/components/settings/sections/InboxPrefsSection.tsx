@@ -7,11 +7,10 @@ import { useTranslation } from '@/lib/i18n';
 import { SettingsGeneralPage } from '@oxy.so/bloom/settings-modal';
 import { Switch } from '@oxy.so/bloom/switch';
 import { SettingsPreferenceSelect } from '../SettingsPreferenceSelect';
-const DENSITY_OPTIONS: readonly { value: MessageDensity; labelKey: string }[] =
-  [
-    { value: 'compact', labelKey: 'ui.settings.inbox.compact' },
-    { value: 'comfortable', labelKey: 'ui.settings.inbox.comfortable' },
-  ];
+const DENSITY_OPTIONS: readonly { value: MessageDensity; labelKey: string }[] = [
+  { value: 'compact', labelKey: 'ui.settings.inbox.compact' },
+  { value: 'comfortable', labelKey: 'ui.settings.inbox.comfortable' },
+];
 
 const SWIPE_OPTIONS: readonly { value: SwipeAction; labelKey: string }[] = [
   { value: 'archive', labelKey: 'message.actions.archive' },

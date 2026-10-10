@@ -1,9 +1,6 @@
 import { renderHook } from '@testing-library/react';
 import type { Message } from '@/services/emailApi';
-import {
-  getNeedsResponseReason,
-  useNeedsResponse,
-} from '@/hooks/queries/useNeedsResponse';
+import { getNeedsResponseReason, useNeedsResponse } from '@/hooks/queries/useNeedsResponse';
 
 function makeMessage(overrides: Partial<Message> = {}): Message {
   return {
@@ -47,8 +44,16 @@ describe('needs-response triage', () => {
   });
 
   it('keeps the reason map aligned with sorted, limited candidates', () => {
-    const older = makeMessage({ _id: 'older', date: '2026-08-14T10:00:00.000Z', text: 'What do you think?' });
-    const newer = makeMessage({ _id: 'newer', date: '2026-08-15T11:00:00.000Z', text: 'Please confirm the time.' });
+    const older = makeMessage({
+      _id: 'older',
+      date: '2026-08-14T10:00:00.000Z',
+      text: 'What do you think?',
+    });
+    const newer = makeMessage({
+      _id: 'newer',
+      date: '2026-08-15T11:00:00.000Z',
+      text: 'Please confirm the time.',
+    });
 
     const { result } = renderHook(() => useNeedsResponse([older, newer], 1));
 

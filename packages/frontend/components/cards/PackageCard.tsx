@@ -32,27 +32,15 @@ export function PackageCard({ data }: PackageCardProps) {
       <CardBody>
         <View style={styles.body}>
           {data.merchant && (
-            <Text style={[styles.merchant, { color: colors.text }]}>
-              {data.merchant}
-            </Text>
+            <Text style={[styles.merchant, { color: colors.text }]}>{data.merchant}</Text>
           )}
           {data.status && (
-            <Badge
-              variant="subtle"
-              color={getStatusTone(data.status)}
-              content={data.status}
-            />
+            <Badge variant="subtle" color={getStatusTone(data.status)} content={data.status} />
           )}
           {data.carrier && (
             <View style={styles.row}>
-              <MaterialCommunityIcons
-                name="truck-outline"
-                size={14}
-                color={colors.secondaryText}
-              />
-              <Text style={[styles.carrier, { color: colors.secondaryText }]}>
-                {data.carrier}
-              </Text>
+              <MaterialCommunityIcons name="truck-outline" size={14} color={colors.secondaryText} />
+              <Text style={[styles.carrier, { color: colors.secondaryText }]}>{data.carrier}</Text>
             </View>
           )}
           {data.trackingNumber && (
@@ -60,9 +48,7 @@ export function PackageCard({ data }: PackageCardProps) {
               <Text style={[styles.label, { color: colors.secondaryText }]}>
                 {t('cards.package.tracking')}
               </Text>
-              <Text style={[styles.tracking, { color: colors.text }]}>
-                {data.trackingNumber}
-              </Text>
+              <Text style={[styles.tracking, { color: colors.text }]}>{data.trackingNumber}</Text>
             </View>
           )}
           {estimatedDelivery && (
@@ -83,9 +69,7 @@ export function PackageCard({ data }: PackageCardProps) {
   );
 }
 
-function getStatusTone(
-  status: string,
-): 'success' | 'info' | 'warning' | 'default' {
+function getStatusTone(status: string): 'success' | 'info' | 'warning' | 'default' {
   const s = status.toLowerCase();
   if (s.includes('out for')) return 'warning';
   if (s.includes('delivered')) return 'success';

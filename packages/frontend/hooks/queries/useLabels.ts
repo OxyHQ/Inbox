@@ -32,7 +32,11 @@ export function useLabels() {
  * compares names case-insensitively ("Work" and "work" are one label), so this
  * does too — it lets the form say so before a round trip.
  */
-export function isLabelNameTaken(labels: readonly Label[], name: string, exceptId?: string): boolean {
+export function isLabelNameTaken(
+  labels: readonly Label[],
+  name: string,
+  exceptId?: string,
+): boolean {
   const wanted = name.trim().toLocaleLowerCase();
   return labels.some((l) => l._id !== exceptId && l.name.trim().toLocaleLowerCase() === wanted);
 }
@@ -97,7 +101,13 @@ export function useUpdateLabel() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ labelId, updates }: { labelId: string; updates: { name?: string; color?: string } }) => {
+    mutationFn: async ({
+      labelId,
+      updates,
+    }: {
+      labelId: string;
+      updates: { name?: string; color?: string };
+    }) => {
       if (!api) throw new Error('Email API not initialized');
       return await api.updateLabel(labelId, updates);
     },

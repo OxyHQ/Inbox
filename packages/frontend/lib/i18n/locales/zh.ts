@@ -631,6 +631,10 @@ const zh: LocaleDict = {
     },
     unsubscribe: '取消订阅',
     block: '屏蔽',
+    unsubscribed: '已取消订阅',
+    blocked: '已屏蔽',
+    messageCount_one: '{{count}} 封邮件',
+    messageCount_other: '{{count}} 封邮件',
     frequency: {
       twentyPlus: '近期 20+ 封邮件',
       tenToTwenty: '近期 10-20 封邮件',
@@ -738,6 +742,7 @@ const zh: LocaleDict = {
     sizeBytes: '{{value}} 字节',
     sizeKb: '{{value}} KB',
     sizeMb: '{{value}} MB',
+    previewAlt: '附件预览',
   },
 
   settings: {
@@ -751,6 +756,9 @@ const zh: LocaleDict = {
       title: '出了点问题',
     },
     me: 'Me',
+    layoutDirection: {
+      restartRequired: '重新启动 Inbox 即可切换为此语言的布局方向。',
+    },
     settings: {
       manageOxyAccount: '管理 Oxy 账户',
       landing: {
@@ -765,7 +773,7 @@ const zh: LocaleDict = {
           appearance: '外观', appearanceDescription: '主题和强调色',
           notifications: '通知', notificationsDescription: '推送和邮件提醒',
           inbox: '收件箱', inboxDescription: '密度、阅读和滑动操作',
-          privacy: '隐私', privacyDescription: '跟踪保护和发件人信任',
+          privacy: '隐私', privacyDescription: '图片代理和跟踪器拦截',
           labels: '标签', labelsDescription: '用自定义标签整理收件箱',
           contacts: '联系人', contactsDescription: '常用联系人，撰写更快捷',
           ai: 'AI 功能', aiDescription: '摘要、智能回复和分类',
@@ -798,7 +806,7 @@ const zh: LocaleDict = {
         accentColor: '强调色',
       },
       notifications: {
-        deviceNotice: '系统通知权限在设备设置中管理。',
+        deviceNotice: '系统通知权限在设备设置中管理。', webNotice: '推送通知可在 Android 版 Inbox 应用中使用。在浏览器中打开 Inbox 时，新邮件一到就会显示在这里。',
         alerts: '提醒', push: '推送通知', pushDescription: '收到新邮件时通知我。',
         digest: '每日邮件摘要', digestDescription: '每天一次，汇总未读邮件。',
         sound: '声音', playSound: '播放声音', soundDescription: '收到新邮件时播放简短提示音。',
@@ -813,13 +821,15 @@ const zh: LocaleDict = {
         swipeA11y: '{{label}}滑动操作：{{value}}，点按以更改', swipeHint: '点按某一行可依次切换：存档 · 删除 · 标为已读 · 暂停 · 无。',
       },
       privacy: {
-        info: '隐私保护默认开启。按功能单独设置的开关即将推出。',
-        tracking: '跟踪保护', blockImages: '阻止远程图片', blockImagesDescription: '在你点按允许之前，不加载来自外部服务器的图片。',
-        hideIp: '向发件人隐藏 IP', hideIpDescription: '图片和字体通过 Oxy 的隐私代理加载。',
-        stripTracking: '移除跟踪参数', stripTrackingDescription: '移除邮件中链接里的跟踪标记。',
-        trust: '发件人信任', verification: '发件人验证', verificationDescription: '显示邮件是否由其声称的域名签名。',
-        blockList: '管理屏蔽列表', blockListTitle: '屏蔽列表', blockListEmpty: '当前没有屏蔽任何发件人。',
-        why: '为什么采用这些默认设置？', whyDescription: 'Oxy 坚持默认保护隐私：发件人永远看不到你的 IP、位置或已读回执，跟踪像素会在网络边缘被拦截。随着保护措施日趋完善，我们将提供按邮件和按发件人的精细设置。',
+        info: '这些保护措施适用于每封邮件，并始终开启。',
+        images: '远程图片',
+        alwaysOn: '始终开启',
+        proxy: '图片通过 Oxy 加载',
+        proxyDescription: '邮件中的图片和字体由 Oxy 的代理获取，因此发件人永远看不到你的 IP 地址或位置。',
+        trackers: '已拦截已知跟踪器',
+        trackersDescription: '来自已知跟踪服务的图片会被替换为空白图片。',
+        why: '发件人仍能看到什么',
+        whyDescription: '图片会自动加载，因此发件人仍可能知道邮件已被打开，但不会知道你的 IP 地址或位置。',
       },
       labels: {
         color: '颜色',
@@ -839,7 +849,7 @@ const zh: LocaleDict = {
         your: '你的标签', empty: '还没有标签。在下方创建第一个标签来整理邮件。', create: '创建标签', labelName: '标签名称', saveName: '保存标签名称', rename: '重命名 {{name}}', delete: '删除 {{name}}', builtIn: '内置', pick: '选择{{color}}', newName: '新标签名称', creating: '正在创建…', add: '添加标签', deleteTitle: '删除标签？', deleteDescription: '“{{name}}”将从所有已应用它的邮件中移除。',
       },
       contacts: {
-        your: '你的联系人', search: '搜索联系人', edit: '编辑 {{name}}', delete: '删除 {{name}}', editContact: '编辑联系人', addContact: '添加联系人', name: '姓名', email: '邮箱', company: '公司（可选）', notes: '备注（可选）', star: '为此联系人加星标', saving: '正在保存…', adding: '正在添加…', saveChanges: '保存更改', deleteTitle: '删除联系人？', deleteDescription: '“{{name}}”将从你的联系人中移除。', noMatch: '没有与搜索匹配的联系人。', empty: '还没有联系人。在下方添加常用收件人，撰写更快捷。',
+        your: '你的联系人', search: '搜索联系人', edit: '编辑 {{name}}', delete: '删除 {{name}}', editContact: '编辑联系人', addContact: '添加联系人', name: '姓名', email: '邮箱', company: '公司（可选）', notes: '备注（可选）', star: '为此联系人加星标', saving: '正在保存…', adding: '正在添加…', saveChanges: '保存更改', deleteTitle: '删除联系人？', deleteDescription: '“{{name}}”将从你的联系人中移除。', noMatch: '没有与搜索匹配的联系人。', loadMore: '加载更多联系人', showing: '已显示 {{shown}} / {{total}}', empty: '还没有联系人。在下方添加常用收件人，撰写更快捷。',
       },
       ai: {
         dailyBrief: '每日摘要', recap: '收件箱回顾', recapDescription: '根据收件箱的统计数据（未读、星标、附件）生成的简短摘要，不会读取邮件内容。', smartReply: '智能回复', summary: '会话摘要', summaryTitle: '提供摘要', summaryDescription: '在会话中显示“总结”按钮。只有在你点按时，会话才会发送给 Oxy 和 Kaana。', suggestions: '一键建议', suggestionsDescription: '在邮件上方显示三个结合上下文的回复建议，由 Oxy 和 Kaana 生成。', priority: '优先级标记', priorityTitle: '突出显示可能紧急的邮件', priorityDescription: '使用设备端关键词规则将邮件标记为紧急、需要处理或重要 — 并非完整的 AI 模型。', tip: '优先级标记基于关键词规则在设备端运行。每日摘要、智能回复和会话摘要通过 Kaana 使用有限的 Oxy 推理；问 Alia 仍是独立的智能体。',
@@ -862,14 +872,14 @@ const zh: LocaleDict = {
         deleteTemplateDescription: '“{{name}}”将从你保存的模板中移除。',
         sizePlaceholder: '例如 5 MB',
         contains: '包含', equals: '等于', notContains: '不包含', startsWith: '开头是', endsWith: '结尾是', largerThan: '大于（字节）', smallerThan: '小于（字节）',
-        filters: '筛选与规则', noFilters: '还没有筛选规则。筛选规则会自动对收到的邮件执行存档、加星标或标为已读等操作。', filterName: '筛选规则名称', whenMessage: '当邮件的', sizeBytes: '大小（字节）', value: '值', then: '则', creating: '正在创建…', addFilter: '添加筛选规则', editingTemplate: '正在编辑模板', templates: '模板', templateName: '模板名称', subjectOptional: '主题（可选）', templateBody: '模板正文', saveChanges: '保存更改', addTemplate: '添加模板', bundles: '分组', bundleHint: '分组会自动归类相关邮件。可开关各分组，并调整它们在收件箱中的排列顺序。', import: '导入', importDescription: '从 .eml 文件导入邮件。导入的邮件会放入收件箱，可以像其他邮件一样移动或添加标签。', importing: '正在导入…', importButton: '选择 .eml 文件', imported: '已导入 {{imported}} / {{total}} 封邮件。', conditions: '{{conditions}} 个条件 · {{actions}} 个操作', deleteFilter: '删除 {{name}}', editTemplate: '编辑 {{name}}', deleteTemplate: '删除 {{name}}', moveUp: '上移 {{name}}', moveDown: '下移 {{name}}',
+        filters: '筛选与规则', noFilters: '还没有筛选规则。筛选规则会自动对收到的邮件执行存档、加星标或标为已读等操作。', filterName: '筛选规则名称', whenMessage: '当邮件的', sizeBytes: '大小（字节）', value: '值', then: '则', creating: '正在创建…', addFilter: '添加筛选规则', editingTemplate: '正在编辑模板', templates: '模板', templateName: '模板名称', subjectOptional: '主题（可选）', templateBody: '模板正文', saveChanges: '保存更改', addTemplate: '添加模板', bundles: '分组', bundleHint: '分组会自动归类相关邮件。可开关各分组，并调整它们在收件箱中的排列顺序。', import: '导入', importDescription: '从 .eml 文件导入邮件。导入的邮件会放入收件箱，可以像其他邮件一样移动或添加标签。', importing: '正在导入…', importButton: '选择 .eml 文件', imported_one: '已导入 {{imported}} / {{count}} 封邮件。', imported_other: '已导入 {{imported}} / {{count}} 封邮件。', conditions: '{{conditions}} 个条件 · {{actions}} 个操作', deleteFilter: '删除 {{name}}', editTemplate: '编辑 {{name}}', deleteTemplate: '删除 {{name}}', moveUp: '上移 {{name}}', moveDown: '下移 {{name}}',
       },
       about: { legal: '法律与支持', terms: '服务条款', privacy: '隐私政策', help: '帮助中心', status: '系统状态', version: '版本 {{version}} · {{platform}}', madeBy: 'Oxy™ 在 🌎 用 ❤️ 打造。', linkUnavailable: '无法在当前环境中打开链接。', linkFailed: '打开链接失败。' },
     },
-    drawer: { unread: '{{name}}，{{count}} 封未读', labels: '标签', folders: '文件夹', createFolder: '创建文件夹', folderHint: '点按 + 创建文件夹。长按文件夹可将其删除。', signedOutTitle: '登录以管理你的邮件', signedOutSubtitle: '访问邮箱和标签，撰写新邮件。', notSignedIn: '未登录', newFolder: '新建文件夹', folderName: '文件夹名称', creatingFolder: '正在创建…', createFolderButton: '创建文件夹', deleteFolderTitle: '删除文件夹？', deleteFolderDescription: '“{{name}}”及其整理方式将被移除。其中的邮件不会被删除。' },
+    drawer: { unread: '{{name}}，{{count}} 封未读', labels: '标签', folders: '文件夹', createFolder: '创建文件夹', folderHint: '点按 + 创建文件夹。长按文件夹可将其删除。', signedOutTitle: '登录以管理你的邮件', signedOutSubtitle: '访问邮箱和标签，撰写新邮件。', notSignedIn: '未登录', newFolder: '新建文件夹', folderName: '文件夹名称', creatingFolder: '正在创建…', createFolderButton: '创建文件夹', deleteFolderTitle: '删除文件夹？', deleteFolderDescription: '“{{name}}”将被删除。其中的邮件将移至存档。' },
     event: { sharingUnavailable: '无法分享。请改用“Google 日历”。', openFailed: '无法打开日历文件。' },
     message: { loadError: '无法加载此邮件', loadErrorDescription: '请检查网络连接后重试。', notFound: '找不到邮件', notFoundDescription: '此邮件可能已被删除或移动。', conversationMessages_one: '此会话中有 {{count}} 条消息', conversationMessages_other: '此会话中有 {{count}} 条消息', summaryTitle: '生成 AI 会话摘要', summaryDescription: 'Oxy 会将有限的会话上下文发送给 Kaana 进行总结。' },
-    mutations: { starFailed: '无法更新星标。', readFailed: '无法更新已读状态。', archived: '已归档会话。', archiveFailed: '无法归档会话。', deleteFailed: '无法删除会话。', deletedForever: '已永久删除会话。', trashed: '已将会话移至回收站。', sending: '正在发送邮件…', sendCancelled: '已取消发送。', labelsFailed: '无法更新标签。', pinFailed: '无法置顶。', snoozed: '已推迟邮件。', snoozeFailed: '无法推迟邮件。', unsnoozed: '已取消推迟。', unsnoozeFailed: '无法取消推迟。', bulkFailed: '无法更新邮件。', bulkUpdated: '已更新邮件。', moveFailed: '无法移动邮件。', queuedDescription: '尚未送达。可在 设置 → 高级 → 投递队列 中查看。', retryQueued: '已加入重试队列。', retryFailed: '无法重试邮件。', queuedCancelled: '已取消队列中的邮件。', cancelFailed: '无法取消邮件。', bundleUpdateFailed: '无法更新分组。', bundleReorderFailed: '无法调整分组顺序。', contactCreateFailed: '无法创建联系人', contactUpdateFailed: '无法更新联系人', contactDeleteFailed: '无法删除联系人', filterCreateFailed: '无法创建筛选规则', filterUpdateFailed: '无法更新筛选规则', filterDeleteFailed: '无法删除筛选规则', mailboxCreated: '文件夹已创建。', mailboxCreateFailed: '无法创建文件夹。', mailboxDeleted: '文件夹已删除。', mailboxDeleteFailed: '无法删除文件夹。', reminderCreateFailed: '无法创建提醒', reminderUpdateFailed: '无法更新提醒', reminderDeleteFailed: '无法删除提醒', templateCreateFailed: '无法创建模板', templateUpdateFailed: '无法更新模板', templateDeleteFailed: '无法删除模板', labelCreateFailed: '无法创建标签。', labelUpdateFailed: '无法更新标签。', labelDeleteFailed: '无法删除标签。', unsubscribeFailed: '无法取消订阅' },
+    mutations: { starFailed: '无法更新星标。', readFailed: '无法更新已读状态。', archived: '已归档会话。', archiveFailed: '无法归档会话。', deleteFailed: '无法删除会话。', deletedForever: '已永久删除会话。', trashed: '已将会话移至回收站。', sending: '正在发送邮件…', sendCancelled: '已取消发送。', labelsFailed: '无法更新标签。', pinFailed: '无法置顶。', snoozed: '已推迟邮件。', snoozeFailed: '无法推迟邮件。', unsnoozed: '已取消推迟。', unsnoozeFailed: '无法取消推迟。', bulkFailed: '无法更新邮件。', bulkUpdated: '已更新邮件。', moveFailed: '无法移动邮件。', queuedDescription: '尚未送达。可在 设置 → 高级 → 投递队列 中查看。', retryQueued: '已加入重试队列。', retryFailed: '无法重试邮件。', queuedCancelled: '已取消队列中的邮件。', cancelFailed: '无法取消邮件。', bundleUpdateFailed: '无法更新分组。', bundleReorderFailed: '无法调整分组顺序。', contactCreateFailed: '无法创建联系人', contactUpdateFailed: '无法更新联系人', contactDeleteFailed: '无法删除联系人', filterCreateFailed: '无法创建筛选规则', filterUpdateFailed: '无法更新筛选规则', filterDeleteFailed: '无法删除筛选规则', mailboxCreated: '文件夹已创建。', mailboxCreateFailed: '无法创建文件夹。', mailboxDeleted: '文件夹已删除。', mailboxDeleteFailed: '无法删除文件夹。', reminderCreateFailed: '无法创建提醒', reminderUpdateFailed: '无法更新提醒', reminderDeleteFailed: '无法删除提醒', templateCreateFailed: '无法创建模板', templateUpdateFailed: '无法更新模板', templateDeleteFailed: '无法删除模板', labelCreateFailed: '无法创建标签。', labelUpdateFailed: '无法更新标签。', labelDeleteFailed: '无法删除标签。', labelNameTaken: '已存在名为“{{name}}”的标签。', unsubscribeFailed: '无法取消订阅' },
   },
 
   auth: {

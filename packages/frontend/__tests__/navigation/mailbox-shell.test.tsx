@@ -116,8 +116,12 @@ jest.mock('@/assets/logo', () => ({ LogoIcon: () => null }));
 jest.mock('@/hooks/useIsDesktopLayout', () => ({
   useIsDesktopLayout: () => true,
 }));
+// Keys echo back — except the mailbox names, so a test can tell a translated
+// name from the raw `specialUse` fallback.
 jest.mock('@/lib/i18n', () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string) => (key.startsWith('drawer.mailboxes.') ? `T(${key})` : key),
+  }),
 }));
 jest.mock('@/hooks/queries/useMailboxes', () => ({
   useMailboxes: () => ({ data: mockMailboxes }),
@@ -255,4 +259,16 @@ it('gives subscriptions one solid workspace while preserving the routed navigato
   view.rerender(<MailboxShell><RetainedRoute /></MailboxShell>);
   expect(screen.getByText('Mailbox list')).toBeTruthy();
   expect((screen.getByLabelText('Retained draft') as HTMLInputElement).value).toBe('Keep my draft');
+});
+
+it('names the IMAP \\Junk folder with the Spam key, not a raw "Junk"', () => {
+  mockMailboxes.push({ _id: 'junk-id', name: 'Junk', specialUse: SPECIAL_USE.SPAM, unseenMessages: 0 });
+  mockState.moreExpanded = true;
+  try {
+    render(<MailboxShell>{null}</MailboxShell>);
+    const junk = mockSidebar.items.find((item: any) => item.key === 'junk-id');
+    expect(junk.label).toBe('T(drawer.mailboxes.Spam)');
+  } finally {
+    mockMailboxes.pop();
+  }
 });

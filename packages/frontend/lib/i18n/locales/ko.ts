@@ -633,6 +633,10 @@ const ko: LocaleDict = {
     },
     unsubscribe: '구독 취소',
     block: '차단',
+    unsubscribed: '구독 취소됨',
+    blocked: '차단됨',
+    messageCount_one: '이메일 {{count}}개',
+    messageCount_other: '이메일 {{count}}개',
     frequency: {
       twentyPlus: '최근 20개 이상',
       tenToTwenty: '최근 10-20개',
@@ -740,6 +744,7 @@ const ko: LocaleDict = {
     sizeBytes: '{{value}} B',
     sizeKb: '{{value}} KB',
     sizeMb: '{{value}} MB',
+    previewAlt: '첨부파일 미리보기',
   },
 
   settings: {
@@ -753,6 +758,9 @@ const ko: LocaleDict = {
       title: '문제가 발생했습니다',
     },
     me: 'Me',
+    layoutDirection: {
+      restartRequired: '이 언어의 화면 방향으로 바꾸려면 Inbox를 다시 시작하세요.',
+    },
     settings: {
       manageOxyAccount: 'Oxy 계정 관리',
       landing: {
@@ -767,7 +775,7 @@ const ko: LocaleDict = {
           appearance: '화면 모드', appearanceDescription: '테마 및 강조 색상',
           notifications: '알림', notificationsDescription: '푸시 및 이메일 알림',
           inbox: '받은편지함', inboxDescription: '밀도, 읽기, 스와이프 동작',
-          privacy: '개인정보 보호', privacyDescription: '추적 방지 및 보낸 사람 신뢰도',
+          privacy: '개인정보 보호', privacyDescription: '이미지 프록시와 추적기 차단',
           labels: '라벨', labelsDescription: '맞춤 라벨로 받은편지함 정리',
           contacts: '연락처', contactsDescription: '자주 메일을 주고받는 사람으로 더 빠르게 작성',
           ai: 'AI 기능', aiDescription: '요약, 스마트 답장, 분류',
@@ -800,7 +808,7 @@ const ko: LocaleDict = {
         accentColor: '강조 색상',
       },
       notifications: {
-        deviceNotice: '시스템 알림 권한은 기기 설정에서 관리합니다.',
+        deviceNotice: '시스템 알림 권한은 기기 설정에서 관리합니다.', webNotice: '푸시 알림은 Android용 Inbox 앱에서 사용할 수 있어요. 브라우저에서 Inbox를 열어 두면 새 메일이 도착하는 대로 여기에 표시돼요.',
         alerts: '알림', push: '푸시 알림', pushDescription: '새 메시지가 도착하면 알려 드려요.',
         digest: '일일 이메일 요약', digestDescription: '읽지 않은 메시지 요약을 하루에 한 번 보내 드려요.',
         sound: '소리', playSound: '소리 재생', soundDescription: '새 메시지가 오면 짧은 알림음이 울려요.',
@@ -815,13 +823,15 @@ const ko: LocaleDict = {
         swipeA11y: '{{label}} 스와이프 동작: {{value}}, 탭하여 변경', swipeHint: '행을 탭하면 보관 · 삭제 · 읽음으로 표시 · 다시 알림 · 없음 순서로 바뀌어요.',
       },
       privacy: {
-        info: '개인정보 보호 기능은 기본으로 켜져 있어요. 기능별 설정은 곧 제공될 예정이에요.',
-        tracking: '추적 방지', blockImages: '외부 이미지 차단', blockImagesDescription: '탭하여 허용하기 전까지 외부 서버의 이미지를 불러오지 않아요.',
-        hideIp: '보낸 사람에게 IP 숨기기', hideIpDescription: '이미지와 글꼴은 Oxy의 개인정보 보호 프록시를 거쳐 불러와요.',
-        stripTracking: '추적 매개변수 제거', stripTrackingDescription: '메시지 속 링크에서 추적 토큰을 제거해요.',
-        trust: '보낸 사람 신뢰도', verification: '보낸 사람 인증', verificationDescription: '메시지가 표시된 도메인으로 서명되었는지 보여 줘요.',
-        blockList: '차단 목록 관리', blockListTitle: '차단 목록', blockListEmpty: '현재 차단된 보낸 사람이 없어요.',
-        why: '왜 이렇게 기본 설정되어 있나요?', whyDescription: 'Oxy는 개인정보 보호를 기본으로 합니다. 보낸 사람은 사용자의 IP, 위치, 읽음 확인을 볼 수 없으며, 추적 픽셀은 네트워크 경계에서 차단돼요. 보호 기능이 발전함에 따라 메시지별, 보낸 사람별 세부 설정을 제공할 예정이에요.',
+        info: '이 보호 기능은 모든 메시지에 항상 적용돼요.',
+        images: '외부 이미지',
+        alwaysOn: '항상 켜짐',
+        proxy: '이미지는 Oxy를 거쳐 불러와요',
+        proxyDescription: '메일 속 이미지와 글꼴은 Oxy 프록시가 대신 가져오기 때문에 보낸 사람은 내 IP 주소나 위치를 볼 수 없어요.',
+        trackers: '알려진 추적기 차단',
+        trackersDescription: '알려진 추적 서비스의 이미지는 빈 이미지로 바뀌어요.',
+        why: '보낸 사람이 여전히 알 수 있는 것',
+        whyDescription: '이미지는 자동으로 불러오기 때문에 보낸 사람이 메시지를 열었다는 사실은 알 수 있어요. 하지만 IP 주소나 위치는 알 수 없어요.',
       },
       labels: {
         color: '색상',
@@ -841,7 +851,7 @@ const ko: LocaleDict = {
         your: '내 라벨', empty: '아직 라벨이 없어요. 아래에서 첫 라벨을 만들어 메시지를 정리하세요.', create: '라벨 만들기', labelName: '라벨 이름', saveName: '라벨 이름 저장', rename: '{{name}} 이름 변경', delete: '{{name}} 삭제', builtIn: '기본 제공', pick: '{{color}} 선택', newName: '새 라벨 이름', creating: '만드는 중…', add: '라벨 추가', deleteTitle: '라벨을 삭제할까요?', deleteDescription: '"{{name}}" 라벨이 적용된 모든 메시지에서 제거돼요.',
       },
       contacts: {
-        your: '내 연락처', search: '연락처 검색', edit: '{{name}} 편집', delete: '{{name}} 삭제', editContact: '연락처 편집', addContact: '연락처 추가', name: '이름', email: '이메일', company: '회사(선택사항)', notes: '메모(선택사항)', star: '이 연락처에 별표 표시', saving: '저장 중…', adding: '추가 중…', saveChanges: '변경사항 저장', deleteTitle: '연락처를 삭제할까요?', deleteDescription: '"{{name}}"이(가) 연락처에서 삭제돼요.', noMatch: '검색에 일치하는 연락처가 없어요.', empty: '아직 연락처가 없어요. 자주 보내는 받는 사람을 아래에 추가하면 더 빠르게 작성할 수 있어요.',
+        your: '내 연락처', search: '연락처 검색', edit: '{{name}} 편집', delete: '{{name}} 삭제', editContact: '연락처 편집', addContact: '연락처 추가', name: '이름', email: '이메일', company: '회사(선택사항)', notes: '메모(선택사항)', star: '이 연락처에 별표 표시', saving: '저장 중…', adding: '추가 중…', saveChanges: '변경사항 저장', deleteTitle: '연락처를 삭제할까요?', deleteDescription: '"{{name}}"이(가) 연락처에서 삭제돼요.', noMatch: '검색에 일치하는 연락처가 없어요.', loadMore: '연락처 더 불러오기', showing: '{{total}}개 중 {{shown}}개 표시 중', empty: '아직 연락처가 없어요. 자주 보내는 받는 사람을 아래에 추가하면 더 빠르게 작성할 수 있어요.',
       },
       ai: {
         dailyBrief: '일일 요약', recap: '받은편지함 요약', recapDescription: '받은편지함의 개수(읽지 않음, 별표, 첨부 파일)로 짧은 요약을 만들어요. 메시지 내용은 읽지 않아요.', smartReply: '스마트 답장', summary: '대화 요약', summaryTitle: '요약 제공', summaryDescription: '대화에 요약 버튼을 표시해요. 버튼을 누를 때만 대화가 Oxy와 Kaana로 전송돼요.', suggestions: '원탭 추천', suggestionsDescription: 'Oxy와 Kaana로 생성한, 맥락에 맞는 답장 추천 3개를 메시지 위에 보여 줘요.', priority: '우선순위 표시', priorityTitle: '긴급할 수 있는 메일 강조', priorityDescription: '기기 내 키워드 규칙으로 메시지에 긴급, 조치 필요, 중요 표시를 해요. 완전한 AI 모델은 아니에요.', tip: '우선순위 표시는 기기에서 키워드 규칙으로 작동해요. 일일 요약, 스마트 답장, 대화 요약은 Kaana를 통한 제한된 Oxy 추론을 사용해요. Alia에게 물어보기는 별도의 에이전트예요.',
@@ -864,14 +874,14 @@ const ko: LocaleDict = {
         deleteTemplateDescription: '"{{name}}"이(가) 저장된 템플릿에서 삭제돼요.',
         sizePlaceholder: '예: 5 MB',
         contains: '포함', equals: '일치', notContains: '포함하지 않음', startsWith: '다음으로 시작', endsWith: '다음으로 끝남', largerThan: '다음보다 큼(바이트)', smallerThan: '다음보다 작음(바이트)',
-        filters: '필터 및 규칙', noFilters: '아직 필터가 없어요. 필터를 사용하면 받은 메시지에 보관, 별표 표시, 읽음 표시 같은 작업을 자동으로 적용할 수 있어요.', filterName: '필터 이름', whenMessage: '메시지의', sizeBytes: '크기(바이트)', value: '값', then: '이면', creating: '만드는 중…', addFilter: '필터 추가', editingTemplate: '템플릿 편집 중', templates: '템플릿', templateName: '템플릿 이름', subjectOptional: '제목(선택사항)', templateBody: '템플릿 본문', saveChanges: '변경사항 저장', addTemplate: '템플릿 추가', bundles: '묶음', bundleHint: '묶음은 관련 메일을 자동으로 그룹화해요. 켜거나 끄고, 받은편지함에 쌓이는 순서를 바꿀 수 있어요.', import: '가져오기', importDescription: '.eml 파일에서 이메일을 가져와요. 가져온 메시지는 받은편지함에 들어가며 다른 메일처럼 이동하거나 라벨을 붙일 수 있어요.', importing: '가져오는 중…', importButton: '.eml 파일 선택', imported: '이메일 {{total}}개 중 {{imported}}개를 가져왔어요.', conditions: '조건 {{conditions}}개 · 작업 {{actions}}개', deleteFilter: '{{name}} 삭제', editTemplate: '{{name}} 편집', deleteTemplate: '{{name}} 삭제', moveUp: '{{name}} 위로 이동', moveDown: '{{name}} 아래로 이동',
+        filters: '필터 및 규칙', noFilters: '아직 필터가 없어요. 필터를 사용하면 받은 메시지에 보관, 별표 표시, 읽음 표시 같은 작업을 자동으로 적용할 수 있어요.', filterName: '필터 이름', whenMessage: '메시지의', sizeBytes: '크기(바이트)', value: '값', then: '이면', creating: '만드는 중…', addFilter: '필터 추가', editingTemplate: '템플릿 편집 중', templates: '템플릿', templateName: '템플릿 이름', subjectOptional: '제목(선택사항)', templateBody: '템플릿 본문', saveChanges: '변경사항 저장', addTemplate: '템플릿 추가', bundles: '묶음', bundleHint: '묶음은 관련 메일을 자동으로 그룹화해요. 켜거나 끄고, 받은편지함에 쌓이는 순서를 바꿀 수 있어요.', import: '가져오기', importDescription: '.eml 파일에서 이메일을 가져와요. 가져온 메시지는 받은편지함에 들어가며 다른 메일처럼 이동하거나 라벨을 붙일 수 있어요.', importing: '가져오는 중…', importButton: '.eml 파일 선택', imported_one: '이메일 {{count}}개 중 {{imported}}개를 가져왔어요.', imported_other: '이메일 {{count}}개 중 {{imported}}개를 가져왔어요.', conditions: '조건 {{conditions}}개 · 작업 {{actions}}개', deleteFilter: '{{name}} 삭제', editTemplate: '{{name}} 편집', deleteTemplate: '{{name}} 삭제', moveUp: '{{name}} 위로 이동', moveDown: '{{name}} 아래로 이동',
       },
       about: { legal: '법적 고지 및 지원', terms: '서비스 약관', privacy: '개인정보처리방침', help: '고객센터', status: '시스템 상태', version: '버전 {{version}} · {{platform}}', madeBy: 'Oxy™가 🌎에서 ❤️을 담아 만들었어요.', linkUnavailable: '이 환경에서는 링크를 열 수 없어요.', linkFailed: '링크를 열지 못했어요.' },
     },
-    drawer: { unread: '{{name}}, 읽지 않음 {{count}}개', labels: '라벨', folders: '폴더', createFolder: '폴더 만들기', folderHint: '+를 탭하여 폴더를 만드세요. 폴더를 길게 누르면 삭제할 수 있어요.', signedOutTitle: '메일을 관리하려면 로그인하세요', signedOutSubtitle: '메일함과 라벨에 접근하고 새 메시지를 작성하세요.', notSignedIn: '로그인하지 않음', newFolder: '새 폴더', folderName: '폴더 이름', creatingFolder: '만드는 중…', createFolderButton: '폴더 만들기', deleteFolderTitle: '폴더를 삭제할까요?', deleteFolderDescription: '"{{name}}" 폴더와 그 구성이 삭제돼요. 안에 있는 메시지는 삭제되지 않아요.' },
+    drawer: { unread: '{{name}}, 읽지 않음 {{count}}개', labels: '라벨', folders: '폴더', createFolder: '폴더 만들기', folderHint: '+를 탭하여 폴더를 만드세요. 폴더를 길게 누르면 삭제할 수 있어요.', signedOutTitle: '메일을 관리하려면 로그인하세요', signedOutSubtitle: '메일함과 라벨에 접근하고 새 메시지를 작성하세요.', notSignedIn: '로그인하지 않음', newFolder: '새 폴더', folderName: '폴더 이름', creatingFolder: '만드는 중…', createFolderButton: '폴더 만들기', deleteFolderTitle: '폴더를 삭제할까요?', deleteFolderDescription: '"{{name}}" 폴더가 삭제돼요. 안에 있는 메시지는 보관함으로 이동해요.' },
     event: { sharingUnavailable: '공유를 사용할 수 없어요. 대신 "Google 캘린더"를 사용해 보세요.', openFailed: '캘린더 파일을 열 수 없어요.' },
     message: { loadError: '이 메시지를 불러올 수 없어요', loadErrorDescription: '연결을 확인하고 다시 시도하세요.', notFound: '메시지를 찾을 수 없어요', notFoundDescription: '이 메시지는 삭제되었거나 이동되었을 수 있어요.', conversationMessages_one: '이 대화의 메시지 {{count}}개', conversationMessages_other: '이 대화의 메시지 {{count}}개', summaryTitle: 'AI 대화 요약 만들기', summaryDescription: 'Oxy는 요약을 위해 제한된 대화 내용을 Kaana로 보내요.' },
-    mutations: { starFailed: '별표를 업데이트하지 못했습니다.', readFailed: '읽음 상태를 업데이트하지 못했습니다.', archived: '대화를 보관처리했습니다.', archiveFailed: '대화를 보관처리하지 못했습니다.', deleteFailed: '대화를 삭제하지 못했습니다.', deletedForever: '대화를 영구 삭제했습니다.', trashed: '대화를 휴지통으로 이동했습니다.', sending: '메시지를 보내는 중…', sendCancelled: '메시지를 취소했습니다.', labelsFailed: '라벨을 업데이트하지 못했습니다.', pinFailed: '고정하지 못했습니다.', snoozed: '메시지를 다시 알림으로 설정했습니다.', snoozeFailed: '메시지를 다시 알림으로 설정하지 못했습니다.', unsnoozed: '다시 알림을 해제했습니다.', unsnoozeFailed: '다시 알림을 해제하지 못했습니다.', bulkFailed: '메시지를 업데이트하지 못했습니다.', bulkUpdated: '메시지를 업데이트했습니다.', moveFailed: '메시지를 이동하지 못했습니다.', queuedDescription: '아직 전달되지 않았습니다. 설정 → 고급 → 전달 대기열에서 확인하세요.', retryQueued: '재시도 대기열에 추가했습니다.', retryFailed: '메시지를 재시도하지 못했습니다.', queuedCancelled: '대기 중인 메시지를 취소했습니다.', cancelFailed: '메시지를 취소하지 못했습니다.', bundleUpdateFailed: '묶음을 업데이트하지 못했습니다.', bundleReorderFailed: '묶음 순서를 변경하지 못했습니다.', contactCreateFailed: '연락처를 만들지 못했습니다', contactUpdateFailed: '연락처를 업데이트하지 못했습니다', contactDeleteFailed: '연락처를 삭제하지 못했습니다', filterCreateFailed: '필터를 만들지 못했습니다', filterUpdateFailed: '필터를 업데이트하지 못했습니다', filterDeleteFailed: '필터를 삭제하지 못했습니다', mailboxCreated: '폴더를 만들었습니다.', mailboxCreateFailed: '폴더를 만들지 못했습니다.', mailboxDeleted: '폴더를 삭제했습니다.', mailboxDeleteFailed: '폴더를 삭제하지 못했습니다.', reminderCreateFailed: '리마인더를 만들지 못했습니다', reminderUpdateFailed: '리마인더를 업데이트하지 못했습니다', reminderDeleteFailed: '리마인더를 삭제하지 못했습니다', templateCreateFailed: '템플릿을 만들지 못했습니다', templateUpdateFailed: '템플릿을 업데이트하지 못했습니다', templateDeleteFailed: '템플릿을 삭제하지 못했습니다', labelCreateFailed: '라벨을 만들지 못했습니다.', labelUpdateFailed: '라벨을 업데이트하지 못했습니다.', labelDeleteFailed: '라벨을 삭제하지 못했습니다.', unsubscribeFailed: '구독을 취소하지 못했습니다' },
+    mutations: { starFailed: '별표를 업데이트하지 못했습니다.', readFailed: '읽음 상태를 업데이트하지 못했습니다.', archived: '대화를 보관처리했습니다.', archiveFailed: '대화를 보관처리하지 못했습니다.', deleteFailed: '대화를 삭제하지 못했습니다.', deletedForever: '대화를 영구 삭제했습니다.', trashed: '대화를 휴지통으로 이동했습니다.', sending: '메시지를 보내는 중…', sendCancelled: '메시지를 취소했습니다.', labelsFailed: '라벨을 업데이트하지 못했습니다.', pinFailed: '고정하지 못했습니다.', snoozed: '메시지를 다시 알림으로 설정했습니다.', snoozeFailed: '메시지를 다시 알림으로 설정하지 못했습니다.', unsnoozed: '다시 알림을 해제했습니다.', unsnoozeFailed: '다시 알림을 해제하지 못했습니다.', bulkFailed: '메시지를 업데이트하지 못했습니다.', bulkUpdated: '메시지를 업데이트했습니다.', moveFailed: '메시지를 이동하지 못했습니다.', queuedDescription: '아직 전달되지 않았습니다. 설정 → 고급 → 전달 대기열에서 확인하세요.', retryQueued: '재시도 대기열에 추가했습니다.', retryFailed: '메시지를 재시도하지 못했습니다.', queuedCancelled: '대기 중인 메시지를 취소했습니다.', cancelFailed: '메시지를 취소하지 못했습니다.', bundleUpdateFailed: '묶음을 업데이트하지 못했습니다.', bundleReorderFailed: '묶음 순서를 변경하지 못했습니다.', contactCreateFailed: '연락처를 만들지 못했습니다', contactUpdateFailed: '연락처를 업데이트하지 못했습니다', contactDeleteFailed: '연락처를 삭제하지 못했습니다', filterCreateFailed: '필터를 만들지 못했습니다', filterUpdateFailed: '필터를 업데이트하지 못했습니다', filterDeleteFailed: '필터를 삭제하지 못했습니다', mailboxCreated: '폴더를 만들었습니다.', mailboxCreateFailed: '폴더를 만들지 못했습니다.', mailboxDeleted: '폴더를 삭제했습니다.', mailboxDeleteFailed: '폴더를 삭제하지 못했습니다.', reminderCreateFailed: '리마인더를 만들지 못했습니다', reminderUpdateFailed: '리마인더를 업데이트하지 못했습니다', reminderDeleteFailed: '리마인더를 삭제하지 못했습니다', templateCreateFailed: '템플릿을 만들지 못했습니다', templateUpdateFailed: '템플릿을 업데이트하지 못했습니다', templateDeleteFailed: '템플릿을 삭제하지 못했습니다', labelCreateFailed: '라벨을 만들지 못했습니다.', labelUpdateFailed: '라벨을 업데이트하지 못했습니다.', labelDeleteFailed: '라벨을 삭제하지 못했습니다.', labelNameTaken: '"{{name}}" 라벨이 이미 있어요.', unsubscribeFailed: '구독을 취소하지 못했습니다' },
   },
 
   auth: {

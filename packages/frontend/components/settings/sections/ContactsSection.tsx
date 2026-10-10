@@ -18,7 +18,7 @@ import {
 import { Switch } from '@oxy.so/bloom/switch';
 import { Textarea } from '@oxy.so/bloom/textarea';
 import { toast } from '@oxy.so/bloom/toast';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { View } from 'react-native';
 const isValidEmail = (email: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -29,7 +29,27 @@ export function ContactsSection() {
   const [search, setSearch] = useState('');
   // Searched once the user pauses typing, not once per keystroke.
   const searchQuery = useDebouncedValue(search, 250);
-  const { data: contacts = [] } = useContacts(searchQuery);
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useContacts(searchQuery);
+  // A contact created or deleted between two page reads shifts every offset
+  // after it, so the next page can repeat a row already shown: keep the first.
+  const contacts = useMemo(() => {
+    const seen = new Set<string>();
+    const rows: Contact[] = [];
+    for (const page of data?.pages ?? []) {
+      for (const contact of page.data) {
+        if (seen.has(contact._id)) continue;
+        seen.add(contact._id);
+        rows.push(contact);
+      }
+    }
+    return rows;
+  }, [data]);
+  const totalContacts = data?.pages.at(-1)?.pagination.total ?? contacts.length;
   const createContact = useCreateContact();
   const updateContact = useUpdateContact();
   const deleteContact = useDeleteContact();
@@ -177,34 +197,60 @@ export function ContactsSection() {
                 : undefined,
             },
             label: t('ui.settings.contacts.your'),
-            rows: contacts.map((contact) => ({
-              key: contact._id,
-              label: `${contact.starred ? '★ ' : ''}${contact.name}`,
-              description: contact.company
-                ? `${contact.email} · ${contact.company}`
-                : contact.email,
-              control: (
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <IconButton
-                    accessibilityLabel={t('ui.settings.contacts.edit', {
-                      name: contact.name,
-                    })}
-                    icon={<RiEditLine />}
-                    onPress={() => startEdit(contact)}
-                  />
-                  <IconButton
-                    accessibilityLabel={t('ui.settings.contacts.delete', {
-                      name: contact.name,
-                    })}
-                    icon={<RiDeleteBin6Line />}
-                    onPress={() => {
-                      setPendingDelete({ id: contact._id, name: contact.name });
-                      deleteConfirm.open();
-                    }}
-                  />
-                </View>
-              ),
-            })),
+            rows: [
+              ...contacts.map((contact) => ({
+                key: contact._id,
+                label: `${contact.starred ? '★ ' : ''}${contact.name}`,
+                description: contact.company
+                  ? `${contact.email} · ${contact.company}`
+                  : contact.email,
+                control: (
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <IconButton
+                      accessibilityLabel={t('ui.settings.contacts.edit', {
+                        name: contact.name,
+                      })}
+                      icon={<RiEditLine />}
+                      onPress={() => startEdit(contact)}
+                    />
+                    <IconButton
+                      accessibilityLabel={t('ui.settings.contacts.delete', {
+                        name: contact.name,
+                      })}
+                      icon={<RiDeleteBin6Line />}
+                      onPress={() => {
+                        setPendingDelete({ id: contact._id, name: contact.name });
+                        deleteConfirm.open();
+                      }}
+                    />
+                  </View>
+                ),
+              })),
+              ...(hasNextPage
+                ? [
+                    {
+                      key: 'load-more',
+                      label: t('ui.settings.contacts.loadMore'),
+                      description: t('ui.settings.contacts.showing', {
+                        shown: contacts.length,
+                        total: Math.max(totalContacts, contacts.length),
+                      }),
+                      control: (
+                        <Button
+                          appearance="subtle"
+                          onPress={() => {
+                            if (!isFetchingNextPage) void fetchNextPage();
+                          }}
+                          disabled={isFetchingNextPage}
+                          loading={isFetchingNextPage}
+                        >
+                          {t('ui.settings.contacts.loadMore')}
+                        </Button>
+                      ),
+                    },
+                  ]
+                : []),
+            ],
           },
           {
             key: 'form',

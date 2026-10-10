@@ -633,6 +633,10 @@ const ja: LocaleDict = {
     },
     unsubscribe: '購読を解除',
     block: 'ブロック',
+    unsubscribed: '購読解除済み',
+    blocked: 'ブロック済み',
+    messageCount_one: '{{count}} 件のメール',
+    messageCount_other: '{{count}} 件のメール',
     frequency: {
       twentyPlus: '直近 20+ 件のメール',
       tenToTwenty: '直近 10-20 件のメール',
@@ -740,6 +744,7 @@ const ja: LocaleDict = {
     sizeBytes: '{{value}} B',
     sizeKb: '{{value}} KB',
     sizeMb: '{{value}} MB',
+    previewAlt: '添付ファイルのプレビュー',
   },
 
   settings: {
@@ -753,6 +758,9 @@ const ja: LocaleDict = {
       title: '問題が発生しました',
     },
     me: 'Me',
+    layoutDirection: {
+      restartRequired: 'この言語の表示方向に切り替えるには、Inbox を再起動してください。',
+    },
     settings: {
       manageOxyAccount: 'Oxy アカウントを管理',
       landing: {
@@ -767,7 +775,7 @@ const ja: LocaleDict = {
           appearance: '外観', appearanceDescription: 'テーマとアクセントカラー',
           notifications: '通知', notificationsDescription: 'プッシュ通知とメール通知',
           inbox: '受信箱', inboxDescription: '表示密度、閲覧、スワイプ操作',
-          privacy: 'プライバシー', privacyDescription: 'トラッキング防止と差出人の信頼性',
+          privacy: 'プライバシー', privacyDescription: '画像プロキシとトラッカーのブロック',
           labels: 'ラベル', labelsDescription: 'カスタムラベルで受信箱を整理',
           contacts: '連絡先', contactsDescription: 'メールを送る相手を登録して作成をすばやく',
           ai: 'AI 機能', aiDescription: 'ブリーフ、スマート返信、分類',
@@ -800,7 +808,7 @@ const ja: LocaleDict = {
         accentColor: 'アクセントカラー',
       },
       notifications: {
-        deviceNotice: 'システムの通知許可はデバイスの設定で管理します。',
+        deviceNotice: 'システムの通知許可はデバイスの設定で管理します。', webNotice: 'プッシュ通知は Android 版 Inbox アプリで利用できます。ブラウザで Inbox を開いている間は、新しいメールが届くとここに表示されます。',
         alerts: '通知', push: 'プッシュ通知', pushDescription: '新しいメッセージが届いたときに通知します。',
         digest: 'デイリーメールダイジェスト', digestDescription: '未読メッセージのまとめを 1 日 1 回お届けします。',
         sound: 'サウンド', playSound: 'サウンドを再生', soundDescription: '新しいメッセージで短い通知音を鳴らします。',
@@ -815,13 +823,15 @@ const ja: LocaleDict = {
         swipeA11y: '{{label}}のスワイプ操作: {{value}}、タップして変更', swipeHint: '行をタップすると、アーカイブ · 削除 · 既読にする · スヌーズ · なし が順に切り替わります。',
       },
       privacy: {
-        info: 'プライバシー保護はデフォルトで有効です。機能ごとの切り替えは近日対応予定です。',
-        tracking: 'トラッキング防止', blockImages: '外部画像をブロック', blockImagesDescription: 'タップして許可するまで、外部サーバーの画像を読み込みません。',
-        hideIp: '差出人に IP を隠す', hideIpDescription: '画像とフォントは Oxy のプライバシープロキシ経由で読み込まれます。',
-        stripTracking: 'トラッキングパラメーターを削除', stripTrackingDescription: 'メッセージ内のリンクからトラッキング用トークンを削除します。',
-        trust: '差出人の信頼性', verification: '差出人の検証', verificationDescription: 'メッセージが名乗っているドメインによって署名されているかを表示します。',
-        blockList: 'ブロックリストを管理', blockListTitle: 'ブロックリスト', blockListEmpty: 'ブロック中の差出人はいません。',
-        why: 'なぜこの初期設定なのですか?', whyDescription: 'Oxy はプライバシー重視を基本としています。差出人にあなたの IP アドレス、位置情報、開封確認が知られることはなく、トラッキングピクセルはネットワークの境界でブロックされます。保護機能の成熟に合わせて、メッセージごと・差出人ごとの細かな設定を提供していきます。',
+        info: 'これらの保護はすべてのメッセージに常に適用されます。',
+        images: '外部画像',
+        alwaysOn: '常にオン',
+        proxy: '画像は Oxy 経由で読み込み',
+        proxyDescription: 'メール内の画像とフォントは Oxy のプロキシが取得するため、差出人にあなたの IP アドレスや位置情報が知られることはありません。',
+        trackers: '既知のトラッカーをブロック',
+        trackersDescription: '既知のトラッキングサービスの画像は空白の画像に置き換えられます。',
+        why: '差出人に伝わること',
+        whyDescription: '画像は自動で読み込まれるため、メッセージが開封されたことは差出人に伝わる場合があります。ただし、IP アドレスや位置情報は伝わりません。',
       },
       labels: {
         color: '色',
@@ -841,7 +851,7 @@ const ja: LocaleDict = {
         your: 'マイラベル', empty: 'ラベルはまだありません。下で最初のラベルを作成して、メッセージを整理しましょう。', create: 'ラベルを作成', labelName: 'ラベル名', saveName: 'ラベル名を保存', rename: '{{name}} の名前を変更', delete: '{{name}} を削除', builtIn: '組み込み', pick: '{{color}} を選択', newName: '新しいラベル名', creating: '作成中…', add: 'ラベルを追加', deleteTitle: 'ラベルを削除しますか?', deleteDescription: '「{{name}}」は、適用されているすべてのメッセージから削除されます。',
       },
       contacts: {
-        your: 'マイ連絡先', search: '連絡先を検索', edit: '{{name}} を編集', delete: '{{name}} を削除', editContact: '連絡先を編集', addContact: '連絡先を追加', name: '名前', email: 'メール', company: '会社 (任意)', notes: 'メモ (任意)', star: 'この連絡先にスターを付ける', saving: '保存中…', adding: '追加中…', saveChanges: '変更を保存', deleteTitle: '連絡先を削除しますか?', deleteDescription: '「{{name}}」が連絡先から削除されます。', noMatch: '検索に一致する連絡先がありません。', empty: '連絡先はまだありません。よく送る宛先を下で追加すると、すばやく作成できます。',
+        your: 'マイ連絡先', search: '連絡先を検索', edit: '{{name}} を編集', delete: '{{name}} を削除', editContact: '連絡先を編集', addContact: '連絡先を追加', name: '名前', email: 'メール', company: '会社 (任意)', notes: 'メモ (任意)', star: 'この連絡先にスターを付ける', saving: '保存中…', adding: '追加中…', saveChanges: '変更を保存', deleteTitle: '連絡先を削除しますか?', deleteDescription: '「{{name}}」が連絡先から削除されます。', noMatch: '検索に一致する連絡先がありません。', loadMore: 'さらに連絡先を読み込む', showing: '{{total}} 件中 {{shown}} 件を表示中', empty: '連絡先はまだありません。よく送る宛先を下で追加すると、すばやく作成できます。',
       },
       ai: {
         dailyBrief: 'デイリーブリーフ', recap: '受信箱のまとめ', recapDescription: '受信箱の件数 (未読、スター付き、添付ファイル) から短い要約を作成します。メッセージの内容は読み取りません。', smartReply: 'スマート返信', summary: 'スレッドの要約', summaryTitle: '要約を表示する', summaryDescription: 'スレッドに「要約する」ボタンを表示します。ボタンを押したときにのみ、スレッドが Oxy と Kaana に送信されます。', suggestions: 'ワンタップ候補', suggestionsDescription: 'Oxy と Kaana が生成した、文脈に合った 3 つの返信候補をメッセージの上に表示します。', priority: '優先度フラグ', priorityTitle: '緊急と思われるメールを強調表示', priorityDescription: 'デバイス上のキーワード判定で、メッセージに「緊急」「対応が必要」「重要」のフラグを付けます (本格的な AI モデルではありません)。', tip: '優先度フラグはデバイス上のキーワード判定で動作します。デイリーブリーフ、スマート返信、スレッドの要約は Kaana 経由の限定された Oxy 推論を使用します。「Alia に質問」は別のエージェントです。',
@@ -864,14 +874,14 @@ const ja: LocaleDict = {
         deleteTemplateDescription: '「{{name}}」が保存済みテンプレートから削除されます。',
         sizePlaceholder: '例: 5 MB',
         contains: 'を含む', equals: 'と等しい', notContains: 'を含まない', startsWith: 'で始まる', endsWith: 'で終わる', largerThan: 'より大きい (バイト)', smallerThan: 'より小さい (バイト)',
-        filters: 'フィルターとルール', noFilters: 'フィルターはまだありません。フィルターを使うと、受信メッセージにアーカイブ、スター付け、既読などの操作を自動で適用できます。', filterName: 'フィルター名', whenMessage: 'メッセージの', sizeBytes: 'サイズ (バイト)', value: '値', then: 'の場合', creating: '作成中…', addFilter: 'フィルターを追加', editingTemplate: 'テンプレートを編集中', templates: 'テンプレート', templateName: 'テンプレート名', subjectOptional: '件名 (任意)', templateBody: 'テンプレート本文', saveChanges: '変更を保存', addTemplate: 'テンプレートを追加', bundles: 'まとめ', bundleHint: 'まとめは関連するメールを自動でグループ化します。オン/オフを切り替えたり、受信箱での並び順を変更したりできます。', import: 'インポート', importDescription: '.eml ファイルからメールをインポートします。インポートしたメッセージは受信箱に入り、他のメールと同様に移動やラベル付けができます。', importing: 'インポート中…', importButton: '.eml ファイルを選択', imported: '{{total}} 件中 {{imported}} 件のメールをインポートしました。', conditions: '条件 {{conditions}} 件 · アクション {{actions}} 件', deleteFilter: '{{name}} を削除', editTemplate: '{{name}} を編集', deleteTemplate: '{{name}} を削除', moveUp: '{{name}} を上へ移動', moveDown: '{{name}} を下へ移動',
+        filters: 'フィルターとルール', noFilters: 'フィルターはまだありません。フィルターを使うと、受信メッセージにアーカイブ、スター付け、既読などの操作を自動で適用できます。', filterName: 'フィルター名', whenMessage: 'メッセージの', sizeBytes: 'サイズ (バイト)', value: '値', then: 'の場合', creating: '作成中…', addFilter: 'フィルターを追加', editingTemplate: 'テンプレートを編集中', templates: 'テンプレート', templateName: 'テンプレート名', subjectOptional: '件名 (任意)', templateBody: 'テンプレート本文', saveChanges: '変更を保存', addTemplate: 'テンプレートを追加', bundles: 'まとめ', bundleHint: 'まとめは関連するメールを自動でグループ化します。オン/オフを切り替えたり、受信箱での並び順を変更したりできます。', import: 'インポート', importDescription: '.eml ファイルからメールをインポートします。インポートしたメッセージは受信箱に入り、他のメールと同様に移動やラベル付けができます。', importing: 'インポート中…', importButton: '.eml ファイルを選択', imported_one: '{{count}} 件中 {{imported}} 件のメールをインポートしました。', imported_other: '{{count}} 件中 {{imported}} 件のメールをインポートしました。', conditions: '条件 {{conditions}} 件 · アクション {{actions}} 件', deleteFilter: '{{name}} を削除', editTemplate: '{{name}} を編集', deleteTemplate: '{{name}} を削除', moveUp: '{{name}} を上へ移動', moveDown: '{{name}} を下へ移動',
       },
       about: { legal: '法的情報とサポート', terms: '利用規約', privacy: 'プライバシーポリシー', help: 'ヘルプセンター', status: 'システムステータス', version: 'バージョン {{version}} · {{platform}}', madeBy: 'Oxy™ が 🌎 で ❤️ を込めて作りました。', linkUnavailable: 'この環境ではリンクを開けませんでした。', linkFailed: 'リンクを開けませんでした。' },
     },
-    drawer: { unread: '{{name}}、未読 {{count}} 件', labels: 'ラベル', folders: 'フォルダー', createFolder: 'フォルダーを作成', folderHint: '+ をタップしてフォルダーを作成します。フォルダーを長押しすると削除できます。', signedOutTitle: 'メールを管理するにはサインインしてください', signedOutSubtitle: 'メールボックス、ラベルにアクセスし、新しいメッセージを作成できます。', notSignedIn: 'サインインしていません', newFolder: '新しいフォルダー', folderName: 'フォルダー名', creatingFolder: '作成中…', createFolderButton: 'フォルダーを作成', deleteFolderTitle: 'フォルダーを削除しますか?', deleteFolderDescription: '「{{name}}」とその整理設定が削除されます。中のメッセージは削除されません。' },
+    drawer: { unread: '{{name}}、未読 {{count}} 件', labels: 'ラベル', folders: 'フォルダー', createFolder: 'フォルダーを作成', folderHint: '+ をタップしてフォルダーを作成します。フォルダーを長押しすると削除できます。', signedOutTitle: 'メールを管理するにはサインインしてください', signedOutSubtitle: 'メールボックス、ラベルにアクセスし、新しいメッセージを作成できます。', notSignedIn: 'サインインしていません', newFolder: '新しいフォルダー', folderName: 'フォルダー名', creatingFolder: '作成中…', createFolderButton: 'フォルダーを作成', deleteFolderTitle: 'フォルダーを削除しますか?', deleteFolderDescription: '「{{name}}」が削除されます。中のメッセージはアーカイブに移動します。' },
     event: { sharingUnavailable: '共有を利用できません。代わりに「Google カレンダー」をお試しください。', openFailed: 'カレンダーファイルを開けませんでした。' },
     message: { loadError: 'このメッセージを読み込めませんでした', loadErrorDescription: '接続を確認して、もう一度お試しください。', notFound: 'メッセージが見つかりません', notFoundDescription: 'このメッセージは削除または移動された可能性があります。', conversationMessages_one: 'このスレッドのメッセージ {{count}} 件', conversationMessages_other: 'このスレッドのメッセージ {{count}} 件', summaryTitle: 'AI でスレッドの要約を生成', summaryDescription: 'Oxy は要約のため、限定されたスレッドの内容を Kaana に送信します。' },
-    mutations: { starFailed: 'スターを更新できませんでした。', readFailed: '既読状態を更新できませんでした。', archived: 'スレッドをアーカイブしました。', archiveFailed: 'スレッドをアーカイブできませんでした。', deleteFailed: 'スレッドを削除できませんでした。', deletedForever: 'スレッドを完全に削除しました。', trashed: 'スレッドをゴミ箱に移動しました。', sending: 'メッセージを送信中…', sendCancelled: 'メッセージを取り消しました。', labelsFailed: 'ラベルを更新できませんでした。', pinFailed: '固定できませんでした。', snoozed: 'メッセージをスヌーズしました。', snoozeFailed: 'メッセージをスヌーズできませんでした。', unsnoozed: 'スヌーズを解除しました。', unsnoozeFailed: 'スヌーズを解除できませんでした。', bulkFailed: 'メッセージを更新できませんでした。', bulkUpdated: 'メッセージを更新しました。', moveFailed: 'メッセージを移動できませんでした。', queuedDescription: 'まだ配信されていません。設定 → 詳細 → 配信キューで確認できます。', retryQueued: '再送信キューに追加しました。', retryFailed: '再送信できませんでした。', queuedCancelled: 'キューのメッセージを取り消しました。', cancelFailed: 'メッセージを取り消せませんでした。', bundleUpdateFailed: 'まとめを更新できませんでした。', bundleReorderFailed: 'まとめを並べ替えできませんでした。', contactCreateFailed: '連絡先を作成できませんでした', contactUpdateFailed: '連絡先を更新できませんでした', contactDeleteFailed: '連絡先を削除できませんでした', filterCreateFailed: 'フィルターを作成できませんでした', filterUpdateFailed: 'フィルターを更新できませんでした', filterDeleteFailed: 'フィルターを削除できませんでした', mailboxCreated: 'フォルダーを作成しました。', mailboxCreateFailed: 'フォルダーを作成できませんでした。', mailboxDeleted: 'フォルダーを削除しました。', mailboxDeleteFailed: 'フォルダーを削除できませんでした。', reminderCreateFailed: 'リマインダーを作成できませんでした', reminderUpdateFailed: 'リマインダーを更新できませんでした', reminderDeleteFailed: 'リマインダーを削除できませんでした', templateCreateFailed: 'テンプレートを作成できませんでした', templateUpdateFailed: 'テンプレートを更新できませんでした', templateDeleteFailed: 'テンプレートを削除できませんでした', labelCreateFailed: 'ラベルを作成できませんでした。', labelUpdateFailed: 'ラベルを更新できませんでした。', labelDeleteFailed: 'ラベルを削除できませんでした。', unsubscribeFailed: '購読を解除できませんでした' },
+    mutations: { starFailed: 'スターを更新できませんでした。', readFailed: '既読状態を更新できませんでした。', archived: 'スレッドをアーカイブしました。', archiveFailed: 'スレッドをアーカイブできませんでした。', deleteFailed: 'スレッドを削除できませんでした。', deletedForever: 'スレッドを完全に削除しました。', trashed: 'スレッドをゴミ箱に移動しました。', sending: 'メッセージを送信中…', sendCancelled: 'メッセージを取り消しました。', labelsFailed: 'ラベルを更新できませんでした。', pinFailed: '固定できませんでした。', snoozed: 'メッセージをスヌーズしました。', snoozeFailed: 'メッセージをスヌーズできませんでした。', unsnoozed: 'スヌーズを解除しました。', unsnoozeFailed: 'スヌーズを解除できませんでした。', bulkFailed: 'メッセージを更新できませんでした。', bulkUpdated: 'メッセージを更新しました。', moveFailed: 'メッセージを移動できませんでした。', queuedDescription: 'まだ配信されていません。設定 → 詳細 → 配信キューで確認できます。', retryQueued: '再送信キューに追加しました。', retryFailed: '再送信できませんでした。', queuedCancelled: 'キューのメッセージを取り消しました。', cancelFailed: 'メッセージを取り消せませんでした。', bundleUpdateFailed: 'まとめを更新できませんでした。', bundleReorderFailed: 'まとめを並べ替えできませんでした。', contactCreateFailed: '連絡先を作成できませんでした', contactUpdateFailed: '連絡先を更新できませんでした', contactDeleteFailed: '連絡先を削除できませんでした', filterCreateFailed: 'フィルターを作成できませんでした', filterUpdateFailed: 'フィルターを更新できませんでした', filterDeleteFailed: 'フィルターを削除できませんでした', mailboxCreated: 'フォルダーを作成しました。', mailboxCreateFailed: 'フォルダーを作成できませんでした。', mailboxDeleted: 'フォルダーを削除しました。', mailboxDeleteFailed: 'フォルダーを削除できませんでした。', reminderCreateFailed: 'リマインダーを作成できませんでした', reminderUpdateFailed: 'リマインダーを更新できませんでした', reminderDeleteFailed: 'リマインダーを削除できませんでした', templateCreateFailed: 'テンプレートを作成できませんでした', templateUpdateFailed: 'テンプレートを更新できませんでした', templateDeleteFailed: 'テンプレートを削除できませんでした', labelCreateFailed: 'ラベルを作成できませんでした。', labelUpdateFailed: 'ラベルを更新できませんでした。', labelDeleteFailed: 'ラベルを削除できませんでした。', labelNameTaken: '「{{name}}」という名前のラベルはすでにあります。', unsubscribeFailed: '購読を解除できませんでした' },
   },
 
   auth: {

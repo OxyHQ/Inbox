@@ -690,6 +690,14 @@ const ar: LocaleDict = {
     },
     unsubscribe: 'إلغاء الاشتراك',
     block: 'حظر',
+    unsubscribed: 'تم إلغاء الاشتراك',
+    blocked: 'محظور',
+    messageCount_zero: 'لا رسائل',
+    messageCount_one: 'رسالة واحدة',
+    messageCount_two: 'رسالتان',
+    messageCount_few: '{{count}} رسائل',
+    messageCount_many: '{{count}} رسالة',
+    messageCount_other: '{{count}} رسالة',
     frequency: {
       count_many: '{{count}} رسالة مؤخراً',
       count_few: '{{count}} رسائل مؤخراً',
@@ -801,6 +809,7 @@ const ar: LocaleDict = {
     sizeBytes: '{{value}} بايت',
     sizeKb: '{{value}} ك.ب',
     sizeMb: '{{value}} م.ب',
+    previewAlt: 'معاينة المرفق',
   },
 
   settings: {
@@ -814,6 +823,9 @@ const ar: LocaleDict = {
       title: 'حدث خطأ ما',
     },
     me: 'Me',
+    layoutDirection: {
+      restartRequired: 'أعد تشغيل Inbox لتبديل اتجاه الواجهة بما يناسب هذه اللغة.',
+    },
     settings: {
       manageOxyAccount: 'إدارة حساب Oxy',
       landing: {
@@ -828,7 +840,7 @@ const ar: LocaleDict = {
           appearance: 'المظهر', appearanceDescription: 'السمة ولون التمييز',
           notifications: 'الإشعارات', notificationsDescription: 'الإشعارات الفورية وتنبيهات البريد',
           inbox: 'البريد الوارد', inboxDescription: 'الكثافة والقراءة وإجراءات السحب',
-          privacy: 'الخصوصية', privacyDescription: 'الحماية من التتبّع والثقة بالمرسلين',
+          privacy: 'الخصوصية', privacyDescription: 'وكيل الصور وحظر أدوات التتبّع',
           labels: 'التصنيفات', labelsDescription: 'نظّم بريدك بتصنيفات مخصّصة',
           contacts: 'جهات الاتصال', contactsDescription: 'من تراسلهم، لكتابة أسرع',
           ai: 'ميزات الذكاء الاصطناعي', aiDescription: 'الملخّص والرد الذكي والفرز التلقائي',
@@ -861,7 +873,7 @@ const ar: LocaleDict = {
         accentColor: 'لون التمييز',
       },
       notifications: {
-        deviceNotice: 'تُدار أذونات إشعارات النظام من إعدادات جهازك.',
+        deviceNotice: 'تُدار أذونات إشعارات النظام من إعدادات جهازك.', webNotice: 'تتوفر الإشعارات الفورية في تطبيق Inbox لنظام Android. وما دام Inbox مفتوحًا في متصفحك، ستظهر الرسائل الجديدة هنا فور وصولها.',
         alerts: 'التنبيهات', push: 'الإشعارات الفورية', pushDescription: 'احصل على إشعار عند وصول رسائل جديدة.',
         digest: 'ملخّص يومي بالبريد', digestDescription: 'ملخّص للرسائل غير المقروءة، مرة يوميًا.',
         sound: 'الصوت', playSound: 'تشغيل الصوت', soundDescription: 'نغمة قصيرة عند وصول رسائل جديدة.',
@@ -876,13 +888,15 @@ const ar: LocaleDict = {
         swipeA11y: 'إجراء {{label}}: {{value}}، اضغط للتغيير', swipeHint: 'اضغط على صف للتنقل بين: أرشفة · حذف · تحديد كمقروءة · تأجيل · لا شيء.',
       },
       privacy: {
-        info: 'وسائل حماية الخصوصية مفعّلة افتراضيًا. مفاتيح التحكم لكل ميزة قادمة قريبًا.',
-        tracking: 'الحماية من التتبّع', blockImages: 'حظر الصور الخارجية', blockImagesDescription: 'لا تُحمَّل الصور من الخوادم الخارجية حتى تضغط للسماح بها.',
-        hideIp: 'إخفاء عنوان IP عن المرسلين', hideIpDescription: 'تُحمَّل الصور والخطوط عبر وكيل الخصوصية من Oxy.',
-        stripTracking: 'إزالة معلمات التتبّع', stripTrackingDescription: 'إزالة رموز التتبّع من الروابط في الرسائل.',
-        trust: 'الثقة بالمرسلين', verification: 'التحقق من المرسل', verificationDescription: 'إظهار ما إذا كانت الرسائل موقّعة من النطاق الذي تدّعيه.',
-        blockList: 'إدارة قائمة الحظر', blockListTitle: 'قائمة الحظر', blockListEmpty: 'لا يوجد مرسلون محظورون حاليًا.',
-        why: 'لماذا هذه الإعدادات الافتراضية؟', whyDescription: 'يتبع Oxy نهج الخصوصية افتراضيًا: لا يرى المرسلون أبدًا عنوان IP أو موقعك أو إيصالات القراءة، وتُحظر بكسلات التتبّع على حافة الشبكة. سنوفّر إعدادات دقيقة لكل رسالة ولكل مرسل مع نضج وسائل الحماية.',
+        info: 'تنطبق وسائل الحماية هذه على كل رسالة وهي مفعّلة دائمًا.',
+        images: 'الصور الخارجية',
+        alwaysOn: 'مفعّلة دائمًا',
+        proxy: 'تُحمَّل الصور عبر Oxy',
+        proxyDescription: 'يجلب وكيل Oxy الصور والخطوط الموجودة في بريدك، لذلك لا يرى المرسلون أبدًا عنوان IP الخاص بك أو موقعك.',
+        trackers: 'حظر أدوات التتبّع المعروفة',
+        trackersDescription: 'تُستبدل الصور الواردة من خدمات التتبّع المعروفة بصورة فارغة.',
+        why: 'ما يمكن للمرسلين رؤيته رغم ذلك',
+        whyDescription: 'تُحمَّل الصور تلقائيًا، لذلك قد يعرف المرسل أن الرسالة فُتحت، لكنه لا يعرف عنوان IP الخاص بك أو موقعك.',
       },
       labels: {
         color: 'اللون',
@@ -902,7 +916,7 @@ const ar: LocaleDict = {
         your: 'تصنيفاتك', empty: 'لا توجد تصنيفات بعد. أنشئ أول تصنيف أدناه لتنظيم رسائلك.', create: 'إنشاء تصنيف', labelName: 'اسم التصنيف', saveName: 'حفظ اسم التصنيف', rename: 'إعادة تسمية {{name}}', delete: 'حذف {{name}}', builtIn: 'مدمج', pick: 'اختيار {{color}}', newName: 'اسم التصنيف الجديد', creating: 'جارٍ الإنشاء…', add: 'إضافة تصنيف', deleteTitle: 'حذف التصنيف؟', deleteDescription: 'ستتم إزالة "{{name}}" من كل الرسائل المطبَّق عليها.',
       },
       contacts: {
-        your: 'جهات اتصالك', search: 'البحث في جهات الاتصال', edit: 'تعديل {{name}}', delete: 'حذف {{name}}', editContact: 'تعديل جهة الاتصال', addContact: 'إضافة جهة اتصال', name: 'الاسم', email: 'البريد الإلكتروني', company: 'الشركة (اختياري)', notes: 'ملاحظات (اختياري)', star: 'تمييز جهة الاتصال هذه', saving: 'جارٍ الحفظ…', adding: 'جارٍ الإضافة…', saveChanges: 'حفظ التغييرات', deleteTitle: 'حذف جهة الاتصال؟', deleteDescription: 'ستتم إزالة "{{name}}" من جهات اتصالك.', noMatch: 'لا توجد جهات اتصال تطابق البحث.', empty: 'لا توجد جهات اتصال بعد. أضف أدناه المستلمين الذين تراسلهم كثيرًا لكتابة أسرع.',
+        your: 'جهات اتصالك', search: 'البحث في جهات الاتصال', edit: 'تعديل {{name}}', delete: 'حذف {{name}}', editContact: 'تعديل جهة الاتصال', addContact: 'إضافة جهة اتصال', name: 'الاسم', email: 'البريد الإلكتروني', company: 'الشركة (اختياري)', notes: 'ملاحظات (اختياري)', star: 'تمييز جهة الاتصال هذه', saving: 'جارٍ الحفظ…', adding: 'جارٍ الإضافة…', saveChanges: 'حفظ التغييرات', deleteTitle: 'حذف جهة الاتصال؟', deleteDescription: 'ستتم إزالة "{{name}}" من جهات اتصالك.', noMatch: 'لا توجد جهات اتصال تطابق البحث.', loadMore: 'تحميل المزيد من جهات الاتصال', showing: 'يُعرض {{shown}} من {{total}}', empty: 'لا توجد جهات اتصال بعد. أضف أدناه المستلمين الذين تراسلهم كثيرًا لكتابة أسرع.',
       },
       ai: {
         dailyBrief: 'الملخّص اليومي', recap: 'ملخّص البريد الوارد', recapDescription: 'ملخّص قصير يُنشأ من أعداد رسائلك (غير المقروءة والمميّزة وذات المرفقات). لا يقرأ محتوى الرسائل.', smartReply: 'الرد الذكي', summary: 'ملخّص المحادثة', summaryTitle: 'عرض ملخّص', summaryDescription: 'يُظهر زر "تلخيص" في المحادثات. لا تُرسل المحادثة إلى Oxy و Kaana إلا عند الضغط عليه.', suggestions: 'اقتراحات بنقرة واحدة', suggestionsDescription: 'ثلاثة ردود مقترحة حسب السياق فوق الرسالة، تُنشأ عبر Oxy و Kaana.', priority: 'علامات الأولوية', priorityTitle: 'إبراز البريد العاجل المحتمل', priorityDescription: 'تمييز الرسائل كعاجلة أو تتطلّب إجراءً أو مهمة باستخدام كلمات مفتاحية على الجهاز — وليس نموذج ذكاء اصطناعي كاملًا.', tip: 'تعمل علامات الأولوية على الجهاز بالاعتماد على الكلمات المفتاحية. يستخدم الملخّص اليومي والرد الذكي وملخّصات المحادثات استدلالًا محدودًا من Oxy عبر Kaana؛ ويبقى "اسأل Alia" وكيلًا منفصلًا.',
@@ -925,14 +939,14 @@ const ar: LocaleDict = {
         deleteTemplateDescription: 'ستتم إزالة "{{name}}" من قوالبك المحفوظة.',
         sizePlaceholder: 'مثلًا 5 MB',
         contains: 'يحتوي على', equals: 'يساوي', notContains: 'لا يحتوي على', startsWith: 'يبدأ بـ', endsWith: 'ينتهي بـ', largerThan: 'أكبر من (بايت)', smallerThan: 'أصغر من (بايت)',
-        filters: 'عوامل التصفية والقواعد', noFilters: 'لا توجد عوامل تصفية بعد. تطبّق عوامل التصفية تلقائيًا إجراءات مثل الأرشفة أو التمييز أو التحديد كمقروءة على الرسائل الواردة.', filterName: 'اسم عامل التصفية', whenMessage: 'عندما يكون حقل الرسالة', sizeBytes: 'الحجم بالبايت', value: 'القيمة', then: 'ثم', creating: 'جارٍ الإنشاء…', addFilter: 'إضافة عامل تصفية', editingTemplate: 'تعديل القالب', templates: 'القوالب', templateName: 'اسم القالب', subjectOptional: 'الموضوع (اختياري)', templateBody: 'نص القالب', saveChanges: 'حفظ التغييرات', addTemplate: 'إضافة قالب', bundles: 'المجموعات', bundleHint: 'تجمع المجموعات البريد المترابط تلقائيًا. فعّلها وأعد ترتيب ظهورها في بريدك الوارد.', import: 'استيراد', importDescription: 'استورد الرسائل من ملفات .eml. تصل الرسائل المستوردة إلى البريد الوارد ويمكن نقلها أو تصنيفها كأي بريد آخر.', importing: 'جارٍ الاستيراد…', importButton: 'اختيار ملفات .eml', imported: 'تم استيراد {{imported}} من {{total}} رسالة.', conditions: 'الشروط: {{conditions}} · الإجراءات: {{actions}}', deleteFilter: 'حذف {{name}}', editTemplate: 'تعديل {{name}}', deleteTemplate: 'حذف {{name}}', moveUp: 'نقل {{name}} لأعلى', moveDown: 'نقل {{name}} لأسفل',
+        filters: 'عوامل التصفية والقواعد', noFilters: 'لا توجد عوامل تصفية بعد. تطبّق عوامل التصفية تلقائيًا إجراءات مثل الأرشفة أو التمييز أو التحديد كمقروءة على الرسائل الواردة.', filterName: 'اسم عامل التصفية', whenMessage: 'عندما يكون حقل الرسالة', sizeBytes: 'الحجم بالبايت', value: 'القيمة', then: 'ثم', creating: 'جارٍ الإنشاء…', addFilter: 'إضافة عامل تصفية', editingTemplate: 'تعديل القالب', templates: 'القوالب', templateName: 'اسم القالب', subjectOptional: 'الموضوع (اختياري)', templateBody: 'نص القالب', saveChanges: 'حفظ التغييرات', addTemplate: 'إضافة قالب', bundles: 'المجموعات', bundleHint: 'تجمع المجموعات البريد المترابط تلقائيًا. فعّلها وأعد ترتيب ظهورها في بريدك الوارد.', import: 'استيراد', importDescription: 'استورد الرسائل من ملفات .eml. تصل الرسائل المستوردة إلى البريد الوارد ويمكن نقلها أو تصنيفها كأي بريد آخر.', importing: 'جارٍ الاستيراد…', importButton: 'اختيار ملفات .eml', imported_zero: 'لا توجد رسائل لاستيرادها.', imported_one: 'تم استيراد {{imported}} من رسالة واحدة.', imported_two: 'تم استيراد {{imported}} من رسالتين.', imported_few: 'تم استيراد {{imported}} من {{count}} رسائل.', imported_many: 'تم استيراد {{imported}} من {{count}} رسالة.', imported_other: 'تم استيراد {{imported}} من {{count}} رسالة.', conditions: 'الشروط: {{conditions}} · الإجراءات: {{actions}}', deleteFilter: 'حذف {{name}}', editTemplate: 'تعديل {{name}}', deleteTemplate: 'حذف {{name}}', moveUp: 'نقل {{name}} لأعلى', moveDown: 'نقل {{name}} لأسفل',
       },
       about: { legal: 'الشؤون القانونية والدعم', terms: 'شروط الخدمة', privacy: 'سياسة الخصوصية', help: 'مركز المساعدة', status: 'حالة النظام', version: 'الإصدار {{version}} · {{platform}}', madeBy: 'صُنع بـ ❤️ في 🌎 بواسطة Oxy™.', linkUnavailable: 'تعذّر فتح الرابط في هذه البيئة.', linkFailed: 'تعذّر فتح الرابط.' },
     },
-    drawer: { unread: '{{name}}، {{count}} غير مقروءة', labels: 'التصنيفات', folders: 'المجلدات', createFolder: 'إنشاء مجلد', folderHint: 'اضغط + لإنشاء مجلد. اضغط مطولًا على مجلد لحذفه.', signedOutTitle: 'سجّل الدخول لإدارة بريدك', signedOutSubtitle: 'استعرض صناديق البريد والتصنيفات وأنشئ رسائل جديدة.', notSignedIn: 'لم يتم تسجيل الدخول', newFolder: 'مجلد جديد', folderName: 'اسم المجلد', creatingFolder: 'جارٍ الإنشاء…', createFolderButton: 'إنشاء مجلد', deleteFolderTitle: 'حذف المجلد؟', deleteFolderDescription: 'ستتم إزالة "{{name}}" وتنظيمه. لن تُحذف الرسائل الموجودة فيه.' },
+    drawer: { unread: '{{name}}، {{count}} غير مقروءة', labels: 'التصنيفات', folders: 'المجلدات', createFolder: 'إنشاء مجلد', folderHint: 'اضغط + لإنشاء مجلد. اضغط مطولًا على مجلد لحذفه.', signedOutTitle: 'سجّل الدخول لإدارة بريدك', signedOutSubtitle: 'استعرض صناديق البريد والتصنيفات وأنشئ رسائل جديدة.', notSignedIn: 'لم يتم تسجيل الدخول', newFolder: 'مجلد جديد', folderName: 'اسم المجلد', creatingFolder: 'جارٍ الإنشاء…', createFolderButton: 'إنشاء مجلد', deleteFolderTitle: 'حذف المجلد؟', deleteFolderDescription: 'سيُحذف "{{name}}". ستُنقل الرسائل الموجودة فيه إلى الأرشيف.' },
     event: { sharingUnavailable: 'المشاركة غير متاحة. جرّب "Google Calendar" بدلًا منها.', openFailed: 'تعذّر فتح ملف التقويم.' },
     message: { conversationMessages_many: '{{count}} رسالة في هذه المحادثة', conversationMessages_few: '{{count}} رسائل في هذه المحادثة', conversationMessages_two: 'رسالتان في هذه المحادثة', conversationMessages_zero: '{{count}} رسالة في هذه المحادثة', loadError: 'تعذّر تحميل هذه الرسالة', loadErrorDescription: 'تحقق من اتصالك وحاول مرة أخرى.', notFound: 'لم يتم العثور على الرسالة', notFoundDescription: 'ربما حُذفت هذه الرسالة أو نُقلت.', conversationMessages_one: 'رسالة واحدة في هذه المحادثة', conversationMessages_other: '{{count}} رسالة في هذه المحادثة', summaryTitle: 'إنشاء ملخّص للمحادثة بالذكاء الاصطناعي', summaryDescription: 'يرسل Oxy سياقًا محدودًا من المحادثة إلى Kaana لتلخيصها.' },
-    mutations: { starFailed: 'تعذّر تحديث النجمة.', readFailed: 'تعذّر تحديث حالة القراءة.', archived: 'تمت أرشفة المحادثة.', archiveFailed: 'تعذّرت أرشفة المحادثة.', deleteFailed: 'تعذّر حذف المحادثة.', deletedForever: 'حُذفت المحادثة نهائيًا.', trashed: 'نُقلت المحادثة إلى المهملات.', sending: 'جارٍ إرسال الرسالة…', sendCancelled: 'أُلغيت الرسالة.', labelsFailed: 'تعذّر تحديث التصنيفات.', pinFailed: 'تعذّر التثبيت.', snoozed: 'تم تأجيل الرسالة.', snoozeFailed: 'تعذّر تأجيل الرسالة.', unsnoozed: 'أُزيل التأجيل.', unsnoozeFailed: 'تعذّرت إزالة التأجيل.', bulkFailed: 'تعذّر تحديث الرسائل.', bulkUpdated: 'تم تحديث الرسائل.', moveFailed: 'تعذّر نقل الرسائل.', queuedDescription: 'لم تُسلَّم بعد. تابعها في الإعدادات ← متقدم ← قائمة التسليم.', retryQueued: 'أُضيفت الرسالة إلى قائمة إعادة المحاولة.', retryFailed: 'تعذّرت إعادة محاولة الرسالة.', queuedCancelled: 'أُلغيت الرسالة المنتظرة.', cancelFailed: 'تعذّر إلغاء الرسالة.', bundleUpdateFailed: 'تعذّر تحديث المجموعة.', bundleReorderFailed: 'تعذّرت إعادة ترتيب المجموعة.', contactCreateFailed: 'تعذّر إنشاء جهة الاتصال', contactUpdateFailed: 'تعذّر تحديث جهة الاتصال', contactDeleteFailed: 'تعذّر حذف جهة الاتصال', filterCreateFailed: 'تعذّر إنشاء عامل التصفية', filterUpdateFailed: 'تعذّر تحديث عامل التصفية', filterDeleteFailed: 'تعذّر حذف عامل التصفية', mailboxCreated: 'تم إنشاء المجلد.', mailboxCreateFailed: 'تعذّر إنشاء المجلد.', mailboxDeleted: 'تم حذف المجلد.', mailboxDeleteFailed: 'تعذّر حذف المجلد.', reminderCreateFailed: 'تعذّر إنشاء التذكير', reminderUpdateFailed: 'تعذّر تحديث التذكير', reminderDeleteFailed: 'تعذّر حذف التذكير', templateCreateFailed: 'تعذّر إنشاء القالب', templateUpdateFailed: 'تعذّر تحديث القالب', templateDeleteFailed: 'تعذّر حذف القالب', labelCreateFailed: 'تعذّر إنشاء التصنيف.', labelUpdateFailed: 'تعذّر تحديث التصنيف.', labelDeleteFailed: 'تعذّر حذف التصنيف.', unsubscribeFailed: 'تعذّر إلغاء الاشتراك' },
+    mutations: { starFailed: 'تعذّر تحديث النجمة.', readFailed: 'تعذّر تحديث حالة القراءة.', archived: 'تمت أرشفة المحادثة.', archiveFailed: 'تعذّرت أرشفة المحادثة.', deleteFailed: 'تعذّر حذف المحادثة.', deletedForever: 'حُذفت المحادثة نهائيًا.', trashed: 'نُقلت المحادثة إلى المهملات.', sending: 'جارٍ إرسال الرسالة…', sendCancelled: 'أُلغيت الرسالة.', labelsFailed: 'تعذّر تحديث التصنيفات.', pinFailed: 'تعذّر التثبيت.', snoozed: 'تم تأجيل الرسالة.', snoozeFailed: 'تعذّر تأجيل الرسالة.', unsnoozed: 'أُزيل التأجيل.', unsnoozeFailed: 'تعذّرت إزالة التأجيل.', bulkFailed: 'تعذّر تحديث الرسائل.', bulkUpdated: 'تم تحديث الرسائل.', moveFailed: 'تعذّر نقل الرسائل.', queuedDescription: 'لم تُسلَّم بعد. تابعها في الإعدادات ← متقدم ← قائمة التسليم.', retryQueued: 'أُضيفت الرسالة إلى قائمة إعادة المحاولة.', retryFailed: 'تعذّرت إعادة محاولة الرسالة.', queuedCancelled: 'أُلغيت الرسالة المنتظرة.', cancelFailed: 'تعذّر إلغاء الرسالة.', bundleUpdateFailed: 'تعذّر تحديث المجموعة.', bundleReorderFailed: 'تعذّرت إعادة ترتيب المجموعة.', contactCreateFailed: 'تعذّر إنشاء جهة الاتصال', contactUpdateFailed: 'تعذّر تحديث جهة الاتصال', contactDeleteFailed: 'تعذّر حذف جهة الاتصال', filterCreateFailed: 'تعذّر إنشاء عامل التصفية', filterUpdateFailed: 'تعذّر تحديث عامل التصفية', filterDeleteFailed: 'تعذّر حذف عامل التصفية', mailboxCreated: 'تم إنشاء المجلد.', mailboxCreateFailed: 'تعذّر إنشاء المجلد.', mailboxDeleted: 'تم حذف المجلد.', mailboxDeleteFailed: 'تعذّر حذف المجلد.', reminderCreateFailed: 'تعذّر إنشاء التذكير', reminderUpdateFailed: 'تعذّر تحديث التذكير', reminderDeleteFailed: 'تعذّر حذف التذكير', templateCreateFailed: 'تعذّر إنشاء القالب', templateUpdateFailed: 'تعذّر تحديث القالب', templateDeleteFailed: 'تعذّر حذف القالب', labelCreateFailed: 'تعذّر إنشاء التصنيف.', labelUpdateFailed: 'تعذّر تحديث التصنيف.', labelDeleteFailed: 'تعذّر حذف التصنيف.', labelNameTaken: 'يوجد تصنيف باسم "{{name}}" بالفعل.', unsubscribeFailed: 'تعذّر إلغاء الاشتراك' },
   },
 
   auth: {

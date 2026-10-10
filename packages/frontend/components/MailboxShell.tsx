@@ -67,6 +67,8 @@ const MAILBOX_ICONS: Record<string, SidebarNavItem['icon']> = {
   [SPECIAL_USE.ARCHIVE]: RiArchiveLine,
   [SPECIAL_USE.SNOOZED]: RiTimeLine,
 };
+/** Special-use names whose translation key is not the name itself. */
+const SPECIAL_USE_KEY: Record<string, string> = { Junk: 'Spam' };
 export function MailboxShell({ children }: { children: ReactNode }) {
   const openSettings = useInboxSettings();
   const colors = useColors();
@@ -104,7 +106,9 @@ export function MailboxShell({ children }: { children: ReactNode }) {
   const mailboxLabel = useCallback(
     (mailbox: Mailbox & { specialUse?: string }) => {
       const raw = mailbox.specialUse?.replace(/^\\+/, '') ?? mailbox.name;
-      const key = `drawer.mailboxes.${raw}`;
+      // IMAP's special-use flag for the spam folder is `\Junk` (RFC 6154);
+      // the app calls it Spam everywhere else, so it shares that key.
+      const key = `drawer.mailboxes.${SPECIAL_USE_KEY[raw] ?? raw}`;
       const translated = t(key);
       return translated === key ? raw : translated;
     },

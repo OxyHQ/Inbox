@@ -14,6 +14,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { noteSettingsOpen } from '@/lib/notifications/new-mail-attention';
 import { SETTINGS_SECTIONS, type SettingsSectionKey } from './sections-catalog';
 import { AboutSection } from './sections/AboutSection';
 import { AccountSection } from './sections/AccountSection';
@@ -68,6 +69,8 @@ export function InboxSettingsProvider({ children }: { children: ReactNode }) {
           section.key === next && (!section.requiresAuth || isAuthenticated),
       );
       setPage(allowed?.key ?? 'appearance');
+      // The modal covers the mail list: new mail is announced while it is up.
+      noteSettingsOpen(true);
       setRequest((previous) => ({
         sequence: previous.sequence + 1,
         initialView: next ? 'page' : 'navigation',
@@ -100,6 +103,7 @@ export function InboxSettingsProvider({ children }: { children: ReactNode }) {
         initialView={request.initialView}
         control={control}
         onClose={() => {
+          noteSettingsOpen(false);
           if (pendingAccount.current) {
             pendingAccount.current = false;
             showBottomSheet?.('ManageAccount');

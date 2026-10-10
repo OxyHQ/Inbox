@@ -2,8 +2,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@oxy.so/bloom';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
+import { invalidateMailViews } from '@/hooks/queries/invalidateMailViews';
 import type { Label } from '@/services/emailApi';
 import { useTranslation } from '@/lib/i18n';
+import { httpStatus } from '@/utils/httpStatus';
 
 const LABELS_KEY = emailKeys.labels;
 
@@ -25,6 +27,16 @@ export function useLabels() {
  * previous value for rollback. Centralises the create/update/delete
  * optimistic pattern so the label picker reacts instantly.
  */
+/**
+ * Whether `name` is already taken by a label other than `exceptId`. The server
+ * compares names case-insensitively ("Work" and "work" are one label), so this
+ * does too — it lets the form say so before a round trip.
+ */
+export function isLabelNameTaken(labels: readonly Label[], name: string, exceptId?: string): boolean {
+  const wanted = name.trim().toLocaleLowerCase();
+  return labels.some((l) => l._id !== exceptId && l.name.trim().toLocaleLowerCase() === wanted);
+}
+
 async function optimisticLabels(
   queryClient: ReturnType<typeof useQueryClient>,
   updater: (prev: Label[]) => Label[],
@@ -63,9 +75,15 @@ export function useCreateLabel() {
       const { prev } = await optimisticLabels(queryClient, (labels) => [...labels, optimistic]);
       return { prev };
     },
-    onError: (_err, _vars, context) => {
+    // The one place a failure is reported: the screen used to add a second
+    // toast of its own, so every failure showed twice.
+    onError: (err, { name }, context) => {
       if (context?.prev) queryClient.setQueryData(LABELS_KEY, context.prev);
-      toast.error(t('ui.mutations.labelCreateFailed'));
+      toast.error(
+        httpStatus(err) === 409
+          ? t('ui.mutations.labelNameTaken', { name: name.trim() })
+          : t('ui.mutations.labelCreateFailed'),
+      );
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: LABELS_KEY });
@@ -89,9 +107,19 @@ export function useUpdateLabel() {
       );
       return { prev };
     },
-    onError: (_err, _vars, context) => {
+    onError: (err, { updates }, context) => {
       if (context?.prev) queryClient.setQueryData(LABELS_KEY, context.prev);
-      toast.error(t('ui.mutations.labelUpdateFailed'));
+      toast.error(
+        httpStatus(err) === 409 && updates.name
+          ? t('ui.mutations.labelNameTaken', { name: updates.name.trim() })
+          : t('ui.mutations.labelUpdateFailed'),
+      );
+    },
+    // A rename is rewritten on the server onto every message, bundle and
+    // filter that carries the label, so the chips on every list, the open
+    // message and search results are all stale — not only the label list.
+    onSuccess: () => {
+      invalidateMailViews(queryClient);
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: LABELS_KEY });
@@ -118,6 +146,10 @@ export function useDeleteLabel() {
     onError: (_err, _vars, context) => {
       if (context?.prev) queryClient.setQueryData(LABELS_KEY, context.prev);
       toast.error(t('ui.mutations.labelDeleteFailed'));
+    },
+    // Deleting a label removes it from every message that carried it.
+    onSuccess: () => {
+      invalidateMailViews(queryClient);
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: LABELS_KEY });

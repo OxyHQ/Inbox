@@ -632,6 +632,10 @@ const en: LocaleDict = {
     },
     unsubscribe: 'Unsubscribe',
     block: 'Block',
+    unsubscribed: 'Unsubscribed',
+    blocked: 'Blocked',
+    messageCount_one: '{{count}} email',
+    messageCount_other: '{{count}} emails',
     frequency: {
       twentyPlus: '20+ emails recently',
       tenToTwenty: '10-20 emails recently',
@@ -739,6 +743,7 @@ const en: LocaleDict = {
     sizeBytes: '{{value}} B',
     sizeKb: '{{value}} KB',
     sizeMb: '{{value}} MB',
+    previewAlt: 'Attachment preview',
   },
 
   settings: {
@@ -769,6 +774,9 @@ const en: LocaleDict = {
       title: 'Something went wrong',
     },
     me: 'Me',
+    layoutDirection: {
+      restartRequired: 'Restart Inbox to switch the layout direction for this language.',
+    },
     settings: {
       manageOxyAccount: 'Manage Oxy account',
       landing: {
@@ -783,7 +791,7 @@ const en: LocaleDict = {
           appearance: 'Appearance', appearanceDescription: 'Theme and accent color',
           notifications: 'Notifications', notificationsDescription: 'Push and email alerts',
           inbox: 'Inbox', inboxDescription: 'Density, reading, and swipe actions',
-          privacy: 'Privacy', privacyDescription: 'Tracking protection and sender trust',
+          privacy: 'Privacy', privacyDescription: 'Image proxy and tracker blocking',
           labels: 'Labels', labelsDescription: 'Organize your inbox with custom labels',
           contacts: 'Contacts', contactsDescription: 'People you email, for faster composing',
           ai: 'AI features', aiDescription: 'Brief, Smart Reply, and categorization',
@@ -816,7 +824,7 @@ const en: LocaleDict = {
         accentColor: 'Accent color',
       },
       notifications: {
-        deviceNotice: 'System-level notification permissions are managed in your device settings.',
+        deviceNotice: 'System-level notification permissions are managed in your device settings.', webNotice: 'Push notifications are available in the Inbox app for Android. While Inbox is open in your browser, new mail appears here as it arrives.',
         alerts: 'Alerts', push: 'Push notifications', pushDescription: 'Get notified when new messages arrive.',
         digest: 'Daily email digest', digestDescription: 'A summary of unread messages, once per day.',
         sound: 'Sound', playSound: 'Play sound', soundDescription: 'A short chime on new messages.',
@@ -831,13 +839,15 @@ const en: LocaleDict = {
         swipeA11y: '{{label}} swipe action: {{value}}, tap to change', swipeHint: 'Tap a row to cycle through Archive · Delete · Mark read · Snooze · None.',
       },
       privacy: {
-        info: 'Privacy protections are on by default. Per-feature toggles are coming soon.',
-        tracking: 'Tracking protection', blockImages: 'Block remote images', blockImagesDescription: "Don't load images from external servers until you tap to allow.",
-        hideIp: 'Hide IP from senders', hideIpDescription: "Image and font loads route through Oxy's privacy proxy.",
-        stripTracking: 'Strip tracking parameters', stripTrackingDescription: 'Remove tracking tokens from links in messages.',
-        trust: 'Sender trust', verification: 'Sender verification', verificationDescription: 'Show whether messages are signed by their claimed domain.',
-        blockList: 'Manage block list', blockListTitle: 'Block list', blockListEmpty: 'No senders are currently blocked.',
-        why: 'Why these defaults?', whyDescription: "Oxy follows a privacy-by-default posture: senders never see your IP, location, or read receipts, and tracking pixels are blocked at the network edge. We'll surface granular per-message and per-sender overrides as the protections mature.",
+        info: 'These protections apply to every message and are always on.',
+        images: 'Remote images',
+        alwaysOn: 'Always on',
+        proxy: 'Images load through Oxy',
+        proxyDescription: 'Images and fonts in your mail are fetched by Oxy\'s proxy, so senders never see your IP address or location.',
+        trackers: 'Known trackers blocked',
+        trackersDescription: 'Images from known tracking services are replaced with a blank image.',
+        why: 'What senders can still see',
+        whyDescription: 'Images load automatically, so a sender may still be able to tell that a message was opened — but not your IP address or location.',
       },
       labels: {
         colors: {
@@ -857,7 +867,7 @@ const en: LocaleDict = {
         your: 'Your labels', empty: 'No labels yet. Create your first one below to organize messages.', create: 'Create label', labelName: 'Label name', saveName: 'Save label name', rename: 'Rename {{name}}', delete: 'Delete {{name}}', builtIn: 'Built-in', pick: 'Pick {{color}}', newName: 'New label name', creating: 'Creating…', add: 'Add label', deleteTitle: 'Delete label?', deleteDescription: '"{{name}}" will be removed from any messages it\'s applied to.',
       },
       contacts: {
-        your: 'Your contacts', search: 'Search contacts', edit: 'Edit {{name}}', delete: 'Delete {{name}}', editContact: 'Edit contact', addContact: 'Add contact', name: 'Name', email: 'Email', company: 'Company (optional)', notes: 'Notes (optional)', star: 'Star this contact', saving: 'Saving…', adding: 'Adding…', saveChanges: 'Save changes', deleteTitle: 'Delete contact?', deleteDescription: '"{{name}}" will be removed from your contacts.', noMatch: 'No contacts match your search.', empty: 'No contacts yet. Add your frequent recipients below for faster composing.',
+        your: 'Your contacts', search: 'Search contacts', edit: 'Edit {{name}}', delete: 'Delete {{name}}', editContact: 'Edit contact', addContact: 'Add contact', name: 'Name', email: 'Email', company: 'Company (optional)', notes: 'Notes (optional)', star: 'Star this contact', saving: 'Saving…', adding: 'Adding…', saveChanges: 'Save changes', deleteTitle: 'Delete contact?', deleteDescription: '"{{name}}" will be removed from your contacts.', noMatch: 'No contacts match your search.', loadMore: 'Load more contacts', showing: '{{shown}} of {{total}} shown', empty: 'No contacts yet. Add your frequent recipients below for faster composing.',
       },
       ai: {
         dailyBrief: 'Daily Brief', recap: 'Inbox recap', recapDescription: "A short summary generated from your inbox counts (unread, starred, attachments). It doesn't read message contents.", smartReply: 'Smart Reply', summary: 'Conversation summary', summaryTitle: 'Offer a summary', summaryDescription: 'Shows a Summarize button on conversations. A conversation is sent to Oxy and Kaana only when you press it.', suggestions: 'One-tap suggestions', suggestionsDescription: 'Three context-aware reply chips above the message, generated through Oxy and Kaana.', priority: 'Priority flags', priorityTitle: 'Highlight likely-urgent mail', priorityDescription: 'Flag messages as Urgent, Action needed, or Important using on-device keyword heuristics — not a full AI model.', tip: 'Priority flags run on-device from keyword heuristics. Daily Brief, Smart Reply and conversation summaries use bounded Oxy inference through Kaana; Ask Alia remains the separate agent.',
@@ -880,14 +890,14 @@ const en: LocaleDict = {
         filterCreated: 'Filter created.',
         sizePlaceholder: 'e.g. 5 MB',
         contains: 'contains', equals: 'equals', notContains: "doesn't contain", startsWith: 'starts with', endsWith: 'ends with', largerThan: 'larger than (bytes)', smallerThan: 'smaller than (bytes)',
-        filters: 'Filters & rules', noFilters: 'No filters yet. Filters automatically apply actions like archiving, starring, or marking read to incoming messages.', filterName: 'Filter name', whenMessage: "When a message's", sizeBytes: 'Size in bytes', value: 'Value', then: 'then', creating: 'Creating…', addFilter: 'Add filter', editingTemplate: 'Editing template', templates: 'Templates', templateName: 'Template name', subjectOptional: 'Subject (optional)', templateBody: 'Template body', saveChanges: 'Save changes', addTemplate: 'Add template', bundles: 'Bundles', bundleHint: 'Bundles group related mail automatically. Toggle to enable and reorder how they stack in your inbox.', import: 'Import', importDescription: 'Import emails from .eml files. Imported messages land in your Inbox and can be moved or labelled like any other mail.', importing: 'Importing…', importButton: 'Choose .eml files', imported: 'Imported {{imported}} of {{total}} email(s).', conditions: '{{conditions}} condition(s) · {{actions}} action(s)', deleteFilter: 'Delete {{name}}', editTemplate: 'Edit {{name}}', deleteTemplate: 'Delete {{name}}', moveUp: 'Move {{name}} up', moveDown: 'Move {{name}} down',
+        filters: 'Filters & rules', noFilters: 'No filters yet. Filters automatically apply actions like archiving, starring, or marking read to incoming messages.', filterName: 'Filter name', whenMessage: "When a message's", sizeBytes: 'Size in bytes', value: 'Value', then: 'then', creating: 'Creating…', addFilter: 'Add filter', editingTemplate: 'Editing template', templates: 'Templates', templateName: 'Template name', subjectOptional: 'Subject (optional)', templateBody: 'Template body', saveChanges: 'Save changes', addTemplate: 'Add template', bundles: 'Bundles', bundleHint: 'Bundles group related mail automatically. Toggle to enable and reorder how they stack in your inbox.', import: 'Import', importDescription: 'Import emails from .eml files. Imported messages land in your Inbox and can be moved or labelled like any other mail.', importing: 'Importing…', importButton: 'Choose .eml files', imported_one: 'Imported {{imported}} of {{count}} email.', imported_other: 'Imported {{imported}} of {{count}} emails.', conditions: '{{conditions}} condition(s) · {{actions}} action(s)', deleteFilter: 'Delete {{name}}', editTemplate: 'Edit {{name}}', deleteTemplate: 'Delete {{name}}', moveUp: 'Move {{name}} up', moveDown: 'Move {{name}} down',
       },
       about: { legal: 'Legal & support', terms: 'Terms of service', privacy: 'Privacy policy', help: 'Help center', status: 'System status', version: 'Version {{version}} · {{platform}}', madeBy: 'Made with ❤️ in the 🌎 by Oxy™.', linkUnavailable: 'Could not open the link in this environment.', linkFailed: 'Failed to open link.' },
     },
-    drawer: { unread: '{{name}}, {{count}} unread', labels: 'Labels', folders: 'Folders', createFolder: 'Create folder', folderHint: 'Tap + to create a folder. Long-press a folder to delete it.', signedOutTitle: 'Sign in to manage your email', signedOutSubtitle: 'Access your mailboxes, labels, and compose new messages.', notSignedIn: 'Not signed in', newFolder: 'New folder', folderName: 'Folder name', creatingFolder: 'Creating…', createFolderButton: 'Create folder', deleteFolderTitle: 'Delete folder?', deleteFolderDescription: '"{{name}}" and its organization will be removed. Messages inside are not deleted.' },
+    drawer: { unread: '{{name}}, {{count}} unread', labels: 'Labels', folders: 'Folders', createFolder: 'Create folder', folderHint: 'Tap + to create a folder. Long-press a folder to delete it.', signedOutTitle: 'Sign in to manage your email', signedOutSubtitle: 'Access your mailboxes, labels, and compose new messages.', notSignedIn: 'Not signed in', newFolder: 'New folder', folderName: 'Folder name', creatingFolder: 'Creating…', createFolderButton: 'Create folder', deleteFolderTitle: 'Delete folder?', deleteFolderDescription: '"{{name}}" will be deleted. Messages inside are moved to Archive.' },
     event: { sharingUnavailable: 'Sharing is unavailable. Try "Google Calendar" instead.', openFailed: 'Could not open the calendar file.' },
     message: { loadError: "Couldn't load this message", loadErrorDescription: 'Check your connection and try again.', notFound: 'Message not found', notFoundDescription: 'This message may have been deleted or moved.', conversationMessages_one: '{{count}} message in this conversation', conversationMessages_other: '{{count}} messages in this conversation', summaryTitle: 'Generate AI thread summary', summaryDescription: 'Oxy sends bounded conversation context to Kaana for summarization.' },
-    mutations: { starFailed: 'Failed to update star.', readFailed: 'Failed to update read status.', archived: 'Conversation archived.', archiveFailed: 'Failed to archive conversation.', deleteFailed: 'Failed to delete conversation.', deletedForever: 'Conversation permanently deleted.', trashed: 'Conversation moved to Trash.', sending: 'Sending message…', sendCancelled: 'Message cancelled.', labelsFailed: 'Failed to update labels.', pinFailed: 'Failed to update pin.', snoozed: 'Message snoozed.', snoozeFailed: 'Failed to snooze message.', unsnoozed: 'Snooze removed.', unsnoozeFailed: 'Failed to unsnooze message.', bulkFailed: 'Failed to update messages.', bulkUpdated: 'Messages updated.', moveFailed: 'Failed to move messages.', queuedDescription: 'It has not been delivered yet. Track it in Settings → Advanced → Delivery queue.', retryQueued: 'Message queued for retry.', retryFailed: 'Unable to retry message.', queuedCancelled: 'Queued message cancelled.', cancelFailed: 'Unable to cancel message.', bundleUpdateFailed: 'Failed to update bundle.', bundleReorderFailed: 'Failed to reorder bundle.', contactCreateFailed: 'Failed to create contact', contactUpdateFailed: 'Failed to update contact', contactDeleteFailed: 'Failed to delete contact', filterCreateFailed: 'Failed to create filter', filterUpdateFailed: 'Failed to update filter', filterDeleteFailed: 'Failed to delete filter', mailboxCreated: 'Folder created.', mailboxCreateFailed: 'Failed to create folder.', mailboxDeleted: 'Folder deleted.', mailboxDeleteFailed: 'Failed to delete folder.', reminderCreateFailed: 'Failed to create reminder', reminderUpdateFailed: 'Failed to update reminder', reminderDeleteFailed: 'Failed to delete reminder', templateCreateFailed: 'Failed to create template', templateUpdateFailed: 'Failed to update template', templateDeleteFailed: 'Failed to delete template', labelCreateFailed: 'Failed to create label.', labelUpdateFailed: 'Failed to update label.', labelDeleteFailed: 'Failed to delete label.', unsubscribeFailed: 'Failed to unsubscribe' },
+    mutations: { starFailed: 'Failed to update star.', readFailed: 'Failed to update read status.', archived: 'Conversation archived.', archiveFailed: 'Failed to archive conversation.', deleteFailed: 'Failed to delete conversation.', deletedForever: 'Conversation permanently deleted.', trashed: 'Conversation moved to Trash.', sending: 'Sending message…', sendCancelled: 'Message cancelled.', labelsFailed: 'Failed to update labels.', pinFailed: 'Failed to update pin.', snoozed: 'Message snoozed.', snoozeFailed: 'Failed to snooze message.', unsnoozed: 'Snooze removed.', unsnoozeFailed: 'Failed to unsnooze message.', bulkFailed: 'Failed to update messages.', bulkUpdated: 'Messages updated.', moveFailed: 'Failed to move messages.', queuedDescription: 'It has not been delivered yet. Track it in Settings → Advanced → Delivery queue.', retryQueued: 'Message queued for retry.', retryFailed: 'Unable to retry message.', queuedCancelled: 'Queued message cancelled.', cancelFailed: 'Unable to cancel message.', bundleUpdateFailed: 'Failed to update bundle.', bundleReorderFailed: 'Failed to reorder bundle.', contactCreateFailed: 'Failed to create contact', contactUpdateFailed: 'Failed to update contact', contactDeleteFailed: 'Failed to delete contact', filterCreateFailed: 'Failed to create filter', filterUpdateFailed: 'Failed to update filter', filterDeleteFailed: 'Failed to delete filter', mailboxCreated: 'Folder created.', mailboxCreateFailed: 'Failed to create folder.', mailboxDeleted: 'Folder deleted.', mailboxDeleteFailed: 'Failed to delete folder.', reminderCreateFailed: 'Failed to create reminder', reminderUpdateFailed: 'Failed to update reminder', reminderDeleteFailed: 'Failed to delete reminder', templateCreateFailed: 'Failed to create template', templateUpdateFailed: 'Failed to update template', templateDeleteFailed: 'Failed to delete template', labelCreateFailed: 'Failed to create label.', labelUpdateFailed: 'Failed to update label.', labelDeleteFailed: 'Failed to delete label.', labelNameTaken: 'A label named "{{name}}" already exists.', unsubscribeFailed: 'Failed to unsubscribe' },
   },
 };
 

@@ -66,13 +66,23 @@ function parseResponse<T>(schema: z.ZodType<T>, value: unknown): T {
   return parsed.data;
 }
 
+/**
+ * How long a generation may take. The SDK's default (5 s) is for ordinary API
+ * calls; a model writing a brief or a summary routinely needs longer, and a
+ * request cut short is cancelled upstream as `client_disconnected`.
+ */
+export const INFERENCE_TIMEOUT_MS = 60_000;
+
 async function postParsed<T>(
   http: HttpService,
   path: string,
   body: unknown,
   schema: z.ZodType<T>,
 ): Promise<T> {
-  return parseResponse(schema, await http.post<unknown>(path, body));
+  return parseResponse(
+    schema,
+    await http.post<unknown>(path, body, { timeout: INFERENCE_TIMEOUT_MS }),
+  );
 }
 
 export function runInboxCompose(
@@ -383,6 +393,6 @@ export async function fetchInboxDailyBrief(
 ): Promise<InboxDailyBrief> {
   return parseResponse(
     inboxDailyBriefSchema,
-    await http.post<unknown>(DAILY_BRIEF_PATH, request, signal ? { signal } : undefined),
+    await http.post<unknown>(DAILY_BRIEF_PATH, request, { timeout: INFERENCE_TIMEOUT_MS, signal }),
   );
 }

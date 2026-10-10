@@ -5,6 +5,7 @@ import {
   runInboxSmartReplies,
   runInboxThreadSummary,
   fetchInboxDailyBrief,
+  INFERENCE_TIMEOUT_MS,
   streamInboxDraft,
 } from '@/services/inboxInferenceApi';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -113,11 +114,12 @@ describe('Inbox point-inference API client', () => {
       summary: 'Summary',
     });
 
+    const generation = { timeout: INFERENCE_TIMEOUT_MS };
     expect(client.post.mock.calls).toEqual([
-      ['/email/ai/compose', { operation: 'polish', text: 'Draft' }],
-      ['/email/ai/natural-search', { query: 'unread mail' }],
-      ['/email/ai/messages/message%2Fwith%20slash/smart-replies', {}],
-      ['/email/ai/messages/message-1/thread-summary', {}],
+      ['/email/ai/compose', { operation: 'polish', text: 'Draft' }, generation],
+      ['/email/ai/natural-search', { query: 'unread mail' }, generation],
+      ['/email/ai/messages/message%2Fwith%20slash/smart-replies', {}, generation],
+      ['/email/ai/messages/message-1/thread-summary', {}, generation],
     ]);
   });
 
@@ -273,8 +275,10 @@ describe('Inbox point-inference API client', () => {
     expect(client.post).toHaveBeenCalledWith(
       '/email/ai/daily-brief',
       { ...dayWindow, locale: 'es' },
-      { signal },
+      { timeout: INFERENCE_TIMEOUT_MS, signal },
     );
+    // A generation outlives the SDK's 5 s default for ordinary calls.
+    expect(INFERENCE_TIMEOUT_MS).toBeGreaterThanOrEqual(30_000);
 
     client.post.mockResolvedValue({ ...brief, items: [{ ...brief.items[0], section: 'urgent' }] });
     await expect(

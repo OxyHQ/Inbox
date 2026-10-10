@@ -39,41 +39,12 @@ import { CardPreview } from './cards/CardPreview';
 import { ImportanceBadge } from './ImportanceBadge';
 import { SentimentIndicator } from './SentimentIndicator';
 import { calendarDaysBetween } from '@oxy.so/utils/date';
-import { dateFormatter } from '@/utils/dateFormat';
+import { dateFormatter, formatRowTime } from '@/utils/dateFormat';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://api.oxy.so';
-
-/**
- * Row timestamp, scaled to how far back the message is: the closer it is, the
- * more precise the label. Today only needs a time; last week only needs a
- * weekday; older than that needs the date.
- *
- *   today      → 3:33 PM
- *   yesterday  → Yesterday
- *   < 7 days   → Sat
- *   this year  → Jul 22
- *   older      → Jul 22, 24
- */
 const TIME: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' };
-const WEEKDAY: Intl.DateTimeFormatOptions = { weekday: 'short' };
-const MONTH_DAY: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-const MONTH_DAY_YEAR: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: '2-digit' };
 const WEEKDAY_MONTH_DAY: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric' };
 
-function formatDate(dateStr: string, yesterdayLabel: string, locale: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffDays = calendarDaysBetween(date, now);
-
-  if (diffDays === 0) return dateFormatter(locale, TIME).format(date);
-  if (diffDays === 1) return yesterdayLabel;
-  if (diffDays < 7) return dateFormatter(locale, WEEKDAY).format(date);
-
-  if (date.getFullYear() === now.getFullYear()) {
-    return dateFormatter(locale, MONTH_DAY).format(date);
-  }
-  return dateFormatter(locale, MONTH_DAY_YEAR).format(date);
-}
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://api.oxy.so';
 
 function displayName(address: { name?: string | null; address: string }): string {
   if (address.name) return address.name;
@@ -286,7 +257,7 @@ function MessageRowInner({
       time={
         showSnoozeTime && message.snoozedUntil
           ? formatSnoozeTime(message.snoozedUntil, t, locale)
-          : formatDate(message.date, t('inbox.sections.yesterday'), locale)
+          : formatRowTime(message.date, t('inbox.sections.yesterday'), locale)
       }
       unread={!message.flags.seen}
       starred={message.flags.starred}

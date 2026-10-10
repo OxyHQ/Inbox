@@ -240,7 +240,11 @@ const ar: LocaleDict = {
       unavailable: 'تعذّر إنشاء الملخّص الآن.',
       empty: 'لا توجد رسائل للتلخيص بعد.',
       writing: 'جارٍ كتابة ملخّصك…',
-      preparing: 'جارٍ تجهيز ملخّصك…',
+      sections: {
+        needsYou: 'بانتظارك',
+        today: 'اليوم',
+        earlier: 'ما زال غير مقروء',
+      },
       failed: 'تعذّر كتابة ملخّص اليوم.',
       nothingNew: 'لا جديد اليوم.',
       tapRetry: 'اضغط لإعادة المحاولة.',

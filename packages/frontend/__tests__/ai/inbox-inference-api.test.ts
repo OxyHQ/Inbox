@@ -4,13 +4,14 @@ import {
   runInboxNaturalSearch,
   runInboxSmartReplies,
   runInboxThreadSummary,
-  streamInboxDailyBrief,
+  fetchInboxDailyBrief,
   streamInboxDraft,
 } from '@/services/inboxInferenceApi';
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const requestId = 'req_01a06477';
+const DRAFT_REQUEST = { operation: 'draft', prompt: 'Write a note', tone: 'friendly' } as const;
 
 function http() {
   return {
@@ -218,7 +219,7 @@ describe('Inbox point-inference API client', () => {
     ).rejects.toThrow('invalid response');
   });
 
-  it('streams compose and daily-brief text through Oxy with the SDK token', async () => {
+  it('streams compose text through Oxy with the SDK token', async () => {
     const client = http();
     client.requestAuthenticatedResponse.mockResolvedValue(
       sseResponse(
@@ -241,14 +242,6 @@ describe('Inbox point-inference API client', () => {
         }),
       ),
     ).resolves.toEqual(['Hello']);
-    const dayWindow = {
-      startAt: '2026-09-02T21:00:00.000Z',
-      endAt: '2026-09-03T21:00:00.000Z',
-    };
-    await expect(
-      collect(streamInboxDailyBrief(client as never, { ...dayWindow, locale: 'es' })),
-    ).resolves.toEqual(['Hello']);
-
     expect(client.requestAuthenticatedResponse).toHaveBeenNthCalledWith(1, {
       method: 'POST',
       url: '/email/ai/compose',
@@ -264,16 +257,43 @@ describe('Inbox point-inference API client', () => {
       }),
       signal: undefined,
     });
-    expect(client.requestAuthenticatedResponse).toHaveBeenNthCalledWith(2, {
-      method: 'POST',
-      url: '/email/ai/daily-brief',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'text/event-stream',
-      },
-      body: JSON.stringify({ ...dayWindow, locale: 'es', stream: true }),
-      signal: undefined,
-    });
+  });
+
+  it('fetches the daily brief as data, in the UI language, with the abort signal', async () => {
+    const client = http();
+    const brief = {
+      schemaVersion: 1,
+      requestId,
+      summary: 'Two credit applications need a reply.',
+      counts: { received: 17, unread: 4, starred: 0, earlierUnread: 10 },
+      items: [{
+        messageId: 'msg_1',
+        section: 'needs_you',
+        note: 'Asks you to confirm the AWS credit request.',
+        from: { name: 'NVIDIA Inception', address: 'inception@nvidia.com' },
+        subject: 'Request for $10,000 in AWS Cloud Credits',
+        receivedAt: '2026-10-10T07:00:00.000Z',
+        unread: true,
+        hasAttachments: false,
+      }],
+    };
+    client.post.mockResolvedValue(brief);
+    const dayWindow = { startAt: '2026-09-02T21:00:00.000Z', endAt: '2026-09-03T21:00:00.000Z' };
+    const signal = new AbortController().signal;
+
+    await expect(
+      fetchInboxDailyBrief(client as never, { ...dayWindow, locale: 'es' }, signal),
+    ).resolves.toEqual(brief);
+    expect(client.post).toHaveBeenCalledWith(
+      '/email/ai/daily-brief',
+      { ...dayWindow, locale: 'es' },
+      { signal },
+    );
+
+    client.post.mockResolvedValue({ ...brief, items: [{ ...brief.items[0], section: 'urgent' }] });
+    await expect(
+      fetchInboxDailyBrief(client as never, { ...dayWindow, locale: 'es' }),
+    ).rejects.toThrow('invalid response');
   });
 
   it('rejects truncated, malformed and post-terminal streams', async () => {
@@ -281,19 +301,15 @@ describe('Inbox point-inference API client', () => {
     client.requestAuthenticatedResponse.mockResolvedValueOnce(
       sseResponse('data: {"type":"delta","text":"partial"}\n\n'),
     );
-    const window = {
-      startAt: '2026-09-02T21:00:00.000Z',
-      endAt: '2026-09-03T21:00:00.000Z',
-    };
     await expect(
-      collect(streamInboxDailyBrief(client as never, window)),
+      collect(streamInboxDraft(client as never, DRAFT_REQUEST)),
     ).rejects.toThrow('ended before completion');
 
     client.requestAuthenticatedResponse.mockResolvedValueOnce(
       sseResponse('data: {not-json}\n\n'),
     );
     await expect(
-      collect(streamInboxDailyBrief(client as never, window)),
+      collect(streamInboxDraft(client as never, DRAFT_REQUEST)),
     ).rejects.toThrow('invalid stream');
 
     client.requestAuthenticatedResponse.mockResolvedValueOnce(
@@ -308,7 +324,7 @@ describe('Inbox point-inference API client', () => {
       ),
     );
     await expect(
-      collect(streamInboxDailyBrief(client as never, window)),
+      collect(streamInboxDraft(client as never, DRAFT_REQUEST)),
     ).rejects.toThrow('data after completion');
   });
 
@@ -321,12 +337,8 @@ describe('Inbox point-inference API client', () => {
     ]);
     client.requestAuthenticatedResponse.mockResolvedValue(stream.response);
 
-    const window = {
-      startAt: '2026-09-02T21:00:00.000Z',
-      endAt: '2026-09-03T21:00:00.000Z',
-    };
     await expect(
-      collect(streamInboxDailyBrief(client as never, window)),
+      collect(streamInboxDraft(client as never, DRAFT_REQUEST)),
     ).resolves.toEqual(['Hello']);
     expect(stream.read).toHaveBeenCalledTimes(3);
     expect(stream.cancel).toHaveBeenCalledTimes(1);
@@ -337,7 +349,7 @@ describe('Inbox point-inference API client', () => {
     ]);
     client.requestAuthenticatedResponse.mockResolvedValue(incomplete.response);
     await expect(
-      collect(streamInboxDailyBrief(client as never, window)),
+      collect(streamInboxDraft(client as never, DRAFT_REQUEST)),
     ).rejects.toThrow('ended before completion');
     expect(incomplete.cancel).toHaveBeenCalledTimes(1);
     expect(incomplete.releaseLock).toHaveBeenCalledTimes(1);
@@ -355,7 +367,7 @@ describe('Inbox point-inference API client', () => {
       postTerminal.response,
     );
     await expect(
-      collect(streamInboxDailyBrief(client as never, window)),
+      collect(streamInboxDraft(client as never, DRAFT_REQUEST)),
     ).rejects.toThrow('data after completion');
     expect(postTerminal.cancel).toHaveBeenCalledTimes(1);
     expect(postTerminal.releaseLock).toHaveBeenCalledTimes(1);
@@ -363,23 +375,19 @@ describe('Inbox point-inference API client', () => {
 
   it('fails closed on EOF inside a frame and invalid UTF-8', async () => {
     const client = http();
-    const window = {
-      startAt: '2026-09-02T21:00:00.000Z',
-      endAt: '2026-09-03T21:00:00.000Z',
-    };
 
     client.requestAuthenticatedResponse.mockResolvedValueOnce(
       sseResponse(`data: {"type":"done","requestId":"${requestId}"}`),
     );
     await expect(
-      collect(streamInboxDailyBrief(client as never, window)),
+      collect(streamInboxDraft(client as never, DRAFT_REQUEST)),
     ).rejects.toThrow('ended inside an SSE frame');
 
     client.requestAuthenticatedResponse.mockResolvedValueOnce(
       sseResponse(Uint8Array.from([0xc3, 0x28])),
     );
     await expect(
-      collect(streamInboxDailyBrief(client as never, window)),
+      collect(streamInboxDraft(client as never, DRAFT_REQUEST)),
     ).rejects.toThrow('invalid UTF-8');
 
     const invalidReader = readerSseResponse([Uint8Array.from([0xc3, 0x28])]);
@@ -387,7 +395,7 @@ describe('Inbox point-inference API client', () => {
       invalidReader.response,
     );
     await expect(
-      collect(streamInboxDailyBrief(client as never, window)),
+      collect(streamInboxDraft(client as never, DRAFT_REQUEST)),
     ).rejects.toThrow('invalid UTF-8');
     expect(invalidReader.cancel).toHaveBeenCalledTimes(1);
     expect(invalidReader.releaseLock).toHaveBeenCalledTimes(1);
@@ -403,7 +411,7 @@ describe('Inbox point-inference API client', () => {
       invalidTerminalReader.response,
     );
     await expect(
-      collect(streamInboxDailyBrief(client as never, window)),
+      collect(streamInboxDraft(client as never, DRAFT_REQUEST)),
     ).rejects.toThrow('invalid UTF-8');
     expect(invalidTerminalReader.cancel).toHaveBeenCalledTimes(1);
     expect(invalidTerminalReader.releaseLock).toHaveBeenCalledTimes(1);
@@ -411,10 +419,6 @@ describe('Inbox point-inference API client', () => {
 
   it('fails closed on an error frame, invalid MIME and oversized line counts', async () => {
     const client = http();
-    const window = {
-      startAt: '2026-09-02T21:00:00.000Z',
-      endAt: '2026-09-03T21:00:00.000Z',
-    };
     client.requestAuthenticatedResponse.mockResolvedValueOnce(
       sseResponse(
         [
@@ -425,21 +429,21 @@ describe('Inbox point-inference API client', () => {
       ),
     );
     await expect(
-      collect(streamInboxDailyBrief(client as never, window)),
+      collect(streamInboxDraft(client as never, DRAFT_REQUEST)),
     ).rejects.toThrow('could not complete');
 
     client.requestAuthenticatedResponse.mockResolvedValueOnce(
       sseResponse('not SSE', 'application/json'),
     );
     await expect(
-      collect(streamInboxDailyBrief(client as never, window)),
+      collect(streamInboxDraft(client as never, DRAFT_REQUEST)),
     ).rejects.toThrow('invalid stream type');
 
     client.requestAuthenticatedResponse.mockResolvedValueOnce(
       sseResponse('\n'.repeat(4_097)),
     );
     await expect(
-      collect(streamInboxDailyBrief(client as never, window)),
+      collect(streamInboxDraft(client as never, DRAFT_REQUEST)),
     ).rejects.toThrow('safety limit');
   });
 });

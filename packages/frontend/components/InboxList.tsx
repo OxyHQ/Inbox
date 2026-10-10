@@ -35,7 +35,7 @@ import Animated, { type AnimatedProps } from 'react-native-reanimated';
 import { BundleRow } from '@/components/BundleRow';
 import { CreateReminderSheet } from '@/components/CreateReminderSheet';
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
-import { InboxGreeting } from '@/components/InboxGreeting';
+import { DailyBrief } from '@/components/DailyBrief';
 import { MessageRow, MessageRowExtras } from '@/components/MessageRow';
 import { OutboundQueueBanner } from '@/components/OutboundQueueBanner';
 import { ReminderRow } from '@/components/ReminderRow';
@@ -690,8 +690,8 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   );
 
   // Not `handleMessagePress`: that primes caches from a parsed `Message`, which
-  // an unreadable row by definition is not.
-  const handleOpenUnreadable = useCallback(
+  // an unreadable row by definition is not, and a row of the brief does not have.
+  const openMessageById = useCallback(
     (messageId: string) => {
       if (replaceNavigation) {
         router.replace(`/conversation/${messageId}`);
@@ -982,7 +982,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
           <View style={styles.messageItem}>
             <UnreadableMessageRow
               message={item.data}
-              onOpen={handleOpenUnreadable}
+              onOpen={openMessageById}
             />
           </View>
         );
@@ -1022,7 +1022,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       colors.secondaryText,
       expandedBundles,
       handleDeleteReminder,
-      handleOpenUnreadable,
+      openMessageById,
       handleReminderPress,
       handleToggleReminderComplete,
       renderMessageRow,
@@ -1195,7 +1195,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
             ListHeaderComponent={
               <>
                 <OutboundQueueBanner />
-                {showBrief && <InboxGreeting messages={displayMessages} />}
+                {showBrief && <DailyBrief onOpenMessage={openMessageById} />}
               </>
             }
             ListEmptyComponent={renderEmpty}

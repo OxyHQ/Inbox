@@ -199,7 +199,11 @@ const ja: LocaleDict = {
       unavailable: '現在ブリーフを生成できません。',
       empty: 'まだ要約するメールがありません。',
       writing: 'ブリーフを作成しています…',
-      preparing: 'ブリーフを準備しています…',
+      sections: {
+        needsYou: '対応が必要',
+        today: '今日',
+        earlier: '未読のまま',
+      },
       failed: '今日のブリーフを作成できませんでした。',
       nothingNew: '今日は新着がありません。',
       tapRetry: 'タップして再試行',

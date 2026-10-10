@@ -198,7 +198,11 @@ const en: LocaleDict = {
       unavailable: 'Unable to generate brief right now.',
       empty: 'No emails to summarize yet.',
       writing: 'Writing your brief…',
-      preparing: 'Preparing your brief…',
+      sections: {
+        needsYou: 'Needs you',
+        today: 'Today',
+        earlier: 'Still unread',
+      },
       failed: "Couldn't write today's brief.",
       nothingNew: 'Nothing new today.',
       tapRetry: 'Tap to retry.',

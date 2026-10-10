@@ -200,7 +200,11 @@ const pt: LocaleDict = {
       unavailable: 'Não foi possível gerar o resumo agora.',
       empty: 'Ainda não há emails para resumir.',
       writing: 'A escrever o teu resumo…',
-      preparing: 'A preparar o teu resumo…',
+      sections: {
+        needsYou: 'Precisam de ti',
+        today: 'Hoje',
+        earlier: 'Ainda por ler',
+      },
       failed: 'Não foi possível escrever o resumo de hoje.',
       nothingNew: 'Nada de novo hoje.',
       tapRetry: 'Toca para tentar novamente.',

@@ -272,15 +272,22 @@ export function useComposeSession({
   const [seedContentKey] = useState(() => contentKeyOf(seed));
   const [savedContentKey, setSavedContentKey] = useState<string>(seedContentKey);
 
-  const hasContent = Boolean(
-    to.trim() ||
-      cc.trim() ||
-      bcc.trim() ||
-      subject.trim() ||
-      attachments.length > 0 ||
-      !isBodyBlank(body, signatureRef.current, isWeb),
-  );
+  // Something written in this session: a field that differs, as text, from how
+  // the composer started. What it fills in by itself — a reply's recipients and
+  // "Re:" subject, a link's fields, the signature, a reopened draft — is not
+  // writing, and neither is the editor re-serialising its markup on mount: each
+  // of those used to create a draft nobody wrote.
+  const hasContent =
+    addressListKey(to) !== addressListKey(seed.to) ||
+    addressListKey(cc) !== addressListKey(seed.cc) ||
+    addressListKey(bcc) !== addressListKey(seed.bcc) ||
+    subject.trim() !== seed.subject.trim() ||
+    attachmentsKey(attachments) !== attachmentsKey(seed.attachments) ||
+    writtenText(body, signatureRef.current) !== writtenText(seed.body, null);
   const isDirty = contentKey !== savedContentKey;
+  // What closing keeps: unsaved edits of the user's — or a reopened draft put
+  // back as it was opened after an autosave had already changed it on the server.
+  const hasUnsavedWork = isDirty && (hasContent || Boolean(draft));
   const sending = sendPending || sendMessageMutation.isPending;
   const sendDisabled = sending || awaitingReplyHeaders;
 
@@ -386,8 +393,8 @@ export function useComposeSession({
   }, [api]);
 
   // ── Server draft ──────────────────────────────────────────────────
-  const latest = useRef({ snapshot, contentKey, hasContent, isDirty });
-  latest.current = { snapshot, contentKey, hasContent, isDirty };
+  const latest = useRef({ snapshot, contentKey, hasContent, hasUnsavedWork });
+  latest.current = { snapshot, contentKey, hasContent, hasUnsavedWork };
 
   const saveToServer = useCallback(
     (current: ComposeDraftSnapshot, key: string): Promise<boolean> => {
@@ -440,31 +447,34 @@ export function useComposeSession({
   );
 
   useEffect(() => {
-    if (!api || !recoveryLoaded || !hasContent || !isDirty || sending || sentRef.current) return;
+    if (!api || !recoveryLoaded || !hasUnsavedWork || sending || sentRef.current) return;
     const timer = setTimeout(() => {
       void saveToServer(snapshot, contentKey);
     }, AUTOSAVE_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [api, recoveryLoaded, hasContent, isDirty, sending, snapshot, contentKey, saveToServer]);
+  }, [api, recoveryLoaded, hasUnsavedWork, sending, snapshot, contentKey, saveToServer]);
 
   useEffect(() => {
-    if (!recoveryLoaded || !hasContent || !isDirty || sending || sentRef.current) return;
+    if (!recoveryLoaded || !hasUnsavedWork || sending || sentRef.current) return;
     const timer = setTimeout(() => {
       void saveComposeRecovery(recoveryKey, snapshot);
     }, RECOVERY_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [snapshot, hasContent, isDirty, recoveryKey, recoveryLoaded, sending]);
+  }, [snapshot, hasUnsavedWork, recoveryKey, recoveryLoaded, sending]);
 
   // Leaving without Send, Save or Discard — a back gesture, a route change, a
   // thread closed under an inline reply — keeps what was written as a draft.
+  // Everything written and then erased again leaves no draft behind either.
   const saveToServerRef = useRef(saveToServer);
   saveToServerRef.current = saveToServer;
+  const deleteServerDraftRef = useRef<() => Promise<void>>(async () => undefined);
   useEffect(
     () => () => {
-      const { snapshot: last, contentKey: key, hasContent: had, isDirty: dirty } = latest.current;
-      if (had && dirty && !sentRef.current && !discardedRef.current) {
-        void saveToServerRef.current(last, key);
-      }
+      if (sentRef.current || discardedRef.current) return;
+      const { snapshot: last, contentKey: key, hasContent: had, hasUnsavedWork: unsaved } =
+        latest.current;
+      if (unsaved) void saveToServerRef.current(last, key);
+      else if (!had && createdDraftRef.current) void deleteServerDraftRef.current();
     },
     [],
   );
@@ -678,32 +688,6 @@ export function useComposeSession({
     ],
   );
 
-  /** Save now and close. Nothing to save closes at once. */
-  const saveAndClose = useCallback(async () => {
-    // Sent, or waiting out its undo window: the message is on its way and there
-    // is no draft to keep. Closing leaves the send to finish.
-    if (sentRef.current) {
-      finish();
-      return;
-    }
-    if (!hasContent) {
-      void clearComposeRecovery(recoveryKey);
-      finish();
-      return;
-    }
-    if (!isDirty) {
-      finish();
-      return;
-    }
-    const saved = await saveToServer(snapshot, contentKey);
-    if (saved) {
-      toast(t('compose.toast.draftSaved'));
-      finish();
-    } else if (mountedRef.current) {
-      toast.error(t('common.notSaved'));
-    }
-  }, [contentKey, hasContent, isDirty, finish, recoveryKey, saveToServer, snapshot, t]);
-
   const deleteServerDraft = useCallback(async () => {
     discardedRef.current = true;
     // Discarded inside the undo window: the message the user threw away must
@@ -720,6 +704,36 @@ export function useComposeSession({
       toast.error(err instanceof Error ? err.message : t('common.notSaved'));
     }
   }, [discardDraftAsync, recoveryKey, settleSaves, t]);
+
+  deleteServerDraftRef.current = deleteServerDraft;
+
+  /** Save now and close. Nothing to save closes at once. */
+  const saveAndClose = useCallback(async () => {
+    // Sent, or waiting out its undo window: the message is on its way and there
+    // is no draft to keep. Closing leaves the send to finish.
+    if (sentRef.current) {
+      finish();
+      return;
+    }
+    if (!hasUnsavedWork) {
+      if (!hasContent && createdDraftRef.current) {
+        // Written, autosaved, then erased: the draft it left is empty now.
+        finish();
+        await deleteServerDraft();
+        return;
+      }
+      void clearComposeRecovery(recoveryKey);
+      finish();
+      return;
+    }
+    const saved = await saveToServer(snapshot, contentKey);
+    if (saved) {
+      toast(t('compose.toast.draftSaved'));
+      finish();
+    } else if (mountedRef.current) {
+      toast.error(t('common.notSaved'));
+    }
+  }, [contentKey, deleteServerDraft, hasContent, hasUnsavedWork, finish, recoveryKey, saveToServer, snapshot, t]);
 
   /**
    * Close without keeping the unsaved edits. A draft this session created is
@@ -764,6 +778,7 @@ export function useComposeSession({
     removeAttachment,
     hasContent,
     isDirty,
+    hasUnsavedWork,
     draftStatusLabel,
     draftSaveError: visibleSaveState === 'error',
     alreadyQueued,
@@ -775,4 +790,27 @@ export function useComposeSession({
     discardChanges,
     discardDraft,
   };
+}
+
+/** An address field as the addresses in it, so its own formatting is not an edit. */
+function addressListKey(value: string): string {
+  return value
+    .split(/[,;\n]/)
+    .map((address) => address.trim().toLowerCase())
+    .filter(Boolean)
+    .join(',');
+}
+
+function attachmentsKey(attachments: readonly ComposerAttachment[]): string {
+  return attachments.map((attachment) => attachment.fileId).join(',');
+}
+
+/** The body as text, without the signature this composer inserted at its end. */
+function writtenText(body: string, signature: string | null): string {
+  const text = editorContentToText(body, isWeb).trim();
+  if (!signature) return text;
+  const signatureText = editorContentToText(signature, isWeb).trim();
+  return signatureText && text.endsWith(signatureText)
+    ? text.slice(0, -signatureText.length).trim()
+    : text;
 }

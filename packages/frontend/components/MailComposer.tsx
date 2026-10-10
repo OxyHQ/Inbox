@@ -97,7 +97,7 @@ export function MailComposer({
   const handleClose = useCallback(() => {
     // Nothing unsaved, already on its way, or inline in a thread: close and
     // keep the draft. Otherwise ask whether to keep it.
-    if (layout === 'screen' && session.hasContent && session.isDirty && !session.sending) {
+    if (layout === 'screen' && session.hasUnsavedWork && !session.sending) {
       saveDraftDialog.open();
     } else {
       void session.saveAndClose();

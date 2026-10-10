@@ -338,6 +338,79 @@ describe('a reply or a link', () => {
   });
 });
 
+describe('closing with nothing written', () => {
+  // The editor re-serialises what it was given on mount; the recipients field
+  // reformats its list. Neither is writing, and neither may leave a draft.
+  it('saves no draft for a reply whose fields only changed form', async () => {
+    const onFinished = jest.fn();
+    const { result, unmount } = renderHook(() =>
+      useComposeSession(
+        options({ initial: { to: 'ann@example.com', subject: 'Re: Plan' }, onFinished }),
+      ),
+    );
+    await settle();
+    act(() => {
+      result.current.updateBody('\n');
+      result.current.setTo('ann@example.com, ');
+    });
+
+    expect(result.current.isDirty).toBe(true);
+    expect(result.current.hasContent).toBe(false);
+    expect(result.current.hasUnsavedWork).toBe(false);
+    await advance(10_000);
+    await act(async () => {
+      await result.current.saveAndClose();
+    });
+    unmount();
+    await settle();
+
+    expect(saveDraft).not.toHaveBeenCalled();
+    expect(onFinished).toHaveBeenCalledTimes(1);
+  });
+
+  it('saves none when it is left by navigating away either', async () => {
+    getSettings.mockResolvedValue({ signature: 'Nate' });
+    const { result, unmount } = renderHook(() => useComposeSession(options({ insertSignature: true })));
+    await settle();
+    act(() => result.current.updateBody(`${result.current.body}\n`));
+
+    unmount();
+    await settle();
+
+    expect(saveDraft).not.toHaveBeenCalled();
+  });
+
+  it('deletes the draft an autosave made once everything written is erased', async () => {
+    const onFinished = jest.fn();
+    const { result } = renderHook(() => useComposeSession(options({ onFinished })));
+    await settle();
+    act(() => result.current.updateBody('Hello'));
+    await advance(8_000);
+    expect(saveDraft).toHaveBeenCalledTimes(1);
+
+    act(() => result.current.updateBody(''));
+    await act(async () => {
+      await result.current.saveAndClose();
+    });
+
+    expect(saveDraft).toHaveBeenCalledTimes(1);
+    expect(discardDraft).toHaveBeenCalledWith('created-1');
+    expect(onFinished).toHaveBeenCalledTimes(1);
+  });
+
+  it('still saves a subject or a recipient the user typed', async () => {
+    const { result } = renderHook(() => useComposeSession(options()));
+    await settle();
+    act(() => result.current.setSubject('Lunch?'));
+
+    await act(async () => {
+      await result.current.saveAndClose();
+    });
+
+    expect(saveDraft).toHaveBeenCalledWith(expect.objectContaining({ subject: 'Lunch?' }));
+  });
+});
+
 describe('an address that does not parse yet', () => {
   it('keeps the edits unsaved, since the server draft left it out', async () => {
     const { result } = renderHook(() => useComposeSession(options()));

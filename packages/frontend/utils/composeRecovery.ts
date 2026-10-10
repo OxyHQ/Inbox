@@ -41,7 +41,7 @@ export function composeRecoveryStorageKey(
   return `${STORAGE_PREFIX}${encodeURIComponent(scope ?? 'anonymous')}:${encodeURIComponent(identity)}`;
 }
 
-function storageKeyForCurrentPlatform(key: string): Storage | null {
+function webStorage(): Storage | null {
   if (Platform.OS !== 'web' || typeof window === 'undefined' || !window.localStorage) {
     return null;
   }
@@ -121,11 +121,11 @@ async function removeNativeStorage(key: string): Promise<void> {
 
 export async function loadComposeRecovery(key: string): Promise<ComposeRecoveryRecord | null> {
   try {
-    const storage = storageKeyForCurrentPlatform(key);
+    const storage = webStorage();
     const raw = storage ? storage.getItem(key) : await readNativeStorage(key);
     if (!raw) return null;
     return normalizeRecord(JSON.parse(raw));
-  } catch (error: unknown) {
+  } catch {
     return null;
   }
 }
@@ -139,26 +139,26 @@ export async function saveComposeRecovery(
   const value = JSON.stringify({ snapshot: normalized, savedAt: Date.now() });
 
   try {
-    const storage = storageKeyForCurrentPlatform(key);
+    const storage = webStorage();
     if (storage) {
       storage.setItem(key, value);
       return;
     }
     await writeNativeStorage(key, value);
-  } catch (error: unknown) {
+  } catch {
     // Local recovery is best-effort and must never block composing or sending.
   }
 }
 
 export async function clearComposeRecovery(key: string): Promise<void> {
   try {
-    const storage = storageKeyForCurrentPlatform(key);
+    const storage = webStorage();
     if (storage) {
       storage.removeItem(key);
       return;
     }
     await removeNativeStorage(key);
-  } catch (error: unknown) {
+  } catch {
     // A failed cleanup is harmless; the next compose session replaces it.
   }
 }

@@ -122,7 +122,7 @@ function formatShortDate(dateStr: string, locale: string): string {
 function getSnippet(text: string | null | undefined, maxLength = 100): string {
   if (!text) return '';
   const clean = text.replace(/\s+/g, ' ').trim();
-  return clean.length > maxLength ? clean.slice(0, maxLength) + '...' : clean;
+  return clean.length > maxLength ? `${clean.slice(0, maxLength)}...` : clean;
 }
 
 interface MessageDetailProps {

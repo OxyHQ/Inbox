@@ -61,6 +61,7 @@ describe('Inbox Service Worker privacy boundary', () => {
     expect(serviceWorker).toMatch(/const CACHE_NAME = 'inbox-v\d+';/);
     expect(serviceWorker).toContain("self.addEventListener('push'");
     expect(serviceWorker).toContain("self.addEventListener('notificationclick'");
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: matches the template literal in sw.js as source text.
     expect(serviceWorker).toContain('new URL(`/conversation/${encodeURIComponent(messageId)}`');
   });
 });

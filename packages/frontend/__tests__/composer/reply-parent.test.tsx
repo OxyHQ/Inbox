@@ -11,17 +11,14 @@ jest.mock('@oxy.so/bloom/admonition', () => {
   const pass = ({ children }: { children?: unknown }) => children;
   return {
     AdmonitionRoot: ({ children, type }: { children?: unknown; type?: string }) => (
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
       require('react').createElement('div', { role: 'alert', 'data-type': type }, children)
     ),
     AdmonitionRow: pass,
     AdmonitionIcon: () => null,
     AdmonitionContent: pass,
     AdmonitionText: ({ children }: { children?: unknown }) =>
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
       require('react').createElement('p', null, children),
     AdmonitionButton: ({ children, onPress }: { children?: unknown; onPress?: () => void }) =>
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
       require('react').createElement('button', { onClick: onPress }, children),
   };
 });

@@ -6,7 +6,6 @@ jest.mock('@/components/EmptyStateSticker', () => ({ EmptyStateSticker: () => nu
  */
 
 jest.mock('react-native', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require('react');
   const el =
     (tag: string) =>

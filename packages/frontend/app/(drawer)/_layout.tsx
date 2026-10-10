@@ -16,11 +16,11 @@ export default function DrawerLayout() {
   // Deps deliberately exclude `oxyServices` (object identity changes on every
   // render) and `_initApi` (stable zustand action); the effect reads them
   // imperatively from the closure when triggered.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: oxyServices changes identity every render and _initApi is a stable zustand action; both are read from the closure when the effect fires.
   useEffect(() => {
     if (hasApi) return;
     if (!isAuthenticated) return;
     _initApi(oxyServices.http);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, hasApi]);
 
   return (

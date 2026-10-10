@@ -285,7 +285,6 @@ let HtmlBodyNative: React.ComponentType<HtmlBodyProps> | null = null;
 if (Platform.OS !== 'web') {
   // The native WebView must stay out of the web bundle. This platform guard is
   // intentional: a static import makes Expo's web export resolve native code.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { WebView } = require('react-native-webview');
 
   HtmlBodyNative = function HtmlBodyNativeComponent({ html }: HtmlBodyProps) {

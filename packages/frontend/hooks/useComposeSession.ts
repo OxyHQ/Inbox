@@ -314,6 +314,7 @@ export function useComposeSession({
     setIdempotencyKey(newSendIdempotencyKey());
   }, [alreadyQueued, contentKey]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Seeded once per session, like the fields themselves.
   useEffect(() => {
     let cancelled = false;
     void loadComposeRecovery(recoveryKey).then((record) => {
@@ -358,11 +359,10 @@ export function useComposeSession({
     return () => {
       cancelled = true;
     };
-    // Seeded once per session, like the fields themselves.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recoveryKey]);
 
   // ── Signature ─────────────────────────────────────────────────────
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Once per session: the signature is inserted into an empty body, never again.
   useEffect(() => {
     if (!api || !insertSignature) return;
     let cancelled = false;
@@ -388,8 +388,6 @@ export function useComposeSession({
     return () => {
       cancelled = true;
     };
-    // Once per session: the signature is inserted into an empty body, never again.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api]);
 
   // ── Server draft ──────────────────────────────────────────────────

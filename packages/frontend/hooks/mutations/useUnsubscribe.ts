@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { toast } from '@oxy.so/bloom';
 import { useEmailStore } from '@/hooks/useEmail';
+import { invalidateMailViews } from '@/hooks/queries/invalidateMailViews';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import type { Subscription, Pagination } from '@/services/emailApi';
 import { useTranslation } from '@/lib/i18n';
@@ -67,7 +68,7 @@ export function useUnsubscribe() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: emailKeys.subscriptions });
-      queryClient.invalidateQueries({ queryKey: emailKeys.messages.root });
+      invalidateMailViews(queryClient);
     },
   });
 }

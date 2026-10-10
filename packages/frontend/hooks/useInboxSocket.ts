@@ -35,6 +35,7 @@ import { toast } from '@oxy.so/bloom';
 import { useOxy, useOxyEvent } from '@oxy.so/services';
 
 import { useEmailStore } from '@/hooks/useEmail';
+import { invalidateMailViews } from '@/hooks/queries/invalidateMailViews';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import { useTranslation } from '@/lib/i18n';
 import type { Mailbox, Message } from '@/services/emailApi';
@@ -269,6 +270,11 @@ export function useInboxSocket() {
 
       // 3. Reconcile: replace the placeholder with the real, fully-typed row.
       void queryClient.invalidateQueries(messagesInMailbox(payload.mailboxId, userId));
+      //    New mail can also belong in an open search, a bundle or the open
+      //    conversation, none of which the prepend touches.
+      void queryClient.invalidateQueries({ queryKey: emailKeys.searchRoot });
+      void queryClient.invalidateQueries({ queryKey: emailKeys.bundles });
+      void queryClient.invalidateQueries({ queryKey: emailKeys.thread.root });
 
       // 4. Toast only when the user is looking somewhere else. When they are
       //    already on the folder it landed in, the new row IS the notification.
@@ -307,12 +313,10 @@ export function useInboxSocket() {
         recordInboxMetric('realtime_malformed_event');
         return;
       }
-      for (const mailboxId of payload.mailboxIds) {
-        void queryClient.invalidateQueries(messagesInMailbox(mailboxId, userId));
-      }
-      // A move or a delete changes which threads exist, and `sent` adds a row
-      // to a mailbox the user may not be viewing.
-      void queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
+      // Not only the lists of the mailboxes it names: the message may be open,
+      // in a conversation on screen, in search results or in a bundle — a draft
+      // sent from another device stayed open here as a draft.
+      invalidateMailViews(queryClient);
       recordInboxMetric('realtime_email_changed');
     },
     [queryClient, userId],

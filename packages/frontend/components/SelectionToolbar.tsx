@@ -2,6 +2,7 @@ import { useTranslation } from '@/lib/i18n';
 import {
   RiArchiveLine,
   RiDeleteBinLine,
+  RiInbox2Line,
   RiMailOpenLine,
   RiStarLine,
 } from '@oxy.so/bloom/icons';
@@ -10,6 +11,8 @@ interface SelectionToolbarProps {
   count: number;
   onClose: () => void;
   onArchive: () => void;
+  /** Everything selected is archived: the action moves it back to the Inbox. */
+  archived?: boolean;
   onDelete: () => void;
   onStar: () => void;
   onMarkRead: () => void;
@@ -18,6 +21,7 @@ export function SelectionToolbar({
   count,
   onClose,
   onArchive,
+  archived = false,
   onDelete,
   onStar,
   onMarkRead,
@@ -31,8 +35,8 @@ export function SelectionToolbar({
       actions={[
         {
           key: 'archive',
-          label: t('selection.archive'),
-          icon: RiArchiveLine,
+          label: t(archived ? 'message.actions.moveToInbox' : 'selection.archive'),
+          icon: archived ? RiInbox2Line : RiArchiveLine,
           onPress: onArchive,
         },
         {

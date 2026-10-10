@@ -1,6 +1,7 @@
 import { Card, CardBody } from '@oxy.so/bloom/card';
 import {
   RiArchiveLine,
+  RiInbox2Line,
   RiCheckLine,
   RiDeleteBinLine,
   RiMailOpenLine,
@@ -195,6 +196,8 @@ interface MessageRowProps {
   /** Gets the whole message: where it opens depends on it (a draft opens in the composer). */
   onSelect: (message: Message) => void;
   onArchive?: (id: string) => void;
+  /** In Archive: the archive action moves the row back to the Inbox. */
+  archived?: boolean;
   onDelete?: (id: string) => void;
   onToggleRead?: (id: string, seen: boolean) => void;
   isSelected?: boolean;
@@ -224,6 +227,7 @@ function MessageRowInner({
   showSnoozeTime,
   density = 'comfortable',
   showPreviews = true,
+  archived = false,
 }: MessageRowProps) {
   const { t, locale } = useTranslation();
   const actions: MailAction[] = [];
@@ -237,8 +241,8 @@ function MessageRowInner({
   if (onArchive)
     actions.push({
       key: 'archive',
-      icon: RiArchiveLine,
-      label: t('selection.archive'),
+      icon: archived ? RiInbox2Line : RiArchiveLine,
+      label: t(archived ? 'message.actions.moveToInbox' : 'selection.archive'),
       onPress: () => onArchive(message._id),
     });
   if (onDelete)

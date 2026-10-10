@@ -20,6 +20,8 @@ import {
   removeMessageFromList,
   restoreSnapshot,
   snapshotForRollback,
+  snapshotOrigins,
+  type MessageSnapshot,
   type MessagesInfinite,
 } from '@/utils/messageCache';
 
@@ -123,6 +125,71 @@ export function useToggleRead() {
   });
 }
 
+/**
+ * What a move does, as the toast after it says. A single move used to report
+ * "Archived" whatever the destination — Spam and Inbox included.
+ */
+export type MoveKind = 'archive' | 'inbox' | 'spam' | 'move';
+
+const MOVE_TOAST: Record<MoveKind, string> = {
+  archive: 'ui.mutations.archived',
+  inbox: 'ui.mutations.movedToInbox',
+  spam: 'ui.mutations.movedToSpam',
+  move: 'ui.mutations.moved',
+};
+
+type EmailApi = NonNullable<ReturnType<typeof useEmailStore.getState>['_api']>;
+
+/**
+ * A success toast with Undo. Archive, Trash, Spam, a folder, Snooze: each
+ * takes mail out of the list, and there was no way to bring it back — no Undo,
+ * and nothing in Archive to move a message back to the Inbox with.
+ *
+ * Undo puts the rows back where they were at once (the mutation's own
+ * snapshot), returns each message to the folder it came from, then re-reads.
+ * It lives in the mutation, not the screen, so it still works when the screen
+ * that acted has closed — archiving from the reader goes back to the list.
+ */
+function toastWithUndo({
+  message,
+  snapshot,
+  reverse,
+  queryClient,
+  t,
+}: {
+  message: string;
+  snapshot: MessageSnapshot;
+  reverse: (origins: Map<string, string>) => Promise<unknown>;
+  queryClient: ReturnType<typeof useQueryClient>;
+  t: (key: string) => string;
+}) {
+  const origins = snapshotOrigins(snapshot);
+  if (origins.size === 0) {
+    toast.success(message);
+    return;
+  }
+  toast.success(message, {
+    action: {
+      label: t('common.undo'),
+      onClick: () => {
+        restoreSnapshot(queryClient, snapshot, { reread: false });
+        reverse(origins)
+          .catch(() => toast.error(t('ui.mutations.undoFailed')))
+          .finally(() => invalidateMailViews(queryClient));
+      },
+    },
+  } as Record<string, unknown>);
+}
+
+/** Every message back to the folder it came from — one request per folder. */
+function moveBack(api: EmailApi, origins: Map<string, string>): Promise<unknown> {
+  const byMailbox = new Map<string, string[]>();
+  for (const [id, mailboxId] of origins) {
+    byMailbox.set(mailboxId, [...(byMailbox.get(mailboxId) ?? []), id]);
+  }
+  return Promise.all([...byMailbox].map(([mailboxId, ids]) => api.bulkMoveMessages(ids, mailboxId)));
+}
+
 export function useArchiveMessage() {
   const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
@@ -132,7 +199,14 @@ export function useArchiveMessage() {
     mutationKey: INBOX_MUTATION_KEYS.archive,
     // Offline-first — see useToggleStar for the queue/replay rationale.
     networkMode: 'offlineFirst',
-    mutationFn: async ({ messageId, archiveMailboxId }: { messageId: string; archiveMailboxId: string }) => {
+    mutationFn: async ({
+      messageId,
+      archiveMailboxId,
+    }: {
+      messageId: string;
+      archiveMailboxId: string;
+      kind?: MoveKind;
+    }) => {
       if (!api) throw new Error('Email API not initialized');
       await api.moveMessage(messageId, archiveMailboxId);
     },
@@ -142,8 +216,18 @@ export function useArchiveMessage() {
       removeMessageFromList(queryClient, messageId);
       return { snapshot };
     },
-    onSuccess: () => {
-      toast.success(t('ui.mutations.archived'));
+    onSuccess: (_data, { kind = 'archive' }, context) => {
+      if (!api || !context) {
+        toast.success(t(MOVE_TOAST[kind]));
+        return;
+      }
+      toastWithUndo({
+        message: t(MOVE_TOAST[kind]),
+        snapshot: context.snapshot,
+        reverse: (origins) => moveBack(api, origins),
+        queryClient,
+        t,
+      });
     },
     onError: (_err, _vars, context) => {
       if (context) restoreSnapshot(queryClient, context.snapshot);
@@ -189,8 +273,19 @@ export function useDeleteMessage() {
       removeMessageFromList(queryClient, messageId);
       return { snapshot };
     },
-    onSuccess: (_data, { isInTrash }) => {
-      toast.success(isInTrash ? t('ui.mutations.deletedForever') : t('ui.mutations.trashed'));
+    onSuccess: (_data, { isInTrash, trashMailboxId }, context) => {
+      // Deleted for good (or without a Trash to come back from): nothing to undo.
+      if (isInTrash || !trashMailboxId || !api || !context) {
+        toast.success(isInTrash ? t('ui.mutations.deletedForever') : t('ui.mutations.trashed'));
+        return;
+      }
+      toastWithUndo({
+        message: t('ui.mutations.trashed'),
+        snapshot: context.snapshot,
+        reverse: (origins) => moveBack(api, origins),
+        queryClient,
+        t,
+      });
     },
     onError: (_err, _vars, context) => {
       if (context) restoreSnapshot(queryClient, context.snapshot);
@@ -442,8 +537,18 @@ export function useSnoozeMessage() {
       for (const messageId of messageIds) removeMessageFromList(queryClient, messageId);
       return { snapshot };
     },
-    onSuccess: () => {
-      toast.success(t('ui.mutations.snoozed'));
+    onSuccess: (_data, _vars, context) => {
+      if (!api || !context) {
+        toast.success(t('ui.mutations.snoozed'));
+        return;
+      }
+      toastWithUndo({
+        message: t('ui.mutations.snoozed'),
+        snapshot: context.snapshot,
+        reverse: (origins) => Promise.all([...origins.keys()].map((id) => api.unsnoozeMessage(id))),
+        queryClient,
+        t,
+      });
     },
     onError: (_err, _vars, context) => {
       if (context) restoreSnapshot(queryClient, context.snapshot);
@@ -569,7 +674,14 @@ export function useBulkMoveMessages() {
 
   return useMutation({
     ...RETRY_IDEMPOTENT,
-    mutationFn: async ({ messageIds, mailboxId }: { messageIds: string[]; mailboxId: string }) => {
+    mutationFn: async ({
+      messageIds,
+      mailboxId,
+    }: {
+      messageIds: string[];
+      mailboxId: string;
+      kind?: MoveKind;
+    }) => {
       if (!api) throw new Error('Email API not initialized');
       return api.bulkMoveMessages(messageIds, mailboxId);
     },
@@ -578,6 +690,19 @@ export function useBulkMoveMessages() {
       const snapshot = snapshotForRollback(queryClient, messageIds, null);
       removeMessagesFromLists(queryClient, messageIds);
       return { snapshot };
+    },
+    onSuccess: (_data, { kind = 'move' }, context) => {
+      if (!api || !context) {
+        toast.success(t(MOVE_TOAST[kind]));
+        return;
+      }
+      toastWithUndo({
+        message: t(MOVE_TOAST[kind]),
+        snapshot: context.snapshot,
+        reverse: (origins) => moveBack(api, origins),
+        queryClient,
+        t,
+      });
     },
     onError: (_err, _vars, context) => {
       if (context) restoreSnapshot(queryClient, context.snapshot);
@@ -628,8 +753,18 @@ export function useBulkDeleteMessages() {
       removeMessagesFromLists(queryClient, ids);
       return { snapshot };
     },
-    onSuccess: (_data, { permanent }) => {
-      toast.success(permanent.length > 0 ? t('ui.mutations.deletedForever') : t('ui.mutations.trashed'));
+    onSuccess: (_data, { permanent, toTrash }, context) => {
+      if (permanent.length > 0 || toTrash.length === 0 || !api || !context) {
+        toast.success(permanent.length > 0 ? t('ui.mutations.deletedForever') : t('ui.mutations.trashed'));
+        return;
+      }
+      toastWithUndo({
+        message: t('ui.mutations.trashed'),
+        snapshot: context.snapshot,
+        reverse: (origins) => moveBack(api, origins),
+        queryClient,
+        t,
+      });
     },
     onError: (_err, _vars, context) => {
       if (context) restoreSnapshot(queryClient, context.snapshot);

@@ -3,6 +3,7 @@ import { useTranslation } from '@/lib/i18n';
 import {
   RiArchiveLine,
   RiDeleteBinLine,
+  RiInbox2Line,
   RiMailOpenLine,
   RiTimeLine,
 } from '@oxy.so/bloom/icons';
@@ -18,6 +19,8 @@ interface SwipeableRowProps {
   leftAction: SwipeAction;
   rightAction: SwipeAction;
   onAction: (action: SwipeAction, messageId: string) => void;
+  /** In Archive: the archive swipe moves the row back to the Inbox. */
+  archived?: boolean;
 }
 const icons = {
   archive: RiArchiveLine,
@@ -38,6 +41,7 @@ export function SwipeableRow({
   leftAction,
   rightAction,
   onAction,
+  archived = false,
 }: SwipeableRowProps) {
   const enabled = useSwipeAvailable();
   const [gesture, setGesture] = useState(0);
@@ -48,8 +52,8 @@ export function SwipeableRow({
       : [
           {
             key,
-            icon: icons[key],
-            label: t(labels[key]),
+            icon: key === 'archive' && archived ? RiInbox2Line : icons[key],
+            label: t(key === 'archive' && archived ? 'message.actions.moveToInbox' : labels[key]),
             tone: key === 'delete' ? 'negative' : 'accent',
             onPress: () => onAction(key, messageId),
           },

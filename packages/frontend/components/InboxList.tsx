@@ -44,6 +44,7 @@ import {
   useUpdateReminder,
 } from '@/hooks/mutations/useReminderMutations';
 import { useBundles } from '@/hooks/queries/useBundles';
+import { useDailyBrief } from '@/hooks/queries/useDailyBrief';
 import { useFollowUp } from '@/hooks/queries/useFollowUp';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
 import { useNeedsResponse, type NeedsResponseReason } from '@/hooks/queries/useNeedsResponse';
@@ -347,6 +348,14 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     [triageItems],
   );
 
+  // The open brief lists its messages as rows; the sections below leave them
+  // out, as they do the triage rows.
+  const { brief } = useDailyBrief({ enabled: showBrief && prefs.aiBrief });
+  const shownAboveIds = useMemo(() => {
+    if (!showBrief || !brief) return triageMessageIds;
+    return new Set([...triageMessageIds, ...brief.items.map((item) => item.messageId)]);
+  }, [brief, showBrief, triageMessageIds]);
+
   const listItems = useMemo<ListItem[]>(() => {
     if (
       displayMessages.length === 0 &&
@@ -410,11 +419,12 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     }
 
     // Action candidates are shown once at the top with an explanation. Remove
-    // those same rows from the date/pinned sections below to avoid duplication.
+    // those same rows, and the open brief's, from the date/pinned sections
+    // below to avoid duplication.
     items.push(...triageItems);
 
     // Partition pinned messages to top (only in mailbox views, not snoozed)
-    const triagedMessages = displayMessages.filter((message) => !triageMessageIds.has(message._id));
+    const triagedMessages = displayMessages.filter((message) => !shownAboveIds.has(message._id));
     const pinned = !isSnoozedView ? triagedMessages.filter((m) => m.flags.pinned) : [];
     const unpinned = !isSnoozedView
       ? triagedMessages.filter((m) => !m.flags.pinned)
@@ -478,10 +488,10 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     isInboxView,
     isSnoozedView,
     reminders,
+    shownAboveIds,
     showBundles,
     t,
     triageItems,
-    triageMessageIds,
     unreadable,
   ]);
 

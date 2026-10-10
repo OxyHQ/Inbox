@@ -1,5 +1,5 @@
 /**
- * The opt-in daily AI brief: a short summary of today's Inbox and the messages
+ * The daily AI brief: a short summary of today's Inbox and the messages
  * it names, written in the UI language.
  *
  * Fetched only while the caller enables it (the brief is open and the `aiBrief`

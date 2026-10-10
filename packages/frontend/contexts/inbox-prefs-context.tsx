@@ -6,13 +6,14 @@
  * backed preferences (signature, vacation responder, forwarding) live in
  * the email settings API and are not duplicated here.
  *
- * Persistence: localStorage on web, AsyncStorage on native. The values are
+ * Persistence: localStorage on web, AsyncStorage on native. Only what the user
+ * chose is stored; everything else follows the defaults below. The values are
  * loaded synchronously on web (no flash) and asynchronously on native
  * (defaults are used until the load resolves).
  */
 
 import type { MailDensity } from '@oxy.so/bloom/mail-list';
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Platform } from 'react-native';
 
@@ -60,13 +61,16 @@ export const DEFAULT_INBOX_PREFS: InboxPrefs = {
   leftSwipeAction: 'archive',
   rightSwipeAction: 'delete',
   pushNotifications: true,
-  // The brief is an explicit opt-in and is collapsed even after enabling it.
-  aiBrief: false,
+  // Only offers a button: nothing is sent until the brief is opened.
+  aiBrief: true,
   aiSmartReply: true,
   // Only offers a button: nothing is summarized until the user asks.
   aiThreadSummary: true,
   aiCategorization: true,
 };
+
+/** What the user chose. A preference left out follows its default. */
+export type InboxPrefChoices = Partial<InboxPrefs>;
 
 function isMessageDensity(value: unknown): value is MessageDensity {
   return value === 'compact' || value === 'comfortable';
@@ -82,31 +86,52 @@ function isSwipeAction(value: unknown): value is SwipeAction {
   );
 }
 
-function readBoolean(value: unknown, fallback: boolean): boolean {
-  return typeof value === 'boolean' ? value : fallback;
+function isBoolean(value: unknown): value is boolean {
+  return typeof value === 'boolean';
+}
+
+const IS_VALID: { [K in keyof InboxPrefs]: (value: unknown) => value is InboxPrefs[K] } = {
+  density: isMessageDensity,
+  conversationView: isBoolean,
+  markReadOnOpen: isBoolean,
+  showPreviews: isBoolean,
+  leftSwipeAction: isSwipeAction,
+  rightSwipeAction: isSwipeAction,
+  pushNotifications: isBoolean,
+  aiBrief: isBoolean,
+  aiSmartReply: isBoolean,
+  aiThreadSummary: isBoolean,
+  aiCategorization: isBoolean,
+};
+
+/** The well-formed choices in a persisted blob; stale or malformed values are dropped. */
+export function readInboxPrefChoices(value: unknown): InboxPrefChoices {
+  const stored = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+  const choices: Record<string, unknown> = {};
+  for (const key of Object.keys(IS_VALID) as (keyof InboxPrefs)[]) {
+    if (IS_VALID[key](stored[key])) choices[key] = stored[key];
+  }
+  return choices as InboxPrefChoices;
 }
 
 /** Merge persisted data without allowing stale or malformed values into the UI. */
 export function mergeInboxPrefs(value: unknown): InboxPrefs {
-  const stored = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+  return { ...DEFAULT_INBOX_PREFS, ...readInboxPrefChoices(value) };
+}
 
-  return {
-    density: isMessageDensity(stored.density) ? stored.density : DEFAULT_INBOX_PREFS.density,
-    conversationView: readBoolean(stored.conversationView, DEFAULT_INBOX_PREFS.conversationView),
-    markReadOnOpen: readBoolean(stored.markReadOnOpen, DEFAULT_INBOX_PREFS.markReadOnOpen),
-    showPreviews: readBoolean(stored.showPreviews, DEFAULT_INBOX_PREFS.showPreviews),
-    leftSwipeAction: isSwipeAction(stored.leftSwipeAction)
-      ? stored.leftSwipeAction
-      : DEFAULT_INBOX_PREFS.leftSwipeAction,
-    rightSwipeAction: isSwipeAction(stored.rightSwipeAction)
-      ? stored.rightSwipeAction
-      : DEFAULT_INBOX_PREFS.rightSwipeAction,
-    pushNotifications: readBoolean(stored.pushNotifications, DEFAULT_INBOX_PREFS.pushNotifications),
-    aiBrief: readBoolean(stored.aiBrief, DEFAULT_INBOX_PREFS.aiBrief),
-    aiSmartReply: readBoolean(stored.aiSmartReply, DEFAULT_INBOX_PREFS.aiSmartReply),
-    aiThreadSummary: readBoolean(stored.aiThreadSummary, DEFAULT_INBOX_PREFS.aiThreadSummary),
-    aiCategorization: readBoolean(stored.aiCategorization, DEFAULT_INBOX_PREFS.aiCategorization),
-  };
+/**
+ * The v2 blob saved every preference, defaults included, so its values are not
+ * all choices. A value equal to today's default is dropped, so it keeps
+ * following the default. `aiBrief` is dropped outright: it was off by default
+ * then, and a saved `false` cannot tell that default from a choice.
+ */
+export function migrateV2InboxPrefs(value: unknown): InboxPrefChoices {
+  const { aiBrief: _offByOldDefault, ...choices } = readInboxPrefChoices(value);
+  return Object.fromEntries(
+    Object.entries(choices).filter(
+      ([key, choice]) => DEFAULT_INBOX_PREFS[key as keyof InboxPrefs] !== choice,
+    ),
+  ) as InboxPrefChoices;
 }
 
 interface InboxPrefsContextValue {
@@ -117,27 +142,40 @@ interface InboxPrefsContextValue {
 }
 
 const LEGACY_STORAGE_KEY = 'inbox_user_prefs_v1';
-const STORAGE_KEY_PREFIX = 'inbox_user_prefs_v2';
+const V2_STORAGE_KEY_PREFIX = 'inbox_user_prefs_v2';
+// v3 holds only what the user chose, so a changed default reaches everyone.
+const STORAGE_KEY_PREFIX = 'inbox_user_prefs_v3';
 const InboxPrefsContext = createContext<InboxPrefsContextValue | undefined>(undefined);
 
 export function getInboxPrefsStorageKey(scope: string | null = null): string {
   return `${STORAGE_KEY_PREFIX}:${encodeURIComponent(scope ?? 'anonymous')}`;
 }
 
-function loadSync(storageKey: string): InboxPrefs {
+export function getV2InboxPrefsStorageKey(scope: string | null = null): string {
+  return `${V2_STORAGE_KEY_PREFIX}:${encodeURIComponent(scope ?? 'anonymous')}`;
+}
+
+/** The v3 choices, or the v2 blob migrated when there are none yet. */
+function parseStoredChoices(v3: string | null, v2: string | null): InboxPrefChoices {
+  if (v3) return readInboxPrefChoices(JSON.parse(v3));
+  if (v2) return migrateV2InboxPrefs(JSON.parse(v2));
+  return {};
+}
+
+function loadSync(scope: string | null): InboxPrefChoices {
   if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
     try {
-      const stored = window.localStorage.getItem(storageKey);
-      if (stored) {
-        return mergeInboxPrefs(JSON.parse(stored));
-      }
+      return parseStoredChoices(
+        window.localStorage.getItem(getInboxPrefsStorageKey(scope)),
+        window.localStorage.getItem(getV2InboxPrefsStorageKey(scope)),
+      );
     } catch (err) {
       // Reading localStorage can throw in sandboxed/private contexts. Fall
       // back to defaults; a re-write on first update will recover.
       console.warn('[inbox-prefs] failed to load prefs', err);
     }
   }
-  return mergeInboxPrefs(undefined);
+  return {};
 }
 
 interface InboxPrefsProviderProps {
@@ -147,9 +185,10 @@ interface InboxPrefsProviderProps {
 }
 
 export function InboxPrefsProvider({ children, scope = null }: InboxPrefsProviderProps) {
-  const storageKey = getInboxPrefsStorageKey(scope ?? null);
-  const [prefs, setPrefs] = useState<InboxPrefs>(() => loadSync(storageKey));
+  const storageKey = getInboxPrefsStorageKey(scope);
+  const [choices, setChoices] = useState<InboxPrefChoices>(() => loadSync(scope));
   const [loaded, setLoaded] = useState(Platform.OS === 'web');
+  const prefs = useMemo(() => ({ ...DEFAULT_INBOX_PREFS, ...choices }), [choices]);
 
   // Delete the pre-scope device-wide blob. It is intentionally not migrated:
   // its owner is unknowable, so copying it into the first account would make
@@ -178,11 +217,12 @@ export function InboxPrefsProvider({ children, scope = null }: InboxPrefsProvide
         const AsyncStorage = await import('@react-native-async-storage/async-storage').then(
           (m) => m.default,
         );
-        const stored = await AsyncStorage.getItem(storageKey);
+        const [v3, v2] = await Promise.all([
+          AsyncStorage.getItem(storageKey),
+          AsyncStorage.getItem(getV2InboxPrefsStorageKey(scope)),
+        ]);
         if (cancelled) return;
-        if (stored) {
-          setPrefs(mergeInboxPrefs(JSON.parse(stored)));
-        }
+        setChoices(parseStoredChoices(v3, v2));
       } catch (err) {
         console.warn('[inbox-prefs] failed to load prefs', err);
       } finally {
@@ -192,30 +232,34 @@ export function InboxPrefsProvider({ children, scope = null }: InboxPrefsProvide
     return () => {
       cancelled = true;
     };
-  }, [storageKey]);
+  }, [scope, storageKey]);
 
-  // Persist on change once loaded so we don't overwrite stored values with
-  // defaults before the initial load resolves on native.
+  // Persist the choices once loaded, so stored values are never overwritten
+  // before the initial load resolves on native. The v2 blob goes once v3 holds
+  // what was migrated from it.
   useEffect(() => {
     if (!loaded) return;
+    const v2Key = getV2InboxPrefsStorageKey(scope);
     (async () => {
       try {
         if (Platform.OS === 'web') {
-          window.localStorage?.setItem(storageKey, JSON.stringify(prefs));
+          window.localStorage?.setItem(storageKey, JSON.stringify(choices));
+          window.localStorage?.removeItem(v2Key);
         } else {
           const AsyncStorage = await import('@react-native-async-storage/async-storage').then(
             (m) => m.default,
           );
-          await AsyncStorage.setItem(storageKey, JSON.stringify(prefs));
+          await AsyncStorage.setItem(storageKey, JSON.stringify(choices));
+          await AsyncStorage.removeItem(v2Key);
         }
       } catch (err) {
         console.warn('[inbox-prefs] failed to persist prefs', err);
       }
     })();
-  }, [prefs, loaded, storageKey]);
+  }, [choices, loaded, scope, storageKey]);
 
   const setPref = useCallback(<K extends keyof InboxPrefs>(key: K, value: InboxPrefs[K]) => {
-    setPrefs((curr) => ({ ...curr, [key]: value }));
+    setChoices((curr) => ({ ...curr, [key]: value }));
   }, []);
 
   return (

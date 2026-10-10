@@ -3,10 +3,12 @@ import { toast } from '@oxy.so/bloom';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import type { SavedEmailSearch, SavedEmailSearchFilters } from '@/services/emailApi';
+import { useTranslation } from '@/lib/i18n';
 
 const key = emailKeys.savedSearches;
 
 export function useCreateSavedSearch() {
+  const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
   return useMutation({
@@ -26,13 +28,14 @@ export function useCreateSavedSearch() {
     },
     onError: (error: unknown, _data, context) => {
       if (context?.previous) queryClient.setQueryData(key, context.previous);
-      toast.error(error instanceof Error ? error.message : 'Unable to save search.');
+      toast.error(error instanceof Error ? error.message : t('search.saved.saveFailed'));
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
   });
 }
 
 export function useDeleteSavedSearch() {
+  const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
   return useMutation({
@@ -48,7 +51,7 @@ export function useDeleteSavedSearch() {
     },
     onError: (error: unknown, _id, context) => {
       if (context?.previous) queryClient.setQueryData(key, context.previous);
-      toast.error(error instanceof Error ? error.message : 'Unable to delete saved search.');
+      toast.error(error instanceof Error ? error.message : t('search.saved.deleteFailed'));
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
   });

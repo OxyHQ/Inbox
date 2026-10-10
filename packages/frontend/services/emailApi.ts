@@ -185,12 +185,22 @@ const SEND_TIMEOUT_MS = 60_000;
 
 // ─── API Client ────────────────────────────────────────────────────
 
+/**
+ * What a read is bound to. React Query passes the `signal` of the query that
+ * asked, and aborts it when the answer is no longer wanted — a superseded
+ * refetch, a list scrolled away from, a search retyped. Without it every
+ * cancelled read still ran to completion over the network.
+ */
+export interface ReadScope {
+  signal?: AbortSignal;
+}
+
 export function createEmailApi(http: HttpService) {
   return {
     // ─── Mailboxes ──────────────────────────────────────────────────
 
-    async listMailboxes(): Promise<Mailbox[]> {
-      const res = await http.get('/email/mailboxes');
+    async listMailboxes({ signal }: ReadScope = {}): Promise<Mailbox[]> {
+      const res = await http.get('/email/mailboxes', { signal });
       return z.array(MailboxSchema).parse(res);
     },
 
@@ -215,6 +225,7 @@ export function createEmailApi(http: HttpService) {
         cursor?: string;
         unseenOnly?: boolean;
       } = {},
+      { signal }: ReadScope = {},
     ): Promise<{ data: Message[]; unreadable: UnreadableMessage[]; pagination: Pagination }> {
       const params: Record<string, string> = {};
       if (options.mailboxId) params.mailbox = options.mailboxId;
@@ -225,7 +236,7 @@ export function createEmailApi(http: HttpService) {
       if (options.cursor !== undefined) params.cursor = options.cursor;
       if (options.unseenOnly) params.unseen = 'true';
 
-      const res = (await http.get('/email/messages', { params })) as PaginatedResult<unknown>;
+      const res = (await http.get('/email/messages', { params, signal })) as PaginatedResult<unknown>;
       const { messages, unreadable } = parseMessageList(res.data, 'list');
       return {
         data: messages,
@@ -234,13 +245,13 @@ export function createEmailApi(http: HttpService) {
       };
     },
 
-    async getMessage(messageId: string): Promise<Message> {
-      const res = await http.get(`/email/messages/${messageId}`);
+    async getMessage(messageId: string, { signal }: ReadScope = {}): Promise<Message> {
+      const res = await http.get(`/email/messages/${messageId}`, { signal });
       return parseMessageStrict(res, 'detail');
     },
 
-    async getThread(messageId: string): Promise<ThreadData> {
-      const res = await http.get(`/email/messages/${messageId}/thread`);
+    async getThread(messageId: string, { signal }: ReadScope = {}): Promise<ThreadData> {
+      const res = await http.get(`/email/messages/${messageId}/thread`, { signal });
       return parseMessageList(res, 'thread');
     },
 
@@ -392,6 +403,7 @@ export function createEmailApi(http: HttpService) {
 
     async search(
       options: EmailSearchOptions = {},
+      { signal }: ReadScope = {},
     ): Promise<{ data: Message[]; unreadable: UnreadableMessage[]; pagination: Pagination }> {
       const params: Record<string, string> = {};
       const readStateOperator =
@@ -411,7 +423,7 @@ export function createEmailApi(http: HttpService) {
       if (options.offset !== undefined) params.offset = String(options.offset);
       if (options.cursor !== undefined) params.cursor = options.cursor;
 
-      const res = (await http.get('/email/search', { params })) as PaginatedResult<unknown>;
+      const res = (await http.get('/email/search', { params, signal })) as PaginatedResult<unknown>;
       const { messages, unreadable } = parseMessageList(res.data, 'search');
       return {
         data: messages,

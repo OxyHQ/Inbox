@@ -22,6 +22,7 @@ import {
   proxyExternalImages,
   sanitizeEmailHtml,
 } from '../utils/htmlTransform';
+import { useTranslation } from '@/lib/i18n';
 
 interface HtmlBodyProps {
   html: string;
@@ -159,6 +160,7 @@ function wrapHtml(
 }
 
 function HtmlBodyWeb({ html }: HtmlBodyProps) {
+  const { t } = useTranslation();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [height, setHeight] = useState<number | null>(null);
   const { mode, colors } = useTheme();
@@ -235,7 +237,7 @@ function HtmlBodyWeb({ html }: HtmlBodyProps) {
         overflow: 'hidden',
       }}
       sandbox="allow-same-origin"
-      title="Email content"
+      title={t('message.detail.emailContent')}
       scrolling="no"
     />
   );

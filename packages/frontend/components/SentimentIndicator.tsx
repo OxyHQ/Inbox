@@ -7,6 +7,7 @@ import {
 } from '@oxy.so/bloom/icons';
 import type { BloomTone } from '@oxy.so/bloom/appearance';
 import type { SentimentResult } from '@/hooks/queries/useSentimentAnalysis';
+import { useTranslation } from '@/lib/i18n';
 interface SentimentIndicatorProps {
   sentiment: SentimentResult | null;
   size?: 'small' | 'medium';
@@ -25,6 +26,7 @@ export function SentimentIndicator({
   size = 'small',
   showLabel = false,
 }: SentimentIndicatorProps) {
+  const { t } = useTranslation();
   if (!sentiment) return null;
   const Icon =
     sentiment.type === 'positive'
@@ -40,7 +42,7 @@ export function SentimentIndicator({
       tone={TONES[sentiment.type]}
       appearance="subtle"
       icon={Icon}
-      content={sentiment.label}
+      content={t(`sentiment.${sentiment.type}`)}
       size={showLabel && size === 'medium' ? 'label-medium' : 'label-small'}
     />
   );

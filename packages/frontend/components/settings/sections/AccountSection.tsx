@@ -6,7 +6,6 @@ import { Button } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
 import {
   SettingsProfilePage,
-  SettingsTextField,
   SettingsValueField,
 } from '@oxy.so/bloom/settings-modal';
 import { Switch } from '@oxy.so/bloom/switch';
@@ -15,6 +14,7 @@ import { toast } from '@oxy.so/bloom/toast';
 import { getNormalizedUserHandle } from '@oxy.so/core';
 import { useOxy } from '@oxy.so/services';
 import { useCallback, useState } from 'react';
+import { TextFieldInput } from '@oxy.so/bloom/text-field';
 type SettingsDraft = {
   signature: string;
   autoReplyEnabled: boolean;
@@ -150,7 +150,7 @@ export function AccountSection() {
   const signOutDialog = useDialogControl();
 
   const fullName =
-    user?.name?.displayName ?? getNormalizedUserHandle(user) ?? 'Account';
+    user?.name?.displayName ?? getNormalizedUserHandle(user) ?? t('ui.settings.account.title');
 
   const emailAddress = user?.email || (user ? `${user.username}@oxy.so` : '');
 
@@ -160,7 +160,7 @@ export function AccountSection() {
       toast.success(t('ui.settings.account.signedOut'));
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Failed to sign out.';
+        err instanceof Error ? err.message : t('ui.settings.account.signOutFailed');
       toast.error(message);
     }
   }, [logout, t]);
@@ -207,13 +207,13 @@ export function AccountSection() {
             rows: [
               {
                 key: 'enabled',
-                label: 'Vacation responder',
+                label: t('ui.settings.account.vacation'),
                 description: autoReplyEnabled
-                  ? 'Replies are sent automatically.'
-                  : 'Off — incoming mail flows normally.',
+                  ? t('ui.settings.account.vacationOn')
+                  : t('ui.settings.account.vacationOff'),
                 control: (
                   <Switch
-                    accessibilityLabel="Vacation responder"
+                    accessibilityLabel={t('ui.settings.account.vacation')}
                     checked={autoReplyEnabled}
                     onCheckedChange={(v) => setField('autoReplyEnabled', v)}
                   />
@@ -225,11 +225,10 @@ export function AccountSection() {
                       key: 'subject',
                       label: t('ui.settings.account.subjectPlaceholder'),
                       control: (
-                        <SettingsTextField
+                        <TextFieldInput
                           label={t('ui.settings.account.subjectPlaceholder')}
                           value={autoReplySubject}
-                          onCommit={(v) => setField('autoReplySubject', v)}
-                          showSavedToast={false}
+                          onChangeText={(v) => setField('autoReplySubject', v)}
                         />
                       ),
                     },
@@ -260,13 +259,13 @@ export function AccountSection() {
                 key: 'address',
                 label: t('ui.settings.account.forwarding'),
                 control: (
-                  <SettingsTextField
+                  <TextFieldInput
                     label={t('ui.settings.account.forwarding')}
                     value={autoForwardTo}
-                    onCommit={(v) => setField('autoForwardTo', v)}
+                    onChangeText={(v) => setField('autoForwardTo', v)}
                     placeholder={t('ui.settings.account.forwardingPlaceholder')}
                     keyboardType="email-address"
-                    showSavedToast={false}
+                    autoCapitalize="none"
                   />
                 ),
               },
@@ -274,12 +273,11 @@ export function AccountSection() {
                 ? [
                     {
                       key: 'keep-copy',
-                      label: 'Keep a copy in Inbox',
-                      description:
-                        'Recommended so you retain a record of forwarded mail.',
+                      label: t('ui.settings.account.keepCopy'),
+                      description: t('ui.settings.account.keepCopyDescription'),
                       control: (
                         <Switch
-                          accessibilityLabel="Keep a copy in Inbox"
+                          accessibilityLabel={t('ui.settings.account.keepCopy')}
                           checked={autoForwardKeepCopy}
                           onCheckedChange={(v) =>
                             setField('autoForwardKeepCopy', v)
@@ -298,14 +296,14 @@ export function AccountSection() {
                   rows: [
                     {
                       key: 'save',
-                      label: 'Save changes',
+                      label: t('ui.settings.account.saveChanges'),
                       control: (
                         <Button
                           onPress={handleSave}
                           disabled={saving}
                           loading={saving}
                         >
-                          Save changes
+                          {t('ui.settings.account.saveChanges')}
                         </Button>
                       ),
                     },
@@ -319,14 +317,14 @@ export function AccountSection() {
             rows: [
               {
                 key: 'signout',
-                label: 'Sign out',
+                label: t('ui.settings.account.signOut'),
                 description: t('ui.settings.account.signOutDevice'),
                 control: (
                   <Button
                     appearance="subtle"
                     onPress={() => signOutDialog.open()}
                   >
-                    Sign out
+                    {t('ui.settings.account.signOut')}
                   </Button>
                 ),
               },

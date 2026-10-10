@@ -208,13 +208,10 @@ export function AdvancedSection() {
           setFilterField('from');
           setFilterOperator('contains');
           setFilterAction('archive');
-          toast.success('Filter created.');
+          toast.success(t('ui.settings.advanced.filterCreated'));
         },
-        onError: (err: unknown) => {
-          const message =
-            err instanceof Error ? err.message : 'Failed to create filter.';
-          toast.error(message);
-        },
+        // A failure is reported by the mutation itself; a second toast here
+        // said the same thing twice.
       },
     );
   }, [
@@ -225,20 +222,12 @@ export function AdvancedSection() {
     filterAction,
     filterName,
     createFilter,
+    t,
   ]);
 
   const handleToggleFilter = useCallback(
     (filterId: string, enabled: boolean) => {
-      updateFilter.mutate(
-        { filterId, enabled },
-        {
-          onError: (err: unknown) => {
-            const message =
-              err instanceof Error ? err.message : 'Failed to update filter.';
-            toast.error(message);
-          },
-        },
-      );
+      updateFilter.mutate({ filterId, enabled });
     },
     [updateFilter],
   );
@@ -247,16 +236,11 @@ export function AdvancedSection() {
     if (!filterPendingDelete) return;
     deleteFilter.mutate(filterPendingDelete.id, {
       onSuccess: () => {
-        toast.success('Filter deleted.');
+        toast.success(t('ui.settings.advanced.filterDeleted'));
         setFilterPendingDelete(null);
       },
-      onError: (err: unknown) => {
-        const message =
-          err instanceof Error ? err.message : 'Failed to delete filter.';
-        toast.error(message);
-      },
     });
-  }, [filterPendingDelete, deleteFilter]);
+  }, [filterPendingDelete, deleteFilter, t]);
 
   const resetTemplateForm = useCallback(() => {
     setEditingTemplateId(null);
@@ -287,12 +271,7 @@ export function AdvancedSection() {
         {
           onSuccess: () => {
             resetTemplateForm();
-            toast.success('Template updated.');
-          },
-          onError: (err: unknown) => {
-            const message =
-              err instanceof Error ? err.message : 'Failed to update template.';
-            toast.error(message);
+            toast.success(t('ui.settings.advanced.templateUpdated'));
           },
         },
       );
@@ -304,12 +283,7 @@ export function AdvancedSection() {
       {
         onSuccess: () => {
           resetTemplateForm();
-          toast.success('Template created.');
-        },
-        onError: (err: unknown) => {
-          const message =
-            err instanceof Error ? err.message : 'Failed to create template.';
-          toast.error(message);
+          toast.success(t('ui.settings.advanced.templateCreated'));
         },
       },
     );
@@ -321,20 +295,16 @@ export function AdvancedSection() {
     updateTemplate,
     createTemplate,
     resetTemplateForm,
+    t,
   ]);
 
   const handleDeleteTemplate = useCallback(() => {
     if (!templatePendingDelete) return;
     deleteTemplate.mutate(templatePendingDelete.id, {
       onSuccess: () => {
-        toast.success('Template deleted.');
+        toast.success(t('ui.settings.advanced.templateDeleted'));
         if (editingTemplateId === templatePendingDelete.id) resetTemplateForm();
         setTemplatePendingDelete(null);
-      },
-      onError: (err: unknown) => {
-        const message =
-          err instanceof Error ? err.message : 'Failed to delete template.';
-        toast.error(message);
       },
     });
   }, [
@@ -342,6 +312,7 @@ export function AdvancedSection() {
     deleteTemplate,
     editingTemplateId,
     resetTemplateForm,
+    t,
   ]);
 
   const handleImportFiles = useCallback(async () => {
@@ -359,17 +330,17 @@ export function AdvancedSection() {
         const result = await api.importMessages(files);
         setImportResult(result);
         toast.success(
-          `Imported ${result.imported} of ${result.total} email(s).`,
+          t('ui.settings.advanced.imported', { imported: result.imported, total: result.total }),
         );
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Import failed.';
+        const message = err instanceof Error ? err.message : t('ui.settings.advanced.importFailed');
         toast.error(message);
       } finally {
         setImporting(false);
       }
     };
     input.click();
-  }, [api]);
+  }, [api, t]);
 
   const templateSubmitting = editingTemplateId
     ? updateTemplate.isPending
@@ -416,7 +387,10 @@ export function AdvancedSection() {
             rows: filters.map((filter) => ({
               key: filter._id,
               label: filter.name,
-              description: `${filter.conditions.length} conditions · ${filter.actions.length} actions`,
+              description: t('ui.settings.advanced.conditions', {
+                conditions: filter.conditions.length,
+                actions: filter.actions.length,
+              }),
               control: (
                 <View
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
@@ -427,7 +401,7 @@ export function AdvancedSection() {
                     onCheckedChange={(v) => handleToggleFilter(filter._id, v)}
                   />
                   <IconButton
-                    accessibilityLabel={`Delete ${filter.name}`}
+                    accessibilityLabel={t('ui.settings.advanced.deleteFilter', { name: filter.name })}
                     icon={<RiDeleteBin6Line />}
                     onPress={() => {
                       setFilterPendingDelete({
@@ -472,10 +446,10 @@ export function AdvancedSection() {
                 ? [
                     {
                       key: 'operator',
-                      label: 'Condition',
+                      label: t('ui.settings.advanced.condition'),
                       control: (
                         <SettingsPreferenceSelect
-                          label="Condition"
+                          label={t('ui.settings.advanced.condition')}
                           value={filterOperator}
                           onChange={setFilterOperator}
                           items={operatorOptions}
@@ -543,7 +517,7 @@ export function AdvancedSection() {
               control: (
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <IconButton
-                    accessibilityLabel={`Edit ${template.name}`}
+                    accessibilityLabel={t('ui.settings.advanced.editTemplate', { name: template.name })}
                     icon={<RiEditLine />}
                     onPress={() =>
                       handleEditTemplate(
@@ -555,7 +529,7 @@ export function AdvancedSection() {
                     }
                   />
                   <IconButton
-                    accessibilityLabel={`Delete ${template.name}`}
+                    accessibilityLabel={t('ui.settings.advanced.deleteTemplate', { name: template.name })}
                     icon={<RiDeleteBin6Line />}
                     onPress={() => {
                       setTemplatePendingDelete({
@@ -739,37 +713,37 @@ export function AdvancedSection() {
       <OutboundQueueSection />
       <Dialog
         control={filterDelete}
-        title="Delete filter?"
+        title={t('ui.settings.advanced.deleteFilterTitle')}
         description={
           filterPendingDelete
-            ? `"${filterPendingDelete.name}" will no longer run on new messages.`
+            ? t('ui.settings.advanced.deleteFilterDescription', { name: filterPendingDelete.name })
             : ''
         }
         actions={[
           {
-            label: 'Delete',
+            label: t('common.delete'),
             color: 'destructive',
             onPress: handleDeleteFilter,
           },
-          { label: 'Cancel', color: 'cancel' },
+          { label: t('common.cancel'), color: 'cancel' },
         ]}
       />
 
       <Dialog
         control={templateDelete}
-        title="Delete template?"
+        title={t('ui.settings.advanced.deleteTemplateTitle')}
         description={
           templatePendingDelete
-            ? `"${templatePendingDelete.name}" will be removed from your saved templates.`
+            ? t('ui.settings.advanced.deleteTemplateDescription', { name: templatePendingDelete.name })
             : ''
         }
         actions={[
           {
-            label: 'Delete',
+            label: t('common.delete'),
             color: 'destructive',
             onPress: handleDeleteTemplate,
           },
-          { label: 'Cancel', color: 'cancel' },
+          { label: t('common.cancel'), color: 'cancel' },
         ]}
       />
     </>

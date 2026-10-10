@@ -110,7 +110,7 @@ export function InboxSettingsProvider({ children }: { children: ReactNode }) {
         pages={pages}
         groups={[
           {
-            label: 'Inbox',
+            label: t('app.name'),
             items: sections.map((section) => ({
               key: section.key,
               label: t(section.labelKey),
@@ -123,7 +123,7 @@ export function InboxSettingsProvider({ children }: { children: ReactNode }) {
             items: [
               {
                 key: 'oxy-account',
-                label: 'Manage Oxy account',
+                label: t('ui.settings.manageOxyAccount'),
                 icon: RiAccountCircleLine,
                 onPress: () => {
                   pendingAccount.current = true;

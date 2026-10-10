@@ -14,8 +14,8 @@ import { isOwnAddress, type OwnIdentity } from '@/utils/replyRecipients';
 export interface StaleThreadInfo {
   isStale: boolean;
   daysSinceReceived: number;
+  /** The banner words it (`stale.*`), in the user's language. */
   reason: 'unanswered_question' | 'no_reply' | 'awaiting_response';
-  message: string;
 }
 
 const STALE_DAYS_THRESHOLD = 3;
@@ -101,10 +101,6 @@ export function useStaleThread(
         isStale: true,
         daysSinceReceived: daysSince,
         reason: 'unanswered_question',
-        message:
-          daysSince === 1
-            ? 'This email has a question you haven\'t answered'
-            : `This email has a question from ${daysSince} days ago`,
       };
     }
 
@@ -113,10 +109,6 @@ export function useStaleThread(
       isStale: true,
       daysSinceReceived: daysSince,
       reason: 'no_reply',
-      message:
-        daysSince === 1
-          ? 'You haven\'t replied to this email yet'
-          : `You haven\'t replied in ${daysSince} days`,
     };
   }, [messages, username, email, staleThresholdDays]);
 }

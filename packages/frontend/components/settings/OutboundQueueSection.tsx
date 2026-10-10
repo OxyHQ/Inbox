@@ -8,18 +8,18 @@ import { Button } from '@oxy.so/bloom/button';
 import { SettingsGeneralPage } from '@oxy.so/bloom/settings-modal';
 import { useMemo } from 'react';
 import { View } from 'react-native';
-export function statusLabel(item: EmailOutbox): string {
-  if (item.status === 'processing') return 'Sending…';
-  if (item.status === 'pending') return 'Waiting to send';
+import { useTranslation, type TranslateFn } from '@/lib/i18n';
+export function statusLabel(item: EmailOutbox, t: TranslateFn): string {
+  if (item.status === 'processing') return t('outbound.status.sending');
+  if (item.status === 'pending') return t('outbound.status.waiting');
   if (item.status === 'failed') {
-    const attempts = `${item.attempts} attempt${item.attempts === 1 ? '' : 's'}`;
     // A spent retry budget is not "failed, will try again" — nothing will
     // happen to this message until somebody retries it by hand.
-    return item.terminal
-      ? `Not delivered after ${attempts}`
-      : `Retrying after ${attempts}`;
+    return t(item.terminal ? 'outbound.status.notDelivered' : 'outbound.status.retrying', {
+      count: item.attempts,
+    });
   }
-  return 'Cancelled';
+  return t('outbound.status.cancelled');
 }
 
 /** Messages that still owe the user a delivery, by the queue's own reckoning. */
@@ -35,6 +35,7 @@ export function stuckOutbound(messages: EmailOutbox[]): EmailOutbox[] {
 }
 
 export function OutboundQueueSection() {
+  const { t } = useTranslation();
   const { data: messages = [], isLoading } = useOutboundMessages();
   const retry = useRetryOutboundMessage();
   const cancel = useCancelOutboundMessage();
@@ -50,16 +51,17 @@ export function OutboundQueueSection() {
       sections={[
         {
           key: 'queue',
-          label: 'Delivery queue',
-          description:
-            'Messages are retried safely in the background. You can inspect a failure or stop a queued delivery.',
+          label: t('outbound.queue.title'),
+          description: t('outbound.queue.description'),
           rows: pending.map((item) => ({
             key: item.id,
-            label: statusLabel(item),
+            label: statusLabel(item, t),
             description: [
               item.terminal
-                ? 'No further attempts will be made automatically.'
-                : `Next attempt: ${new Date(item.nextAttemptAt).toLocaleString()}`,
+                ? t('outbound.queue.noMoreAttempts')
+                : t('outbound.queue.nextAttempt', {
+                    time: new Date(item.nextAttemptAt).toLocaleString(),
+                  }),
               item.lastError,
             ]
               .filter(Boolean)
@@ -69,21 +71,21 @@ export function OutboundQueueSection() {
                 {item.status === 'failed' || item.status === 'cancelled' ? (
                   <Button
                     appearance="subtle"
-                    accessibilityLabel="Retry queued message"
+                    accessibilityLabel={t('outbound.queue.retryLabel')}
                     onPress={() => retry.mutate(item.id)}
                     disabled={retry.isPending}
                   >
-                    Retry
+                    {t('common.retry')}
                   </Button>
                 ) : null}
                 {item.status === 'pending' || item.status === 'failed' ? (
                   <Button
                     appearance="subtle"
-                    accessibilityLabel="Cancel queued message"
+                    accessibilityLabel={t('outbound.queue.cancelLabel')}
                     onPress={() => cancel.mutate(item.id)}
                     disabled={cancel.isPending}
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </Button>
                 ) : null}
               </View>

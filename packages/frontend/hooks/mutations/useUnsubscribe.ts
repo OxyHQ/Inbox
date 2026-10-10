@@ -54,10 +54,10 @@ export function useUnsubscribe() {
     onSuccess: (result) => {
       const label =
         result.method === 'one-click' || result.method === 'http'
-          ? 'Unsubscribed'
+          ? t('subscriptions.toast.unsubscribed')
           : result.method === 'mailto'
-            ? 'Unsubscribe request sent'
-            : 'Sender blocked';
+            ? t('subscriptions.toast.requestSent')
+            : t('subscriptions.toast.blocked');
       toast.success(label);
     },
     onError: (_err, _vars, context) => {

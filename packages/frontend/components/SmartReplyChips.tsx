@@ -16,6 +16,7 @@ import { View } from 'react-native';
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
 import { useSmartReplies } from '@/hooks/queries/useSmartReplies';
 import type { Message } from '@/services/emailApi';
+import { useTranslation } from '@/lib/i18n';
 
 interface SmartReplyChipsProps {
   message: Message;
@@ -26,6 +27,7 @@ export function SmartReplyChips({
   message,
   onSelectReply,
 }: SmartReplyChipsProps) {
+  const { t } = useTranslation();
   const { prefs } = useInboxPrefs();
   const [hasRequestedReplies, setHasRequestedReplies] = useState(false);
   const { replies, isLoading, refetch } = useSmartReplies(message);
@@ -48,11 +50,10 @@ export function SmartReplyChips({
           leading={<RiSparklingLine />}
           onPress={handleGenerateReplies}
         >
-          Generate quick replies with AI
+          {t('smartReply.generate')}
         </Button>
         <Text variant="caption-1-regular">
-          Oxy checks for sensitive content before sending bounded email context
-          to Kaana.
+          {t('smartReply.notice')}
         </Text>
       </View>
     );
@@ -60,10 +61,10 @@ export function SmartReplyChips({
   if (!isLoading && replies.length === 0) return null;
   return (
     <View className="gap-2">
-      <Text variant="caption-1-regular">Quick replies</Text>
+      <Text variant="caption-1-regular">{t('smartReply.quickReplies')}</Text>
       <View className="flex-row flex-wrap gap-2">
         {isLoading ? (
-          <Loading text="Generating quick replies" />
+          <Loading text={t('smartReply.generating')} />
         ) : (
           replies.map((reply, index) => (
             <Chip

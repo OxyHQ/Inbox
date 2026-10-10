@@ -186,7 +186,9 @@ describe('Inbox point-inference API client', () => {
     );
     expect(dailyBriefHook).not.toMatch(/messages\.length|Message\[\]/);
     expect(pointInferenceUi).not.toMatch(/\bAlia\b|'alia'/);
-    expect(pointInferenceUi.replace(/\s+/g, ' ')).toContain(
+    // The notice is translated now; the English source is what states it.
+    expect(pointInferenceUi).toContain("t('smartReply.notice')");
+    expect(localeSource.replace(/\s+/g, ' ')).toContain(
       'bounded email context to Kaana',
     );
     expect(localeSource).not.toMatch(

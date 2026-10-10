@@ -9,6 +9,7 @@ import {
 import { RiCloseLine, RiCornerUpLeftLine } from '@oxy.so/bloom/icons';
 import { useState } from 'react';
 import type { StaleThreadInfo } from '@/hooks/queries/useStaleThread';
+import { useTranslation } from '@/lib/i18n';
 
 interface StaleThreadBannerProps {
   staleInfo: StaleThreadInfo | null;
@@ -21,6 +22,7 @@ export function StaleThreadBanner({
   onReply,
   onDismiss,
 }: StaleThreadBannerProps) {
+  const { t } = useTranslation();
   const [dismissed, setDismissed] = useState(false);
   if (!staleInfo || dismissed) return null;
   return (
@@ -29,9 +31,14 @@ export function StaleThreadBanner({
       tone={staleInfo.daysSinceReceived >= 7 ? 'danger' : 'warning'}
     >
       <CardHeader>
-        <CardTitle>{staleInfo.message}</CardTitle>
+        <CardTitle>
+          {t(
+            staleInfo.reason === 'unanswered_question' ? 'stale.question' : 'stale.noReply',
+            { count: staleInfo.daysSinceReceived },
+          )}
+        </CardTitle>
         {staleInfo.reason === 'unanswered_question' && (
-          <CardDescription>Consider sending a quick reply</CardDescription>
+          <CardDescription>{t('stale.suggestion')}</CardDescription>
         )}
       </CardHeader>
       <CardFooter>
@@ -41,11 +48,11 @@ export function StaleThreadBanner({
             leading={<RiCornerUpLeftLine />}
             onPress={onReply}
           >
-            Reply
+            {t('message.actions.reply')}
           </Button>
         )}
         <IconButton
-          accessibilityLabel="Dismiss reply reminder"
+          accessibilityLabel={t('stale.dismiss')}
           icon={<RiCloseLine />}
           onPress={() => {
             setDismissed(true);

@@ -25,8 +25,10 @@ import {
   outstandingOutbound,
   stuckOutbound,
 } from '@/components/settings/OutboundQueueSection';
+import { useTranslation } from '@/lib/i18n';
 
 export function OutboundQueueBanner() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { data: messages = [] } = useOutboundMessages();
 
@@ -45,12 +47,8 @@ export function OutboundQueueBanner() {
   const isStuck = stuck.length > 0;
   const count = isStuck ? stuck.length : outstanding.length;
 
-  const title = isStuck
-    ? `${count} message${count === 1 ? '' : 's'} could not be sent`
-    : `${count} message${count === 1 ? '' : 's'} waiting to send`;
-  const detail = isStuck
-    ? 'They are still saved. Open the delivery queue to see why and retry.'
-    : 'They will go out on their own; open the delivery queue to follow along.';
+  const title = t(isStuck ? 'outbound.stuckTitle' : 'outbound.waitingTitle', { count });
+  const detail = t(isStuck ? 'outbound.stuckDetail' : 'outbound.waitingDetail');
 
   return (
     <Card

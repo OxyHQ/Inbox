@@ -6,12 +6,14 @@ import { RiDraftLine } from '@oxy.so/bloom/icons';
 import { SettingsListItem } from '@oxy.so/bloom/settings-list';
 import { useCallback } from 'react';
 import { ScrollView } from 'react-native';
+import { useTranslation } from '@/lib/i18n';
 
 interface TemplatePickerProps {
   onSelect: (template: EmailTemplate) => void;
 }
 
 export function TemplatePicker({ onSelect }: TemplatePickerProps) {
+  const { t } = useTranslation();
   const { data: templates = [] } = useTemplates();
   const control = useDialogControl();
 
@@ -29,10 +31,10 @@ export function TemplatePicker({ onSelect }: TemplatePickerProps) {
     <>
       <IconButton
         onPress={() => control.open()}
-        accessibilityLabel="Insert template"
+        accessibilityLabel={t('templates.insert')}
         icon={<RiDraftLine />}
       />
-      <Dialog control={control} title="Insert template">
+      <Dialog control={control} title={t('templates.insert')}>
         <ScrollView style={{ maxHeight: 360 }}>
           {templates.map((template) => (
             <SettingsListItem

@@ -12,6 +12,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useOxy } from '@oxy.so/services';
 import { runInboxNaturalSearch } from '@/services/inboxInferenceApi';
 import { aiKeys } from '@/hooks/queries/queryKeys';
+import { useTranslation } from '@/lib/i18n';
 
 export interface ParsedSearchQuery {
   q?: string;
@@ -32,6 +33,7 @@ export interface NaturalLanguageSearchResult {
 }
 
 export function useNaturalLanguageSearch() {
+  const { t } = useTranslation();
   const { oxyServices } = useOxy();
 
   const mutation = useMutation<NaturalLanguageSearchResult, Error, string>({
@@ -45,7 +47,7 @@ export function useNaturalLanguageSearch() {
       const hasOperators = /(from:|to:|subject:|in:|is:|has:|label:)/i.test(naturalLanguage);
       if (hasOperators) {
         // Let the existing operator parser handle it downstream.
-        return { query: { q: naturalLanguage }, interpretation: 'Using search operators' };
+        return { query: { q: naturalLanguage }, interpretation: t('search.nl.usingOperators') };
       }
 
       try {
@@ -54,7 +56,7 @@ export function useNaturalLanguageSearch() {
         if (error instanceof Error && error.name === 'AbortError') throw error;
         return {
           query: { q: naturalLanguage },
-          interpretation: `Searching for "${naturalLanguage}"`,
+          interpretation: t('search.nl.searchingFor', { value: naturalLanguage }),
         };
       }
     },

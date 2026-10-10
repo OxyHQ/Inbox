@@ -66,22 +66,43 @@ function interpolate(template: string, vars?: TranslationVars): string {
   return out;
 }
 
+const pluralRules = new Map<string, Intl.PluralRules>();
+
+/** The CLDR plural category of `count` in `locale` (`one`, `two`, `few`, `many`, `other`, …). */
+function pluralCategory(locale: string, count: number): Intl.LDMLPluralRule {
+  // A runtime without Intl.PluralRules gets the one/other split.
+  if (typeof Intl === 'undefined' || typeof Intl.PluralRules !== 'function') {
+    return count === 1 ? 'one' : 'other';
+  }
+  let rules = pluralRules.get(locale);
+  if (!rules) {
+    rules = new Intl.PluralRules(locale);
+    pluralRules.set(locale, rules);
+  }
+  return rules.select(count);
+}
+
 /**
- * Pick the right pluralization variant by appending `_zero` / `_one` /
- * `_other` suffixes based on the `count` interpolation variable. Returns
- * the original key if no plural variant exists.
+ * Pick the plural variant of `key` for `vars.count`: `_zero` for an explicit
+ * zero when the dictionary has one, then the locale's own CLDR category, then
+ * `_other`. Arabic has six categories and was given English's two — "2
+ * messages" took the `other` form — and a count of 0 with no `_zero` form
+ * fell through to the base key, which does not exist, so the raw key showed.
  */
 function pluralizeKey(
   key: string,
   vars: TranslationVars | undefined,
   dict: LocaleDict | undefined,
+  locale = 'en-US',
 ): string {
   if (!vars || typeof vars.count !== 'number') return key;
   const count = vars.count;
-  const variant = count === 0 ? 'zero' : count === 1 ? 'one' : 'other';
-  const candidate = `${key}_${variant}`;
-  if (lookup(dict, candidate) != null) return candidate;
-  return key;
+  const candidates = [
+    ...(count === 0 ? [`${key}_zero`] : []),
+    `${key}_${pluralCategory(locale, count)}`,
+    `${key}_other`,
+  ];
+  return candidates.find((candidate) => lookup(dict, candidate) != null) ?? key;
 }
 
 interface UseTranslationResult {
@@ -107,7 +128,7 @@ export function useTranslation(): UseTranslationResult {
 
   const t = useCallback<TranslateFn>(
     (key, vars) => {
-      const resolvedKey = pluralizeKey(key, vars, dict);
+      const resolvedKey = pluralizeKey(key, vars, dict, locale);
 
       const local = lookup(dict, resolvedKey);
       if (local != null) return interpolate(local, vars);

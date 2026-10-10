@@ -11,9 +11,9 @@ export function useMailboxes() {
 
   return useQuery<Mailbox[]>({
     queryKey: emailKeys.mailboxes.list(userId),
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!api) throw new Error('Email API not initialized');
-      return await api.listMailboxes();
+      return await api.listMailboxes({ signal });
     },
     enabled: !!api && !!userId,
     // Unread badges had no refresh of their own at all: they moved on mount, on

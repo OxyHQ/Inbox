@@ -11,9 +11,9 @@ export function useMessage(messageId: string | undefined) {
 
   return useQuery<Message | null>({
     queryKey: emailKeys.message.detail(messageId, userId),
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!api) throw new Error('Email API not initialized');
-      return api.getMessage(messageId!);
+      return api.getMessage(messageId!, { signal });
     },
     enabled: !!messageId && !!api && !!userId,
   });

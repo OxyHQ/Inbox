@@ -5,12 +5,14 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Card, CardBody, CardHeader, CardTitle } from '@oxy.so/bloom/card';
 import { Text } from '@oxy.so/bloom/typography';
 import { StyleSheet, View } from 'react-native';
+import { useTranslation } from '@/lib/i18n';
 
 interface BillCardProps {
   data: CardData;
 }
 
 export function BillCard({ data }: BillCardProps) {
+  const { t } = useTranslation();
   const colors = useColors();
 
   const formattedAmount =
@@ -31,7 +33,7 @@ export function BillCard({ data }: BillCardProps) {
   return (
     <Card appearance="subtle">
       <CardHeader>
-        <CardTitle>Bill</CardTitle>
+        <CardTitle>{t('cards.bill.header')}</CardTitle>
       </CardHeader>
       <CardBody>
         <View style={styles.body}>
@@ -58,15 +60,14 @@ export function BillCard({ data }: BillCardProps) {
                   { color: isOverdue ? colors.danger : colors.secondaryText },
                 ]}
               >
-                {isOverdue ? 'Overdue · ' : 'Due '}
-                {dueDate}
+                {t(isOverdue ? 'cards.bill.overdue' : 'cards.bill.due', { date: dueDate })}
               </Text>
             </View>
           )}
           {data.accountNumber && (
             <View style={styles.row}>
               <Text style={[styles.label, { color: colors.secondaryText }]}>
-                Account
+                {t('cards.bill.account')}
               </Text>
               <Text style={[styles.value, { color: colors.text }]}>
                 {data.accountNumber}

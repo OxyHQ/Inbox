@@ -18,6 +18,7 @@ import { SPACING as BLOOM_SPACING } from '@oxy.so/bloom/design-tokens';
 import { useColors } from '@/constants/theme';
 import { SenderAvatar } from '@/components/Avatar';
 import type { Subscription } from '@/services/emailApi';
+import { useTranslation } from '@/lib/i18n';
 
 const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
 
@@ -54,6 +55,7 @@ export function SubscriptionRow({
   onUnsubscribe: (senderAddress: string, method?: 'list-unsubscribe' | 'block') => void;
   isUnsubscribing: boolean;
 }) {
+  const { t } = useTranslation();
   const colors = useColors();
 
   const isBlockOnly = subscription.type === 'frequent';
@@ -64,7 +66,12 @@ export function SubscriptionRow({
     : 0;
   // "weekly, 0% read" — cadence is dropped when there is no span to derive it
   // from, leaving the read rate to stand on its own.
-  const detail = [cadence, `${readPercent}% read`].filter(Boolean).join(', ');
+  const detail = [
+    cadence && t(`subscriptions.cadence.${cadence}`),
+    t('subscriptions.readPercent', { percent: readPercent }),
+  ]
+    .filter(Boolean)
+    .join(', ');
 
   const handlePress = () => {
     onUnsubscribe(
@@ -101,7 +108,7 @@ export function SubscriptionRow({
           disabled={isUnsubscribing}
           loading={isUnsubscribing}
         >
-          {isBlockOnly ? 'Block' : 'Unsubscribe'}
+          {t(isBlockOnly ? 'subscriptions.block' : 'subscriptions.unsubscribe')}
         </Button>
       }
     />

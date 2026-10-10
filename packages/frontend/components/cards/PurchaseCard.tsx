@@ -4,12 +4,14 @@ import type { CardData } from '@/services/emailApi';
 import { Card, CardBody, CardHeader, CardTitle } from '@oxy.so/bloom/card';
 import { Text } from '@oxy.so/bloom/typography';
 import { StyleSheet, View } from 'react-native';
+import { useTranslation } from '@/lib/i18n';
 
 interface PurchaseCardProps {
   data: CardData;
 }
 
 export function PurchaseCard({ data }: PurchaseCardProps) {
+  const { t } = useTranslation();
   const colors = useColors();
 
   const formattedAmount =
@@ -20,7 +22,7 @@ export function PurchaseCard({ data }: PurchaseCardProps) {
   return (
     <Card appearance="subtle">
       <CardHeader>
-        <CardTitle>Purchase</CardTitle>
+        <CardTitle>{t('cards.purchase.header')}</CardTitle>
       </CardHeader>
       <CardBody>
         <View style={styles.body}>
@@ -37,7 +39,7 @@ export function PurchaseCard({ data }: PurchaseCardProps) {
           {data.orderNumber && (
             <View style={styles.row}>
               <Text style={[styles.label, { color: colors.secondaryText }]}>
-                Order #
+                {t('cards.purchase.order')}
               </Text>
               <Text style={[styles.value, { color: colors.text }]}>
                 {data.orderNumber}
@@ -56,7 +58,7 @@ export function PurchaseCard({ data }: PurchaseCardProps) {
               ))}
               {data.items.length > 3 && (
                 <Text style={[styles.item, { color: colors.secondaryText }]}>
-                  +{data.items.length - 3} more
+                  {t('cards.purchase.moreItems', { count: data.items.length - 3 })}
                 </Text>
               )}
             </View>

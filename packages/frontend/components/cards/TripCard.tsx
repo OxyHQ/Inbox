@@ -5,12 +5,14 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Card, CardBody, CardHeader, CardTitle } from '@oxy.so/bloom/card';
 import { Text } from '@oxy.so/bloom/typography';
 import { StyleSheet, View } from 'react-native';
+import { useTranslation } from '@/lib/i18n';
 
 interface TripCardProps {
   data: CardData;
 }
 
 export function TripCard({ data }: TripCardProps) {
+  const { t } = useTranslation();
   const colors = useColors();
 
   const departureTime = data.departureTime
@@ -33,7 +35,7 @@ export function TripCard({ data }: TripCardProps) {
   return (
     <Card appearance="subtle">
       <CardHeader>
-        <CardTitle>Trip</CardTitle>
+        <CardTitle>{t('cards.trip.header')}</CardTitle>
       </CardHeader>
       <CardBody>
         <View style={styles.body}>
@@ -66,7 +68,7 @@ export function TripCard({ data }: TripCardProps) {
           {data.confirmationCode && (
             <View style={styles.codeRow}>
               <Text style={[styles.codeLabel, { color: colors.secondaryText }]}>
-                Confirmation
+                {t('cards.trip.confirmation')}
               </Text>
               <Text style={[styles.codeValue, { color: colors.text }]}>
                 {data.confirmationCode}

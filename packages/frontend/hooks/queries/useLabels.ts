@@ -3,6 +3,7 @@ import { toast } from '@oxy.so/bloom';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import type { Label } from '@/services/emailApi';
+import { useTranslation } from '@/lib/i18n';
 
 const LABELS_KEY = emailKeys.labels;
 
@@ -35,6 +36,7 @@ async function optimisticLabels(
 }
 
 export function useCreateLabel() {
+  const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
 
@@ -63,7 +65,7 @@ export function useCreateLabel() {
     },
     onError: (_err, _vars, context) => {
       if (context?.prev) queryClient.setQueryData(LABELS_KEY, context.prev);
-      toast.error('Failed to create label.');
+      toast.error(t('ui.mutations.labelCreateFailed'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: LABELS_KEY });
@@ -72,6 +74,7 @@ export function useCreateLabel() {
 }
 
 export function useUpdateLabel() {
+  const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
 
@@ -88,7 +91,7 @@ export function useUpdateLabel() {
     },
     onError: (_err, _vars, context) => {
       if (context?.prev) queryClient.setQueryData(LABELS_KEY, context.prev);
-      toast.error('Failed to update label.');
+      toast.error(t('ui.mutations.labelUpdateFailed'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: LABELS_KEY });
@@ -97,6 +100,7 @@ export function useUpdateLabel() {
 }
 
 export function useDeleteLabel() {
+  const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
 
@@ -113,7 +117,7 @@ export function useDeleteLabel() {
     },
     onError: (_err, _vars, context) => {
       if (context?.prev) queryClient.setQueryData(LABELS_KEY, context.prev);
-      toast.error('Failed to delete label.');
+      toast.error(t('ui.mutations.labelDeleteFailed'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: LABELS_KEY });

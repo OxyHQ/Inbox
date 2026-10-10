@@ -54,15 +54,15 @@ interface AiComposeToolbarProps {
   onSubjectSuggested?: (subject: string) => void;
 }
 
+// Labels come from `ai.tones.<value>`.
 const TONE_OPTIONS: {
   value: ComposeTone;
-  label: string;
   icon: MaterialCommunityIconName;
 }[] = [
-  { value: 'professional', label: 'Professional', icon: 'briefcase-outline' },
-  { value: 'casual', label: 'Casual', icon: 'coffee-outline' },
-  { value: 'friendly', label: 'Friendly', icon: 'emoticon-happy-outline' },
-  { value: 'formal', label: 'Formal', icon: 'file-document-outline' },
+  { value: 'professional', icon: 'briefcase-outline' },
+  { value: 'casual', icon: 'coffee-outline' },
+  { value: 'friendly', icon: 'emoticon-happy-outline' },
+  { value: 'formal', icon: 'file-document-outline' },
 ];
 
 export function AiComposeToolbar({
@@ -234,15 +234,15 @@ export function AiComposeToolbar({
       </View>
       <Dialog
         control={draftControl}
-        title="Draft with AI"
-        description="Describe what you want to say, and AI will draft it for you."
+        title={t('ai.draftDialog.title')}
+        description={t('ai.draftDialog.description')}
       >
         <View style={{ gap: 16 }}>
           <TextFieldInput
             value={draftPrompt}
             onChangeText={setDraftPrompt}
-            label="Draft instructions"
-            placeholder="e.g., Decline the meeting politely, suggest next week instead"
+            label={t('ai.draftDialog.label')}
+            placeholder={t('ai.draftDialog.placeholder')}
             multiline
             autoFocus
           />
@@ -263,7 +263,7 @@ export function AiComposeToolbar({
             disabled={!draftPrompt.trim() || isLoading}
             loading={isLoading}
           >
-            Draft
+            {t('ai.toolbar.draft')}
           </Button>
         </View>
       </Dialog>

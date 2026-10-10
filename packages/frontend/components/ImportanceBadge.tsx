@@ -11,6 +11,7 @@ import { Badge } from '@oxy.so/bloom/badge';
 
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
 import type { Message } from '@/services/emailApi';
+import { useTranslation } from '@/lib/i18n';
 
 export type ImportanceLevel = 'urgent' | 'action' | 'important' | 'fyi' | null;
 
@@ -70,29 +71,31 @@ interface ImportanceBadgeProps {
 const BADGE_CONFIG: Record<
   Exclude<ImportanceLevel, null>,
   {
-    label: string;
+    /** `importance.<level>` */
+    labelKey: string;
     color: 'error' | 'warning' | 'primary' | 'default';
   }
 > = {
   urgent: {
-    label: 'Urgent',
+    labelKey: 'importance.urgent',
     color: 'error',
   },
   action: {
-    label: 'Action needed',
+    labelKey: 'importance.action',
     color: 'warning',
   },
   important: {
-    label: 'Important',
+    labelKey: 'importance.important',
     color: 'primary',
   },
   fyi: {
-    label: 'FYI',
+    labelKey: 'importance.fyi',
     color: 'default',
   },
 };
 
 export function ImportanceBadge({ message, onPress }: ImportanceBadgeProps) {
+  const { t } = useTranslation();
   const { prefs } = useInboxPrefs();
   const importance = useMemo(() => detectImportance(message), [message]);
 
@@ -107,7 +110,7 @@ export function ImportanceBadge({ message, onPress }: ImportanceBadgeProps) {
     <Badge
       variant="subtle"
       color={config.color}
-      content={config.label}
+      content={t(config.labelKey)}
       size="small"
     />
   );
@@ -119,7 +122,7 @@ export function ImportanceBadge({ message, onPress }: ImportanceBadgeProps) {
         color={config.color}
         variant="subtle"
       >
-        {config.label}
+        {t(config.labelKey)}
       </Chip>
     );
   }

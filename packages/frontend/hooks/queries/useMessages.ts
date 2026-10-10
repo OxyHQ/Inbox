@@ -29,7 +29,7 @@ export function useMessages(options: UseMessagesOptions = {}) {
 
   return useInfiniteQuery<MessagesPage, Error, InfiniteData<MessagesPage, string | number>, ReturnType<typeof emailKeys.messages.list>, string | number>({
     queryKey: emailKeys.messages.list({ mailboxId, starred, label, userId }),
-    queryFn: async ({ pageParam = '' }) => {
+    queryFn: async ({ pageParam = '', signal }) => {
       if (!api) throw new Error('Email API not initialized');
       return await api.listMessages({
         mailboxId,
@@ -37,7 +37,7 @@ export function useMessages(options: UseMessagesOptions = {}) {
         label,
         limit: PAGE_SIZE,
         ...(typeof pageParam === 'string' ? { cursor: pageParam } : { offset: pageParam }),
-      });
+      }, { signal });
     },
     initialPageParam: '',
     getNextPageParam: getNextMessagesPageParam,

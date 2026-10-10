@@ -76,12 +76,11 @@ describe('search pagination', () => {
     };
     await config.queryFn({ pageParam: 50 });
 
-    expect(search).toHaveBeenCalledWith({
-      q: 'budget',
-      unread: false,
-      limit: 50,
-      offset: 50,
-    });
+    expect(search).toHaveBeenCalledWith(
+      { q: 'budget', unread: false, limit: 50, offset: 50 },
+      // React Query's abort signal travels with every read.
+      expect.objectContaining({}),
+    );
   });
 
   it('forwards an opaque cursor without converting it into an offset', async () => {
@@ -101,10 +100,30 @@ describe('search pagination', () => {
     };
     await config.queryFn({ pageParam: 'opaque-next-page' });
 
-    expect(search).toHaveBeenCalledWith({
-      q: 'budget',
-      limit: 50,
-      cursor: 'opaque-next-page',
+    expect(search).toHaveBeenCalledWith(
+      { q: 'budget', limit: 50, cursor: 'opaque-next-page' },
+      expect.objectContaining({}),
+    );
+  });
+
+  it('binds the read to the query, so a superseded search is aborted', async () => {
+    const search = jest.fn().mockResolvedValue({
+      data: [],
+      pagination: { total: 0, limit: 50, offset: 0, hasMore: false },
     });
+    (useOxy as jest.Mock).mockReturnValue({ user: { id: 'user-1' } });
+    (useEmailStore as jest.Mock).mockImplementation((selector: (state: unknown) => unknown) =>
+      selector({ _api: { search } }),
+    );
+    (useInfiniteQuery as jest.Mock).mockReturnValue({});
+
+    useSearchMessages({ q: 'budget' });
+    const config = (useInfiniteQuery as jest.Mock).mock.calls[0]?.[0] as {
+      queryFn: (context: { pageParam: string; signal: AbortSignal }) => Promise<unknown>;
+    };
+    const controller = new AbortController();
+    await config.queryFn({ pageParam: '', signal: controller.signal });
+
+    expect(search.mock.calls[0][1]).toEqual({ signal: controller.signal });
   });
 });

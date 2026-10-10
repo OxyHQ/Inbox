@@ -13,6 +13,74 @@ import type { LocaleDict } from '../types';
  * catalog of settings literals that still need adoption.
  */
 const en: LocaleDict = {
+  bundles: {
+    rowCollapsed_other: '{{name}}, {{count}} messages, collapsed',
+    rowCollapsed_one: '{{name}}, {{count}} message, collapsed',
+    rowExpanded_other: '{{name}}, {{count}} messages, expanded',
+    rowExpanded_one: '{{name}}, {{count}} message, expanded',
+  },
+  time: {
+    overdueAt: 'Overdue · {{day}}, {{time}}',
+    dayAt: '{{day}}, {{time}}',
+    tomorrowAt: 'Tomorrow, {{time}}',
+    todayAt: 'Today, {{time}}',
+    today: 'Today',
+  },
+  outbound: {
+    queue: {
+      cancelLabel: 'Cancel queued message',
+      retryLabel: 'Retry queued message',
+      nextAttempt: 'Next attempt: {{time}}',
+      noMoreAttempts: 'No further attempts will be made automatically.',
+      description: 'Messages are retried safely in the background. You can inspect a failure or stop a queued delivery.',
+      title: 'Delivery queue',
+    },
+    status: {
+      cancelled: 'Cancelled',
+      retrying_other: 'Retrying after {{count}} attempts',
+      retrying_one: 'Retrying after {{count}} attempt',
+      notDelivered_other: 'Not delivered after {{count}} attempts',
+      notDelivered_one: 'Not delivered after {{count}} attempt',
+      waiting: 'Waiting to send',
+      sending: 'Sending…',
+    },
+    waitingDetail: 'They will go out on their own; open the delivery queue to follow along.',
+    stuckDetail: 'They are still saved. Open the delivery queue to see why and retry.',
+    waitingTitle_other: '{{count}} messages waiting to send',
+    waitingTitle_one: '{{count}} message waiting to send',
+    stuckTitle_other: '{{count}} messages could not be sent',
+    stuckTitle_one: '{{count}} message could not be sent',
+  },
+  templates: {
+    insert: 'Insert template',
+  },
+  stale: {
+    dismiss: 'Dismiss reply reminder',
+    suggestion: 'Consider sending a quick reply',
+    noReply_other: 'You haven\'t replied in {{count}} days',
+    noReply_one: 'You haven\'t replied to this email yet',
+    question_other: 'This email has a question from {{count}} days ago',
+    question_one: 'This email has a question you haven\'t answered',
+  },
+  sentiment: {
+    request: 'Action requested',
+    formal: 'Formal',
+    positive: 'Positive',
+    frustrated: 'Needs attention',
+    urgent: 'Urgent',
+  },
+  editor: {
+    clearFormatting: 'Clear formatting',
+    numberedList: 'Numbered list',
+    bulletList: 'Bulleted list',
+    strikethrough: 'Strikethrough',
+    underline: 'Underline',
+    italic: 'Italic',
+    bold: 'Bold',
+    formatting: 'Text formatting',
+    url: 'URL',
+    insertLink: 'Insert link',
+  },
   common: {
     undo: 'Undo',
     sending: 'Sending…',
@@ -213,6 +281,7 @@ const en: LocaleDict = {
     draftLabel: 'Draft',
     draftTo: 'Draft to {{recipients}}',
     detail: {
+      emailContent: 'Email content',
       noSubject: '(no subject)',
       emptyMessage: '(empty message)',
       messagesInConversation_one: '{{count}} message in this conversation',
@@ -285,6 +354,10 @@ const en: LocaleDict = {
   },
 
   search: {
+    saved: {
+      deleteFailed: 'Unable to delete saved search.',
+      saveFailed: 'Unable to save search.',
+    },
     ui: {
       filtersTitle: "Search filters",
       filtersDescription: "Narrow your search by people, dates, or message details.",
@@ -314,6 +387,12 @@ const en: LocaleDict = {
       hasAttachment: 'Has attachment',
     },
     nl: {
+      beforeValue: 'before {{value}}',
+      afterValue: 'after {{value}}',
+      labelValue: 'label {{value}}',
+      inMailbox: 'in {{value}}',
+      searchingFor: 'Searching for "{{value}}"',
+      usingOperators: 'Using search operators',
       understanding: 'Understanding your search…',
       searching: 'Searching: {{filters}}',
       allEmails: 'all emails',
@@ -403,10 +482,19 @@ const en: LocaleDict = {
   },
 
   smartReply: {
+    generating: 'Generating quick replies',
+    notice: 'Oxy checks for sensitive content before sending bounded email context to Kaana.',
+    generate: 'Generate quick replies with AI',
     quickReplies: 'Quick replies',
   },
 
   ai: {
+    draftDialog: {
+      placeholder: 'e.g. Decline the meeting politely, suggest next week instead',
+      label: 'Draft instructions',
+      description: 'Describe what you want to say, and AI will draft it for you.',
+      title: 'Draft with AI',
+    },
     toast: {
       keptYourEdits: 'You kept typing, so your text was left as it is.',
       applied: 'Rewritten by AI.',
@@ -522,6 +610,19 @@ const en: LocaleDict = {
   },
 
   subscriptions: {
+    readPercent: '{{percent}}% read',
+    cadence: {
+      occasionally: 'occasionally',
+      monthly: 'monthly',
+      weekly: 'weekly',
+      daily: 'daily',
+    },
+    toast: {
+      blocked: 'Sender blocked.',
+      requestSent: 'Unsubscribe request sent.',
+      unsubscribed: 'Unsubscribed.',
+    },
+    delayNotice: 'When you unsubscribe, it can take a few days to stop receiving messages.',
     title: 'Subscriptions',
     subtitle:
       'When you unsubscribe, it can take a few days to stop receiving messages',
@@ -669,6 +770,7 @@ const en: LocaleDict = {
     },
     me: 'Me',
     settings: {
+      manageOxyAccount: 'Manage Oxy account',
       landing: {
         personal: 'Personal',
         mail: 'Mail',
@@ -691,6 +793,14 @@ const en: LocaleDict = {
         },
       },
       account: {
+        saveChanges: 'Save changes',
+        keepCopyDescription: 'Recommended so you keep a record of forwarded mail.',
+        keepCopy: 'Keep a copy in Inbox',
+        vacationOff: 'Off — incoming mail flows normally.',
+        vacationOn: 'Replies are sent automatically.',
+        vacation: 'Vacation responder',
+        signOutFailed: 'Failed to sign out.',
+        title: 'Account',
         saveFailed: 'Failed to save settings.',
         signature: 'Signature', signaturePlaceholder: 'Appended to every outgoing message',
         autoReply: 'Auto-reply', autoReplyEnable: 'Enable auto-reply',
@@ -730,6 +840,20 @@ const en: LocaleDict = {
         why: 'Why these defaults?', whyDescription: "Oxy follows a privacy-by-default posture: senders never see your IP, location, or read receipts, and tracking pixels are blocked at the network edge. We'll surface granular per-message and per-sender overrides as the protections mature.",
       },
       labels: {
+        colors: {
+          gray: 'Gray',
+          brown: 'Brown',
+          pink: 'Pink',
+          purple: 'Purple',
+          cyan: 'Cyan',
+          orange: 'Orange',
+          green: 'Green',
+          yellow: 'Yellow',
+          red: 'Red',
+          blue: 'Blue',
+        },
+        colorLabel: 'Label color',
+        color: 'Color',
         your: 'Your labels', empty: 'No labels yet. Create your first one below to organize messages.', create: 'Create label', labelName: 'Label name', saveName: 'Save label name', rename: 'Rename {{name}}', delete: 'Delete {{name}}', builtIn: 'Built-in', pick: 'Pick {{color}}', newName: 'New label name', creating: 'Creating…', add: 'Add label', deleteTitle: 'Delete label?', deleteDescription: '"{{name}}" will be removed from any messages it\'s applied to.',
       },
       contacts: {
@@ -739,9 +863,21 @@ const en: LocaleDict = {
         dailyBrief: 'Daily Brief', recap: 'Inbox recap', recapDescription: "A short summary generated from your inbox counts (unread, starred, attachments). It doesn't read message contents.", smartReply: 'Smart Reply', summary: 'Conversation summary', summaryTitle: 'Offer a summary', summaryDescription: 'Shows a Summarize button on conversations. A conversation is sent to Oxy and Kaana only when you press it.', suggestions: 'One-tap suggestions', suggestionsDescription: 'Three context-aware reply chips above the message, generated through Oxy and Kaana.', priority: 'Priority flags', priorityTitle: 'Highlight likely-urgent mail', priorityDescription: 'Flag messages as Urgent, Action needed, or Important using on-device keyword heuristics — not a full AI model.', tip: 'Priority flags run on-device from keyword heuristics. Daily Brief, Smart Reply and conversation summaries use bounded Oxy inference through Kaana; Ask Alia remains the separate agent.',
       },
       storage: {
-        usage: 'Mailbox usage', local: 'Local cache', nearlyFull: "You're nearly out of space. Old messages will start to bounce when the quota is full.", localDescription: "The most recent 100 messages are cached on this device for fast offline access. Attachments are downloaded on demand and cleaned up automatically — there's nothing to manage manually today.", free: '{{value}} free',
+        usedOf: '{{used}} of {{limit}}',
+        usage: 'Mailbox usage', local: 'Local cache', nearlyFull: 'You\'re nearly out of space. New messages will start to bounce when the quota is full.', localDescription: "The most recent 100 messages are cached on this device for fast offline access. Attachments are downloaded on demand and cleaned up automatically — there's nothing to manage manually today.", free: '{{value}} free',
       },
       advanced: {
+        deleteTemplateDescription: '"{{name}}" will be removed from your saved templates.',
+        deleteTemplateTitle: 'Delete template?',
+        deleteFilterDescription: '"{{name}}" will no longer run on new messages.',
+        deleteFilterTitle: 'Delete filter?',
+        condition: 'Condition',
+        importFailed: 'Import failed.',
+        templateDeleted: 'Template deleted.',
+        templateUpdated: 'Template updated.',
+        templateCreated: 'Template created.',
+        filterDeleted: 'Filter deleted.',
+        filterCreated: 'Filter created.',
         sizePlaceholder: 'e.g. 5 MB',
         contains: 'contains', equals: 'equals', notContains: "doesn't contain", startsWith: 'starts with', endsWith: 'ends with', largerThan: 'larger than (bytes)', smallerThan: 'smaller than (bytes)',
         filters: 'Filters & rules', noFilters: 'No filters yet. Filters automatically apply actions like archiving, starring, or marking read to incoming messages.', filterName: 'Filter name', whenMessage: "When a message's", sizeBytes: 'Size in bytes', value: 'Value', then: 'then', creating: 'Creating…', addFilter: 'Add filter', editingTemplate: 'Editing template', templates: 'Templates', templateName: 'Template name', subjectOptional: 'Subject (optional)', templateBody: 'Template body', saveChanges: 'Save changes', addTemplate: 'Add template', bundles: 'Bundles', bundleHint: 'Bundles group related mail automatically. Toggle to enable and reorder how they stack in your inbox.', import: 'Import', importDescription: 'Import emails from .eml files. Imported messages land in your Inbox and can be moved or labelled like any other mail.', importing: 'Importing…', importButton: 'Choose .eml files', imported: 'Imported {{imported}} of {{total}} email(s).', conditions: '{{conditions}} condition(s) · {{actions}} action(s)', deleteFilter: 'Delete {{name}}', editTemplate: 'Edit {{name}}', deleteTemplate: 'Delete {{name}}', moveUp: 'Move {{name}} up', moveDown: 'Move {{name}} down',

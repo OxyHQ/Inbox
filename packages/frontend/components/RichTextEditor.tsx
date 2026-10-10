@@ -26,6 +26,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, TextInput, View } from 'react-native';
 
 import { useColors } from '@/constants/theme';
+import { useTranslation } from '@/lib/i18n';
 
 export interface RichTextEditorProps {
   value: string;
@@ -57,6 +58,7 @@ function WebRichTextEditor(
   { value, onChange, placeholder, style, autoFocus }: RichTextEditorProps,
   ref: React.Ref<RichTextEditorHandle>,
 ) {
+  const { t } = useTranslation();
   const colors = useColors();
   const editorRef = useRef<HTMLDivElement | null>(null);
   const isComposing = useRef(false);
@@ -251,10 +253,10 @@ function WebRichTextEditor(
 
   return (
     <View style={[webStyles.container, style]}>
-      <Dialog control={linkControl} title="Insert link">
+      <Dialog control={linkControl} title={t('editor.insertLink')}>
         <View className="gap-3">
           <TextFieldInput
-            label="URL"
+            label={t('editor.url')}
             placeholder="https://"
             value={linkUrl}
             onChangeText={setLinkUrl}
@@ -264,64 +266,64 @@ function WebRichTextEditor(
             onSubmitEditing={insertLink}
           />
           <Button onPress={insertLink} disabled={!linkUrl.trim()}>
-            Insert link
+            {t('editor.insertLink')}
           </Button>
         </View>
       </Dialog>
       <NoteEditorToolbar
-        accessibilityLabel="Text formatting"
+        accessibilityLabel={t('editor.formatting')}
         actions={[
           {
             key: 'bold',
-            label: 'Bold',
+            label: t('editor.bold'),
             icon: RiBold,
             active: activeFormats.has('bold'),
             onPress: () => exec('bold'),
           },
           {
             key: 'italic',
-            label: 'Italic',
+            label: t('editor.italic'),
             icon: RiItalic,
             active: activeFormats.has('italic'),
             onPress: () => exec('italic'),
           },
           {
             key: 'underline',
-            label: 'Underline',
+            label: t('editor.underline'),
             icon: RiUnderline,
             active: activeFormats.has('underline'),
             onPress: () => exec('underline'),
           },
           {
             key: 'strikeThrough',
-            label: 'Strikethrough',
+            label: t('editor.strikethrough'),
             icon: RiStrikethrough,
             active: activeFormats.has('strikeThrough'),
             onPress: () => exec('strikeThrough'),
           },
           {
             key: 'insertUnorderedList',
-            label: 'Bullet list',
+            label: t('editor.bulletList'),
             icon: RiListUnordered,
             active: activeFormats.has('insertUnorderedList'),
             onPress: () => exec('insertUnorderedList'),
           },
           {
             key: 'insertOrderedList',
-            label: 'Numbered list',
+            label: t('editor.numberedList'),
             icon: RiListOrdered,
             active: activeFormats.has('insertOrderedList'),
             onPress: () => exec('insertOrderedList'),
           },
           {
             key: 'link',
-            label: 'Insert link',
+            label: t('editor.insertLink'),
             icon: RiLink,
             onPress: handleLink,
           },
           {
             key: 'clear',
-            label: 'Clear formatting',
+            label: t('editor.clearFormatting'),
             icon: RiFormatClear,
             onPress: handleClearFormatting,
           },

@@ -179,6 +179,10 @@ export function formatSearchInterpretation(
       case 'search.nl.unread': return 'unread';
       case 'search.nl.read': return 'read';
       case 'search.nl.allEmails': return 'all emails';
+      case 'search.nl.inMailbox': return `in ${value}`;
+      case 'search.nl.labelValue': return `label ${value}`;
+      case 'search.nl.afterValue': return `after ${value}`;
+      case 'search.nl.beforeValue': return `before ${value}`;
       default: return key;
     }
   });
@@ -188,13 +192,13 @@ export function formatSearchInterpretation(
   if (options.to) parts.push(t('search.nl.toValue', { value: options.to }));
   if (options.subject) parts.push(t('search.nl.subjectContains', { value: options.subject }));
   if (options.hasAttachment) parts.push(t('search.nl.withAttachments'));
-  if (options.mailbox) parts.push(`in ${options.mailbox}`);
-  if (options.label) parts.push(`label ${options.label}`);
+  if (options.mailbox) parts.push(t('search.nl.inMailbox', { value: options.mailbox }));
+  if (options.label) parts.push(t('search.nl.labelValue', { value: options.label }));
   if (options.starred) parts.push(t('search.nl.starred'));
   if (options.unread === true) parts.push(t('search.nl.unread'));
   if (options.unread === false) parts.push(t('search.nl.read'));
-  if (options.after) parts.push(`after ${options.after}`);
-  if (options.before) parts.push(`before ${options.before}`);
+  if (options.after) parts.push(t('search.nl.afterValue', { value: options.after }));
+  if (options.before) parts.push(t('search.nl.beforeValue', { value: options.before }));
 
   return parts.join(', ') || t('search.nl.allEmails');
 }

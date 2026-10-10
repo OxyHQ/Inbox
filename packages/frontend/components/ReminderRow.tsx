@@ -1,4 +1,4 @@
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation, type TranslateFn } from '@/lib/i18n';
 import { Button, IconButton } from '@oxy.so/bloom/button';
 import { Checkbox } from '@oxy.so/bloom/checkbox';
 import { RiDeleteBinLine } from '@oxy.so/bloom/icons';
@@ -19,7 +19,7 @@ interface ReminderRowProps {
   onDelete: (reminderId: string) => void;
 }
 
-function formatReminderTime(dateStr: string): string {
+function formatReminderTime(dateStr: string, t: TranslateFn): string {
   const date = new Date(dateStr);
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -36,11 +36,19 @@ function formatReminderTime(dateStr: string): string {
     minute: '2-digit',
   });
 
-  if (diffDays < 0)
-    return `Overdue · ${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}, ${time}`;
-  if (diffDays === 0) return `Today, ${time}`;
-  if (diffDays === 1) return `Tomorrow, ${time}`;
-  return `${date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}, ${time}`;
+  // Compared to the minute, not by day: a reminder due at 9 AM was still
+  // "Today, 9:00 AM" at noon instead of overdue.
+  if (date.getTime() < now.getTime())
+    return t('time.overdueAt', {
+      day: diffDays === 0 ? t('time.today') : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+      time,
+    });
+  if (diffDays === 0) return t('time.todayAt', { time });
+  if (diffDays === 1) return t('time.tomorrowAt', { time });
+  return t('time.dayAt', {
+    day: date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }),
+    time,
+  });
 }
 
 export function ReminderRow({
@@ -65,7 +73,7 @@ export function ReminderRow({
         </Button>
       }
       subtitle={
-        reminder.remindAt ? formatReminderTime(reminder.remindAt) : undefined
+        reminder.remindAt ? formatReminderTime(reminder.remindAt, t) : undefined
       }
       trailing={
         <IconButton

@@ -34,7 +34,10 @@ export function StorageSection() {
               key: 'used',
               label: t('ui.settings.storage.usage'),
               description: quota
-                ? `${formatBytes(quota.used)} of ${formatBytes(quota.limit)}`
+                ? t('ui.settings.storage.usedOf', {
+                    used: formatBytes(quota.used),
+                    limit: formatBytes(quota.limit),
+                  })
                 : undefined,
               control:
                 isLoading && !quota ? (

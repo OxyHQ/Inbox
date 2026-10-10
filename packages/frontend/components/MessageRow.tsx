@@ -202,7 +202,7 @@ function getAttachmentInfo(
   };
 }
 
-function formatSnoozeTime(dateStr: string): string {
+function formatSnoozeTime(dateStr: string, t: TranslateFn): string {
   const date = new Date(dateStr);
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -216,9 +216,9 @@ function formatSnoozeTime(dateStr: string): string {
   );
   const time = TIME_FORMAT.format(date);
 
-  if (diffDays === 0) return `Today, ${time}`;
-  if (diffDays === 1) return `Tomorrow, ${time}`;
-  return `${WEEKDAY_MONTH_DAY_FORMAT.format(date)}, ${time}`;
+  if (diffDays === 0) return t('time.todayAt', { time });
+  if (diffDays === 1) return t('time.tomorrowAt', { time });
+  return t('time.dayAt', { day: WEEKDAY_MONTH_DAY_FORMAT.format(date), time });
 }
 
 interface MessageRowProps {
@@ -313,7 +313,7 @@ function MessageRowInner({
       snippet={showPreviews ? getPreview(message) : undefined}
       time={
         showSnoozeTime && message.snoozedUntil
-          ? formatSnoozeTime(message.snoozedUntil)
+          ? formatSnoozeTime(message.snoozedUntil, t)
           : formatDate(message.date, t('inbox.sections.yesterday'))
       }
       unread={!message.flags.seen}
@@ -342,12 +342,7 @@ function MessageRowInner({
         attachment: t('search.filters.hasAttachment'),
         starred: t('drawer.starred'),
         threadCount: (count) =>
-          t(
-            count === 1
-              ? 'ui.message.conversationMessages_one'
-              : 'ui.message.conversationMessages_other',
-            { count },
-          ),
+          t('ui.message.conversationMessages', { count }),
         unread: t('message.actions.markUnread'),
       }}
     />

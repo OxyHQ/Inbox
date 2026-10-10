@@ -16,6 +16,7 @@ import {
 } from '@oxy.so/bloom/icons';
 import type { BloomIconComponent } from '@oxy.so/bloom/icons';
 import type { BloomTone } from '@oxy.so/bloom/appearance';
+import { useTranslation, type TranslateFn } from '@/lib/i18n';
 
 interface CardPreviewProps {
   card: MessageCard;
@@ -32,7 +33,7 @@ const CARD_CONFIG: Record<
   package: { icon: RiBox3Line, tone: 'support' },
 };
 
-function getSummary(card: MessageCard): string {
+function getSummary(card: MessageCard, t: TranslateFn): string {
   const d = card.data;
   // A value the extractor got wrong is left out, never shown as "Invalid Date".
   const day = (value: string | null | undefined) =>
@@ -47,22 +48,22 @@ function getSummary(card: MessageCard): string {
           d.departure && d.arrival && `${d.departure} → ${d.arrival}`,
           day(d.departureTime),
         ],
-        'Trip details',
+        t('cards.trip.summary'),
       );
     case 'purchase':
-      return join([d.merchant, d.amount != null && formatMoney(d.amount, d.currency)], 'Purchase details');
+      return join([d.merchant, d.amount != null && formatMoney(d.amount, d.currency)], t('cards.purchase.summary'));
     case 'event':
-      return join([d.title, day(d.startTime)], 'Event details');
+      return join([d.title, day(d.startTime)], t('cards.event.summary'));
     case 'bill': {
       const due = day(d.dueDate);
       return join(
-        [d.biller, d.amount != null && formatMoney(d.amount, d.currency), due && `Due ${due}`],
-        'Bill details',
+        [d.biller, d.amount != null && formatMoney(d.amount, d.currency), due && t('cards.bill.due', { date: due })],
+        t('cards.bill.summary'),
       );
     }
     case 'package': {
       const eta = day(d.estimatedDelivery);
-      return join([d.merchant, d.status, eta && `Est. ${eta}`], 'Package details');
+      return join([d.merchant, d.status, eta && t('cards.package.estimated', { date: eta })], t('cards.package.summary'));
     }
     default:
       return '';
@@ -70,11 +71,12 @@ function getSummary(card: MessageCard): string {
 }
 
 export function CardPreview({ card }: CardPreviewProps) {
+  const { t } = useTranslation();
   const config = CARD_CONFIG[card.type] ?? {
     icon: RiFileTextLine,
     tone: 'neutral' as const,
   };
-  const summary = getSummary(card);
+  const summary = getSummary(card, t);
   if (!summary) return null;
   return (
     <Chip appearance="subtle" tone={config.tone} leadingIcon={config.icon}>

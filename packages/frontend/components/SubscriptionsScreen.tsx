@@ -232,8 +232,7 @@ function SubscriptionsContent() {
               {subscriptions.length > 0 && (
                 <View className="px-4 py-3">
                   <Text variant="caption-1-regular">
-                    When you unsubscribe, it can take a few days to stop receiving
-                    messages
+                    {t('subscriptions.delayNotice')}
                   </Text>
                 </View>
               )}

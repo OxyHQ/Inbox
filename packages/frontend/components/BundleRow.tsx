@@ -18,6 +18,7 @@ import {
   CardDescription,
 } from '@oxy.so/bloom/card';
 import { RiArrowUpSLine, RiArrowDownSLine } from '@oxy.so/bloom/icons';
+import { useTranslation } from '@/lib/i18n';
 
 type MaterialCommunityIconName = ComponentProps<
   typeof MaterialCommunityIcons
@@ -38,19 +39,23 @@ export function BundleRow({
   isExpanded,
   onToggle,
 }: BundleRowProps) {
+  const { t } = useTranslation();
   const latestPreview = useMemo(() => {
     if (messages.length === 0) return '';
     const latest = messages[0];
     const sender = latest.from.name || latest.from.address.split('@')[0];
-    const subj = latest.subject || '(no subject)';
+    const subj = latest.subject || t('message.detail.noSubject');
     return `${sender}: ${subj}`;
-  }, [messages]);
+  }, [messages, t]);
 
   return (
     <Card
       appearance="plain"
       onPress={onToggle}
-      accessibilityLabel={`${bundle.name}, ${messages.length} messages, ${isExpanded ? 'collapse' : 'expand'}`}
+      accessibilityLabel={t(isExpanded ? 'bundles.rowExpanded' : 'bundles.rowCollapsed', {
+        name: bundle.name,
+        count: messages.length,
+      })}
     >
       <CardHeader>
         <View className="flex-row items-center gap-2">

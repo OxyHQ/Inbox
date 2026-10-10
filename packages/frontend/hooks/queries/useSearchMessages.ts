@@ -57,13 +57,13 @@ export function useSearchMessages(options: SearchOptions = {}, { enabled = true 
 
   return useInfiniteQuery<SearchPage, Error, InfiniteData<SearchPage, string | number>, ReturnType<typeof emailKeys.search>, string | number>({
     queryKey: emailKeys.search(options, userId),
-    queryFn: async ({ pageParam = '' }) => {
+    queryFn: async ({ pageParam = '', signal }) => {
       if (!api) throw new Error('Email API not initialized');
       return await api.search({
         ...options,
         limit: SEARCH_PAGE_SIZE,
         ...(typeof pageParam === 'string' ? { cursor: pageParam } : { offset: pageParam }),
-      });
+      }, { signal });
     },
     initialPageParam: '',
     getNextPageParam: getNextSearchPageParam,

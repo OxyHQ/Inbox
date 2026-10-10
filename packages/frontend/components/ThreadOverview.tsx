@@ -32,12 +32,7 @@ export function ThreadOverview({
     <View className="gap-4 px-4 pb-6" testID="thread-overview">
       <View className="flex-row flex-wrap items-center gap-2">
         <Chip testID="thread-count">
-          {t(
-            count === 1
-              ? 'ui.message.conversationMessages_one'
-              : 'ui.message.conversationMessages_other',
-            { count },
-          )}
+          {t('ui.message.conversationMessages', { count })}
         </Chip>
         {sentiment && <SentimentIndicator sentiment={sentiment} size="medium" showLabel />}
       </View>

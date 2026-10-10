@@ -204,17 +204,42 @@ self.addEventListener('fetch', (event) => {
 
 // ─── Web push ──────────────────────────────────────────────────────
 
+// The fallback words of a push that carries no sender or body, in the
+// browser's language: a service worker has no access to the app's i18n, and
+// they were English for everyone.
+const FALLBACK_STRINGS = {
+  en: { title: "New email", body: "You have a new message." },
+  es: { title: "Correo nuevo", body: "Tienes un mensaje nuevo." },
+  ca: { title: "Correu nou", body: "Tens un missatge nou." },
+  de: { title: "Neue E-Mail", body: "Du hast eine neue Nachricht." },
+  fr: { title: "Nouveau courriel", body: "Tu as un nouveau message." },
+  it: { title: "Nuova email", body: "Hai un nuovo messaggio." },
+  pt: { title: "Novo email", body: "Tens uma nova mensagem." },
+  ja: { title: "新着メール", body: "新しいメッセージがあります。" },
+  ko: { title: "새 메일", body: "새 메시지가 있어요." },
+  zh: { title: "新邮件", body: "你有一封新邮件。" },
+  ar: { title: "رسالة جديدة", body: "لديك رسالة جديدة." },
+};
+
+function fallbackStrings() {
+  const language = (self.navigator && self.navigator.language ? self.navigator.language : 'en')
+    .slice(0, 2)
+    .toLowerCase();
+  return FALLBACK_STRINGS[language] || FALLBACK_STRINGS.en;
+}
+
 function notificationPayload(data) {
+  const fallback = fallbackStrings();
   const payload = data && typeof data === 'object' ? data : {};
   const messageId = typeof payload.messageId === 'string' ? payload.messageId : null;
-  const sender = typeof payload.sender === 'string' ? payload.sender : 'New email';
+  const sender = typeof payload.sender === 'string' ? payload.sender : fallback.title;
   const subject = typeof payload.subject === 'string' ? payload.subject : '';
   const body = typeof payload.body === 'string' ? payload.body : subject;
 
   return {
     title: sender,
     options: {
-      body: body || 'You have a new message.',
+      body: body || fallback.body,
       icon: '/icon-192.png',
       badge: '/icon-192.png',
       tag: messageId ? `inbox-message-${messageId}` : 'inbox-message',

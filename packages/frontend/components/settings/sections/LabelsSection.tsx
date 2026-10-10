@@ -31,6 +31,19 @@ const LABEL_COLORS = [
   '#607d8b',
 ] as const;
 
+/** Names of LABEL_COLORS, in order: keys under `ui.settings.labels.colors`. */
+const LABEL_COLOR_NAMES = [
+  'blue',
+  'red',
+  'yellow',
+  'green',
+  'orange',
+  'cyan',
+  'purple',
+  'pink',
+  'brown',
+  'gray',
+] as const;
 const DEFAULT_NEW_COLOR = LABEL_COLORS[0];
 
 export function LabelsSection() {
@@ -202,26 +215,15 @@ export function LabelsSection() {
               },
               {
                 key: 'color',
-                label: 'Color',
+                label: t('ui.settings.labels.color'),
                 control: (
                   <SettingsPreferenceSelect
-                    label="Label color"
+                    label={t('ui.settings.labels.colorLabel')}
                     value={newLabelColor}
                     onChange={setNewLabelColor}
                     items={LABEL_COLORS.map((value, index) => ({
                       value,
-                      label: [
-                        'Blue',
-                        'Red',
-                        'Yellow',
-                        'Green',
-                        'Orange',
-                        'Cyan',
-                        'Purple',
-                        'Pink',
-                        'Brown',
-                        'Gray',
-                      ][index],
+                      label: t(`ui.settings.labels.colors.${LABEL_COLOR_NAMES[index]}`),
                     }))}
                   />
                 ),

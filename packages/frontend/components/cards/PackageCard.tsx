@@ -6,12 +6,14 @@ import { Badge } from '@oxy.so/bloom/badge';
 import { Card, CardBody, CardHeader, CardTitle } from '@oxy.so/bloom/card';
 import { Text } from '@oxy.so/bloom/typography';
 import { StyleSheet, View } from 'react-native';
+import { useTranslation } from '@/lib/i18n';
 
 interface PackageCardProps {
   data: CardData;
 }
 
 export function PackageCard({ data }: PackageCardProps) {
+  const { t } = useTranslation();
   const colors = useColors();
 
   const estimatedDelivery = data.estimatedDelivery
@@ -25,7 +27,7 @@ export function PackageCard({ data }: PackageCardProps) {
   return (
     <Card appearance="subtle">
       <CardHeader>
-        <CardTitle>Package</CardTitle>
+        <CardTitle>{t('cards.package.header')}</CardTitle>
       </CardHeader>
       <CardBody>
         <View style={styles.body}>
@@ -56,7 +58,7 @@ export function PackageCard({ data }: PackageCardProps) {
           {data.trackingNumber && (
             <View style={styles.row}>
               <Text style={[styles.label, { color: colors.secondaryText }]}>
-                Tracking
+                {t('cards.package.tracking')}
               </Text>
               <Text style={[styles.tracking, { color: colors.text }]}>
                 {data.trackingNumber}
@@ -71,7 +73,7 @@ export function PackageCard({ data }: PackageCardProps) {
                 color={colors.secondaryText}
               />
               <Text style={[styles.delivery, { color: colors.secondaryText }]}>
-                Est. {estimatedDelivery}
+                {t('cards.package.estimated', { date: estimatedDelivery })}
               </Text>
             </View>
           )}

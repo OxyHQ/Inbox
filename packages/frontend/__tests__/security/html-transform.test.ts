@@ -6,6 +6,7 @@ import {
   resolveCidImages,
   sanitizeEmailHtml,
 } from '@/utils/htmlTransform';
+import { defined } from '../fixtures/defined';
 
 Object.defineProperty(globalThis, 'TextEncoder', { value: NodeTextEncoder });
 
@@ -15,7 +16,7 @@ const PROXY = 'https://api.example/email/proxy';
 function proxiedUrl(value: string | null | undefined): string | null {
   if (!value?.startsWith(`${PROXY}?url=`)) return null;
   return new TextDecoder().decode(
-    Uint8Array.from(atob(new URL(value).searchParams.get('url')!), (c) => c.charCodeAt(0)),
+    Uint8Array.from(atob(defined(new URL(value).searchParams.get('url'))), (c) => c.charCodeAt(0)),
   );
 }
 
@@ -30,12 +31,13 @@ function imageSources(html: string): (string | null)[] {
  * only if it shows up here.
  */
 function unproxiedUrls(html: string): string[] {
-  const decoded = new DOMParser()
-    .parseFromString(`<textarea>${html.replace(/<\/textarea/gi, '')}</textarea>`, 'text/html')
-    .querySelector('textarea')!
-    .value.replace(/\\([0-9a-f]{1,6}) ?/gi, (_m, hex: string) =>
-      String.fromCodePoint(parseInt(hex, 16)),
-    )
+  const textarea = defined(
+    new DOMParser()
+      .parseFromString(`<textarea>${html.replace(/<\/textarea/gi, '')}</textarea>`, 'text/html')
+      .querySelector('textarea'),
+  );
+  const decoded = textarea.value
+    .replace(/\\([0-9a-f]{1,6}) ?/gi, (_m, hex: string) => String.fromCodePoint(parseInt(hex, 16)))
     .replace(/\\(.)/g, '$1');
   return (decoded.match(/(?:https?:|[\\/]{2})[^\s"'()<>]*/gi) ?? []).filter(
     (url) => !url.startsWith(PROXY) && !/^(?:https?:)?[\\/]*$/.test(url),
@@ -130,8 +132,8 @@ describe('email HTML security boundary', () => {
       'https://api.example/email/proxy',
     );
     const document = new DOMParser().parseFromString(html, 'text/html');
-    const url = new URL(document.querySelector('img')!.getAttribute('src')!);
-    expect(atob(url.searchParams.get('url')!)).toBe('https://images.example/a.png?x=1&y=2');
+    const url = new URL(defined(document.querySelector('img')?.getAttribute('src')));
+    expect(atob(defined(url.searchParams.get('url')))).toBe('https://images.example/a.png?x=1&y=2');
     expect(document.querySelector('div')?.getAttribute('style')).toContain(
       'https://api.example/email/proxy',
     );
@@ -208,10 +210,12 @@ describe('email HTML security boundary', () => {
       expect(
         proxiedUrl(imageSources(proxyExternalImages('<img src="\\\\t.example\\c.gif">', PROXY))[0]),
       ).toBe('https://t.example/c.gif');
-      const srcset = new DOMParser()
-        .parseFromString(html, 'text/html')
-        .querySelectorAll('img')[5]
-        .getAttribute('srcset')!;
+      const srcset = defined(
+        new DOMParser()
+          .parseFromString(html, 'text/html')
+          .querySelectorAll('img')[5]
+          .getAttribute('srcset'),
+      );
       expect(srcset.split(', ').map((candidate) => proxiedUrl(candidate.split(' ')[0]))).toEqual([
         'https://t.example/f.gif',
         'https://t.example/g.gif',

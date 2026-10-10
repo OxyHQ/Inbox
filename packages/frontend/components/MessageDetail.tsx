@@ -119,6 +119,13 @@ function formatShortDate(dateStr: string, locale: string): string {
   });
 }
 
+/** A message's own text and the quote under it, with its inline images resolved. */
+function messagePartsOf(message: Message, resolvedHtml: Record<string, string>) {
+  return message.html
+    ? splitHtmlQuote(resolvedHtml[message._id] ?? message.html)
+    : splitTextQuote(message.text ?? '');
+}
+
 function getSnippet(text: string | null | undefined, maxLength = 100): string {
   if (!text) return '';
   const clean = text.replace(/\s+/g, ' ').trim();
@@ -436,12 +443,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const messageParts = useMemo(
     () =>
       new Map(
-        sortedThread.map((message) => [
-          message._id,
-          message.html
-            ? splitHtmlQuote(resolvedHtmlMap[message._id] ?? message.html)
-            : splitTextQuote(message.text ?? ''),
-        ]),
+        sortedThread.map((message) => [message._id, messagePartsOf(message, resolvedHtmlMap)]),
       ),
     [sortedThread, resolvedHtmlMap],
   );
@@ -604,7 +606,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     forward: t('message.actions.forward'),
   };
   const toThreadMessage = (msg: Message): MailThreadMessage => {
-    const parts = messageParts.get(msg._id)!;
+    const parts = messageParts.get(msg._id) ?? messagePartsOf(msg, resolvedHtmlMap);
     const renderBody = (content: string) =>
       msg.html ? <HtmlBody html={content} /> : <Text selectable>{content}</Text>;
     return {

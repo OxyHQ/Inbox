@@ -4,6 +4,7 @@ import {
   hasSearchCriteria,
   pickSearchFilters,
 } from '@/utils/searchFilters';
+import { defined } from '../fixtures/defined';
 
 it('searches read mail even when false is the only active filter', () => {
   expect(hasSearchCriteria({ unread: false })).toBe(true);
@@ -18,11 +19,11 @@ it('includes the full local end day and round-trips through the calendar', () =>
   const start = new Date(2026, 9, 24, 14);
   const end = new Date(2026, 9, 26, 9);
   const filters = dateRangeFilters({ start, end });
-  expect(new Date(filters.dateAfter!)).toEqual(new Date(2026, 9, 24, 0, 0, 0, 0));
-  expect(new Date(filters.dateBefore!)).toEqual(new Date(2026, 9, 26, 23, 59, 59, 999));
+  expect(new Date(defined(filters.dateAfter))).toEqual(new Date(2026, 9, 24, 0, 0, 0, 0));
+  expect(new Date(defined(filters.dateBefore))).toEqual(new Date(2026, 9, 26, 23, 59, 59, 999));
   expect(filtersDateRange(filters)).toEqual({
-    start: new Date(filters.dateAfter!),
-    end: new Date(filters.dateBefore!),
+    start: new Date(defined(filters.dateAfter)),
+    end: new Date(defined(filters.dateBefore)),
   });
   expect(start.getHours()).toBe(14);
   expect(end.getHours()).toBe(9);

@@ -1,6 +1,7 @@
 import { MailAddressFields } from '@/components/MailAddressFields';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
+import { defined } from '../fixtures/defined';
 
 jest.mock('react-native', () => ({
   View: ({ children }: any) => <div>{children}</div>,
@@ -86,7 +87,7 @@ function Fixture() {
   );
 }
 function draft() {
-  return JSON.parse(screen.getByRole('status').textContent!);
+  return JSON.parse(defined(screen.getByRole('status').textContent));
 }
 it('retains unfinished addresses in the persisted draft without Enter, separately for each field', () => {
   render(<Fixture />);

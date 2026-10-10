@@ -45,6 +45,7 @@ import {
 } from '@/hooks/queries/useLabels';
 import type { Contact, Label, Subscription } from '@/services/emailApi';
 import { httpStatus } from '@/utils/httpStatus';
+import { defined } from '../fixtures/defined';
 
 function conflict(): Error {
   return Object.assign(new Error('Label "Work" already exists'), { status: 409 });
@@ -189,7 +190,7 @@ describe('subscriptions', () => {
     await act(async () => {
       await result.current.mutateAsync({ senderAddress: 'news@a.com', method: 'list-unsubscribe' });
     });
-    const cache = queryClient.getQueryData<Cache>(emailKeys.subscriptions)!;
+    const cache = defined(queryClient.getQueryData<Cache>(emailKeys.subscriptions));
     expect(cache.pages[0].data.map((s) => [s._id, s.unsubscribed ?? false])).toEqual([
       ['news@a.com', true],
       ['promo@b.com', false],
@@ -208,7 +209,7 @@ describe('subscriptions', () => {
     await act(async () => {
       await result.current.mutateAsync({ senderAddress: 'news@a.com' }).catch(() => undefined);
     });
-    const cache = queryClient.getQueryData<Cache>(emailKeys.subscriptions)!;
+    const cache = defined(queryClient.getQueryData<Cache>(emailKeys.subscriptions));
     expect(cache.pages[0].data[0].unsubscribed).toBeUndefined();
     expect(toast.error).toHaveBeenCalledTimes(1);
   });
@@ -246,7 +247,7 @@ describe('contacts', () => {
     });
     expect(api.listContacts).toHaveBeenLastCalledWith({ q: undefined, limit: 100, offset: 100 });
     await waitFor(() =>
-      expect(result.current.data!.pages.flatMap((p) => p.data)).toHaveLength(150),
+      expect(defined(result.current.data).pages.flatMap((p) => p.data)).toHaveLength(150),
     );
     expect(result.current.hasNextPage).toBe(false);
   });
@@ -263,9 +264,9 @@ describe('contacts', () => {
       result.current.mutate('c1');
     });
     await waitFor(() => {
-      const cache = queryClient.getQueryData<InfiniteData<ContactsPage>>(
-        emailKeys.contacts.list(undefined),
-      )!;
+      const cache = defined(
+        queryClient.getQueryData<InfiniteData<ContactsPage>>(emailKeys.contacts.list(undefined)),
+      );
       expect(cache.pages[0].data.map((c) => c._id)).toEqual(['c0', 'c2']);
     });
   });

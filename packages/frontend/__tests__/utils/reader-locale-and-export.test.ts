@@ -29,6 +29,7 @@ import { formatReminderTime } from '@/components/ReminderRow';
 import { calendarTimes, generateIcs } from '@/utils/calendarEvent';
 import { formatCardDate, formatMoney } from '@/utils/cardFormat';
 import { buildPrintHtml } from '@/utils/printMessage';
+import { defined } from '../fixtures/defined';
 
 Object.defineProperty(globalThis, 'TextEncoder', { value: NodeTextEncoder });
 
@@ -36,7 +37,7 @@ const t = ((key: string, vars?: Record<string, string>) =>
   vars ? `${key}(${Object.values(vars).join('|')})` : key) as never;
 
 describe('calendar export', () => {
-  const times = calendarTimes({ startTime: '2026-10-15T12:00:00Z' })!;
+  const times = defined(calendarTimes({ startTime: '2026-10-15T12:00:00Z' }));
 
   it('escapes semicolons, commas and backslashes in TEXT', () => {
     const ics = generateIcs({ title: 'Lunch; bring a snack, or not \\ maybe' } as never, times);

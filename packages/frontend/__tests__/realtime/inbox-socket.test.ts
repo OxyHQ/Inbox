@@ -20,6 +20,10 @@
  */
 
 const handlers = new Map<string, (payload: unknown) => void>();
+/** Deliver a socket event to the handler the hook registered for it. */
+function emit(event: string, payload: unknown) {
+  defined(handlers.get(event), `a handler for ${event}`)(payload);
+}
 const useOxyEvent = jest.fn((event: string, handler: (payload: unknown) => void) => {
   handlers.set(event, handler);
 });
@@ -66,6 +70,7 @@ import {
   claimNewMailAnnouncement,
   noteSettingsOpen,
 } from '@/lib/notifications/new-mail-attention';
+import { defined } from '../fixtures/defined';
 
 const emailNew = {
   id: 'row-abc',
@@ -108,7 +113,7 @@ describe('subscription', () => {
 describe('email:new', () => {
   it('prepends using the ROW id, so the later refetch deduplicates', () => {
     mount();
-    handlers.get('email:new')!(emailNew);
+    emit('email:new', emailNew);
 
     const updater = setQueriesData.mock.calls[0][1] as (old: unknown) => unknown;
     const next = updater({
@@ -123,7 +128,7 @@ describe('email:new', () => {
 
   it('does not insert a message the list already holds', () => {
     mount();
-    handlers.get('email:new')!(emailNew);
+    emit('email:new', emailNew);
 
     const updater = setQueriesData.mock.calls[0][1] as (old: unknown) => unknown;
     const existing = {
@@ -138,14 +143,14 @@ describe('email:new', () => {
   it('toasts when the user is looking at a different mailbox', () => {
     viewMode = { type: 'mailbox', mailbox: { _id: 'mb-OTHER' } };
     mount();
-    handlers.get('email:new')!(emailNew);
+    emit('email:new', emailNew);
     expect(toast.info).toHaveBeenCalledWith('inbox.toast.newEmail:Alice');
   });
 
   it('stays quiet when the row is about to appear in front of them', () => {
     viewMode = { type: 'mailbox', mailbox: { _id: 'mb-1' } };
     mount();
-    handlers.get('email:new')!(emailNew);
+    emit('email:new', emailNew);
     expect(toast.info).not.toHaveBeenCalled();
   });
 
@@ -154,7 +159,7 @@ describe('email:new', () => {
     viewMode = { type: 'mailbox', mailbox: { _id: 'mb-1' } };
     pathname = '/search';
     mount();
-    handlers.get('email:new')!(emailNew);
+    emit('email:new', emailNew);
     expect(toast.info).toHaveBeenCalledWith('inbox.toast.newEmail:Alice');
   });
 
@@ -162,7 +167,7 @@ describe('email:new', () => {
     viewMode = { type: 'mailbox', mailbox: { _id: 'mb-1' } };
     pathname = '/subscriptions';
     mount();
-    handlers.get('email:new')!(emailNew);
+    emit('email:new', emailNew);
     expect(toast.info).toHaveBeenCalledTimes(1);
   });
 
@@ -170,7 +175,7 @@ describe('email:new', () => {
     viewMode = { type: 'mailbox', mailbox: { _id: 'mb-1' } };
     noteSettingsOpen(true);
     mount();
-    handlers.get('email:new')!(emailNew);
+    emit('email:new', emailNew);
     expect(toast.info).toHaveBeenCalledTimes(1);
   });
 
@@ -178,7 +183,7 @@ describe('email:new', () => {
     viewMode = { type: 'mailbox', mailbox: { _id: 'mb-OTHER' } };
     expect(claimNewMailAnnouncement(emailNew.id)).toBe(true); // the push got there first
     mount();
-    handlers.get('email:new')!(emailNew);
+    emit('email:new', emailNew);
     expect(toast.info).not.toHaveBeenCalled();
     // The cache is still updated: only the announcement is deduplicated.
     expect(setQueriesData).toHaveBeenCalled();
@@ -186,14 +191,14 @@ describe('email:new', () => {
 
   it('claims the message, so a push arriving after it stays quiet', () => {
     mount();
-    handlers.get('email:new')!(emailNew);
+    emit('email:new', emailNew);
     expect(toast.info).toHaveBeenCalledTimes(1);
     expect(claimNewMailAnnouncement(emailNew.id)).toBe(false);
   });
 
   it('ignores a malformed payload instead of writing junk into the cache', () => {
     mount();
-    handlers.get('email:new')!({ id: 'row-abc' });
+    emit('email:new', { id: 'row-abc' });
     expect(setQueriesData).not.toHaveBeenCalled();
     expect(recordInboxMetric).toHaveBeenCalledWith('realtime_malformed_event');
   });
@@ -201,7 +206,7 @@ describe('email:new', () => {
   it('ignores a payload that carries no id, even if it looks otherwise valid', () => {
     mount();
     const { id: _dropped, ...withoutId } = emailNew;
-    handlers.get('email:new')!(withoutId);
+    emit('email:new', withoutId);
     expect(setQueriesData).not.toHaveBeenCalled();
   });
 });
@@ -209,9 +214,9 @@ describe('email:new', () => {
 describe('email:unread_count', () => {
   it('writes the server count over the optimistic one', () => {
     mount();
-    handlers.get('email:unread_count')!({ mailboxId: 'mb-1', unread: 4 });
+    emit('email:unread_count', { mailboxId: 'mb-1', unread: 4 });
 
-    const updater = setQueryData.mock.calls.at(-1)![1] as (old: unknown) => unknown;
+    const updater = defined(setQueryData.mock.calls.at(-1))[1] as (old: unknown) => unknown;
     expect(updater([{ _id: 'mb-1', unseenMessages: 99 }])).toEqual([
       { _id: 'mb-1', unseenMessages: 4 },
     ]);
@@ -219,16 +224,16 @@ describe('email:unread_count', () => {
 
   it('returns the same array when nothing changed, so nothing re-renders', () => {
     mount();
-    handlers.get('email:unread_count')!({ mailboxId: 'mb-1', unread: 4 });
+    emit('email:unread_count', { mailboxId: 'mb-1', unread: 4 });
 
-    const updater = setQueryData.mock.calls.at(-1)![1] as (old: unknown) => unknown;
+    const updater = defined(setQueryData.mock.calls.at(-1))[1] as (old: unknown) => unknown;
     const unchanged = [{ _id: 'mb-1', unseenMessages: 4 }];
     expect(updater(unchanged)).toBe(unchanged);
   });
 
   it('ignores a malformed payload', () => {
     mount();
-    handlers.get('email:unread_count')!({ mailboxId: 'mb-1' });
+    emit('email:unread_count', { mailboxId: 'mb-1' });
     expect(setQueryData).not.toHaveBeenCalled();
   });
 });
@@ -240,7 +245,7 @@ describe('email:changed', () => {
     // A draft sent from another device: it is deleted, and it may be open here,
     // in a conversation, in search results or in a bundle.
     for (let i = 0; i < 50; i++) {
-      handlers.get('email:changed')!({
+      emit('email:changed', {
         id: `row-${i}`,
         mailboxIds: ['mb-drafts'],
         reason: 'deleted',
@@ -261,7 +266,7 @@ describe('email:changed', () => {
 
   it('ignores a malformed payload', () => {
     mount();
-    handlers.get('email:changed')!({ id: 'row-1', mailboxIds: 'not-an-array', reason: 'moved' });
+    emit('email:changed', { id: 'row-1', mailboxIds: 'not-an-array', reason: 'moved' });
     expect(invalidateQueries).not.toHaveBeenCalled();
     expect(recordInboxMetric).toHaveBeenCalledWith('realtime_malformed_event');
   });
@@ -272,7 +277,7 @@ describe('email:new into spam', () => {
     cachedMailboxes = [{ _id: 'mb-junk', specialUse: '\\Junk' }];
     viewMode = null;
     mount();
-    handlers.get('email:new')!({ ...emailNew, mailboxId: 'mb-junk', folder: 'spam' });
+    emit('email:new', { ...emailNew, mailboxId: 'mb-junk', folder: 'spam' });
     expect(toast.info).not.toHaveBeenCalled();
     cachedMailboxes = [];
   });

@@ -281,7 +281,7 @@ function consumeCssEscape(css: string, i: number): [string, number] {
     const end = i + hex[0].length;
     return [safeCodePoint(parseInt(hex[0], 16)), isCssSpace(css[end]) ? end + 1 : end];
   }
-  const ch = String.fromCodePoint(css.codePointAt(i)!);
+  const ch = String.fromCodePoint(css.codePointAt(i) ?? 0xfffd);
   return [ch, i + ch.length];
 }
 

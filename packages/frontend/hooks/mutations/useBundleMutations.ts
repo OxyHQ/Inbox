@@ -97,7 +97,10 @@ export function useReorderBundle() {
     onMutate: async ({ swap }) => {
       const orders = new Map(swap.map(({ id, order }) => [id, order]));
       const { prev } = await optimisticBundles(queryClient, (bundles) =>
-        bundles.map((b) => (orders.has(b._id) ? { ...b, order: orders.get(b._id)! } : b)),
+        bundles.map((b) => {
+          const order = orders.get(b._id);
+          return order === undefined ? b : { ...b, order };
+        }),
       );
       return { prev };
     },

@@ -51,11 +51,8 @@ import {
   type SwipeAction,
 } from '@/contexts/inbox-prefs-context';
 import {
-  useBulkMoveMessages,
   useBulkUpdateFlags,
-  useSnoozeMessage,
   useTogglePin,
-  useToggleRead,
 } from '@/hooks/mutations/useMessageMutations';
 import {
   useCreateReminder,
@@ -83,7 +80,7 @@ import type {
   UnreadableMessage,
 } from '@/services/emailApi';
 import { messageRoute } from '@/utils/messageRoute';
-import { collapseThreads } from '@/utils/threadGrouping';
+import { groupThreads } from '@/utils/threadGrouping';
 import { AliaChatSheet, type AliaChatSheetRef } from '@alia.onl/sdk';
 import { VoiceSession } from '@alia.onl/sdk/voice';
 
@@ -273,11 +270,8 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const expandedBundles = useEmailStore((s) => s.expandedBundles);
   const toggleBundle = useEmailStore((s) => s.toggleBundle);
 
-  const toggleRead = useToggleRead();
   const togglePin = useTogglePin();
-  const snoozeMutation = useSnoozeMessage();
   const bulkFlags = useBulkUpdateFlags();
-  const bulkMove = useBulkMoveMessages();
   const { data: bundles = [] } = useBundles();
 
   const [snoozeTargetId, setSnoozeTargetId] = useState<string | null>(null);
@@ -306,9 +300,22 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
 
   // Thread grouping is a post-process over the fetched list (single query, no
   // duplicate list): collapse to one row per conversation when the pref is on.
-  const displayMessages = useMemo(
-    () => (conversationView ? collapseThreads(messages) : messages),
+  const threadGroups = useMemo(
+    () =>
+      conversationView
+        ? groupThreads(messages)
+        : messages.map((message) => ({ row: message, members: [message] })),
     [messages, conversationView],
+  );
+  const displayMessages = useMemo(() => threadGroups.map((group) => group.row), [threadGroups]);
+  const membersByRowId = useMemo(
+    () => new Map(threadGroups.map((group) => [group.row._id, group.members])),
+    [threadGroups],
+  );
+  /** Everything a row stands for: the whole conversation in conversation view. */
+  const conversationOf = useCallback(
+    (rowId: string): Message[] => membersByRowId.get(rowId) ?? messages.filter((m) => m._id === rowId),
+    [membersByRowId, messages],
   );
 
   const isInboxView =
@@ -581,22 +588,27 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   );
 
   const handleToggleRead = useCallback(
-    (messageId: string, seen: boolean) => {
-      toggleRead.mutate({ messageId, seen });
-    },
-    [toggleRead],
+    (rowId: string, seen: boolean) => messageActions.setRead(conversationOf(rowId), seen),
+    [conversationOf, messageActions],
+  );
+
+  const handleArchiveRow = useCallback(
+    (rowId: string) => messageActions.archive(conversationOf(rowId)),
+    [conversationOf, messageActions],
+  );
+
+  const handleDeleteRow = useCallback(
+    (rowId: string) => messageActions.deleteConversation(conversationOf(rowId)),
+    [conversationOf, messageActions],
   );
 
   const handleSnooze = useCallback(
     (until: Date) => {
       if (!snoozeTargetId) return;
-      snoozeMutation.mutate({
-        messageId: snoozeTargetId,
-        until: until.toISOString(),
-      });
+      messageActions.snooze(conversationOf(snoozeTargetId), until.toISOString());
       setSnoozeTargetId(null);
     },
-    [snoozeTargetId, snoozeMutation],
+    [snoozeTargetId, conversationOf, messageActions],
   );
 
   const handleCreateReminder = useCallback(
@@ -702,54 +714,48 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     [enterSelectionMode],
   );
 
-  // Bulk actions — single API call per operation
+  // Bulk actions act on every conversation selected, all of its messages.
+  const selectedConversations = useCallback(
+    () => [...selectedMessageIds].flatMap(conversationOf),
+    [selectedMessageIds, conversationOf],
+  );
+  /** The rows as shown: a row is unread when any message in it is. */
+  const selectedRows = useCallback(
+    () => displayMessages.filter((m) => selectedMessageIds.has(m._id)),
+    [displayMessages, selectedMessageIds],
+  );
+
   const handleBulkArchive = useCallback(() => {
-    const archiveBox = mailboxes.find(
-      (m) => m.specialUse === SPECIAL_USE.ARCHIVE,
-    );
-    if (!archiveBox) {
-      toast.error(t('inbox.toast.archiveUnavailable'));
-      return;
-    }
-    bulkMove.mutate({
-      messageIds: [...selectedMessageIds],
-      mailboxId: archiveBox._id,
-    });
+    messageActions.archive(selectedConversations());
     clearSelection();
-  }, [bulkMove, clearSelection, mailboxes, selectedMessageIds, t]);
+  }, [messageActions, selectedConversations, clearSelection]);
 
   const handleBulkDelete = useCallback(() => {
-    const trashBox = mailboxes.find((m) => m.specialUse === SPECIAL_USE.TRASH);
-    if (!trashBox) {
+    if (!mailboxes.some((m) => m.specialUse === SPECIAL_USE.TRASH)) {
       toast.error(t('inbox.toast.trashUnavailable'));
       return;
     }
-    bulkMove.mutate({
-      messageIds: [...selectedMessageIds],
-      mailboxId: trashBox._id,
-    });
+    messageActions.deleteConversation(selectedConversations());
     clearSelection();
-  }, [bulkMove, clearSelection, mailboxes, selectedMessageIds, t]);
+  }, [messageActions, selectedConversations, clearSelection, mailboxes, t]);
 
   const handleBulkStar = useCallback(() => {
-    const selected = messages.filter((m) => selectedMessageIds.has(m._id));
-    const shouldStar = selected.some((m) => !m.flags.starred);
+    const shouldStar = selectedRows().some((m) => !m.flags.starred);
     bulkFlags.mutate({
-      messageIds: [...selectedMessageIds],
+      messageIds: selectedConversations().map((m) => m._id),
       flags: { starred: shouldStar },
     });
     clearSelection();
-  }, [selectedMessageIds, messages, bulkFlags, clearSelection]);
+  }, [selectedRows, selectedConversations, bulkFlags, clearSelection]);
 
   const handleBulkMarkRead = useCallback(() => {
-    const selected = messages.filter((m) => selectedMessageIds.has(m._id));
-    const shouldMarkRead = selected.some((m) => !m.flags.seen);
-    bulkFlags.mutate({
-      messageIds: [...selectedMessageIds],
-      flags: { seen: shouldMarkRead },
-    });
+    // Decided from the rows as displayed. It used to read the raw messages, in
+    // which a conversation row's own message is often already read, and so
+    // "Mark read" on an unread conversation marked it UNREAD.
+    const shouldMarkRead = selectedRows().some((m) => !m.flags.seen);
+    messageActions.setRead(selectedConversations(), shouldMarkRead);
     clearSelection();
-  }, [selectedMessageIds, messages, bulkFlags, clearSelection]);
+  }, [selectedRows, selectedConversations, messageActions, clearSelection]);
 
   // Derive title from view mode
   const mailboxTitle = useMemo(() => {
@@ -778,13 +784,13 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     (action: SwipeAction, messageId: string) => {
       switch (action) {
         case 'archive':
-          messageActions.archive(messageId);
+          handleArchiveRow(messageId);
           break;
         case 'delete':
-          messageActions.deleteMessage(messageId);
+          handleDeleteRow(messageId);
           break;
         case 'mark-read':
-          messageActions.markAsRead(messageId);
+          handleToggleRead(messageId, true);
           break;
         case 'snooze':
           setSnoozeTargetId(messageId);
@@ -793,7 +799,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
           break;
       }
     },
-    [messageActions],
+    [handleArchiveRow, handleDeleteRow, handleToggleRead],
   );
 
   /** One message row, shared by the flat items and the grouped panels. */
@@ -845,8 +851,8 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
           message={msg}
           onPin={handlePin}
           onSelect={handleMessagePress}
-          onArchive={messageActions.archive}
-          onDelete={messageActions.deleteMessage}
+          onArchive={handleArchiveRow}
+          onDelete={handleDeleteRow}
           onToggleRead={handleToggleRead}
           isSelected={msg._id === selectedMessageId}
           isSelectionMode={isSelectionMode}
@@ -867,7 +873,8 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       handleSwipeAction,
       handlePin,
       handleMessagePress,
-      messageActions,
+      handleArchiveRow,
+      handleDeleteRow,
       handleToggleRead,
       selectedMessageId,
       isSelectionMode,

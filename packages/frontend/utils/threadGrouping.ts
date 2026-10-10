@@ -209,12 +209,25 @@ function relationIdsOf(message: Message): string[] {
   ].filter((value): value is string => Boolean(value));
 }
 
+/** One conversation in a list: the row it is shown as, and every message in it. */
+export interface ThreadGroup {
+  /** The newest message, carrying the thread count and the thread's unread state. */
+  row: Message;
+  /** Every message of the thread in this list, the row's own included. */
+  members: Message[];
+}
+
 /**
- * Collapse a date-ordered message array into one representative row per thread,
- * preserving the original ordering by first appearance. The representative is
- * the most recent message in the thread, annotated with the total count.
+ * Group a date-ordered message array into conversations, preserving the order
+ * of first appearance. The row is the most recent message, annotated with the
+ * total count, and shown unread when any message in it is.
+ *
+ * The members are what an action on the row acts on. Acting on the row's id
+ * alone archived one message of a thread (the row came straight back, showing
+ * the next one), and a row shown unread because an OLDER message was unread
+ * could never be marked read: its own message already was.
  */
-export function collapseThreads(messages: Message[]): Message[] {
+export function groupThreads(messages: Message[]): ThreadGroup[] {
   const parent = messages.map((_, index) => index);
 
   function find(index: number): number {
@@ -243,19 +256,19 @@ export function collapseThreads(messages: Message[]): Message[] {
     }
   });
 
-  const groups = new Map<number, { rep: Message; count: number; hasUnread: boolean }>();
+  const groups = new Map<number, { rep: Message; members: Message[]; hasUnread: boolean }>();
   const order: number[] = [];
 
   messages.forEach((message, index) => {
     const root = find(index);
     const entry = groups.get(root);
     if (!entry) {
-      groups.set(root, { rep: message, count: 1, hasUnread: !message.flags.seen });
+      groups.set(root, { rep: message, members: [message], hasUnread: !message.flags.seen });
       order.push(root);
       return;
     }
 
-    entry.count += 1;
+    entry.members.push(message);
     if (!message.flags.seen) entry.hasUnread = true;
     if (new Date(message.date).getTime() > new Date(entry.rep.date).getTime()) {
       entry.rep = message;
@@ -264,13 +277,18 @@ export function collapseThreads(messages: Message[]): Message[] {
 
   return order.map((root) => {
     const entry = groups.get(root);
-    if (!entry) return messages[root];
-    const { rep, count, hasUnread } = entry;
-    const threadCount = Math.max(count, rep.threadCount ?? 1);
-    let result = threadCount === rep.threadCount ? rep : { ...rep, threadCount };
-    if (hasUnread && result.flags.seen) {
-      result = { ...result, flags: { ...result.flags, seen: false } };
+    if (!entry) return { row: messages[root], members: [messages[root]] };
+    const { rep, members, hasUnread } = entry;
+    const threadCount = Math.max(members.length, rep.threadCount ?? 1);
+    let row = threadCount === rep.threadCount ? rep : { ...rep, threadCount };
+    if (hasUnread && row.flags.seen) {
+      row = { ...row, flags: { ...row.flags, seen: false } };
     }
-    return result;
+    return { row, members };
   });
+}
+
+/** One row per conversation; see `groupThreads`. */
+export function collapseThreads(messages: Message[]): Message[] {
+  return groupThreads(messages).map((group) => group.row);
 }

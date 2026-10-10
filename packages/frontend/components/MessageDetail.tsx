@@ -54,7 +54,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Print from 'expo-print';
 import { usePathname, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWindowDimensions, Linking, Platform, StyleSheet, View } from 'react-native';
 
 import { HtmlBody } from '@/components/HtmlBody';
@@ -67,14 +67,12 @@ import { CardRenderer } from '@/components/cards/CardRenderer';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { useColors } from '@/constants/theme';
 import {
-  useArchiveMessage,
-  useDeleteMessage,
-  useSnoozeMessage,
   useTogglePin,
-  useToggleRead,
   useToggleStar,
   useUpdateMessageLabels,
 } from '@/hooks/mutations/useMessageMutations';
+import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
+import { useMessageActions } from '@/hooks/useMessageActions';
 import { useLabels } from '@/hooks/queries/useLabels';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
 import { useMessage } from '@/hooks/queries/useMessage';
@@ -176,7 +174,11 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     isError,
     refetch,
   } = useMessage(messageId);
-  const { data: threadData, refetch: refetchThread } = useThread(messageId);
+  const {
+    data: threadData,
+    refetch: refetchThread,
+    isPending: threadLoading,
+  } = useThread(messageId);
   const threadMessages = useMemo(
     () => threadData?.messages ?? [],
     [threadData],
@@ -185,16 +187,34 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     () => threadData?.unreadable ?? [],
     [threadData],
   );
+  const sortedThread = useMemo(() => {
+    if (threadMessages.length === 0)
+      return currentMessage ? [currentMessage] : [];
+    return [...threadMessages].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
+  }, [threadMessages, currentMessage]);
+
+  // What Archive, Delete, Spam and Snooze act on: the conversation's messages
+  // in the opened message's folder. Not the replies the user sent (they live in
+  // Sent) and not unsent drafts. It used to be the opened message alone, so
+  // archiving a conversation left the rest of it in the Inbox.
+  const folderConversation = useMemo(() => {
+    if (!currentMessage) return [];
+    const members = sortedThread.filter(
+      (m) => m.mailboxId === currentMessage.mailboxId && !m.flags.draft,
+    );
+    return members.some((m) => m._id === currentMessage._id) ? members : [...members, currentMessage];
+  }, [sortedThread, currentMessage]);
+
   const emailApi = useEmailStore((s) => s._api);
   const { data: mailboxes = [] } = useMailboxes();
   const { data: labels = [] } = useLabels();
   const toggleStar = useToggleStar();
-  const toggleRead = useToggleRead();
-  const archiveMutation = useArchiveMessage();
-  const deleteMutation = useDeleteMessage();
+  const messageActions = useMessageActions();
+  const { prefs } = useInboxPrefs();
   const updateLabels = useUpdateMessageLabels();
   const togglePin = useTogglePin();
-  const snoozeMutation = useSnoozeMessage();
 
   const [snoozeVisible, setSnoozeVisible] = useState(false);
   const [replyMode, setReplyMode] = useState<
@@ -217,9 +237,17 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const { user, oxyServices } = useOxy();
   const userEmail = user?.email;
 
-  // Marking read is handled by the list tap (see InboxList.handleMessagePress),
-  // driven by the markReadOnOpen preference. The detail view intentionally does
-  // not mark read on open — a single, predictable path avoids double writes.
+  // Reading a conversation marks it read — here, once per conversation opened,
+  // whatever opened it. It used to be the list tap, which marked only the row's
+  // own message, and nothing at all for a search result or a notification.
+  const markedReadFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!prefs.markReadOnOpen || !currentMessage || markedReadFor.current === messageId) return;
+    // Wait for the conversation, or only the opened message would be marked.
+    if (threadLoading) return;
+    markedReadFor.current = messageId;
+    messageActions.setRead(sortedThread, true, { quiet: true });
+  }, [prefs.markReadOnOpen, currentMessage, messageId, threadLoading, sortedThread, messageActions]);
 
   const backFallback = pathname.startsWith('/search') ? '/search' : '/';
   const handleBack = useGoBack(backFallback);
@@ -237,47 +265,38 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const handleSnooze = useCallback(
     (until: Date) => {
       if (!messageId) return;
-      snoozeMutation.mutate({ messageId, until: until.toISOString() });
+      messageActions.snooze(folderConversation, until.toISOString());
       setSnoozeVisible(false);
       if (mode === 'standalone') handleBack();
     },
-    [messageId, snoozeMutation, handleBack, mode],
+    [messageId, messageActions, folderConversation, handleBack, mode],
   );
 
   const handleArchive = useCallback(() => {
     if (!messageId) return;
-    const archiveBox = mailboxes.find(
-      (m) => m.specialUse === SPECIAL_USE.ARCHIVE,
-    );
-    if (!archiveBox) {
+    if (!mailboxes.some((m) => m.specialUse === SPECIAL_USE.ARCHIVE)) {
       toast.error(t('inbox.toast.archiveUnavailable'));
       return;
     }
-    archiveMutation.mutate({ messageId, archiveMailboxId: archiveBox._id });
+    messageActions.archive(folderConversation);
     if (mode === 'standalone') handleBack();
-  }, [messageId, mailboxes, archiveMutation, handleBack, mode, t]);
+  }, [messageId, mailboxes, messageActions, folderConversation, handleBack, mode, t]);
 
   const handleDelete = useCallback(() => {
     if (!messageId) return;
-    const trashBox = mailboxes.find((m) => m.specialUse === SPECIAL_USE.TRASH);
-    // Where the MESSAGE is, not the folder last browsed: opened from a
-    // notification while Trash was the last folder, an Inbox message was
-    // deleted for good instead of moved to Trash.
-    const isInTrash = !!trashBox && currentMessage?.mailboxId === trashBox._id;
-    deleteMutation.mutate({
-      messageId,
-      trashMailboxId: trashBox?._id,
-      isInTrash,
-    });
+    // Permanently or to Trash is decided per message from where it IS (see
+    // useMessageActions). It was decided from the folder last browsed: opened
+    // from a notification after visiting Trash, an Inbox message was destroyed.
+    messageActions.deleteConversation(folderConversation);
     if (mode === 'standalone') handleBack();
-  }, [messageId, mailboxes, currentMessage?.mailboxId, deleteMutation, handleBack, mode]);
+  }, [messageId, messageActions, folderConversation, handleBack, mode]);
 
   const handleMarkUnread = useCallback(() => {
-    if (!messageId) return;
-    toggleRead.mutate({ messageId, seen: false });
+    if (!currentMessage) return;
+    messageActions.setRead([currentMessage], false);
     moreMenuControl.close();
     if (mode === 'standalone') handleBack();
-  }, [messageId, toggleRead, handleBack, mode, moreMenuControl]);
+  }, [currentMessage, messageActions, handleBack, mode, moreMenuControl]);
 
   const handleMarkSpam = useCallback(() => {
     if (!messageId) return;
@@ -287,12 +306,13 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
       toast.error(t('message.toast.spamUnavailable'));
       return;
     }
-    archiveMutation.mutate({ messageId, archiveMailboxId: spamBox._id });
+    messageActions.moveTo(folderConversation, spamBox._id);
     if (mode === 'standalone') handleBack();
   }, [
     messageId,
     mailboxes,
-    archiveMutation,
+    messageActions,
+    folderConversation,
     handleBack,
     mode,
     moreMenuControl,
@@ -347,13 +367,6 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   }, []);
 
   // Sort thread messages by date (oldest first for conversation view)
-  const sortedThread = useMemo(() => {
-    if (threadMessages.length === 0)
-      return currentMessage ? [currentMessage] : [];
-    return [...threadMessages].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-    );
-  }, [threadMessages, currentMessage]);
 
   // A reply answers the newest message that was actually sent or received —
   // never one of the user's own unsent drafts, which is what the footer's

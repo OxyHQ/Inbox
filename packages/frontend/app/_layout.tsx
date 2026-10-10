@@ -177,7 +177,9 @@ function RootEffects() {
   // Read at the moment an update is found, so the toast is in the language
   // the user has by then — without re-running the registration for it.
   const tRef = useRef(t);
-  tRef.current = t;
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
   useEffect(() => {
     if (Platform.OS !== 'web') return;
 

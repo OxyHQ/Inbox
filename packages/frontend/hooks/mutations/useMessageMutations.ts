@@ -472,24 +472,40 @@ export function useUnsnoozeMessage() {
 export function useBulkUpdateFlags() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { user } = useOxy();
+  const userId = user?.id ?? null;
 
   return useMutation({
-    mutationFn: async ({ messageIds, flags }: { messageIds: string[]; flags: Partial<Message['flags']> }) => {
+    mutationFn: async ({
+      messageIds,
+      flags,
+    }: {
+      messageIds: string[];
+      flags: Partial<Message['flags']>;
+      /** No success toast: the change is its own feedback (a conversation read on open). */
+      quiet?: boolean;
+    }) => {
       if (!api) throw new Error('Email API not initialized');
       return api.bulkUpdateFlags(messageIds, flags);
     },
     onMutate: async ({ messageIds, flags }) => {
       await queryClient.cancelQueries({ queryKey: emailKeys.messages.root });
 
+      const snapshots = messageIds.map((messageId) => snapshotForRollback(queryClient, messageId, userId));
       const prevMessages = queryClient.getQueriesData<MessagesInfinite>({ queryKey: emailKeys.messages.root });
-      const prevMailboxes = queryClient.getQueriesData({ queryKey: emailKeys.mailboxes.root });
 
       if (flags.seen !== undefined) {
+        // Each message once: the same message is cached in every list it
+        // appears in (Inbox and Starred, say), and counting it per list moved
+        // the badge by two.
         const ids = new Set(messageIds);
+        const seenIds = new Set<string>();
         const unseenDeltas = new Map<string, number>();
         for (const [, data] of prevMessages) {
           for (const message of flatMessages(data)) {
-            if (ids.has(message._id) && message.flags.seen !== flags.seen && message.mailboxId) {
+            if (!ids.has(message._id) || seenIds.has(message._id)) continue;
+            seenIds.add(message._id);
+            if (message.flags.seen !== flags.seen && message.mailboxId) {
               const delta = flags.seen ? -1 : 1;
               unseenDeltas.set(message.mailboxId, (unseenDeltas.get(message.mailboxId) ?? 0) + delta);
             }
@@ -500,32 +516,19 @@ export function useBulkUpdateFlags() {
         }
       }
 
-      // Optimistically update all affected messages in a single pass
-      queryClient.setQueriesData<MessagesInfinite>({ queryKey: emailKeys.messages.root }, (old) => {
-        if (!old) return old;
-        const ids = new Set(messageIds);
-        return {
-          ...old,
-          pages: old.pages.map((page) => ({
-            ...page,
-            data: page.data.map((m) =>
-              ids.has(m._id) ? { ...m, flags: { ...m.flags, ...flags } } : m,
-            ),
-          })),
-        };
-      });
+      // Lists, the open message and the open conversation alike.
+      for (const messageId of messageIds) {
+        patchMessageFlags(queryClient, messageId, userId, flags);
+      }
 
-      return { prevMessages, prevMailboxes };
+      return { snapshots };
     },
     onError: (_err, _vars, context) => {
-      if (context) {
-        context.prevMessages.forEach(([key, data]) => queryClient.setQueryData(key, data));
-        context.prevMailboxes.forEach(([key, data]) => queryClient.setQueryData(key, data));
-      }
+      context?.snapshots.forEach((snapshot) => restoreSnapshot(queryClient, snapshot));
       toast.error('Failed to update messages.');
     },
-    onSuccess: () => {
-      toast.success('Messages updated.');
+    onSuccess: (_data, { quiet }) => {
+      if (!quiet) toast.success('Messages updated.');
     },
     onSettled: () => {
       invalidateMailViews(queryClient, { views: 'stale' });
@@ -544,33 +547,92 @@ export function useBulkMoveMessages() {
     },
     onMutate: async ({ messageIds }) => {
       await queryClient.cancelQueries({ queryKey: emailKeys.messages.root });
-
       const prevMessages = queryClient.getQueriesData<MessagesInfinite>({ queryKey: emailKeys.messages.root });
-
-      // Optimistically remove all moved messages from current view
-      queryClient.setQueriesData<MessagesInfinite>({ queryKey: emailKeys.messages.root }, (old) => {
-        if (!old) return old;
-        const ids = new Set(messageIds);
-        return {
-          ...old,
-          pages: old.pages.map((page) => ({
-            ...page,
-            data: page.data.filter((m) => !ids.has(m._id)),
-          })),
-        };
-      });
-
-      return { prevMessages };
+      const prevSelectedMessageId = useEmailStore.getState().selectedMessageId;
+      for (const messageId of messageIds) advanceSelectionPastMessage(queryClient, messageId);
+      removeMessagesFromLists(queryClient, messageIds);
+      return { prevMessages, prevSelectedMessageId };
     },
     onError: (_err, _vars, context) => {
       if (context) {
         context.prevMessages.forEach(([key, data]) => queryClient.setQueryData(key, data));
+        useEmailStore.setState({ selectedMessageId: context.prevSelectedMessageId });
       }
       toast.error('Failed to move messages.');
     },
     onSettled: () => {
       invalidateMailViews(queryClient, { views: 'stale' });
     },
+  });
+}
+
+/**
+ * Delete several messages: to Trash, or — for messages already in Trash —
+ * for good. Bulk delete used to MOVE everything to Trash, which the server
+ * skips for rows already there; in Trash the selection vanished optimistically
+ * and came back on the next refresh, never deleted.
+ */
+export function useBulkDeleteMessages() {
+  const api = useEmailStore((s) => s._api);
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      toTrash,
+      permanent,
+      trashMailboxId,
+    }: {
+      /** Messages to move to Trash. */
+      toTrash: string[];
+      /** Messages already in Trash, deleted for good. */
+      permanent: string[];
+      trashMailboxId?: string;
+    }) => {
+      if (!api) throw new Error('Email API not initialized');
+      if (toTrash.length > 0) {
+        if (!trashMailboxId) throw new Error('Trash mailbox not found');
+        await api.bulkMoveMessages(toTrash, trashMailboxId);
+      }
+      const results = await Promise.allSettled(permanent.map((id) => api.deleteMessage(id, true)));
+      const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected');
+      if (failed) throw failed.reason;
+    },
+    onMutate: async ({ toTrash, permanent }) => {
+      await queryClient.cancelQueries({ queryKey: emailKeys.messages.root });
+      const ids = [...toTrash, ...permanent];
+      const prevMessages = queryClient.getQueriesData<MessagesInfinite>({ queryKey: emailKeys.messages.root });
+      const prevSelectedMessageId = useEmailStore.getState().selectedMessageId;
+      for (const messageId of ids) advanceSelectionPastMessage(queryClient, messageId);
+      removeMessagesFromLists(queryClient, ids);
+      return { prevMessages, prevSelectedMessageId };
+    },
+    onSuccess: (_data, { permanent }) => {
+      toast.success(permanent.length > 0 ? 'Conversation permanently deleted.' : 'Conversation moved to Trash.');
+    },
+    onError: (_err, _vars, context) => {
+      if (context) {
+        context.prevMessages.forEach(([key, data]) => queryClient.setQueryData(key, data));
+        useEmailStore.setState({ selectedMessageId: context.prevSelectedMessageId });
+      }
+      toast.error('Failed to delete conversation.');
+    },
+    onSettled: () => {
+      invalidateMailViews(queryClient, { views: 'stale' });
+    },
+  });
+}
+
+function removeMessagesFromLists(queryClient: ReturnType<typeof useQueryClient>, messageIds: string[]) {
+  const ids = new Set(messageIds);
+  queryClient.setQueriesData<MessagesInfinite>({ queryKey: emailKeys.messages.root }, (old) => {
+    if (!old) return old;
+    return {
+      ...old,
+      pages: old.pages.map((page) => ({
+        ...page,
+        data: page.data.filter((m) => !ids.has(m._id)),
+      })),
+    };
   });
 }
 
@@ -635,6 +697,9 @@ function advanceSelectionPastMessage(
     .find(([, cached]) => !!cached)?.[1];
   const messages = flatMessages(data);
   const idx = messages.findIndex((m) => m._id === messageId);
-  const nextId = idx < messages.length - 1 ? messages[idx + 1]._id : idx > 0 ? messages[idx - 1]._id : null;
+  // Not in this list (another view's cache): select nothing rather than the
+  // first message of an unrelated list.
+  const nextId =
+    idx === -1 ? null : idx < messages.length - 1 ? messages[idx + 1]._id : idx > 0 ? messages[idx - 1]._id : null;
   useEmailStore.setState({ selectedMessageId: nextId });
 }

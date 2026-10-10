@@ -78,7 +78,7 @@ jest.mock('@oxy.so/bloom/dialog', () => ({
     <div>
       {children}
       {actions?.map((action: any) => (
-        <button key={action.label} onClick={action.onPress}>
+        <button type="button" key={action.label} onClick={action.onPress}>
           {action.label}
         </button>
       ))}
@@ -87,7 +87,7 @@ jest.mock('@oxy.so/bloom/dialog', () => ({
 }));
 jest.mock('@oxy.so/bloom/button', () => ({
   Button: ({ children, onPress, disabled }: any) => (
-    <button disabled={disabled} onClick={onPress}>
+    <button type="button" disabled={disabled} onClick={onPress}>
       {children}
     </button>
   ),
@@ -103,8 +103,8 @@ jest.mock('@oxy.so/bloom/text-field', () => ({
 }));
 jest.mock('@oxy.so/services', () => ({
   useOxy: () => ({ isAuthenticated: mockAuthenticated }),
-  ProfileButton: () => <button>{mockAuthenticated ? 'Account' : 'Sign in'}</button>,
-  OxySignInButton: () => <button>Sign in</button>,
+  ProfileButton: () => <button type="button">{mockAuthenticated ? 'Account' : 'Sign in'}</button>,
+  OxySignInButton: () => <button type="button">Sign in</button>,
   openAccountDialog: jest.fn(),
 }));
 jest.mock('@/constants/theme', () => ({

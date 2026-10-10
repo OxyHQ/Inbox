@@ -21,6 +21,7 @@ function SearchFixture() {
         })}
       </output>
       <button
+        type="button"
         onClick={() => {
           setQuery('invoices from Sarah');
           setSubmitted('invoices');

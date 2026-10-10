@@ -18,6 +18,7 @@ jest.mock('@oxy.so/bloom/swipe-row', () => ({
           .filter((side) => actions[side].length)
           .map((side) => (
             <button
+              type="button"
               key={side}
               onClick={() => {
                 setOpen(true);
@@ -27,7 +28,9 @@ jest.mock('@oxy.so/bloom/swipe-row', () => ({
               Swipe {side}
             </button>
           ))}
-        <button onClick={() => onOpenChange(null)}>Cancel swipe</button>
+        <button type="button" onClick={() => onOpenChange(null)}>
+          Cancel swipe
+        </button>
         {children}
       </div>
     );

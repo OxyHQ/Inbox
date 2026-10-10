@@ -63,7 +63,9 @@ jest.mock('@oxy.so/bloom', () => ({
     <div role="dialog" aria-label={title ?? label}>
       {children}
       {actions?.map((action: any) => (
-        <button key={action.label}>{action.label}</button>
+        <button type="button" key={action.label}>
+          {action.label}
+        </button>
       ))}
     </div>
   ),
@@ -81,9 +83,13 @@ jest.mock('@oxy.so/bloom/text-field', () => ({
   TextFieldInput: ({ label, value }: any) => <input aria-label={label} value={value} readOnly />,
 }));
 jest.mock('@oxy.so/bloom/button', () => ({
-  Button: ({ children, onPress }: any) => <button onClick={onPress}>{children}</button>,
+  Button: ({ children, onPress }: any) => (
+    <button type="button" onClick={onPress}>
+      {children}
+    </button>
+  ),
   IconButton: ({ accessibilityLabel, onPress }: any) => (
-    <button aria-label={accessibilityLabel} onClick={onPress} />
+    <button type="button" aria-label={accessibilityLabel} onClick={onPress} />
   ),
 }));
 jest.mock('@oxy.so/bloom/icons', () => new Proxy({}, { get: () => () => null }));
@@ -93,11 +99,17 @@ jest.mock('@oxy.so/bloom/mail-thread', () => ({
 jest.mock('@oxy.so/bloom/mail-compose', () => ({
   MailComposeSurface: ({ title, onAttach, attachments, onDiscard, footer, children }: any) => (
     <section aria-label={title}>
-      {onAttach && <button onClick={onAttach}>attach</button>}
+      {onAttach && (
+        <button type="button" onClick={onAttach}>
+          attach
+        </button>
+      )}
       {attachments.map((item: any) => (
         <span key={item.id}>{item.name}</span>
       ))}
-      <button onClick={onDiscard}>discard</button>
+      <button type="button" onClick={onDiscard}>
+        discard
+      </button>
       {footer}
       {children}
     </section>

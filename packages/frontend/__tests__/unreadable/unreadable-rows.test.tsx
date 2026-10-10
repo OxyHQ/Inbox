@@ -40,7 +40,7 @@ jest.mock('@oxy.so/bloom/card', () => ({
     accessibilityLabel?: string;
   }) =>
     onPress ? (
-      <button onClick={onPress} aria-label={accessibilityLabel}>
+      <button type="button" onClick={onPress} aria-label={accessibilityLabel}>
         {children}
       </button>
     ) : (
@@ -66,9 +66,15 @@ jest.mock('@oxy.so/bloom/empty-state', () => ({
     <div>
       <span>{title}</span>
       <span>{description}</span>
-      {action && <button onClick={action.onPress}>{action.label}</button>}
+      {action && (
+        <button type="button" onClick={action.onPress}>
+          {action.label}
+        </button>
+      )}
       {secondaryAction && (
-        <button onClick={secondaryAction.onPress}>{secondaryAction.label}</button>
+        <button type="button" onClick={secondaryAction.onPress}>
+          {secondaryAction.label}
+        </button>
       )}
     </div>
   ),

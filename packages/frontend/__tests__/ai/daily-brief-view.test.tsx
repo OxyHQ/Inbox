@@ -33,11 +33,15 @@ jest.mock('@oxy.so/bloom/typography', () => ({
   Text: ({ children }: any) => <span>{children}</span>,
 }));
 jest.mock('@oxy.so/bloom/button', () => ({
-  Button: ({ children, onPress }: any) => <button onClick={onPress}>{children}</button>,
+  Button: ({ children, onPress }: any) => (
+    <button type="button" onClick={onPress}>
+      {children}
+    </button>
+  ),
 }));
 jest.mock('@oxy.so/bloom/mail-list', () => ({
   MailRow: ({ sender, subject, snippet, unread, onPress }: any) => (
-    <button onClick={onPress} data-unread={String(unread)}>
+    <button type="button" onClick={onPress} data-unread={String(unread)}>
       {`${sender.name} · ${subject} · ${snippet}`}
     </button>
   ),

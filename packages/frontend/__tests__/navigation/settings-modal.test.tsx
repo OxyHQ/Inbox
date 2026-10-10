@@ -75,8 +75,12 @@ function Actions() {
   const open = useInboxSettings();
   return (
     <>
-      <button onClick={() => open()}>Settings</button>
-      <button onClick={() => open('account')}>Account link</button>
+      <button type="button" onClick={() => open()}>
+        Settings
+      </button>
+      <button type="button" onClick={() => open('account')}>
+        Account link
+      </button>
     </>
   );
 }

@@ -13,7 +13,7 @@ jest.mock('@oxy.so/bloom/item', () => ({
 }));
 jest.mock('@oxy.so/bloom/button', () => ({
   Button: ({ children, disabled, onPress }: any) => (
-    <button disabled={disabled} onClick={onPress}>
+    <button type="button" disabled={disabled} onClick={onPress}>
       {children}
     </button>
   ),

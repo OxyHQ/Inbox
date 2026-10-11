@@ -20,7 +20,7 @@ compatibility_date = "2026-09-09"
 
 workers_dev = false
 
-# The Worker observes every request before streaming the asset response. 176 files, 21 MB, largest 14.5 MB — inside the
+# The Worker passes every request straight to the ASSETS binding. 176 files, 21 MB, largest 14.5 MB — inside the
 # 20,000-file and 25 MiB-per-file limits.
 #
 # `_headers` travels in this directory and still carries the CSP: it is written

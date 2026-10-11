@@ -492,6 +492,8 @@ const de: LocaleDict = {
       draftSaved: 'Entwurf gespeichert.',
       draftConflict:
         'Dieser Entwurf wurde auf einem anderen Gerät geändert, gesendet oder gelöscht. Deine Version wird als neuer Entwurf gespeichert.',
+      draftGoneConflict:
+        'Dieser Entwurf wurde auf einem anderen Gerät gesendet oder gelöscht. Deine Version wird als neuer Entwurf gespeichert.',
     },
   },
 

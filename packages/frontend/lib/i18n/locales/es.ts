@@ -480,6 +480,8 @@ const es: LocaleDict = {
       draftSaved: 'Borrador guardado.',
       draftConflict:
         'Este borrador cambió en otro dispositivo, o allí se envió o eliminó. Tu versión se guardará como un borrador nuevo.',
+      draftGoneConflict:
+        'Este borrador se envió o eliminó en otro dispositivo. Tu versión se guardará como un borrador nuevo.',
     },
   },
 

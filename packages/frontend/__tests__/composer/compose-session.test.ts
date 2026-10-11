@@ -47,7 +47,11 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 
 import { act, renderHook } from '@testing-library/react';
 import { __setOxyState } from '@oxy.so/services';
-import { useComposeSession, type ComposeSessionOptions } from '@/hooks/useComposeSession';
+import {
+  draftConflictKind,
+  useComposeSession,
+  type ComposeSessionOptions,
+} from '@/hooks/useComposeSession';
 import { MessageSchema } from '@/schemas/emailSchemas';
 import { wireMessage } from '../fixtures/wire';
 import { composeRecoveryStorageKey, saveComposeRecovery } from '@/utils/composeRecovery';
@@ -250,6 +254,81 @@ describe('reopening a saved draft', () => {
     });
 
     expect(discardDraft).toHaveBeenCalledWith('draft-1');
+  });
+});
+
+/** A 409 as `HttpService` throws it: the status, and the body's `details`. */
+function conflictError(message: string, details: Record<string, unknown>) {
+  return Object.assign(new Error(message), {
+    status: 409,
+    details,
+    response: { status: 409, data: { error: 'CONFLICT', message, details } },
+  });
+}
+
+describe('a save the API refuses with 409', () => {
+  it('tells a draft that was sent or deleted from one changed elsewhere', () => {
+    expect(
+      draftConflictKind(
+        conflictError('Draft was sent or deleted', { draftId: 'draft-1', currentRevision: null }),
+      ),
+    ).toBe('gone');
+    expect(
+      draftConflictKind(conflictError('Draft changed on another device', { currentRevision: 4 })),
+    ).toBe('changed');
+    // Only the body's details, as another error path may carry them.
+    expect(
+      draftConflictKind({
+        response: { status: 409, data: { details: { currentRevision: null } } },
+      }),
+    ).toBe('gone');
+    expect(draftConflictKind({ status: 0, response: { status: 409 } })).toBe('changed');
+    expect(draftConflictKind(Object.assign(new Error('boom'), { status: 500 }))).toBeNull();
+  });
+
+  it('says the draft is gone and saves the edits as a new draft, never over it', async () => {
+    saveDraft.mockRejectedValueOnce(
+      conflictError('Draft was sent or deleted', { draftId: 'draft-1', currentRevision: null }),
+    );
+    const { result } = renderHook(() =>
+      useComposeSession(options({ draft: savedDraft(), recoveryIdentity: 'draft:draft-1' })),
+    );
+    await settle();
+
+    act(() => result.current.setSubject('Plan v2'));
+    await advance(8_000);
+    expect(toast.error).toHaveBeenCalledWith('compose.toast.draftGoneConflict');
+    expect(result.current.draftSaveError).toBe(true);
+
+    act(() => result.current.setSubject('Plan v3'));
+    await advance(8_000);
+    const retry = saveDraft.mock.calls[1][0];
+    expect(retry).toEqual(expect.objectContaining({ subject: 'Plan v3' }));
+    expect(retry.existingDraftId).toBeUndefined();
+    expect(retry).not.toHaveProperty('expectedRevision');
+
+    // The new copy is this session's: the send names it.
+    await act(async () => {
+      await result.current.send();
+    });
+    expect(sendWithUndo).toHaveBeenCalledWith(
+      expect.objectContaining({ draftId: 'created-1' }),
+      expect.any(Object),
+    );
+  });
+
+  it('says the draft changed elsewhere when another device saved it', async () => {
+    saveDraft.mockRejectedValueOnce(
+      conflictError('Draft changed on another device', { currentRevision: 4 }),
+    );
+    const { result } = renderHook(() =>
+      useComposeSession(options({ draft: savedDraft(), recoveryIdentity: 'draft:draft-1' })),
+    );
+    await settle();
+
+    act(() => result.current.setSubject('Plan v2'));
+    await advance(8_000);
+    expect(toast.error).toHaveBeenCalledWith('compose.toast.draftConflict');
   });
 });
 

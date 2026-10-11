@@ -473,6 +473,7 @@ const zh: LocaleDict = {
       signatureFailed: '签名加载失败。',
       draftSaved: '草稿已保存。',
       draftConflict: '此草稿已在另一台设备上被更改、发送或删除。你的版本将另存为新草稿。',
+      draftGoneConflict: '此草稿已在另一台设备上发送或删除。你的版本将另存为新草稿。',
     },
   },
 

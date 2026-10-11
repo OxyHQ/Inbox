@@ -484,6 +484,8 @@ const en: LocaleDict = {
       draftSaved: 'Draft saved.',
       draftConflict:
         'This draft changed on another device, or was sent or deleted there. Your version will be saved as a new draft.',
+      draftGoneConflict:
+        'This draft was sent or deleted on another device. Your version will be saved as a new draft.',
     },
   },
 

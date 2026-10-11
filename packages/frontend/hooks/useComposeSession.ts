@@ -107,16 +107,28 @@ function recipientsAllParse(...fields: string[]): boolean {
   return fields.every((value) => parseComposeRecipients(value).invalid.length === 0);
 }
 
-function isDraftConflict(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false;
+/**
+ * A save the API refused with 409: `'gone'` when the draft no longer exists —
+ * sent or deleted, the API answers `currentRevision: null` — `'changed'` when
+ * another device saved it at a newer revision. `null` for any other error.
+ */
+export function draftConflictKind(error: unknown): 'gone' | 'changed' | null {
+  if (!error || typeof error !== 'object') return null;
   const candidate = error as {
     status?: number;
     statusCode?: number;
-    response?: { status?: number };
+    response?: { status?: number; data?: { details?: unknown } };
+    details?: unknown;
   };
-  return (
-    candidate.status === 409 || candidate.statusCode === 409 || candidate.response?.status === 409
-  );
+  const status = candidate.status ?? candidate.statusCode ?? candidate.response?.status;
+  if (status !== 409) return null;
+  const details = candidate.details ?? candidate.response?.data?.details;
+  const gone =
+    typeof details === 'object' &&
+    details !== null &&
+    'currentRevision' in details &&
+    details.currentRevision === null;
+  return gone ? 'gone' : 'changed';
 }
 
 export interface ComposeSessionOptions {
@@ -429,13 +441,22 @@ export function useComposeSession({
           if (complete) void clearComposeRecovery(recoveryKey);
           return true;
         } catch (error) {
-          if (isDraftConflict(error)) {
+          const conflict = draftConflictKind(error);
+          if (conflict) {
             // Another device changed this draft, or sent or deleted it. Never
             // overwrite that: the next save starts a new draft from the edits
             // still open here, so nothing typed is lost either.
             draftIdRef.current = null;
             draftRevisionRef.current = null;
-            if (mountedRef.current) toast.error(t('compose.toast.draftConflict'));
+            if (mountedRef.current) {
+              toast.error(
+                t(
+                  conflict === 'gone'
+                    ? 'compose.toast.draftGoneConflict'
+                    : 'compose.toast.draftConflict',
+                ),
+              );
+            }
           }
           if (mountedRef.current) setDraftSaveState('error');
           return false;

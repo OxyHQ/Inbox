@@ -486,6 +486,8 @@ const it: LocaleDict = {
       draftSaved: 'Bozza salvata.',
       draftConflict:
         'Questa bozza è stata modificata su un altro dispositivo, oppure lì è stata inviata o eliminata. La tua versione verrà salvata come nuova bozza.',
+      draftGoneConflict:
+        'Questa bozza è stata inviata o eliminata su un altro dispositivo. La tua versione verrà salvata come nuova bozza.',
     },
   },
 

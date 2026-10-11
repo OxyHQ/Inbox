@@ -282,6 +282,7 @@ describe('a save the API refuses with 409', () => {
         response: { status: 409, data: { details: { currentRevision: null } } },
       }),
     ).toBe('gone');
+    expect(draftConflictKind({ status: 0, response: { status: 409 } })).toBe('changed');
     expect(draftConflictKind(Object.assign(new Error('boom'), { status: 500 }))).toBeNull();
   });
 

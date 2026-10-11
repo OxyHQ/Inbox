@@ -120,8 +120,9 @@ export function draftConflictKind(error: unknown): 'gone' | 'changed' | null {
     response?: { status?: number; data?: { details?: unknown } };
     details?: unknown;
   };
-  const status = candidate.status ?? candidate.statusCode ?? candidate.response?.status;
-  if (status !== 409) return null;
+  // Any of the three: an error path may carry the status in only one of them.
+  const statuses = [candidate.status, candidate.statusCode, candidate.response?.status];
+  if (!statuses.includes(409)) return null;
   const details = candidate.details ?? candidate.response?.data?.details;
   const gone =
     typeof details === 'object' &&

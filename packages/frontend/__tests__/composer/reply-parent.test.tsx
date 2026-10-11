@@ -24,7 +24,6 @@ jest.mock('@oxy.so/bloom/admonition', () => {
   };
 });
 
-import React from 'react';
 import { fireEvent, render, renderHook, screen } from '@testing-library/react';
 import { useReplyParent } from '@/hooks/useReplyParent';
 import { ReplyParentNotice } from '@/components/ReplyParentNotice';

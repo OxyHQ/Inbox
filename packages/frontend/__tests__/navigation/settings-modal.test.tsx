@@ -5,7 +5,20 @@ import React from 'react';
 const mockOpen = jest.fn();
 const mockShowAccount = jest.fn();
 let mockAuthenticated = true;
-let mockModal: any;
+/** What the suite reads from the props InboxSettings hands Bloom's SettingsModal. */
+interface ModalProps {
+  initialView?: string;
+  page?: string;
+  pages: Record<string, unknown>;
+  groups: { items: { key: string; onPress: () => void }[] }[];
+  onClose: () => void;
+}
+let mockModal: ModalProps | null = null;
+/** The modal's last props; fails the test if the modal was not rendered. */
+function mockModalProps(): ModalProps {
+  if (!mockModal) throw new Error('the settings modal was not rendered');
+  return mockModal;
+}
 jest.mock('@oxy.so/services', () => ({
   useOxy: () => ({
     isAuthenticated: mockAuthenticated,
@@ -23,8 +36,8 @@ jest.mock('@oxy.so/bloom/dialog', () => ({
         ref: React.createRef(),
         open: () =>
           mockOpen({
-            initialView: mockModal.initialView,
-            page: mockModal.page,
+            initialView: mockModalProps().initialView,
+            page: mockModalProps().page,
           }),
         close: jest.fn(),
       }),
@@ -32,7 +45,7 @@ jest.mock('@oxy.so/bloom/dialog', () => ({
     ),
 }));
 jest.mock('@oxy.so/bloom/settings-modal', () => ({
-  SettingsModal: (props: any) => {
+  SettingsModal: (props: ModalProps) => {
     mockModal = props;
     return null;
   },
@@ -75,8 +88,12 @@ function Actions() {
   const open = useInboxSettings();
   return (
     <>
-      <button onClick={() => open()}>Settings</button>
-      <button onClick={() => open('account')}>Account link</button>
+      <button type="button" onClick={() => open()}>
+        Settings
+      </button>
+      <button type="button" onClick={() => open('account')}>
+        Account link
+      </button>
     </>
   );
 }
@@ -117,8 +134,8 @@ it('excludes private pages and rejects a private deep link while signed out', ()
     </InboxSettingsProvider>,
   );
   fireEvent.click(screen.getByText('Account link'));
-  expect(mockModal.pages.account).toBeUndefined();
-  expect(mockModal.groups[0].items.some((item: any) => item.key === 'account')).toBe(false);
+  expect(mockModalProps().pages.account).toBeUndefined();
+  expect(mockModalProps().groups[0].items.some((item) => item.key === 'account')).toBe(false);
   expect(mockOpen).toHaveBeenLastCalledWith({
     initialView: 'page',
     page: 'appearance',
@@ -130,10 +147,10 @@ it('opens the SDK account surface only after the settings exit finishes', () => 
       <Actions />
     </InboxSettingsProvider>,
   );
-  act(() => mockModal.groups[1].items[0].onPress());
+  act(() => mockModalProps().groups[1].items[0].onPress());
   expect(mockShowAccount).not.toHaveBeenCalled();
-  act(() => mockModal.onClose());
+  act(() => mockModalProps().onClose());
   expect(mockShowAccount).toHaveBeenCalledWith('ManageAccount');
-  act(() => mockModal.onClose());
+  act(() => mockModalProps().onClose());
   expect(mockShowAccount).toHaveBeenCalledTimes(1);
 });

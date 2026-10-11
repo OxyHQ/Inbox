@@ -1021,7 +1021,7 @@ const en: LocaleDict = {
         whenMessage: "When a message's",
         sizeBytes: 'Size in bytes',
         value: 'Value',
-        then: 'then',
+        thenAction: 'then',
         creating: 'Creating…',
         addFilter: 'Add filter',
         editingTemplate: 'Editing template',

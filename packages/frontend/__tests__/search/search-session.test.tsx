@@ -1,6 +1,7 @@
 import { SearchSessionProvider, useSearchSessionState } from '@/contexts/search-session-context';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { __setOxyState } from '../../__mocks__/oxyhq-services';
+import { defined } from '../fixtures/defined';
 
 let oldSearchCompletion: () => void;
 function SearchFixture() {
@@ -21,6 +22,7 @@ function SearchFixture() {
         })}
       </output>
       <button
+        type="button"
         onClick={() => {
           setQuery('invoices from Sarah');
           setSubmitted('invoices');
@@ -48,7 +50,7 @@ function SearchFixture() {
   );
 }
 function read() {
-  return JSON.parse(screen.getByRole('status').textContent!);
+  return JSON.parse(defined(screen.getByRole('status').textContent));
 }
 const empty = {
   query: '',

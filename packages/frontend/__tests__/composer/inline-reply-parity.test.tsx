@@ -11,6 +11,8 @@ import { fireEvent, render, screen } from '@testing-library/react';
 
 import { InlineReply } from '@/components/InlineReply';
 import type { Message } from '@/services/emailApi';
+import type { ReactNode } from 'react';
+import type { Children, DialogAction, Pressable } from '../fixtures/mockProps';
 
 const mockSession = {
   to: 'ana@example.com',
@@ -47,8 +49,8 @@ const mockDialogOpen = jest.fn();
 
 jest.mock('react-native', () => ({
   Platform: { OS: 'web' },
-  View: ({ children }: any) => <div>{children}</div>,
-  ScrollView: ({ children }: any) => <div data-testid="scroll">{children}</div>,
+  View: ({ children }: Children) => <div>{children}</div>,
+  ScrollView: ({ children }: Children) => <div data-testid="scroll">{children}</div>,
 }));
 jest.mock('@/lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 jest.mock('@/constants/theme', () => ({
@@ -59,52 +61,86 @@ jest.mock('@oxy.so/services', () => ({
 }));
 jest.mock('@/hooks/useComposeSession', () => ({ useComposeSession: () => mockSession }));
 jest.mock('@oxy.so/bloom', () => ({
-  Dialog: ({ title, label, children, actions }: any) => (
+  Dialog: ({
+    title,
+    label,
+    children,
+    actions,
+  }: Children & { title?: string; label?: string; actions?: DialogAction[] }) => (
     <div role="dialog" aria-label={title ?? label}>
       {children}
-      {actions?.map((action: any) => (
-        <button key={action.label}>{action.label}</button>
+      {actions?.map((action: DialogAction) => (
+        <button type="button" key={action.label}>
+          {action.label}
+        </button>
       ))}
     </div>
   ),
   useDialogControl: () => ({ open: mockDialogOpen, close: jest.fn() }),
   toast: jest.fn(),
 }));
-jest.mock('@oxy.so/bloom/card', () => ({ Card: ({ children }: any) => <div>{children}</div> }));
+jest.mock('@oxy.so/bloom/card', () => ({
+  Card: ({ children }: Children) => <div>{children}</div>,
+}));
 jest.mock('@oxy.so/bloom/admonition', () => ({
-  Admonition: ({ children }: any) => <div>{children}</div>,
+  Admonition: ({ children }: Children) => <div>{children}</div>,
 }));
 jest.mock('@oxy.so/bloom/typography', () => ({
-  Text: ({ children }: any) => <span>{children}</span>,
+  Text: ({ children }: Children) => <span>{children}</span>,
 }));
 jest.mock('@oxy.so/bloom/text-field', () => ({
-  TextFieldInput: ({ label, value }: any) => <input aria-label={label} value={value} readOnly />,
+  TextFieldInput: ({ label, value }: { label?: string; value?: string }) => (
+    <input aria-label={label} value={value} readOnly />
+  ),
 }));
 jest.mock('@oxy.so/bloom/button', () => ({
-  Button: ({ children, onPress }: any) => <button onClick={onPress}>{children}</button>,
-  IconButton: ({ accessibilityLabel, onPress }: any) => (
-    <button aria-label={accessibilityLabel} onClick={onPress} />
+  Button: ({ children, onPress }: Pressable) => (
+    <button type="button" onClick={onPress}>
+      {children}
+    </button>
+  ),
+  IconButton: ({ accessibilityLabel, onPress }: Pressable) => (
+    <button type="button" aria-label={accessibilityLabel} onClick={onPress} />
   ),
 }));
 jest.mock('@oxy.so/bloom/icons', () => new Proxy({}, { get: () => () => null }));
 jest.mock('@oxy.so/bloom/mail-thread', () => ({
-  MailQuoteToggle: ({ children }: any) => <div>{children}</div>,
+  MailQuoteToggle: ({ children }: Children) => <div>{children}</div>,
 }));
 jest.mock('@oxy.so/bloom/mail-compose', () => ({
-  MailComposeSurface: ({ title, onAttach, attachments, onDiscard, footer, children }: any) => (
+  MailComposeSurface: ({
+    title,
+    onAttach,
+    attachments,
+    onDiscard,
+    footer,
+    children,
+  }: Children & {
+    title?: string;
+    onAttach?: () => void;
+    attachments: { id: string; name: string }[];
+    onDiscard: () => void;
+    footer?: ReactNode;
+  }) => (
     <section aria-label={title}>
-      {onAttach && <button onClick={onAttach}>attach</button>}
-      {attachments.map((item: any) => (
+      {onAttach && (
+        <button type="button" onClick={onAttach}>
+          attach
+        </button>
+      )}
+      {attachments.map((item) => (
         <span key={item.id}>{item.name}</span>
       ))}
-      <button onClick={onDiscard}>discard</button>
+      <button type="button" onClick={onDiscard}>
+        discard
+      </button>
       {footer}
       {children}
     </section>
   ),
 }));
 jest.mock('@/components/MailAddressFields', () => ({
-  MailAddressFields: ({ onSubjectChange }: any) => (
+  MailAddressFields: ({ onSubjectChange }: { onSubjectChange?: (subject: string) => void }) => (
     <div>{onSubjectChange ? 'fields with subject' : 'fields without subject'}</div>
   ),
 }));

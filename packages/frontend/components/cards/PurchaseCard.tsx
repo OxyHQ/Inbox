@@ -41,6 +41,7 @@ export function PurchaseCard({ data }: PurchaseCardProps) {
           {Array.isArray(data.items) && data.items.length > 0 && (
             <View style={styles.items}>
               {data.items.slice(0, 3).map((item: string, i: number) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: a read-only list that never reorders; two items can share a name.
                 <Text key={i} style={[styles.item, { color: colors.secondaryText }]}>
                   · {item}
                 </Text>

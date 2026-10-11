@@ -6,13 +6,14 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 
 import { DailyBrief } from '@/components/DailyBrief';
+import type { Children, Pressable } from '../fixtures/mockProps';
 
 const mockMarkOpened = jest.fn();
 const mockRegenerate = jest.fn();
 let mockState: Record<string, unknown> = {};
 
 jest.mock('react-native', () => ({
-  View: ({ children }: any) => <div>{children}</div>,
+  View: ({ children }: Children) => <div>{children}</div>,
   StyleSheet: { create: (styles: unknown) => styles },
 }));
 jest.mock('@/lib/i18n', () => ({
@@ -26,18 +27,33 @@ jest.mock('@/hooks/queries/useDailyBrief', () => ({
   useDailyBrief: () => ({ markOpened: mockMarkOpened, regenerate: mockRegenerate, ...mockState }),
 }));
 jest.mock('@oxy.so/bloom/card', () => ({
-  Card: ({ children }: any) => <div>{children}</div>,
-  CardBody: ({ children }: any) => <div>{children}</div>,
+  Card: ({ children }: Children) => <div>{children}</div>,
+  CardBody: ({ children }: Children) => <div>{children}</div>,
 }));
 jest.mock('@oxy.so/bloom/typography', () => ({
-  Text: ({ children }: any) => <span>{children}</span>,
+  Text: ({ children }: Children) => <span>{children}</span>,
 }));
 jest.mock('@oxy.so/bloom/button', () => ({
-  Button: ({ children, onPress }: any) => <button onClick={onPress}>{children}</button>,
+  Button: ({ children, onPress }: Pressable) => (
+    <button type="button" onClick={onPress}>
+      {children}
+    </button>
+  ),
 }));
 jest.mock('@oxy.so/bloom/mail-list', () => ({
-  MailRow: ({ sender, subject, snippet, unread, onPress }: any) => (
-    <button onClick={onPress} data-unread={String(unread)}>
+  MailRow: ({
+    sender,
+    subject,
+    snippet,
+    unread,
+    onPress,
+  }: Pressable & {
+    sender: { name: string };
+    subject: string;
+    snippet: string;
+    unread: boolean;
+  }) => (
+    <button type="button" onClick={onPress} data-unread={String(unread)}>
       {`${sender.name} · ${subject} · ${snippet}`}
     </button>
   ),

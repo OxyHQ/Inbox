@@ -988,7 +988,7 @@ const zh: LocaleDict = {
         whenMessage: '当邮件的',
         sizeBytes: '大小（字节）',
         value: '值',
-        then: '则',
+        thenAction: '则',
         creating: '正在创建…',
         addFilter: '添加筛选规则',
         editingTemplate: '正在编辑模板',

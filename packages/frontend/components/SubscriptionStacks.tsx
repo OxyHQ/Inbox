@@ -13,7 +13,7 @@
  * upward from a shared baseline.
  */
 
-import React, { useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { View, Image, StyleSheet } from 'react-native';
 import { Card, CardHeader } from '@oxy.so/bloom/card';
 import { Carousel, CarouselItem } from '@oxy.so/bloom/carousel';

@@ -12,6 +12,7 @@ import { restoreSnapshot, snapshotForRollback, type MessagesInfinite } from '@/u
 import { buildReplyHeaders } from '@/utils/replyHeaders';
 import { stripHtml } from '@/utils/stripHtml';
 import { wireMessage } from '../fixtures/wire';
+import { defined } from '../fixtures/defined';
 
 describe('stripHtml — the text part of what the web composer sends', () => {
   it('keeps every line break the editor shows', () => {
@@ -98,7 +99,7 @@ describe('restoreSnapshot — a failed action undoes only itself', () => {
     client.setQueryData(key, list(msg('a', true), msg('b', true)));
     restoreSnapshot(client, snapshot);
 
-    const [a, b] = client.getQueryData<MessagesInfinite>(key)!.pages[0].data;
+    const [a, b] = defined(client.getQueryData<MessagesInfinite>(key)).pages[0].data;
     expect(a.flags.seen).toBe(false);
     expect(b.flags.seen).toBe(true);
   });

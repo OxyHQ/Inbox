@@ -71,7 +71,7 @@ function fold(line: string): string {
   let current = '';
   let octets = 0;
   for (const char of line) {
-    const size = utf8Length(char.codePointAt(0)!);
+    const size = utf8Length(char.codePointAt(0) ?? 0);
     if (octets + size > MAX_LINE_OCTETS) {
       out.push(current);
       // A continuation line starts with one space, which counts.

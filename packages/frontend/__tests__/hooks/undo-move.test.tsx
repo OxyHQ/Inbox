@@ -22,7 +22,7 @@ jest.mock('@/hooks/useEmail', () => {
   return { useEmailStore };
 });
 
-import React, { type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { __setOxyState } from '@oxy.so/services';
@@ -59,7 +59,8 @@ function setup(...messages: Message[]) {
 
 function undoAction(): () => void {
   const call = toast.success.mock.calls.at(-1);
-  return (call?.[1] as { action: { onClick: () => void } }).action.onClick;
+  if (!call) throw new Error('no success toast was shown');
+  return (call[1] as { action: { onClick: () => void } }).action.onClick;
 }
 
 beforeEach(() => {

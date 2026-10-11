@@ -9,7 +9,9 @@ jest.mock('@/components/InboxBottomBar', () => ({
 import { MailboxShell } from '@/components/MailboxShell';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
+import { defined } from '../fixtures/defined';
+import type { Children, DialogAction, Pressable } from '../fixtures/mockProps';
 
 jest.mock('@/components/settings/InboxSettings', () => ({
   useInboxSettings: () => jest.fn(),
@@ -21,8 +23,33 @@ const mockDelete = jest.fn();
 const mockToggle = jest.fn();
 let mockPath = '/';
 let mockAuthenticated = true;
-let mockSidebar: any;
-let mockState: any;
+/** What the suite reads from the sidebar MailboxShell hands Bloom's AppShell. */
+interface SidebarItem {
+  key: string;
+  label: string;
+  onPress: () => void;
+  onLongPress?: () => void;
+}
+interface SidebarProps {
+  items: SidebarItem[];
+  selected?: string;
+  primaryAction?: { onPress: () => void };
+  footer: (state: { collapsed: boolean }) => ReactNode;
+}
+interface ShellState {
+  sidebarCollapsed: boolean;
+  moreExpanded: boolean;
+  toggleMore: () => void;
+  toggleSidebar: () => void;
+  viewMode?: unknown;
+}
+let mockSidebar: SidebarProps | null = null;
+let mockState: ShellState;
+/** The sidebar's last props; fails the test if the shell was not rendered. */
+function mockSidebarProps(): SidebarProps {
+  if (!mockSidebar) throw new Error('the app shell was not rendered');
+  return mockSidebar;
+}
 const mockMailboxes = [
   {
     _id: 'inbox-id',
@@ -40,21 +67,25 @@ const mockMailboxes = [
 ];
 jest.mock('react-native', () => ({
   useWindowDimensions: () => ({ width: 1440, height: 900 }),
-  View: ({ children }: any) => <div>{children}</div>,
+  View: ({ children }: Children) => <div>{children}</div>,
 }));
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush }),
   usePathname: () => mockPath,
 }));
 jest.mock('@oxy.so/bloom/content-panel', () => ({
-  ContentPanel: ({ children, appearance = 'solid' }: any) => (
+  ContentPanel: ({ children, appearance = 'solid' }: Children & { appearance?: string }) => (
     <div data-panel-appearance={appearance}>{children}</div>
   ),
 }));
 jest.mock('@oxy.so/bloom/styles', () => ({ BREAKPOINTS: { md: 768 } }));
 jest.mock('@oxy.so/bloom/app-shell', () => ({
   APP_SHELL_DEFAULTS: { dashboardGutter: 12 },
-  AppShell: ({ children, sidebar, bottomBar }: any) => {
+  AppShell: ({
+    children,
+    sidebar,
+    bottomBar,
+  }: Children & { sidebar: SidebarProps; bottomBar?: ReactNode }) => {
     mockSidebar = sidebar;
     return (
       <div>
@@ -64,7 +95,17 @@ jest.mock('@oxy.so/bloom/app-shell', () => ({
       </div>
     );
   },
-  AppShellSplitPanes: ({ list, detail, showList, showDetail }: any) => (
+  AppShellSplitPanes: ({
+    list,
+    detail,
+    showList,
+    showDetail,
+  }: {
+    list?: ReactNode;
+    detail?: ReactNode;
+    showList?: boolean;
+    showDetail?: boolean;
+  }) => (
     <div>
       {showList && list}
       {showDetail && detail}
@@ -74,11 +115,11 @@ jest.mock('@oxy.so/bloom/app-shell', () => ({
 jest.mock('@oxy.so/bloom/icons', () => new Proxy({}, { get: () => () => null }));
 jest.mock('@oxy.so/bloom/dialog', () => ({
   useDialogControl: () => ({ open: jest.fn(), close: jest.fn() }),
-  Dialog: ({ children, actions }: any) => (
+  Dialog: ({ children, actions }: Children & { actions?: DialogAction[] }) => (
     <div>
       {children}
-      {actions?.map((action: any) => (
-        <button key={action.label} onClick={action.onPress}>
+      {actions?.map((action: DialogAction) => (
+        <button type="button" key={action.label} onClick={action.onPress}>
           {action.label}
         </button>
       ))}
@@ -86,14 +127,22 @@ jest.mock('@oxy.so/bloom/dialog', () => ({
   ),
 }));
 jest.mock('@oxy.so/bloom/button', () => ({
-  Button: ({ children, onPress, disabled }: any) => (
-    <button disabled={disabled} onClick={onPress}>
+  Button: ({ children, onPress, disabled }: Pressable) => (
+    <button type="button" disabled={disabled} onClick={onPress}>
       {children}
     </button>
   ),
 }));
 jest.mock('@oxy.so/bloom/text-field', () => ({
-  TextFieldInput: ({ label, value, onChangeText }: any) => (
+  TextFieldInput: ({
+    label,
+    value,
+    onChangeText,
+  }: {
+    label?: string;
+    value?: string;
+    onChangeText: (text: string) => void;
+  }) => (
     <input
       aria-label={label}
       value={value}
@@ -103,8 +152,8 @@ jest.mock('@oxy.so/bloom/text-field', () => ({
 }));
 jest.mock('@oxy.so/services', () => ({
   useOxy: () => ({ isAuthenticated: mockAuthenticated }),
-  ProfileButton: () => <button>{mockAuthenticated ? 'Account' : 'Sign in'}</button>,
-  OxySignInButton: () => <button>Sign in</button>,
+  ProfileButton: () => <button type="button">{mockAuthenticated ? 'Account' : 'Sign in'}</button>,
+  OxySignInButton: () => <button type="button">Sign in</button>,
   openAccountDialog: jest.fn(),
 }));
 jest.mock('@/constants/theme', () => ({
@@ -134,7 +183,7 @@ jest.mock('@/hooks/mutations/useMailboxMutations', () => ({
   useDeleteMailbox: () => ({ mutate: mockDelete }),
 }));
 jest.mock('@/hooks/useEmail', () => ({
-  useEmailStore: Object.assign((selector: any) => selector(mockState), {
+  useEmailStore: Object.assign((selector: (state: ShellState) => unknown) => selector(mockState), {
     getState: () => mockState,
   }),
 }));
@@ -175,10 +224,10 @@ it('routes system mailboxes, custom folders, labels and compose without changing
       },
     ],
   ]) {
-    act(() => mockSidebar.items.find((item: any) => item.key === key).onPress());
+    act(() => defined(mockSidebarProps().items.find((item) => item.key === key)).onPress());
     expect(mockPush).toHaveBeenLastCalledWith(expected);
   }
-  act(() => mockSidebar.primaryAction.onPress());
+  act(() => defined(mockSidebarProps().primaryAction, 'the compose action').onPress());
   expect(mockPush).toHaveBeenLastCalledWith('/compose');
   expect(screen.getByRole('button', { name: 'Account' })).toBeTruthy();
 });
@@ -190,7 +239,8 @@ it('retains folder create and long-press delete mutations and a keyboard-accessi
   });
   fireEvent.click(screen.getByRole('button', { name: 'ui.drawer.createFolderButton' }));
   expect(mockCreate).toHaveBeenCalledWith({ name: 'Work' }, expect.any(Object));
-  act(() => mockSidebar.items.find((item: any) => item.key === 'custom-id').onLongPress());
+  const custom = defined(mockSidebarProps().items.find((item) => item.key === 'custom-id'));
+  act(() => defined(custom.onLongPress, 'a long-press handler')());
   fireEvent.click(screen.getByRole('button', { name: 'common.delete' }));
   expect(mockDelete).toHaveBeenCalledWith({ mailboxId: 'custom-id' }, expect.any(Object));
   fireEvent.click(screen.getByRole('button', { name: 'common.delete · Invoices' }));
@@ -201,11 +251,11 @@ it('retains folder create and long-press delete mutations and a keyboard-accessi
 it('selects label destinations and leaves auth-only actions absent when signed out', () => {
   mockPath = '/label/receipts';
   const view = render(<MailboxShell>{null}</MailboxShell>);
-  expect(mockSidebar.selected).toBe('label:receipts');
+  expect(mockSidebarProps().selected).toBe('label:receipts');
   mockAuthenticated = false;
   view.rerender(<MailboxShell>{null}</MailboxShell>);
-  expect(mockSidebar.items).toEqual([]);
-  expect(mockSidebar.primaryAction).toBeUndefined();
+  expect(mockSidebarProps().items).toEqual([]);
+  expect(mockSidebarProps().primaryAction).toBeUndefined();
   expect(screen.getByRole('button', { name: 'Sign in' })).toBeTruthy();
 });
 
@@ -213,7 +263,7 @@ it('keeps the source mailbox selected while reading a conversation', () => {
   mockPath = '/conversation/message-id';
   mockState.viewMode = { type: 'mailbox', mailbox: mockMailboxes[1] };
   render(<MailboxShell>{null}</MailboxShell>);
-  expect(mockSidebar.selected).toBe('sent-id');
+  expect(mockSidebarProps().selected).toBe('sent-id');
 });
 
 it('gives subscriptions one solid workspace while preserving the routed navigator state', () => {
@@ -266,7 +316,7 @@ it('names the IMAP \\Junk folder with the Spam key, not a raw "Junk"', () => {
   mockState.moreExpanded = true;
   try {
     render(<MailboxShell>{null}</MailboxShell>);
-    const junk = mockSidebar.items.find((item: any) => item.key === 'junk-id');
+    const junk = defined(mockSidebarProps().items.find((item) => item.key === 'junk-id'));
     expect(junk.label).toBe('T(drawer.mailboxes.Spam)');
   } finally {
     mockMailboxes.pop();

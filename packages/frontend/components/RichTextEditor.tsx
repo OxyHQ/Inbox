@@ -23,7 +23,7 @@ import {
   RiFormatClear,
 } from '@oxy.so/bloom/icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, StyleSheet, TextInput, View } from 'react-native';
+import { Platform, StyleSheet, type TextInput, View } from 'react-native';
 
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';

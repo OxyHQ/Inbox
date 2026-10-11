@@ -214,9 +214,7 @@ const FALLBACK_STRINGS = {
 };
 
 function fallbackStrings() {
-  const language = (self.navigator && self.navigator.language ? self.navigator.language : 'en')
-    .slice(0, 2)
-    .toLowerCase();
+  const language = (self.navigator?.language || 'en').slice(0, 2).toLowerCase();
   return FALLBACK_STRINGS[language] || FALLBACK_STRINGS.en;
 }
 
@@ -245,7 +243,7 @@ self.addEventListener('push', (event) => {
   let data = {};
   try {
     data = event.data ? event.data.json() : {};
-  } catch (error) {
+  } catch {
     data = { body: event.data ? event.data.text() : '' };
   }
 

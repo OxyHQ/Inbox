@@ -5,7 +5,6 @@
  * Triggered by pressing `?` (Shift+/) anywhere outside an input.
  */
 
-import React from 'react';
 import { View } from 'react-native';
 import { Kbd } from '@oxy.so/bloom/kbd';
 import { Dialog, type DialogControlProps } from '@oxy.so/bloom';

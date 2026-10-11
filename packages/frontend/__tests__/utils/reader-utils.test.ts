@@ -14,6 +14,7 @@ import { formatMoney, isPastDue, parseCardDate } from '@/utils/cardFormat';
 import { presetsThatMakeSense } from '@/utils/timePresets';
 import { parseByteSize } from '@/utils/byteSize';
 import { searchDateBound } from '@/utils/searchFilters';
+import { defined } from '../fixtures/defined';
 
 describe('cards', () => {
   it('formats an amount whose "currency" is a symbol instead of throwing', () => {
@@ -22,7 +23,7 @@ describe('cards', () => {
   });
 
   it('reads a date-only value as that local day', () => {
-    const date = parseCardDate('2026-10-15')!;
+    const date = defined(parseCardDate('2026-10-15'));
     expect([date.getFullYear(), date.getMonth(), date.getDate(), date.getHours()]).toEqual([
       2026, 9, 15, 0,
     ]);
@@ -46,7 +47,7 @@ describe('calendar export', () => {
   it('carries the UID and DTSTAMP every VEVENT needs, and real line breaks in its notes', () => {
     const ics = generateIcs(
       event as never,
-      calendarTimes(event)!,
+      defined(calendarTimes(event)),
       new Date('2026-10-01T00:00:00Z'),
     );
     expect(ics).toMatch(/\r\nUID:[^\r\n]+@inbox\.oxy\.so\r\n/);
@@ -58,7 +59,7 @@ describe('calendar export', () => {
   it('makes a date-only start an all-day event, and refuses an event with no readable start', () => {
     const ics = generateIcs(
       { title: 'Holiday' } as never,
-      calendarTimes({ startTime: '2026-12-25' })!,
+      defined(calendarTimes({ startTime: '2026-12-25' })),
     );
     expect(ics).toContain('DTSTART;VALUE=DATE:20261225');
     expect(ics).toContain('DTEND;VALUE=DATE:20261226');

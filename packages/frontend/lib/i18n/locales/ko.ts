@@ -999,7 +999,7 @@ const ko: LocaleDict = {
         whenMessage: '메시지의',
         sizeBytes: '크기(바이트)',
         value: '값',
-        then: '이면',
+        thenAction: '이면',
         creating: '만드는 중…',
         addFilter: '필터 추가',
         editingTemplate: '템플릿 편집 중',

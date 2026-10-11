@@ -1,3 +1,4 @@
+// biome-ignore lint/suspicious/noControlCharactersInRegex: control characters are invalid in a filename and are stripped on purpose.
 const INVALID_FILENAME_CHARACTERS = /[\u0000-\u001f\u007f"<>:*?|\\/]+/g;
 
 /** Keep user-controlled attachment names inside the app's download directory. */

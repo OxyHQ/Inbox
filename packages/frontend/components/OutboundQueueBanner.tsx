@@ -11,7 +11,7 @@
  * Renders nothing when there is nothing outstanding, which is the normal case.
  */
 
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription } from '@oxy.so/bloom/card';
 import { useRouter } from 'expo-router';
 

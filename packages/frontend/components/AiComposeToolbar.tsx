@@ -13,7 +13,7 @@ import { TextFieldInput } from '@oxy.so/bloom/text-field';
  * - Tone dropdown - Professional, Casual, Friendly, Formal
  */
 
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useCallback, useEffect, useRef, useState, type ComponentProps } from 'react';
 import { View } from 'react-native';
 

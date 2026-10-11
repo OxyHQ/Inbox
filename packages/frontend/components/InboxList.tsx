@@ -18,7 +18,8 @@ import { Loading } from '@oxy.so/bloom/loading';
 import { OxySignInButton, useOxy } from '@oxy.so/services';
 import { FlashList, type FlashListProps, type FlashListRef } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type React from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWindowDimensions, RefreshControl, StyleSheet, View } from 'react-native';
 import Animated, { type AnimatedProps } from 'react-native-reanimated';
 
@@ -505,6 +506,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       : viewMode?.type === 'label'
         ? `label:${viewMode.labelId}`
         : (viewMode?.type ?? 'none');
+  // biome-ignore lint/correctness/useExhaustiveDependencies: viewKey is the trigger — the selection clears when the view changes.
   useEffect(() => {
     clearSelection();
   }, [viewKey, clearSelection]);

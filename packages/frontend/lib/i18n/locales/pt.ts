@@ -1016,7 +1016,7 @@ const pt: LocaleDict = {
         whenMessage: 'Quando o campo da mensagem',
         sizeBytes: 'Tamanho em bytes',
         value: 'Valor',
-        then: 'então',
+        thenAction: 'então',
         creating: 'A criar…',
         addFilter: 'Adicionar filtro',
         editingTemplate: 'A editar modelo',

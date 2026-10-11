@@ -3,7 +3,15 @@
  */
 
 jest.mock('@oxy.so/bloom/item', () => ({
-  Item: ({ title, subtitle, trailing }: any) => (
+  Item: ({
+    title,
+    subtitle,
+    trailing,
+  }: {
+    title?: ReactNode;
+    subtitle?: ReactNode;
+    trailing?: ReactNode;
+  }) => (
     <div>
       <span>{title}</span>
       {subtitle}
@@ -12,18 +20,18 @@ jest.mock('@oxy.so/bloom/item', () => ({
   ),
 }));
 jest.mock('@oxy.so/bloom/button', () => ({
-  Button: ({ children, disabled, onPress }: any) => (
-    <button disabled={disabled} onClick={onPress}>
+  Button: ({ children, disabled, onPress }: Pressable) => (
+    <button type="button" disabled={disabled} onClick={onPress}>
       {children}
     </button>
   ),
 }));
 jest.mock('@oxy.so/bloom/typography', () => ({
-  Text: ({ children }: any) => <span>{children}</span>,
+  Text: ({ children }: Children) => <span>{children}</span>,
 }));
 jest.mock('@oxy.so/bloom/design-tokens', () => ({ SPACING: { 'space-2': 8 } }));
 jest.mock('react-native', () => ({
-  View: ({ children }: any) => <div>{children}</div>,
+  View: ({ children }: Children) => <div>{children}</div>,
   StyleSheet: { create: (styles: unknown) => styles },
 }));
 jest.mock('@/constants/theme', () => ({ useColors: () => ({ text: 'x', secondaryText: 'y' }) }));
@@ -47,6 +55,8 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { SubscriptionRow } from '@/components/SubscriptionRow';
 import { formatQuotaPercent } from '@/components/settings/sections/StorageSection';
 import type { Subscription } from '@/services/emailApi';
+import type { ReactNode } from 'react';
+import type { Children, Pressable } from '../fixtures/mockProps';
 
 const subscription = (overrides: Partial<Subscription> = {}): Subscription => ({
   _id: 'news@example.com',

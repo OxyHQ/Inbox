@@ -205,7 +205,6 @@ export function useMessageActions() {
       moveTo,
       archive,
       isArchived,
-      isArchived,
       deleteConversation,
       snooze,
       unsnooze,

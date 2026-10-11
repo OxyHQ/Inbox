@@ -449,10 +449,10 @@ export function AdvancedSection() {
                 : []),
               {
                 key: 'action',
-                label: t('ui.settings.advanced.then'),
+                label: t('ui.settings.advanced.thenAction'),
                 control: (
                   <SettingsPreferenceSelect
-                    label={t('ui.settings.advanced.then')}
+                    label={t('ui.settings.advanced.thenAction')}
                     value={filterAction}
                     onChange={setFilterAction}
                     items={actionOptions}

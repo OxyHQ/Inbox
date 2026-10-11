@@ -1022,7 +1022,7 @@ const de: LocaleDict = {
         whenMessage: 'Wenn bei einer Nachricht',
         sizeBytes: 'Größe in Bytes',
         value: 'Wert',
-        then: 'dann',
+        thenAction: 'dann',
         creating: 'Wird erstellt…',
         addFilter: 'Filter hinzufügen',
         editingTemplate: 'Vorlage wird bearbeitet',

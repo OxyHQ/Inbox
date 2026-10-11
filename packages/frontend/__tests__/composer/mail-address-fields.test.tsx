@@ -1,9 +1,17 @@
 import { MailAddressFields } from '@/components/MailAddressFields';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
+import { defined } from '../fixtures/defined';
+import type { Children, Pressable } from '../fixtures/mockProps';
+
+/** A recipient chip as Bloom's MailRecipientField takes it. */
+interface MockRecipient {
+  id: string;
+  address: string;
+}
 
 jest.mock('react-native', () => ({
-  View: ({ children }: any) => <div>{children}</div>,
+  View: ({ children }: Children) => <div>{children}</div>,
 }));
 jest.mock('@/lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
@@ -23,7 +31,16 @@ jest.mock('@oxy.so/bloom/mail-compose', () => ({
     onRecipientsChange,
     onSuggestionPress,
     trailing,
-  }: any) => (
+  }: {
+    label: string;
+    value: string;
+    onChangeText: (text: string) => void;
+    onSubmit: (text: string) => void;
+    recipients: MockRecipient[];
+    onRecipientsChange: (recipients: MockRecipient[]) => void;
+    onSuggestionPress: (recipient: MockRecipient) => void;
+    trailing?: ReactNode;
+  }) => (
     <section>
       <input
         aria-label={label}
@@ -33,17 +50,17 @@ jest.mock('@oxy.so/bloom/mail-compose', () => ({
           if (event.key === 'Enter') onSubmit(value);
         }}
       />
-      {recipients.map((item: any) => (
+      {recipients.map((item) => (
         <button
+          type="button"
           key={item.id}
-          onClick={() =>
-            onRecipientsChange(recipients.filter((other: any) => other.id !== item.id))
-          }
+          onClick={() => onRecipientsChange(recipients.filter((other) => other.id !== item.id))}
         >
           {item.address}
         </button>
       ))}
       <button
+        type="button"
         onClick={() =>
           onSuggestionPress({
             id: 'suggestion',
@@ -58,7 +75,11 @@ jest.mock('@oxy.so/bloom/mail-compose', () => ({
   ),
 }));
 jest.mock('@oxy.so/bloom/button', () => ({
-  Button: ({ children, onPress }: any) => <button onClick={onPress}>{children}</button>,
+  Button: ({ children, onPress }: Pressable) => (
+    <button type="button" onClick={onPress}>
+      {children}
+    </button>
+  ),
 }));
 jest.mock('@oxy.so/bloom/text-field', () => ({ TextFieldInput: () => null }));
 function Fixture() {
@@ -80,7 +101,7 @@ function Fixture() {
   );
 }
 function draft() {
-  return JSON.parse(screen.getByRole('status').textContent!);
+  return JSON.parse(defined(screen.getByRole('status').textContent));
 }
 it('retains unfinished addresses in the persisted draft without Enter, separately for each field', () => {
   render(<Fixture />);

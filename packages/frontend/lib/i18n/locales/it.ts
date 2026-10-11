@@ -1013,7 +1013,7 @@ const it: LocaleDict = {
         whenMessage: 'Quando il campo del messaggio',
         sizeBytes: 'Dimensione in byte',
         value: 'Valore',
-        then: 'allora',
+        thenAction: 'allora',
         creating: 'Creazione…',
         addFilter: 'Aggiungi filtro',
         editingTemplate: 'Modifica del modello',

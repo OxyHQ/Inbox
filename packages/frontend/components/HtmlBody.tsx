@@ -9,7 +9,8 @@
  */
 
 import { useTheme } from '@oxy.so/bloom/theme';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type React from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, Platform, StyleSheet } from 'react-native';
 import { getProxyBaseUrl, proxyExternalImages, sanitizeEmailHtml } from '../utils/htmlTransform';
 import { useTranslation } from '@/lib/i18n';
@@ -19,6 +20,7 @@ interface HtmlBodyProps {
 }
 
 const ALLOWED_EXTERNAL_LINK_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
+// biome-ignore lint/suspicious/noControlCharactersInRegex: strips the C0 controls and spaces a URL parser ignores around an href.
 const CONTROL_OR_SPACE_BOUNDARY = /^[\u0000-\u0020]+|[\u0000-\u0020]+$/g;
 
 /**
@@ -194,6 +196,7 @@ function HtmlBodyWeb({ html }: HtmlBodyProps) {
     [html, isDark, colors, videoLinkLabel, audioLinkLabel],
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: wrappedHtml is the trigger — a new srcDoc reloads the iframe, and the observers must re-attach to the new document.
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;

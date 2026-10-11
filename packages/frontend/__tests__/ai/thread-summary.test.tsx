@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useThreadSummary } from '@/hooks/queries/useThreadSummary';

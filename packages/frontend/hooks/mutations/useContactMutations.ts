@@ -44,7 +44,7 @@ async function optimisticContacts(
 }
 
 function restoreContacts(queryClient: ReturnType<typeof useQueryClient>, prev: ContactsSnapshot) {
-  prev.forEach(([key, data]) => queryClient.setQueryData(key, data));
+  for (const [key, data] of prev) queryClient.setQueryData(key, data);
 }
 
 export function useCreateContact() {

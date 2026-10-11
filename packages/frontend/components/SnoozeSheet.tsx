@@ -10,7 +10,7 @@ import { Text as BloomText } from '@oxy.so/bloom/typography';
  * dismissal and animated transitions.
  */
 
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheet, type BottomSheetRef } from '@oxy.so/bloom/bottom-sheet';
 import { useCallback, useEffect, useRef } from 'react';
 import { View } from 'react-native';

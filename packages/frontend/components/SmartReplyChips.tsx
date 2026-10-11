@@ -59,6 +59,7 @@ export function SmartReplyChips({ message, onSelectReply }: SmartReplyChipsProps
         ) : (
           replies.map((reply, index) => (
             <Chip
+              // biome-ignore lint/suspicious/noArrayIndexKey: stateless chips, replaced as a whole on each generation; two replies can be the same text.
               key={index}
               appearance="subtle"
               tone="accent"

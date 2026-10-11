@@ -1,9 +1,7 @@
-# Static edge activity
+# Web activity
 
-The Inbox Worker observes static pages and assets through the shared edge publisher. Mailbox, SMTP and webhook activity belongs to the Oxy API; this repository has no backend.
+Inbox's web traffic (`inbox.oxy.so`, Worker `oxy-inbox`) is measured keylessly by Oxy from Cloudflare's own analytics — see OxyHQ/oxy `docs/operations/cloudflare-web-activity.md`. Mailbox, SMTP and webhook activity belongs to the Oxy API; this repository has no backend.
 
-Enable only the deployed Worker with private bindings `OXY_EDGE_ACTIVITY_ENABLED=true`, `OXY_EDGE_ACTIVITY_API_KEY`, `OXY_EDGE_ACTIVITY_API_SECRET`, and optional `OXY_EDGE_ACTIVITY_API_URL`. Credentials must never appear in Expo public variables or generated assets. Telemetry is disabled by default and publishing failures preserve the response and its stream.
+This app holds no Oxy activity secret and runs no activity code: the Worker passes every request straight to its `ASSETS` binding. The `OXY_EDGE_ACTIVITY_*` bindings of the retired edge observer were never provisioned and nothing reads them now; if an operator ever finds one on a deployment, delete it.
 
-Each request and response contributes a bounded operation with service, Cloudflare PoP, direction and category. No IPs, URLs, user IDs or payloads are published. A serving PoP is infrastructure metadata: external activity appears as a pulse, not an invented arc to a visitor location.
-
-The Worker uses published `@oxy.so/telemetry@1.1.1`, pinned in `bun.lock`. Edge checks run with the frontend test command.
+The Worker's pass-through behaviour (response, stream, headers and error propagation) is checked by `scripts/worker.test.mjs`, which runs with the frontend test command.

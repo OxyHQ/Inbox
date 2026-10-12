@@ -70,13 +70,17 @@ afterwards** (`packages/api/src/services/emailDelivery.service.ts`):
   Only "no relay configured at all" (503) and a refused recipient (400) still
   fail the request itself.
 - A key reused for a DIFFERENT message is refused (OxyHQ/oxy#1676): 422 with
-  `details.reason: "idempotency_key_reused"` and `details.id` naming what the
-  key already sent. A composer restored after a crash meets it — it resumes the
-  old key but renders the body again, so the bytes differ. The client reads it
-  as "already sent from this compose" (`alreadySentUnderKey` in
-  `utils/sendIdempotency.ts`): a toast linking to the message, then the
-  composer closes like a send that went through. It never resends under a new
-  key; that would be the duplicate the key prevents.
+  `details.reason: "idempotency_key_reused"`, and `id`, `deliveryState` and
+  `scheduledAt` of what the key already sent (`alreadySentUnderKey` in
+  `utils/sendIdempotency.ts`; no `deliveryState` reads as `unknown`). A
+  composer restored after a crash meets it: it resumes the old key but renders
+  the body again. A restore counts as an attempted send, so an edit after it
+  rotates the key like an edit after a send that got no answer. On the 422
+  (`handleKeyReused` in `hooks/useComposeSession.ts`): content unchanged since
+  the restore or attempt, and that version not `failed`/`cancelled`, closes the
+  composer as sent — a toast linking to it, the leftover server draft and the
+  snapshot discarded. Anything else stays open with its edits and asks whether
+  to send it as a new message; only a yes mints a new key.
 - The outbox row IS the delivery; there is no second table. Every message read
   carries `delivery` (`@oxy.so/contracts` `emailMessageDeliverySchema`):
   `sending`, `retrying` (with `nextAttemptAt`), `sent`, or `failed`, with the

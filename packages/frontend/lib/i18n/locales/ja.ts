@@ -438,6 +438,19 @@ const ja: LocaleDict = {
       discard: '破棄',
       discardDraft: '下書きを破棄',
     },
+    alreadySent: {
+      closedSent: 'この作成内容は既に送信済みです。',
+      closedScheduled: 'この作成内容は既に {{time}} に送信予約済みです。',
+      versionSent: 'このメッセージの別のバージョンが既に送信されています。',
+      versionScheduled: 'このメッセージの別のバージョンが既に {{time}} に送信予約されています。',
+      versionFailed:
+        'このメッセージの別のバージョンは送信に失敗しました。開いて再試行してください。',
+      versionCancelled: 'このメッセージの別のバージョンはキャンセルされました。',
+      prompt: '新しいメッセージとして送信しますか?',
+      sendAsNew: '新規として送信',
+      view: '表示',
+      keepEditing: '編集を続ける',
+    },
     saveDraftPrompt: {
       title: '下書きを保存しますか?',
       description: 'このメッセージを下書きとして保存しますか?',
@@ -456,8 +469,6 @@ const ja: LocaleDict = {
         'この下書きは別のデバイスで変更、送信、または削除されました。あなたの内容は新しい下書きとして保存されます。',
       draftGoneConflict:
         'この下書きは別のデバイスで送信または削除されました。あなたの内容は新しい下書きとして保存されます。',
-      alreadySent: 'このメッセージは既に送信済みです。',
-      viewSent: '表示',
     },
   },
 

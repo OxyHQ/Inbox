@@ -442,6 +442,19 @@ const it: LocaleDict = {
       discard: 'Scarta',
       discardDraft: 'Elimina bozza',
     },
+    alreadySent: {
+      closedSent: 'Già inviato da questa bozza.',
+      closedScheduled: 'Già programmato da questa bozza per {{time}}.',
+      versionSent: 'Una versione di questo messaggio è già stata inviata.',
+      versionScheduled: 'Una versione di questo messaggio è già programmata per {{time}}.',
+      versionFailed:
+        "L'invio di una versione di questo messaggio non è riuscito. Aprila per riprovare.",
+      versionCancelled: 'Una versione di questo messaggio è stata annullata.',
+      prompt: 'Inviare questo come nuovo messaggio?',
+      sendAsNew: 'Invia come nuovo',
+      view: 'Vedi',
+      keepEditing: 'Continua a modificare',
+    },
     saveDraftPrompt: {
       title: 'Salvare la bozza?',
       description: 'Vuoi salvare questo messaggio come bozza?',
@@ -460,8 +473,6 @@ const it: LocaleDict = {
         'Questa bozza è stata modificata su un altro dispositivo, oppure lì è stata inviata o eliminata. La tua versione verrà salvata come nuova bozza.',
       draftGoneConflict:
         'Questa bozza è stata inviata o eliminata su un altro dispositivo. La tua versione verrà salvata come nuova bozza.',
-      alreadySent: 'Questo messaggio era già stato inviato.',
-      viewSent: 'Vedi',
     },
   },
 

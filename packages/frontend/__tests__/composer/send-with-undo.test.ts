@@ -225,7 +225,7 @@ describe('a key that already sent a different message', () => {
    * key" must never reach the user — following it sends the message twice.
    */
   it('is reported as already sent, not as a failure', async () => {
-    sendMessage.mockRejectedValue(keyReusedError('sent-row-1'));
+    sendMessage.mockRejectedValue(keyReusedError());
     const onSuccess = jest.fn();
     const onError = jest.fn();
     const onAlreadySent = jest.fn();
@@ -239,6 +239,8 @@ describe('a key that already sent a different message', () => {
     expect(onAlreadySent).toHaveBeenCalledWith({
       id: 'sent-row-1',
       messageId: '<inbox-send-1@oxy.so>',
+      deliveryState: 'sent',
+      scheduledAt: null,
     });
     expect(onError).not.toHaveBeenCalled();
     expect(onSuccess).not.toHaveBeenCalled();

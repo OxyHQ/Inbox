@@ -445,6 +445,18 @@ const fr: LocaleDict = {
       discard: 'Abandonner',
       discardDraft: 'Supprimer le brouillon',
     },
+    alreadySent: {
+      closedSent: 'Déjà envoyé depuis cette rédaction.',
+      closedScheduled: 'Déjà planifié depuis cette rédaction pour le {{time}}.',
+      versionSent: 'Une version de ce message a déjà été envoyée.',
+      versionScheduled: 'Une version de ce message est déjà planifiée pour le {{time}}.',
+      versionFailed: "L'envoi d'une version de ce message a échoué. Ouvre-la pour réessayer.",
+      versionCancelled: 'Une version de ce message a été annulée.',
+      prompt: 'Envoyer ceci comme un nouveau message ?',
+      sendAsNew: 'Envoyer comme nouveau',
+      view: 'Voir',
+      keepEditing: 'Continuer la rédaction',
+    },
     saveDraftPrompt: {
       title: 'Enregistrer le brouillon ?',
       description: 'Veux-tu enregistrer ce message comme brouillon ?',
@@ -463,8 +475,6 @@ const fr: LocaleDict = {
         'Ce brouillon a été modifié sur un autre appareil, ou y a été envoyé ou supprimé. Ta version sera enregistrée comme nouveau brouillon.',
       draftGoneConflict:
         'Ce brouillon a été envoyé ou supprimé sur un autre appareil. Ta version sera enregistrée comme nouveau brouillon.',
-      alreadySent: 'Ce message avait déjà été envoyé.',
-      viewSent: 'Voir',
     },
   },
 

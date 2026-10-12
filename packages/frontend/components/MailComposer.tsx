@@ -83,6 +83,7 @@ export function MailComposer({
     });
   }, [showBottomSheet, session]);
 
+  const sentVersion = session.sentVersion;
   const saveDraftDialog = useDialogControl();
   const discardDialog = useDialogControl();
   const sendMenuControl = useDialogControl();
@@ -274,6 +275,37 @@ export function MailComposer({
           },
           { label: t('common.cancel'), color: 'cancel' },
         ]}
+      />
+
+      {/*
+        The API refused the session's key: another version of this compose was
+        already sent, scheduled, or failed or cancelled. Only the user decides
+        whether this one goes out as a new message.
+      */}
+      <Dialog
+        open={Boolean(sentVersion)}
+        onClose={session.dismissSentVersion}
+        title={sentVersion?.notice}
+        description={t('compose.alreadySent.prompt')}
+        actions={
+          sentVersion
+            ? [
+                {
+                  label: t('compose.alreadySent.sendAsNew'),
+                  onPress: () => session.sendAsNew(sentVersion),
+                },
+                ...(sentVersion.sent.id
+                  ? [
+                      {
+                        label: t('compose.alreadySent.view'),
+                        onPress: () => session.viewSent(sentVersion.sent),
+                      },
+                    ]
+                  : []),
+                { label: t('compose.alreadySent.keepEditing'), color: 'cancel' as const },
+              ]
+            : []
+        }
       />
 
       <Dialog

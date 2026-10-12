@@ -440,6 +440,18 @@ const en: LocaleDict = {
       discard: 'Discard',
       discardDraft: 'Discard draft',
     },
+    alreadySent: {
+      closedSent: 'Already sent from this compose.',
+      closedScheduled: 'Already scheduled from this compose for {{time}}.',
+      versionSent: 'A version of this was already sent.',
+      versionScheduled: 'A version of this is already scheduled for {{time}}.',
+      versionFailed: 'A version of this failed to send. Open it to retry it there.',
+      versionCancelled: 'A version of this was cancelled.',
+      prompt: 'Send this as a new message?',
+      sendAsNew: 'Send as new',
+      view: 'View',
+      keepEditing: 'Keep editing',
+    },
     saveDraftPrompt: {
       title: 'Save draft?',
       description: 'Do you want to save this message as a draft?',
@@ -458,8 +470,6 @@ const en: LocaleDict = {
         'This draft changed on another device, or was sent or deleted there. Your version will be saved as a new draft.',
       draftGoneConflict:
         'This draft was sent or deleted on another device. Your version will be saved as a new draft.',
-      alreadySent: 'Already sent from this compose.',
-      viewSent: 'View',
     },
   },
 

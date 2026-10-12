@@ -446,6 +446,18 @@ const pt: LocaleDict = {
       discard: 'Descartar',
       discardDraft: 'Descartar rascunho',
     },
+    alreadySent: {
+      closedSent: 'Já enviado a partir desta composição.',
+      closedScheduled: 'Já agendado a partir desta composição para {{time}}.',
+      versionSent: 'Uma versão desta mensagem já foi enviada.',
+      versionScheduled: 'Uma versão desta mensagem já está agendada para {{time}}.',
+      versionFailed: 'Uma versão desta mensagem não foi enviada. Abra-a para tentar novamente.',
+      versionCancelled: 'Uma versão desta mensagem foi cancelada.',
+      prompt: 'Enviar isto como uma nova mensagem?',
+      sendAsNew: 'Enviar como nova',
+      view: 'Ver',
+      keepEditing: 'Continuar editando',
+    },
     saveDraftPrompt: {
       title: 'Guardar rascunho?',
       description: 'Queres guardar esta mensagem como rascunho?',
@@ -464,8 +476,6 @@ const pt: LocaleDict = {
         'Este rascunho foi alterado em outro dispositivo, ou foi enviado ou excluído lá. Sua versão será salva como um novo rascunho.',
       draftGoneConflict:
         'Este rascunho foi enviado ou excluído em outro dispositivo. Sua versão será salva como um novo rascunho.',
-      alreadySent: 'Esta mensagem já tinha sido enviada.',
-      viewSent: 'Ver',
     },
   },
 

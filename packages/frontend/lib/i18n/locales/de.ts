@@ -446,6 +446,19 @@ const de: LocaleDict = {
       discard: 'Verwerfen',
       discardDraft: 'Entwurf verwerfen',
     },
+    alreadySent: {
+      closedSent: 'Aus diesem Entwurf bereits gesendet.',
+      closedScheduled: 'Aus diesem Entwurf bereits für {{time}} geplant.',
+      versionSent: 'Eine Version dieser Nachricht wurde bereits gesendet.',
+      versionScheduled: 'Eine Version dieser Nachricht ist bereits für {{time}} geplant.',
+      versionFailed:
+        'Eine Version dieser Nachricht konnte nicht gesendet werden. Öffne sie, um es dort erneut zu versuchen.',
+      versionCancelled: 'Eine Version dieser Nachricht wurde abgebrochen.',
+      prompt: 'Als neue Nachricht senden?',
+      sendAsNew: 'Als neu senden',
+      view: 'Ansehen',
+      keepEditing: 'Weiter bearbeiten',
+    },
     saveDraftPrompt: {
       title: 'Entwurf speichern?',
       description: 'Möchtest du diese Nachricht als Entwurf speichern?',
@@ -464,8 +477,6 @@ const de: LocaleDict = {
         'Dieser Entwurf wurde auf einem anderen Gerät geändert, gesendet oder gelöscht. Deine Version wird als neuer Entwurf gespeichert.',
       draftGoneConflict:
         'Dieser Entwurf wurde auf einem anderen Gerät gesendet oder gelöscht. Deine Version wird als neuer Entwurf gespeichert.',
-      alreadySent: 'Diese Nachricht wurde bereits gesendet.',
-      viewSent: 'Ansehen',
     },
   },
 

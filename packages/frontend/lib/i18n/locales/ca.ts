@@ -443,6 +443,19 @@ const ca: LocaleDict = {
       discard: 'Descarta',
       discardDraft: "Descarta l'esborrany",
     },
+    alreadySent: {
+      closedSent: "Ja s'havia enviat des d'aquesta redacció.",
+      closedScheduled: "Ja s'havia programat des d'aquesta redacció per al {{time}}.",
+      versionSent: "Ja s'ha enviat una versió d'aquest missatge.",
+      versionScheduled: "Ja hi ha una versió d'aquest missatge programada per al {{time}}.",
+      versionFailed:
+        "No s'ha pogut enviar una versió d'aquest missatge. Obre-la per tornar-ho a provar.",
+      versionCancelled: "S'ha cancel·lat una versió d'aquest missatge.",
+      prompt: 'Vols enviar-ho com un missatge nou?',
+      sendAsNew: 'Envia com a nou',
+      view: 'Mostra',
+      keepEditing: 'Continua editant',
+    },
     saveDraftPrompt: {
       title: "Desar l'esborrany?",
       description: 'Vols desar aquest missatge com a esborrany?',
@@ -461,8 +474,6 @@ const ca: LocaleDict = {
         "Aquest esborrany ha canviat en un altre dispositiu, o s'hi ha enviat o eliminat. La teva versió es desarà com un esborrany nou.",
       draftGoneConflict:
         "Aquest esborrany s'ha enviat o eliminat en un altre dispositiu. La teva versió es desarà com un esborrany nou.",
-      alreadySent: "Aquest missatge ja s'havia enviat.",
-      viewSent: 'Mostra',
     },
   },
 

@@ -432,6 +432,18 @@ const zh: LocaleDict = {
       discard: '舍弃',
       discardDraft: '舍弃草稿',
     },
+    alreadySent: {
+      closedSent: '此邮件已从本次撰写中发送。',
+      closedScheduled: '此邮件已从本次撰写中定时于 {{time}} 发送。',
+      versionSent: '此邮件的一个版本已经发送。',
+      versionScheduled: '此邮件的一个版本已定时于 {{time}} 发送。',
+      versionFailed: '此邮件的一个版本发送失败。打开它即可重试。',
+      versionCancelled: '此邮件的一个版本已被取消。',
+      prompt: '将此作为新邮件发送?',
+      sendAsNew: '作为新邮件发送',
+      view: '查看',
+      keepEditing: '继续编辑',
+    },
     saveDraftPrompt: {
       title: '保存草稿?',
       description: '是否将此消息保存为草稿?',
@@ -448,8 +460,6 @@ const zh: LocaleDict = {
       draftSaved: '草稿已保存。',
       draftConflict: '此草稿已在另一台设备上被更改、发送或删除。你的版本将另存为新草稿。',
       draftGoneConflict: '此草稿已在另一台设备上发送或删除。你的版本将另存为新草稿。',
-      alreadySent: '此邮件已经发送过了。',
-      viewSent: '查看',
     },
   },
 

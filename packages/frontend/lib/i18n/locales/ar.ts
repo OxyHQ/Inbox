@@ -473,6 +473,18 @@ const ar: LocaleDict = {
       discard: 'تجاهل',
       discardDraft: 'تجاهل المسودة',
     },
+    alreadySent: {
+      closedSent: 'تم الإرسال من هذه المسودة من قبل.',
+      closedScheduled: 'تمت جدولة هذه المسودة من قبل في {{time}}.',
+      versionSent: 'تم إرسال نسخة من هذه الرسالة من قبل.',
+      versionScheduled: 'توجد نسخة من هذه الرسالة مجدولة في {{time}}.',
+      versionFailed: 'تعذّر إرسال نسخة من هذه الرسالة. افتحها لإعادة المحاولة.',
+      versionCancelled: 'تم إلغاء نسخة من هذه الرسالة.',
+      prompt: 'هل تريد إرسال هذه كرسالة جديدة؟',
+      sendAsNew: 'إرسال كرسالة جديدة',
+      view: 'عرض',
+      keepEditing: 'متابعة التحرير',
+    },
     saveDraftPrompt: {
       title: 'حفظ المسودة؟',
       description: 'هل تريد حفظ هذه الرسالة كمسودة؟',
@@ -490,8 +502,6 @@ const ar: LocaleDict = {
       draftConflict:
         'تم تغيير هذه المسودة أو إرسالها أو حذفها على جهاز آخر. سيتم حفظ نسختك كمسودة جديدة.',
       draftGoneConflict: 'تم إرسال هذه المسودة أو حذفها على جهاز آخر. سيتم حفظ نسختك كمسودة جديدة.',
-      alreadySent: 'تم إرسال هذه الرسالة من قبل.',
-      viewSent: 'عرض',
     },
   },
 

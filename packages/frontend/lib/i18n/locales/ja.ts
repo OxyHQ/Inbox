@@ -530,6 +530,7 @@ const ja: LocaleDict = {
     failed: '未配信',
     retry: '再試行',
     editAsNew: '新規として編集',
+    editAsNewError: 'このメッセージを新規として開けませんでした。',
     retryStarted: 'もう一度送信しています。',
     retryError: 'このメッセージを再試行できませんでした。',
     failedToast: '未配信: {{subject}}',

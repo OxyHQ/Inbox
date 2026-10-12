@@ -558,6 +558,43 @@ describe('a recovered message', () => {
   });
 });
 
+describe('a send that failed without an answer', () => {
+  async function failedSend() {
+    const rendered = renderHook(() =>
+      useComposeSession(options({ initial: { to: 'ann@example.com', subject: 'Plan' } })),
+    );
+    await settle();
+    act(() => rendered.result.current.updateBody('First text'));
+    await settle();
+    await act(async () => {
+      await rendered.result.current.send();
+    });
+    const [payload, callbacks] = sendWithUndo.mock.calls[0];
+    // It timed out: the server may hold it all the same.
+    act(() => callbacks.onError(new Error('timeout')));
+    await settle();
+    return { ...rendered, key: payload.idempotencyKey as string };
+  }
+
+  it('is the same message when sent again unchanged', async () => {
+    const { result, key } = await failedSend();
+    await act(async () => {
+      await result.current.send();
+    });
+    expect(sendWithUndo.mock.calls[1][0].idempotencyKey).toBe(key);
+  });
+
+  it('is a new message once it is edited, so the edits are not answered with the old one', async () => {
+    const { result, key } = await failedSend();
+    act(() => result.current.updateBody('Corrected text'));
+    await settle();
+    await act(async () => {
+      await result.current.send();
+    });
+    expect(sendWithUndo.mock.calls[1][0].idempotencyKey).not.toBe(key);
+  });
+});
+
 describe('discarding inside the undo window', () => {
   it('calls the send off', async () => {
     const cancel = jest.fn(() => true);

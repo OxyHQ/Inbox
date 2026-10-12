@@ -313,6 +313,23 @@ export function useComposeSession({
     };
   }, []);
 
+  // ── A send that may have reached the server ──────────────────────
+  /**
+   * The content of the last send that went to the server without an answer —
+   * it failed, or timed out, and the server may hold it all the same. Sending
+   * that content again reuses the key, so the API sees the same message. Once
+   * the content differs it is a different message and needs a new key: under
+   * the old one the API answers with the message it already filed, and the
+   * edits would be dropped while the composer closed as if they had gone.
+   */
+  const attemptedContentKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    const attempted = attemptedContentKeyRef.current;
+    if (attempted === null || attempted === contentKey) return;
+    attemptedContentKeyRef.current = null;
+    setIdempotencyKey(newSendIdempotencyKey());
+  }, [contentKey]);
+
   // ── Local crash recovery ──────────────────────────────────────────
   // biome-ignore lint/correctness/useExhaustiveDependencies: Seeded once per session, like the fields themselves.
   useEffect(() => {
@@ -625,6 +642,7 @@ export function useComposeSession({
       onError: () => {
         pendingSendRef.current = null;
         sentRef.current = false;
+        attemptedContentKeyRef.current = latest.current.contentKey;
       },
       onCancel: () => {
         pendingSendRef.current = null;
@@ -669,6 +687,7 @@ export function useComposeSession({
           },
           onError: (err: Error) => {
             sentRef.current = false;
+            attemptedContentKeyRef.current = latest.current.contentKey;
             toast.error(err.message || t('compose.toast.scheduleFailed'));
           },
         },

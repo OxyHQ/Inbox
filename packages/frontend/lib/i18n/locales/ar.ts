@@ -567,6 +567,7 @@ const ar: LocaleDict = {
     failed: 'لم يُسلَّم',
     retry: 'إعادة المحاولة',
     editAsNew: 'تعديل كرسالة جديدة',
+    editAsNewError: 'تعذّر فتح هذه الرسالة كرسالة جديدة.',
     retryStarted: 'جارٍ إرسالها مرة أخرى.',
     retryError: 'تعذّرت إعادة محاولة هذه الرسالة.',
     failedToast: 'لم يُسلَّم: {{subject}}',

@@ -8,7 +8,6 @@
  */
 
 import { StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Text } from '@oxy.so/bloom/typography';
 import {
   AdmonitionButton,
@@ -20,10 +19,11 @@ import {
 } from '@oxy.so/bloom/admonition';
 
 import { useColors } from '@/constants/theme';
+import { useEditAsNew } from '@/hooks/mutations/useEditAsNew';
 import { useRetryDelivery } from '@/hooks/mutations/useRetryDelivery';
 import { useTranslation } from '@/lib/i18n';
 import type { Message, MessageDelivery } from '@/schemas/emailSchemas';
-import { canRetry, deliveryReasonKey, editAsNewParams, isOutstanding } from '@/utils/delivery';
+import { canRetry, deliveryReasonKey, isOutstanding } from '@/utils/delivery';
 
 /** The one-line label for a delivery: "Sending…", "Retrying (2)", "Not delivered". */
 export function useDeliveryLabel() {
@@ -64,7 +64,7 @@ export function DeliveryBadge({ delivery }: { delivery: MessageDelivery | undefi
 /** Full status for an open message: why, when it retries, and what to do. */
 export function DeliveryNotice({ message }: { message: Message }) {
   const { t } = useTranslation();
-  const router = useRouter();
+  const editAsNew = useEditAsNew();
   const label = useDeliveryLabel();
   const retry = useRetryDelivery();
   const { delivery } = message;
@@ -106,9 +106,8 @@ export function DeliveryNotice({ message }: { message: Message }) {
                 </AdmonitionButton>
               ) : null}
               <AdmonitionButton
-                onPress={() =>
-                  router.push({ pathname: '/compose', params: editAsNewParams(message) })
-                }
+                onPress={() => editAsNew.editAsNew(message)}
+                disabled={editAsNew.isPending}
               >
                 {t('delivery.editAsNew')}
               </AdmonitionButton>

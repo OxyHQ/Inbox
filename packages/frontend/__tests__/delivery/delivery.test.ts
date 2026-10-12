@@ -2,7 +2,7 @@ import { MessageSchema } from '@/schemas/emailSchemas';
 import {
   canRetry,
   deliveryReasonKey,
-  editAsNewParams,
+  draftFromMessage,
   isOutstanding,
   isUndelivered,
   outstandingDeliveries,
@@ -69,21 +69,40 @@ describe('reading a delivery', () => {
     expect(pending.map((m) => m._id)).toEqual(['r']);
   });
 
-  it('reopens a failed message in the composer as a new one', () => {
+  it('reopens a failed message as a draft that keeps everything it had', () => {
     const failed = MessageSchema.parse(
       wireMessage({
         to: [{ name: '', address: 'support@example.com' }],
         cc: [{ name: 'Ops', address: 'ops@example.com' }],
+        bcc: [{ name: '', address: 'me@oxy.so' }],
         subject: 'Re: Quota',
         text: 'Thanks',
+        html: '<p>Thanks</p>',
+        inReplyTo: '<case@example.com>',
+        references: ['<case@example.com>'],
+        attachments: [
+          {
+            fileId: 'file-1',
+            name: 'quota.pdf',
+            contentType: 'application/pdf',
+            size: 10,
+            contentId: null,
+            isInline: false,
+          },
+        ],
         delivery: wireDelivery(),
       }),
     );
-    expect(editAsNewParams(failed)).toEqual({
-      to: 'support@example.com',
-      cc: 'ops@example.com',
+    expect(draftFromMessage(failed)).toEqual({
+      to: [{ address: 'support@example.com' }],
+      cc: [{ name: 'Ops', address: 'ops@example.com' }],
+      bcc: [{ address: 'me@oxy.so' }],
       subject: 'Re: Quota',
-      body: 'Thanks',
+      text: 'Thanks',
+      html: '<p>Thanks</p>',
+      inReplyTo: '<case@example.com>',
+      references: ['<case@example.com>'],
+      attachments: [{ fileId: 'file-1', isInline: false }],
     });
   });
 });

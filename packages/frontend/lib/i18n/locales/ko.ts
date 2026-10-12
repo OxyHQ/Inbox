@@ -527,6 +527,7 @@ const ko: LocaleDict = {
     failed: '전달되지 않음',
     retry: '다시 시도',
     editAsNew: '새 메시지로 편집',
+    editAsNewError: '이 메시지를 새 메시지로 열 수 없습니다.',
     retryStarted: '다시 보내는 중입니다.',
     retryError: '이 메시지를 다시 시도할 수 없습니다.',
     failedToast: '전달되지 않음: {{subject}}',

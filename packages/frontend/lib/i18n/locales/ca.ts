@@ -535,6 +535,7 @@ const ca: LocaleDict = {
     failed: 'No lliurat',
     retry: 'Torna-ho a provar',
     editAsNew: 'Edita com a nou',
+    editAsNewError: "No s'ha pogut obrir aquest missatge com un de nou.",
     retryStarted: "S'està tornant a enviar.",
     retryError: "No s'ha pogut tornar a provar aquest missatge.",
     failedToast: 'No lliurat: {{subject}}',

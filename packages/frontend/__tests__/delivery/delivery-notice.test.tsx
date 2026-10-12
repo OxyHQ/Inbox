@@ -12,8 +12,10 @@ jest.mock('react-native', () => ({
   View: ({ children }: { children?: unknown }) =>
     require('react').createElement('div', null, children),
 }));
-const push = jest.fn();
-jest.mock('expo-router', () => ({ useRouter: () => ({ push }) }));
+const editAsNew = jest.fn();
+jest.mock('@/hooks/mutations/useEditAsNew', () => ({
+  useEditAsNew: () => ({ editAsNew, isPending: false }),
+}));
 jest.mock('@/lib/i18n', () => ({
   useTranslation: () => ({
     t: (key: string, vars?: Record<string, unknown>) =>
@@ -61,7 +63,7 @@ const message = (delivery?: Record<string, unknown>) =>
 
 beforeEach(() => {
   mutate.mockReset();
-  push.mockReset();
+  editAsNew.mockReset();
 });
 
 describe('DeliveryNotice', () => {
@@ -86,10 +88,7 @@ describe('DeliveryNotice', () => {
     expect(mutate).toHaveBeenCalledWith('row-1');
 
     fireEvent.click(screen.getByText('delivery.editAsNew'));
-    expect(push).toHaveBeenCalledWith({
-      pathname: '/compose',
-      params: { to: 'support@example.com', subject: 'Re: Quota', body: 'Thanks' },
-    });
+    expect(editAsNew).toHaveBeenCalledWith(expect.objectContaining({ _id: 'row-1' }));
   });
 
   it('offers no Retry for a bounce, which the server would refuse', () => {

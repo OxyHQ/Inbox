@@ -521,6 +521,7 @@ const zh: LocaleDict = {
     failed: '未送达',
     retry: '重试',
     editAsNew: '作为新邮件编辑',
+    editAsNewError: '无法将此邮件作为新邮件打开。',
     retryStarted: '正在重新发送。',
     retryError: '无法重试此邮件。',
     failedToast: '未送达：{{subject}}',

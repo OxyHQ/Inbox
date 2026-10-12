@@ -531,6 +531,7 @@ const en: LocaleDict = {
     failed: 'Not delivered',
     retry: 'Retry',
     editAsNew: 'Edit as new',
+    editAsNewError: "Couldn't open this message as a new one.",
     retryStarted: 'Sending it again.',
     retryError: "Couldn't retry this message.",
     failedToast: 'Not delivered: {{subject}}',

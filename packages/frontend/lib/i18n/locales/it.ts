@@ -534,6 +534,7 @@ const it: LocaleDict = {
     failed: 'Non consegnato',
     retry: 'Riprova',
     editAsNew: 'Modifica come nuovo',
+    editAsNewError: 'Impossibile aprire questo messaggio come nuovo.',
     retryStarted: 'Nuovo invio in corso.',
     retryError: 'Impossibile riprovare questo messaggio.',
     failedToast: 'Non consegnato: {{subject}}',

@@ -537,6 +537,7 @@ const fr: LocaleDict = {
     failed: 'Non distribué',
     retry: 'Réessayer',
     editAsNew: 'Modifier comme nouveau',
+    editAsNewError: "Impossible d'ouvrir ce message comme un nouveau.",
     retryStarted: 'Nouvel envoi en cours.',
     retryError: 'Impossible de réessayer ce message.',
     failedToast: 'Non distribué : {{subject}}',

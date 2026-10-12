@@ -538,6 +538,7 @@ const de: LocaleDict = {
     failed: 'Nicht zugestellt',
     retry: 'Erneut versuchen',
     editAsNew: 'Als neu bearbeiten',
+    editAsNewError: 'Diese Nachricht konnte nicht als neue geöffnet werden.',
     retryStarted: 'Wird erneut gesendet.',
     retryError: 'Diese Nachricht konnte nicht erneut versucht werden.',
     failedToast: 'Nicht zugestellt: {{subject}}',

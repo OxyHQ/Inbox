@@ -6,7 +6,7 @@
  * message says whether it did; these are the questions the UI asks of it.
  */
 
-import type { Message, MessageDelivery } from '@/schemas/emailSchemas';
+import type { Message, MessageDelivery, RecipientInput } from '@/schemas/emailSchemas';
 
 /** Still on its way or stopped — anything a user should be told about. */
 export function isOutstanding(delivery: MessageDelivery | undefined): delivery is MessageDelivery {
@@ -43,16 +43,42 @@ export function deliveryTone(delivery: MessageDelivery): 'error' | 'warning' | '
   return 'default';
 }
 
-/** The route params that reopen a failed message in the composer. */
-export function editAsNewParams(
-  message: Pick<Message, 'to' | 'cc' | 'subject' | 'text'>,
-): Record<string, string> {
-  const join = (list: Message['to']) => list.map((a) => a.address).join(', ');
+/**
+ * A failed message as a new draft: every recipient (Bcc too), the body as it
+ * was written, its attachments by file id, and its threading — so Edit as new
+ * loses nothing the user would have to notice was missing.
+ */
+export function draftFromMessage(message: Message): {
+  to: RecipientInput[];
+  cc: RecipientInput[];
+  bcc: RecipientInput[];
+  subject: string;
+  text?: string;
+  html?: string;
+  inReplyTo?: string;
+  references?: string[];
+  attachments?: { fileId: string; contentId?: string; isInline?: boolean }[];
+} {
+  const recipients = (list: Message['to']) =>
+    list.map(({ name, address }) => (name ? { name, address } : { address }));
   return {
-    to: join(message.to),
-    ...(message.cc.length > 0 ? { cc: join(message.cc) } : {}),
+    to: recipients(message.to),
+    cc: recipients(message.cc),
+    bcc: recipients(message.bcc),
     subject: message.subject,
-    body: message.text ?? '',
+    ...(message.text ? { text: message.text } : {}),
+    ...(message.html ? { html: message.html } : {}),
+    ...(message.inReplyTo ? { inReplyTo: message.inReplyTo } : {}),
+    ...(message.references.length > 0 ? { references: message.references } : {}),
+    ...(message.attachments.length > 0
+      ? {
+          attachments: message.attachments.map((attachment) => ({
+            fileId: attachment.fileId,
+            ...(attachment.contentId ? { contentId: attachment.contentId } : {}),
+            isInline: attachment.isInline,
+          })),
+        }
+      : {}),
   };
 }
 

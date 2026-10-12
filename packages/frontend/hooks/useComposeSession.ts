@@ -476,11 +476,18 @@ export function useComposeSession({
   const latest = useRef({ snapshot, contentKey, hasContent, hasUnsavedWork });
 
   const saveToServer = useCallback(
-    (current: ComposeDraftSnapshot, key: string): Promise<boolean> => {
+    (
+      current: ComposeDraftSnapshot,
+      key: string,
+      { beforeSend = false }: { beforeSend?: boolean } = {},
+    ): Promise<boolean> => {
       const save = async (): Promise<boolean> => {
         // A server draft of a reply without its threading headers would be sent
         // unthreaded later. The local recovery snapshot still keeps the text.
-        if (!api || sentRef.current || discardedRef.current || awaitingReplyHeaders) return false;
+        if (!api || discardedRef.current || awaitingReplyHeaders) return false;
+        // Nothing saves once a send has begun — except the send's own save,
+        // decided before it began (`saveBeforeSend`).
+        if (sentRef.current && !beforeSend) return false;
         if (mountedRef.current) setDraftSaveState('saving');
         try {
           const saved = await saveDraftAsync({
@@ -543,12 +550,19 @@ export function useComposeSession({
     ],
   );
 
+  /** The autosave waiting out its delay; a send runs it at once (`saveBeforeSend`). */
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!api || !recoveryLoaded || !hasUnsavedWork || sending || sentRef.current) return;
     const timer = setTimeout(() => {
+      autosaveTimerRef.current = null;
       void saveToServer(snapshot, contentKey);
     }, AUTOSAVE_DELAY_MS);
-    return () => clearTimeout(timer);
+    autosaveTimerRef.current = timer;
+    return () => {
+      clearTimeout(timer);
+      if (autosaveTimerRef.current === timer) autosaveTimerRef.current = null;
+    };
   }, [api, recoveryLoaded, hasUnsavedWork, sending, snapshot, contentKey, saveToServer]);
 
   useEffect(() => {
@@ -689,6 +703,24 @@ export function useComposeSession({
     [draftSaveQueue],
   );
 
+  /**
+   * Before a send: the autosave still waiting out its delay — up to 8 s behind
+   * the typing — runs now, after any save in flight, so the server draft the
+   * send names holds what is being sent. A send the API refuses keeps that
+   * draft, and it must not be missing the last edits. Only what the autosave
+   * would have saved anyway: an untouched session makes no draft. Called while
+   * the send begins, so this one save is let past `sentRef`.
+   */
+  const saveBeforeSend = useCallback((): Promise<boolean> => {
+    if (autosaveTimerRef.current !== null) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    const { snapshot: last, contentKey: key, hasUnsavedWork: unsaved } = latest.current;
+    if (!api || !recoveryLoaded || !unsaved) return settleSaves();
+    return saveToServer(last, key, { beforeSend: true });
+  }, [api, recoveryLoaded, saveToServer, settleSaves]);
+
   const messagePayload = useCallback(
     (recipients: NonNullable<ReturnType<typeof validatedRecipients>>, key: string) => ({
       ...recipients,
@@ -792,7 +824,7 @@ export function useComposeSession({
       if (!recipients) return;
 
       sentRef.current = true;
-      await settleSaves();
+      await saveBeforeSend();
       if (discardedRef.current) return;
       const attempt = {
         attempted: restoredKeyContentRef.current ?? attemptedContentKeyRef.current,
@@ -824,7 +856,7 @@ export function useComposeSession({
       handleKeyReused,
       recoveryKey,
       sendWithUndo,
-      settleSaves,
+      saveBeforeSend,
       validatedRecipients,
     ],
   );
@@ -838,7 +870,7 @@ export function useComposeSession({
       if (!recipients) return;
 
       sentRef.current = true;
-      await settleSaves();
+      await saveBeforeSend();
       const attempt = {
         attempted: restoredKeyContentRef.current ?? attemptedContentKeyRef.current,
         sent: latest.current.contentKey,
@@ -873,7 +905,7 @@ export function useComposeSession({
       handleKeyReused,
       recoveryKey,
       sendMessageMutation,
-      settleSaves,
+      saveBeforeSend,
       t,
       validatedRecipients,
     ],

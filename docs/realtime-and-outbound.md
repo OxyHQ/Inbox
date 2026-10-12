@@ -82,7 +82,9 @@ afterwards** (`packages/api/src/services/emailDelivery.service.ts`):
   snapshot discarded. Anything else stays open with its edits and asks whether
   to send it as a new message; only a yes mints a new key. A composer already
   gone (closed in the undo window) says it in a toast: View, and Open draft
-  when only the local snapshot holds the text.
+  when only the local snapshot holds the text. Because a refused send keeps
+  its server draft, a send first runs the autosave still waiting out its delay
+  (`saveBeforeSend`), so that draft holds what was sent.
 - The outbox row IS the delivery; there is no second table. Every message read
   carries `delivery` (`@oxy.so/contracts` `emailMessageDeliverySchema`):
   `sending`, `retrying` (with `nextAttemptAt`), `sent`, or `failed`, with the

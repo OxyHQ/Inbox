@@ -484,6 +484,7 @@ const ar: LocaleDict = {
       sendAsNew: 'إرسال كرسالة جديدة',
       view: 'عرض',
       keepEditing: 'متابعة التحرير',
+      openDraft: 'فتح المسودة',
     },
     saveDraftPrompt: {
       title: 'حفظ المسودة؟',

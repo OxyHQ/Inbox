@@ -447,6 +447,7 @@ const ko: LocaleDict = {
       sendAsNew: '새 메시지로 보내기',
       view: '보기',
       keepEditing: '계속 편집',
+      openDraft: '임시보관 메일 열기',
     },
     saveDraftPrompt: {
       title: '임시 저장하시겠어요?',

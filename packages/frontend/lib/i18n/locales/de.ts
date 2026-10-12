@@ -458,6 +458,7 @@ const de: LocaleDict = {
       sendAsNew: 'Als neu senden',
       view: 'Ansehen',
       keepEditing: 'Weiter bearbeiten',
+      openDraft: 'Entwurf öffnen',
     },
     saveDraftPrompt: {
       title: 'Entwurf speichern?',

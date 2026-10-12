@@ -448,6 +448,7 @@ const es: LocaleDict = {
       sendAsNew: 'Enviar como nuevo',
       view: 'Ver',
       keepEditing: 'Seguir editando',
+      openDraft: 'Abrir borrador',
     },
     saveDraftPrompt: {
       title: '¿Guardar borrador?',

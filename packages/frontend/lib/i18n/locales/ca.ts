@@ -455,6 +455,7 @@ const ca: LocaleDict = {
       sendAsNew: 'Envia com a nou',
       view: 'Mostra',
       keepEditing: 'Continua editant',
+      openDraft: "Obre l'esborrany",
     },
     saveDraftPrompt: {
       title: "Desar l'esborrany?",

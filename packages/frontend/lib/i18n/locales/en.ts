@@ -451,6 +451,7 @@ const en: LocaleDict = {
       sendAsNew: 'Send as new',
       view: 'View',
       keepEditing: 'Keep editing',
+      openDraft: 'Open draft',
     },
     saveDraftPrompt: {
       title: 'Save draft?',

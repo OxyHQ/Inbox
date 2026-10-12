@@ -739,14 +739,37 @@ describe('a compose the API already sent under its key', () => {
   });
 
   describe('edited after the restore', () => {
-    it('is a new message under a new key', async () => {
+    /**
+     * The restored key may have sent the first version before the crash. A
+     * new key for the edits would send them as a second message without a
+     * word; under the old one the API refuses them and the composer asks.
+     */
+    it('is sent under the restored key, and the refusal asks', async () => {
+      const { result, onFinished } = await recoveredSession();
+      await edit(result);
+      expect(await sendRefused(result)).toBe(RECOVERED_KEY);
+
+      expect(onFinished).not.toHaveBeenCalled();
+      expect(result.current.body).toBe('Recovered text, and a correction');
+      expect(result.current.sentVersion?.notice).toBe('compose.alreadySent.versionSent');
+    });
+
+    it('keeps the restored key after a send that got no answer and more edits', async () => {
       const { result } = await recoveredSession();
       await edit(result);
       await act(async () => {
         await result.current.send();
       });
+      const callbacks = sendWithUndo.mock.calls[0][1] as { onError: (err: unknown) => void };
+      act(() => callbacks.onError(new Error('timeout')));
+      await settle();
+      act(() => result.current.updateBody('Recovered text, corrected twice'));
+      await settle();
+      await act(async () => {
+        await result.current.send();
+      });
 
-      expect(sendWithUndo.mock.calls[0][0].idempotencyKey).not.toBe(RECOVERED_KEY);
+      expect(sendWithUndo.mock.calls[1][0].idempotencyKey).toBe(RECOVERED_KEY);
     });
 
     it('refused all the same: stays open with the edits, and sends as new only when told', async () => {
@@ -827,6 +850,113 @@ describe('a compose the API already sent under its key', () => {
       ];
       expect(rescheduled.scheduledAt).toBe(at.toISOString());
       expect(rescheduled.idempotencyKey).not.toBe(refused.idempotencyKey);
+    });
+  });
+
+  describe('refused after the composer has gone', () => {
+    /**
+     * Closed inside the undo window, or navigated away from: the question has
+     * no composer to ask in, so a refusal that does not end the session is
+     * said in a toast instead of nowhere. Nothing is sent.
+     */
+    async function closedThenRefused(
+      sent: AlreadySent,
+      {
+        autosave = false,
+        reopen = '/compose',
+      }: { autosave?: boolean; reopen?: ComposeSessionOptions['reopen'] | null } = {},
+    ) {
+      await saveComposeRecovery(recoveryKey, {
+        to: 'ann@example.com',
+        cc: '',
+        bcc: '',
+        subject: 'Plan',
+        body: 'Recovered text',
+        attachments: [],
+        idempotencyKey: RECOVERED_KEY,
+      });
+      const rendered = renderHook(() =>
+        useComposeSession(options({ reopen: reopen ?? undefined })),
+      );
+      await settle();
+      await edit(rendered.result);
+      if (autosave) await advance(8_000);
+      await act(async () => {
+        await rendered.result.current.send();
+      });
+      await act(async () => {
+        await rendered.result.current.saveAndClose();
+      });
+      rendered.unmount();
+      const callbacks = sendWithUndo.mock.calls[0][1] as {
+        onAlreadySent?: (sent: AlreadySent) => void;
+      };
+      act(() => callbacks.onAlreadySent?.(sent));
+      await settle();
+    }
+
+    /** The labels and handlers of the toast's buttons, whichever slot they are in. */
+    function toastButtons(): Record<string, () => void> {
+      const [, opts] = toast.warning.mock.calls[0] as [
+        string,
+        { action?: { label: string; onClick: () => void }; cancel?: typeof opts.action },
+      ];
+      return Object.fromEntries(
+        [opts.action, opts.cancel].flatMap((button) =>
+          button ? [[button.label, button.onClick]] : [],
+        ),
+      );
+    }
+
+    it('says so, links to what was sent, and opens the draft only the snapshot holds', async () => {
+      await closedThenRefused(sentVersion());
+
+      expect(toast.warning).toHaveBeenCalledWith(
+        'compose.alreadySent.versionSent',
+        expect.any(Object),
+      );
+      const buttons = toastButtons();
+      expect(Object.keys(buttons).sort()).toEqual([
+        'compose.alreadySent.openDraft',
+        'compose.alreadySent.view',
+      ]);
+      buttons['compose.alreadySent.openDraft']();
+      expect(routerPush).toHaveBeenLastCalledWith('/compose');
+      buttons['compose.alreadySent.view']();
+      expect(routerPush).toHaveBeenLastCalledWith('/conversation/sent-row-1');
+
+      // The snapshot Open draft resumes holds the edits, under the same key.
+      const record = await loadComposeRecovery(recoveryKey);
+      expect(record?.snapshot).toMatchObject({
+        body: 'Recovered text, and a correction',
+        idempotencyKey: RECOVERED_KEY,
+      });
+      expect(sendWithUndo).toHaveBeenCalledTimes(1);
+      expect(discardDraft).not.toHaveBeenCalled();
+      expect(toast.info).not.toHaveBeenCalled();
+    });
+
+    it('offers no Open draft when a server draft holds the text', async () => {
+      await closedThenRefused(sentVersion(), { autosave: true });
+
+      expect(Object.keys(toastButtons())).toEqual(['compose.alreadySent.view']);
+      expect(discardDraft).not.toHaveBeenCalled();
+    });
+
+    it('words a failed version as failed, and offers only the draft without an id', async () => {
+      await closedThenRefused(sentVersion({ id: null, deliveryState: 'failed' }));
+
+      expect(toast.warning).toHaveBeenCalledWith(
+        'compose.alreadySent.versionFailed',
+        expect.any(Object),
+      );
+      expect(Object.keys(toastButtons())).toEqual(['compose.alreadySent.openDraft']);
+    });
+
+    it('cannot offer Open draft for a composer with nowhere to reopen', async () => {
+      await closedThenRefused(sentVersion(), { reopen: null });
+
+      expect(Object.keys(toastButtons())).toEqual(['compose.alreadySent.view']);
     });
   });
 

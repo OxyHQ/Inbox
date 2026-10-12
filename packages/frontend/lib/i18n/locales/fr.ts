@@ -456,6 +456,7 @@ const fr: LocaleDict = {
       sendAsNew: 'Envoyer comme nouveau',
       view: 'Voir',
       keepEditing: 'Continuer la rédaction',
+      openDraft: 'Ouvrir le brouillon',
     },
     saveDraftPrompt: {
       title: 'Enregistrer le brouillon ?',

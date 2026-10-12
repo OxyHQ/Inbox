@@ -450,6 +450,7 @@ const ja: LocaleDict = {
       sendAsNew: '新規として送信',
       view: '表示',
       keepEditing: '編集を続ける',
+      openDraft: '下書きを開く',
     },
     saveDraftPrompt: {
       title: '下書きを保存しますか?',

@@ -454,6 +454,7 @@ const it: LocaleDict = {
       sendAsNew: 'Invia come nuovo',
       view: 'Vedi',
       keepEditing: 'Continua a modificare',
+      openDraft: 'Apri bozza',
     },
     saveDraftPrompt: {
       title: 'Salvare la bozza?',

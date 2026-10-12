@@ -74,13 +74,15 @@ afterwards** (`packages/api/src/services/emailDelivery.service.ts`):
   `scheduledAt` of what the key already sent (`alreadySentUnderKey` in
   `utils/sendIdempotency.ts`; no `deliveryState` reads as `unknown`). A
   composer restored after a crash meets it: it resumes the old key but renders
-  the body again. A restore counts as an attempted send, so an edit after it
-  rotates the key like an edit after a send that got no answer. On the 422
+  the body again. The restored key is kept through every edit — a new one would
+  send the edits as a second message without asking. On the 422
   (`handleKeyReused` in `hooks/useComposeSession.ts`): content unchanged since
   the restore or attempt, and that version not `failed`/`cancelled`, closes the
   composer as sent — a toast linking to it, the leftover server draft and the
   snapshot discarded. Anything else stays open with its edits and asks whether
-  to send it as a new message; only a yes mints a new key.
+  to send it as a new message; only a yes mints a new key. A composer already
+  gone (closed in the undo window) says it in a toast: View, and Open draft
+  when only the local snapshot holds the text.
 - The outbox row IS the delivery; there is no second table. Every message read
   carries `delivery` (`@oxy.so/contracts` `emailMessageDeliverySchema`):
   `sending`, `retrying` (with `nextAttemptAt`), `sent`, or `failed`, with the

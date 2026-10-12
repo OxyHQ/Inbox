@@ -443,6 +443,7 @@ const zh: LocaleDict = {
       sendAsNew: '作为新邮件发送',
       view: '查看',
       keepEditing: '继续编辑',
+      openDraft: '打开草稿',
     },
     saveDraftPrompt: {
       title: '保存草稿?',

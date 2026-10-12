@@ -15,7 +15,7 @@
 import { toast } from '@oxy.so/bloom';
 import type { FileMetadata } from '@oxy.so/core';
 import { useOxy } from '@oxy.so/services';
-import { useRouter } from 'expo-router';
+import { type Href, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
@@ -213,6 +213,12 @@ export interface ComposeSessionOptions {
   insertSignature: boolean;
   /** The session is over (sent, saved, discarded); the caller closes. */
   onFinished: () => void;
+  /**
+   * Where this compose opens again from its local snapshot (the same recovery
+   * identity). Offered as Open draft when a send is refused after the composer
+   * has gone and the snapshot is all that holds the text.
+   */
+  reopen?: Href;
 }
 
 export function useComposeSession({
@@ -225,6 +231,7 @@ export function useComposeSession({
   trailer = '',
   insertSignature,
   onFinished,
+  reopen,
 }: ComposeSessionOptions) {
   const { t } = useTranslation();
   const { user } = useOxy();
@@ -370,17 +377,25 @@ export function useComposeSession({
   // ── A send that may have reached the server ──────────────────────
   /**
    * The content of the last send that went to the server without an answer —
-   * it failed, or timed out, and the server may hold it all the same — or of a
-   * snapshot restored with the key it was composed under. Sending
+   * it failed, or timed out, and the server may hold it all the same. Sending
    * that content again reuses the key, so the API sees the same message. Once
    * the content differs it is a different message and needs a new key: under
    * the old one the API refuses it as a reused key (422, see
    * `alreadySentUnderKey` and `handleKeyReused`).
    */
   const attemptedContentKeyRef = useRef<string | null>(null);
+  /**
+   * The content a snapshot was restored with, under the key it was composed
+   * with — a key that may have sent it before the crash. That key is kept
+   * through every edit: a new one would send the edits as a second message
+   * without asking. Sent under the old key, edits are refused (422) and
+   * `handleKeyReused` asks. Cleared once the user chooses a new key.
+   */
+  const restoredKeyContentRef = useRef<string | null>(null);
   useEffect(() => {
     const attempted = attemptedContentKeyRef.current;
     if (attempted === null || attempted === contentKey) return;
+    if (restoredKeyContentRef.current !== null) return;
     attemptedContentKeyRef.current = null;
     setIdempotencyKey(newSendIdempotencyKey());
   }, [contentKey]);
@@ -409,12 +424,10 @@ export function useComposeSession({
             size: attachment.size ?? 0,
           })),
         };
-        if (record.snapshot.idempotencyKey) setIdempotencyKey(record.snapshot.idempotencyKey);
-        // The restored key may already have sent this content, before the
-        // crash. So the restore counts as an attempt: an edit makes it a
-        // different message under a new key, exactly as after a send that got
-        // no answer — under the old one the API would refuse the edits.
-        attemptedContentKeyRef.current = contentKeyOf(restored);
+        if (record.snapshot.idempotencyKey) {
+          setIdempotencyKey(record.snapshot.idempotencyKey);
+          restoredKeyContentRef.current = contentKeyOf(restored);
+        }
         setTo(restored.to);
         setCc(restored.cc);
         setBcc(restored.bcc);
@@ -704,8 +717,8 @@ export function useComposeSession({
   /**
    * The API refused this session's key: it already sent a different message
    * under it (`alreadySentUnderKey`). `attempt` is what was sent now and the
-   * content this key was attempted with before — a restored snapshot or a send
-   * that got no answer.
+   * content the key was first used with — a restored snapshot, or a send that
+   * got no answer.
    *
    * Unchanged since then, and not failed or cancelled: this compose WAS sent,
    * typically before a crash it was restored from. End the session as a send
@@ -715,7 +728,10 @@ export function useComposeSession({
    * Otherwise the user has written something the sent version does not hold,
    * or that version never left: keep the composer, its edits and its snapshot,
    * and ask whether to send this as a new message. Only a yes mints a new key:
-   * resending under one on its own could deliver the same message twice.
+   * resending under one on its own could deliver the same message twice. When
+   * the composer has gone already — closed in the undo window, navigated away
+   * from — the answer is a toast instead: what happened, View, and Open draft
+   * when the text is left only in the local snapshot.
    */
   const handleKeyReused = useCallback(
     (
@@ -744,9 +760,29 @@ export function useComposeSession({
         return;
       }
       sentRef.current = false;
-      setSentVersion({ sent, retry, notice: alreadySentNotice(t, sent, 'open') });
+      const notice = alreadySentNotice(t, sent, 'open');
+      if (mountedRef.current) {
+        setSentVersion({ sent, retry, notice });
+        return;
+      }
+      // No server draft holds the text: the local snapshot does, and Open
+      // draft resumes the composer from it, under the same key, to ask again.
+      const snapshotOnly = Boolean(reopen) && !draftIdRef.current;
+      if (snapshotOnly) void saveComposeRecovery(recoveryKey, latest.current.snapshot);
+      const buttons = [
+        ...(snapshotOnly && reopen
+          ? [{ label: t('compose.alreadySent.openDraft'), onClick: () => router.push(reopen) }]
+          : []),
+        ...(sent.id
+          ? [{ label: t('compose.alreadySent.view'), onClick: () => viewSent(sent) }]
+          : []),
+      ];
+      toast.warning(notice, {
+        ...(buttons[0] ? { action: buttons[0] } : {}),
+        ...(buttons[1] ? { cancel: buttons[1] } : {}),
+      });
     },
-    [finish, t, viewSent],
+    [finish, recoveryKey, reopen, router, t, viewSent],
   );
 
   const startSend = useCallback(
@@ -759,7 +795,7 @@ export function useComposeSession({
       await settleSaves();
       if (discardedRef.current) return;
       const attempt = {
-        attempted: attemptedContentKeyRef.current,
+        attempted: restoredKeyContentRef.current ?? attemptedContentKeyRef.current,
         sent: latest.current.contentKey,
       };
       pendingSendRef.current = sendWithUndo(messagePayload(recipients, key), {
@@ -804,7 +840,7 @@ export function useComposeSession({
       sentRef.current = true;
       await settleSaves();
       const attempt = {
-        attempted: attemptedContentKeyRef.current,
+        attempted: restoredKeyContentRef.current ?? attemptedContentKeyRef.current,
         sent: latest.current.contentKey,
       };
       sendMessageMutation.mutate(
@@ -854,6 +890,7 @@ export function useComposeSession({
       setSentVersion(null);
       const key = newSendIdempotencyKey();
       attemptedContentKeyRef.current = null;
+      restoredKeyContentRef.current = null;
       setIdempotencyKey(key);
       if (version.retry.kind === 'schedule') void startSchedule(version.retry.at, key);
       else void startSend(key);

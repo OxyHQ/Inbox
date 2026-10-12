@@ -457,6 +457,7 @@ const pt: LocaleDict = {
       sendAsNew: 'Enviar como nova',
       view: 'Ver',
       keepEditing: 'Continuar editando',
+      openDraft: 'Abrir rascunho',
     },
     saveDraftPrompt: {
       title: 'Guardar rascunho?',

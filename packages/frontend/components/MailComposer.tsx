@@ -1,5 +1,4 @@
 import { Dialog, toast, useDialogControl } from '@oxy.so/bloom';
-import { Admonition } from '@oxy.so/bloom/admonition';
 import { Button, IconButton } from '@oxy.so/bloom/button';
 import { RiArrowDownSLine, RiSaveLine, RiSendPlaneLine, RiTimeLine } from '@oxy.so/bloom/icons';
 import { MailComposeSurface } from '@oxy.so/bloom/mail-compose';
@@ -115,12 +114,6 @@ export function MailComposer({
   const content = (
     <>
       {lead}
-
-      {session.alreadyQueued && (
-        <View>
-          <Admonition type="info">{t('compose.queuedNotice')}</Admonition>
-        </View>
-      )}
 
       <TextFieldInput label={t('compose.fields.from')} value={fromAddress} editable={false} />
 

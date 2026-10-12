@@ -53,4 +53,24 @@ describe('follow-up triage', () => {
       getFollowUpReason(makeMessage({ to: [{ address: 'no-reply@example.com' }] }), [], now),
     ).toBeNull();
   });
+
+  it('never asks to follow up on a message that did not leave', () => {
+    const delivery = {
+      state: 'failed' as const,
+      attempts: 5,
+      maxAttempts: 5,
+      nextAttemptAt: null,
+      error: '554 rejected',
+      errorCode: 'rejected' as const,
+      updatedAt: '2026-08-10T10:00:00.000Z',
+    };
+    expect(getFollowUpReason(makeMessage({ delivery }), [], now)).toBeNull();
+    expect(
+      getFollowUpReason(
+        makeMessage({ delivery: { ...delivery, state: 'sent', error: null, errorCode: null } }),
+        [],
+        now,
+      ),
+    ).toBe('awaiting-reply');
+  });
 });

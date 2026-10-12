@@ -535,43 +535,63 @@ describe('an address that does not parse yet', () => {
   });
 });
 
-describe('a recovered message whose send was queued', () => {
-  async function recoverQueued() {
+describe('a recovered message', () => {
+  it('sends again under its own key, so the API sees the same message', async () => {
     await saveComposeRecovery(composeRecoveryStorageKey('user-1', 'new'), {
       to: 'ann@example.com',
       cc: '',
       bcc: '',
       subject: 'Plan',
-      body: 'Queued text',
+      body: 'Recovered text',
       attachments: [],
-      idempotencyKey: 'inbox-send-queued',
-      queued: true,
+      idempotencyKey: 'inbox-send-recovered',
     });
-    const rendered = renderHook(() => useComposeSession(options()));
+    const { result } = renderHook(() => useComposeSession(options()));
     await settle();
-    return rendered;
+
+    await act(async () => {
+      await result.current.send();
+    });
+    expect(sendWithUndo.mock.calls[0][0]).toMatchObject({
+      idempotencyKey: 'inbox-send-recovered',
+    });
+  });
+});
+
+describe('a send that failed without an answer', () => {
+  async function failedSend() {
+    const rendered = renderHook(() =>
+      useComposeSession(options({ initial: { to: 'ann@example.com', subject: 'Plan' } })),
+    );
+    await settle();
+    act(() => rendered.result.current.updateBody('First text'));
+    await settle();
+    await act(async () => {
+      await rendered.result.current.send();
+    });
+    const [payload, callbacks] = sendWithUndo.mock.calls[0];
+    // It timed out: the server may hold it all the same.
+    act(() => callbacks.onError(new Error('timeout')));
+    await settle();
+    return { ...rendered, key: payload.idempotencyKey as string };
   }
 
-  it('sends again as the same message while it is unchanged', async () => {
-    const { result } = await recoverQueued();
-    expect(result.current.alreadyQueued).toBe(true);
-
+  it('is the same message when sent again unchanged', async () => {
+    const { result, key } = await failedSend();
     await act(async () => {
       await result.current.send();
     });
-    expect(sendWithUndo.mock.calls[0][0]).toMatchObject({ idempotencyKey: 'inbox-send-queued' });
+    expect(sendWithUndo.mock.calls[1][0].idempotencyKey).toBe(key);
   });
 
-  it('is a new message once it is edited, with a new key', async () => {
-    const { result } = await recoverQueued();
-    act(() => result.current.updateBody('Something else entirely'));
+  it('is a new message once it is edited, so the edits are not answered with the old one', async () => {
+    const { result, key } = await failedSend();
+    act(() => result.current.updateBody('Corrected text'));
     await settle();
-    expect(result.current.alreadyQueued).toBe(false);
-
     await act(async () => {
       await result.current.send();
     });
-    expect(sendWithUndo.mock.calls[0][0].idempotencyKey).not.toBe('inbox-send-queued');
+    expect(sendWithUndo.mock.calls[1][0].idempotencyKey).not.toBe(key);
   });
 });
 

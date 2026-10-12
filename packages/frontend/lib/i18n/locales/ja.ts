@@ -36,33 +36,6 @@ const ja: LocaleDict = {
   templates: {
     insert: 'テンプレートを挿入',
   },
-  outbound: {
-    stuckTitle_one: '{{count}} 件のメッセージを送信できませんでした',
-    stuckTitle_other: '{{count}} 件のメッセージを送信できませんでした',
-    waitingTitle_one: '{{count}} 件のメッセージが送信待ちです',
-    waitingTitle_other: '{{count}} 件のメッセージが送信待ちです',
-    stuckDetail:
-      'メッセージは保存されたままです。配信キューを開いて原因を確認し、再試行してください。',
-    waitingDetail: '自動的に送信されます。配信キューを開くと状況を確認できます。',
-    status: {
-      sending: '送信中…',
-      waiting: '送信待ち',
-      notDelivered_one: '{{count}} 回試行しましたが配信されませんでした',
-      notDelivered_other: '{{count}} 回試行しましたが配信されませんでした',
-      retrying_one: '{{count}} 回の試行後に再試行中',
-      retrying_other: '{{count}} 回の試行後に再試行中',
-      cancelled: '取り消し済み',
-    },
-    queue: {
-      title: '配信キュー',
-      description:
-        'メッセージはバックグラウンドで安全に再試行されます。失敗の内容を確認したり、キューの配信を停止したりできます。',
-      noMoreAttempts: 'これ以上の自動再試行は行われません。',
-      nextAttempt: '次回の試行: {{time}}',
-      retryLabel: 'キューのメッセージを再試行',
-      cancelLabel: 'キューのメッセージを取り消す',
-    },
-  },
   time: {
     today: '今日',
     todayAt: '今日、{{time}}',
@@ -439,7 +412,6 @@ const ja: LocaleDict = {
     },
     replyParentError:
       '返信先のメッセージを読み込めませんでした。会話が分断されるため、この返信はまだ送信できません。',
-    queuedNotice: 'このメッセージは既に送信キューにあります。もう一度送信しても重複しません。',
     titleCompose: '作成',
     titleReply: '返信',
     titleForward: '転送',
@@ -550,6 +522,38 @@ const ja: LocaleDict = {
     actionItems: 'アクション項目',
     due: '期限: {{date}}',
     unavailable: '現在このスレッドを要約できません。',
+  },
+
+  delivery: {
+    sending: '送信中…',
+    retrying: '再試行中（{{count}}）',
+    failed: '未配信',
+    retry: '再試行',
+    editAsNew: '新規として編集',
+    editAsNewError: 'このメッセージを新規として開けませんでした。',
+    retryStarted: 'もう一度送信しています。',
+    retryError: 'このメッセージを再試行できませんでした。',
+    failedToast: '未配信: {{subject}}',
+    view: '表示',
+    nextAttempt: '次の試行: {{time}}',
+    bannerFailed_one: '{{count}} 件のメッセージを送信できませんでした',
+    bannerFailed_other: '{{count}} 件のメッセージを送信できませんでした',
+    bannerSending_one: '{{count}} 件のメッセージが送信待ちです',
+    bannerSending_other: '{{count}} 件のメッセージが送信待ちです',
+    bannerFailedDetail: '送信済みを開いて理由を確認し、再試行または編集してください。',
+    bannerSendingDetail: '自動的に送信されます。送信済みで確認できます。',
+    reason: {
+      relay_unavailable: 'メールサーバーが応答しませんでした。Oxy が自動で再試行を続けます。',
+      relay_unconfigured:
+        'このサーバーでは送信が設定されていません。管理者が修正するまで送信できません。',
+      relay_auth:
+        'メールサーバーが Oxy のサインインを拒否しました。管理者が修正するまで送信できません。',
+      rejected: 'メールサーバーがこのメッセージを拒否しました。',
+      retries_exhausted: '何度試してもメールサーバーが応答しませんでした。',
+      bounced:
+        '送信後に受信者のメールサーバーが受け取りを拒否しました。編集して送り直してください。',
+      cancelled: '送信はキャンセルされました。',
+    },
   },
 
   staleThread: {
@@ -1094,11 +1098,6 @@ const ja: LocaleDict = {
       bulkFailed: 'メッセージを更新できませんでした。',
       bulkUpdated: 'メッセージを更新しました。',
       moveFailed: 'メッセージを移動できませんでした。',
-      queuedDescription: 'まだ配信されていません。設定 → 詳細 → 配信キューで確認できます。',
-      retryQueued: '再送信キューに追加しました。',
-      retryFailed: '再送信できませんでした。',
-      queuedCancelled: 'キューのメッセージを取り消しました。',
-      cancelFailed: 'メッセージを取り消せませんでした。',
       bundleUpdateFailed: 'まとめを更新できませんでした。',
       bundleReorderFailed: 'まとめを並べ替えできませんでした。',
       contactCreateFailed: '連絡先を作成できませんでした',

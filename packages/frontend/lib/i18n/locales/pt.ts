@@ -464,6 +464,8 @@ const pt: LocaleDict = {
         'Este rascunho foi alterado em outro dispositivo, ou foi enviado ou excluído lá. Sua versão será salva como um novo rascunho.',
       draftGoneConflict:
         'Este rascunho foi enviado ou excluído em outro dispositivo. Sua versão será salva como um novo rascunho.',
+      alreadySent: 'Esta mensagem já tinha sido enviada.',
+      viewSent: 'Ver',
     },
   },
 

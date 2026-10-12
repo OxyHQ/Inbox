@@ -69,6 +69,14 @@ afterwards** (`packages/api/src/services/emailDelivery.service.ts`):
   `retry` is safe because the Idempotency-Key makes a repeat the same message.
   Only "no relay configured at all" (503) and a refused recipient (400) still
   fail the request itself.
+- A key reused for a DIFFERENT message is refused (OxyHQ/oxy#1676): 422 with
+  `details.reason: "idempotency_key_reused"` and `details.id` naming what the
+  key already sent. A composer restored after a crash meets it — it resumes the
+  old key but renders the body again, so the bytes differ. The client reads it
+  as "already sent from this compose" (`alreadySentUnderKey` in
+  `utils/sendIdempotency.ts`): a toast linking to the message, then the
+  composer closes like a send that went through. It never resends under a new
+  key; that would be the duplicate the key prevents.
 - The outbox row IS the delivery; there is no second table. Every message read
   carries `delivery` (`@oxy.so/contracts` `emailMessageDeliverySchema`):
   `sending`, `retrying` (with `nextAttemptAt`), `sent`, or `failed`, with the

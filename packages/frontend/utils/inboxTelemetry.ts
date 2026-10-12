@@ -22,7 +22,8 @@ export type InboxMetricName =
   | 'message_parse_failed'
   | 'search_submitted'
   | 'composer_send_succeeded'
-  | 'composer_send_failed';
+  | 'composer_send_failed'
+  | 'composer_send_already_sent';
 
 export interface InboxMetricDimensions {
   hasQuery?: boolean;

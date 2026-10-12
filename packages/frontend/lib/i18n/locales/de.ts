@@ -464,6 +464,8 @@ const de: LocaleDict = {
         'Dieser Entwurf wurde auf einem anderen Gerät geändert, gesendet oder gelöscht. Deine Version wird als neuer Entwurf gespeichert.',
       draftGoneConflict:
         'Dieser Entwurf wurde auf einem anderen Gerät gesendet oder gelöscht. Deine Version wird als neuer Entwurf gespeichert.',
+      alreadySent: 'Diese Nachricht wurde bereits gesendet.',
+      viewSent: 'Ansehen',
     },
   },
 

@@ -27,6 +27,9 @@ jest.mock('@/hooks/mutations/useMessageMutations', () => ({
   useDiscardDraft: () => ({ mutateAsync: discardDraft }),
 }));
 
+const routerPush = jest.fn();
+jest.mock('expo-router', () => ({ useRouter: () => ({ push: routerPush }) }));
+
 const getSettings = jest.fn();
 jest.mock('@/hooks/useEmail', () => ({
   useEmailStore: (selector: (s: unknown) => unknown) => selector({ _api: { getSettings } }),
@@ -54,7 +57,12 @@ import {
 } from '@/hooks/useComposeSession';
 import { MessageSchema } from '@/schemas/emailSchemas';
 import { wireMessage } from '../fixtures/wire';
-import { composeRecoveryStorageKey, saveComposeRecovery } from '@/utils/composeRecovery';
+import {
+  composeRecoveryStorageKey,
+  loadComposeRecovery,
+  saveComposeRecovery,
+} from '@/utils/composeRecovery';
+import { keyReusedError } from '../fixtures/sendKeyReused';
 
 const DRAFT_FLAGS = {
   seen: true,
@@ -555,6 +563,139 @@ describe('a recovered message', () => {
     expect(sendWithUndo.mock.calls[0][0]).toMatchObject({
       idempotencyKey: 'inbox-send-recovered',
     });
+  });
+});
+
+describe('a compose the API already sent under its key', () => {
+  /**
+   * Restored after a crash, the composer resumes its key, but the body renders
+   * differently (a new build, a new signature), so the API refuses the key as
+   * reused for a different message (422, OxyHQ/oxy#1676). The message WAS sent,
+   * before the crash. Left as a failed send, every press of Send got the same
+   * 422, and an edit minted a new key and sent the message a second time.
+   */
+  const recoveryKey = composeRecoveryStorageKey('user-1', 'new');
+
+  async function recoveredSession(onFinished = jest.fn()) {
+    await saveComposeRecovery(recoveryKey, {
+      to: 'ann@example.com',
+      cc: '',
+      bcc: '',
+      subject: 'Plan',
+      body: 'Recovered text',
+      attachments: [],
+      idempotencyKey: 'inbox-send-recovered',
+    });
+    const rendered = renderHook(() => useComposeSession(options({ onFinished })));
+    await settle();
+    return { ...rendered, onFinished };
+  }
+
+  /** The send refused as `useSendMessageWithUndo` reports it. */
+  async function sendRefused(result: { current: ReturnType<typeof useComposeSession> }) {
+    await act(async () => {
+      await result.current.send();
+    });
+    const callbacks = sendWithUndo.mock.calls[0][1] as {
+      onAlreadySent?: (sent: { id: string | null; messageId: string | null }) => void;
+    };
+    act(() => callbacks.onAlreadySent?.({ id: 'sent-row-1', messageId: '<m@oxy.so>' }));
+    await settle();
+  }
+
+  it('closes as a send that went through, linking to what was sent', async () => {
+    const { result, onFinished } = await recoveredSession();
+    await sendRefused(result);
+
+    expect(onFinished).toHaveBeenCalledTimes(1);
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(toast.info).toHaveBeenCalledWith(
+      'compose.toast.alreadySent',
+      expect.objectContaining({
+        action: expect.objectContaining({ label: 'compose.toast.viewSent' }),
+      }),
+    );
+    const [, { action }] = toast.info.mock.calls[0];
+    action.onClick();
+    expect(routerPush).toHaveBeenCalledWith('/conversation/sent-row-1');
+    // The server holds the message; the crash snapshot has done its job.
+    expect(await loadComposeRecovery(recoveryKey)).toBeNull();
+  });
+
+  it('is over: nothing saves it, sends it again, or asks to keep it', async () => {
+    const { result, onFinished, unmount } = await recoveredSession();
+    await sendRefused(result);
+
+    await act(async () => {
+      await result.current.send();
+    });
+    expect(sendWithUndo).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await result.current.saveAndClose();
+    });
+    expect(onFinished).toHaveBeenCalledTimes(2);
+
+    await advance(10_000);
+    unmount();
+    await settle();
+    expect(saveDraft).not.toHaveBeenCalled();
+    expect(discardDraft).not.toHaveBeenCalled();
+  });
+
+  it('only says so when the API cannot name the message', async () => {
+    const { result, onFinished } = await recoveredSession();
+    await act(async () => {
+      await result.current.send();
+    });
+    const callbacks = sendWithUndo.mock.calls[0][1] as {
+      onAlreadySent?: (sent: { id: string | null; messageId: string | null }) => void;
+    };
+    act(() => callbacks.onAlreadySent?.({ id: null, messageId: null }));
+    await settle();
+
+    expect(onFinished).toHaveBeenCalledTimes(1);
+    expect(toast.info).toHaveBeenCalledWith('compose.toast.alreadySent', undefined);
+  });
+
+  it('closes a scheduled send the same way', async () => {
+    const { result, onFinished } = await recoveredSession();
+    await act(async () => {
+      await result.current.schedule(new Date('2030-01-01T09:00:00Z'));
+    });
+    const [, callbacks] = scheduleMutate.mock.calls[0] as [
+      unknown,
+      { onError: (err: Error) => void },
+    ];
+    act(() => callbacks.onError(keyReusedError('scheduled-row-1')));
+    await settle();
+
+    expect(onFinished).toHaveBeenCalledTimes(1);
+    expect(toast.error).not.toHaveBeenCalled();
+    const [, { action }] = toast.info.mock.calls[0];
+    action.onClick();
+    expect(routerPush).toHaveBeenCalledWith('/conversation/scheduled-row-1');
+    expect(await loadComposeRecovery(recoveryKey)).toBeNull();
+  });
+
+  it('leaves any other scheduling failure open, to try again', async () => {
+    const { result, onFinished } = await recoveredSession();
+    await act(async () => {
+      await result.current.schedule(new Date('2030-01-01T09:00:00Z'));
+    });
+    const [, callbacks] = scheduleMutate.mock.calls[0] as [
+      unknown,
+      { onError: (err: Error) => void },
+    ];
+    act(() =>
+      callbacks.onError(
+        Object.assign(new Error('Invalid recipient'), { status: 422, details: { field: 'to' } }),
+      ),
+    );
+    await settle();
+
+    expect(onFinished).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith('Invalid recipient');
   });
 });
 

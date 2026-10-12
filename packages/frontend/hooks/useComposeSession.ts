@@ -15,6 +15,7 @@
 import { toast } from '@oxy.so/bloom';
 import type { FileMetadata } from '@oxy.so/core';
 import { useOxy } from '@oxy.so/services';
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
@@ -52,7 +53,11 @@ import {
 } from '@/utils/composeRecovery';
 import type { ReplyHeaders } from '@/utils/replyHeaders';
 import { joinAddresses } from '@/utils/replyRecipients';
-import { newSendIdempotencyKey } from '@/utils/sendIdempotency';
+import {
+  type AlreadySent,
+  alreadySentUnderKey,
+  newSendIdempotencyKey,
+} from '@/utils/sendIdempotency';
 
 const isWeb = Platform.OS === 'web';
 const AUTOSAVE_DELAY_MS = 8_000;
@@ -175,6 +180,7 @@ export function useComposeSession({
 }: ComposeSessionOptions) {
   const { t } = useTranslation();
   const { user } = useOxy();
+  const router = useRouter();
   const api = useEmailStore((s) => s._api);
   const { sendWithUndo, isPending: sendPending } = useSendMessageWithUndo();
   const sendMessageMutation = useSendMessage();
@@ -319,8 +325,8 @@ export function useComposeSession({
    * it failed, or timed out, and the server may hold it all the same. Sending
    * that content again reuses the key, so the API sees the same message. Once
    * the content differs it is a different message and needs a new key: under
-   * the old one the API answers with the message it already filed, and the
-   * edits would be dropped while the composer closed as if they had gone.
+   * the old one the API refuses it as a reused key (422, see
+   * `alreadySentUnderKey`), which the composer reads as "already sent".
    */
   const attemptedContentKeyRef = useRef<string | null>(null);
   useEffect(() => {
@@ -624,6 +630,36 @@ export function useComposeSession({
     [attachments, body, idempotencyKey, replyHeaders, subject, trailer],
   );
 
+  /**
+   * The API refused this session's key because it already sent a different
+   * message under it: the compose was sent before — typically before a crash
+   * this composer was restored from. End the session as a send that went
+   * through: say so, link to what was sent, forget the local snapshot and close
+   * without asking to save. `sentRef` stays set, so nothing saves the session
+   * again. Never resend under a new key: that is the duplicate the key exists
+   * to prevent. The server filed the message, so nothing is deleted here.
+   */
+  const finishAlreadySent = useCallback(
+    (sent: AlreadySent) => {
+      pendingSendRef.current = null;
+      const { id } = sent;
+      toast.info(
+        t('compose.toast.alreadySent'),
+        id
+          ? {
+              action: {
+                label: t('compose.toast.viewSent'),
+                onClick: () => router.push(`/conversation/${id}`),
+              },
+            }
+          : undefined,
+      );
+      void clearComposeRecovery(recoveryKey);
+      finish();
+    },
+    [finish, recoveryKey, router, t],
+  );
+
   const send = useCallback(async () => {
     if (awaitingReplyHeaders || sentRef.current) return;
     const recipients = validatedRecipients();
@@ -644,6 +680,7 @@ export function useComposeSession({
         sentRef.current = false;
         attemptedContentKeyRef.current = latest.current.contentKey;
       },
+      onAlreadySent: finishAlreadySent,
       onCancel: () => {
         pendingSendRef.current = null;
         sentRef.current = false;
@@ -653,6 +690,7 @@ export function useComposeSession({
     awaitingReplyHeaders,
     messagePayload,
     finish,
+    finishAlreadySent,
     recoveryKey,
     sendWithUndo,
     settleSaves,
@@ -686,6 +724,11 @@ export function useComposeSession({
             finish();
           },
           onError: (err: Error) => {
+            const alreadySent = alreadySentUnderKey(err);
+            if (alreadySent) {
+              finishAlreadySent(alreadySent);
+              return;
+            }
             sentRef.current = false;
             attemptedContentKeyRef.current = latest.current.contentKey;
             toast.error(err.message || t('compose.toast.scheduleFailed'));
@@ -697,6 +740,7 @@ export function useComposeSession({
       awaitingReplyHeaders,
       messagePayload,
       finish,
+      finishAlreadySent,
       recoveryKey,
       sendMessageMutation,
       settleSaves,

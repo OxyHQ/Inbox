@@ -463,6 +463,8 @@ const fr: LocaleDict = {
         'Ce brouillon a été modifié sur un autre appareil, ou y a été envoyé ou supprimé. Ta version sera enregistrée comme nouveau brouillon.',
       draftGoneConflict:
         'Ce brouillon a été envoyé ou supprimé sur un autre appareil. Ta version sera enregistrée comme nouveau brouillon.',
+      alreadySent: 'Ce message avait déjà été envoyé.',
+      viewSent: 'Voir',
     },
   },
 

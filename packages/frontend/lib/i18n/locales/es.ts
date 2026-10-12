@@ -454,6 +454,8 @@ const es: LocaleDict = {
         'Este borrador cambió en otro dispositivo, o allí se envió o eliminó. Tu versión se guardará como un borrador nuevo.',
       draftGoneConflict:
         'Este borrador se envió o eliminó en otro dispositivo. Tu versión se guardará como un borrador nuevo.',
+      alreadySent: 'Este mensaje ya se había enviado.',
+      viewSent: 'Ver',
     },
   },
 

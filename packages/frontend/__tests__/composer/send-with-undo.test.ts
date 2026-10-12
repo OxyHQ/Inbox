@@ -43,6 +43,7 @@ jest.mock('@/utils/inboxTelemetry', () => ({ recordInboxMetric }));
 
 import { renderHook, act } from '@testing-library/react';
 import { useSendMessageWithUndo } from '@/hooks/mutations/useMessageMutations';
+import { keyReusedError } from '../fixtures/sendKeyReused';
 
 const UNDO_MS = 5000;
 const recipients = {
@@ -213,6 +214,40 @@ describe('failure', () => {
     expect(onError).toHaveBeenCalledTimes(1);
     expect(onSuccess).not.toHaveBeenCalled();
     expect(recordInboxMetric).toHaveBeenCalledWith('composer_send_failed');
+  });
+});
+
+describe('a key that already sent a different message', () => {
+  /**
+   * A compose restored after a crash resumes its key, and its body renders
+   * differently, so the API refuses it (OxyHQ/oxy#1676). The message is in
+   * Sent: that is not a send failure, and the API's "send this one with a new
+   * key" must never reach the user — following it sends the message twice.
+   */
+  it('is reported as already sent, not as a failure', async () => {
+    sendMessage.mockRejectedValue(keyReusedError('sent-row-1'));
+    const onSuccess = jest.fn();
+    const onError = jest.fn();
+    const onAlreadySent = jest.fn();
+
+    const { result } = renderHook(() => useSendMessageWithUndo());
+    await act(async () => {
+      void result.current.sendWithUndo(recipients, { onSuccess, onError, onAlreadySent });
+    });
+    await elapseUndoWindow();
+
+    expect(onAlreadySent).toHaveBeenCalledWith({
+      id: 'sent-row-1',
+      messageId: '<inbox-send-1@oxy.so>',
+    });
+    expect(onError).not.toHaveBeenCalled();
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(recordInboxMetric).toHaveBeenCalledWith('composer_send_already_sent');
+    expect(recordInboxMetric).not.toHaveBeenCalledWith('composer_send_failed');
+    // Sent holds the message: the lists showing it are stale.
+    expect(invalidateQueries).toHaveBeenCalled();
+    expect(sendMessage).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -461,6 +461,8 @@ const ca: LocaleDict = {
         "Aquest esborrany ha canviat en un altre dispositiu, o s'hi ha enviat o eliminat. La teva versió es desarà com un esborrany nou.",
       draftGoneConflict:
         "Aquest esborrany s'ha enviat o eliminat en un altre dispositiu. La teva versió es desarà com un esborrany nou.",
+      alreadySent: "Aquest missatge ja s'havia enviat.",
+      viewSent: 'Mostra',
     },
   },
 

@@ -51,6 +51,8 @@ import { HtmlBody } from '@/components/HtmlBody';
 import { InlineReply } from '@/components/InlineReply';
 import { SnoozeSheet } from '@/components/SnoozeSheet';
 import { StaleThreadBanner } from '@/components/StaleThreadBanner';
+import { DeliveryNotice, useDeliveryLabel } from '@/components/DeliveryStatus';
+import { isOutstanding } from '@/utils/delivery';
 import { ThreadOverview } from '@/components/ThreadOverview';
 import { UnreadableThreadEntry } from '@/components/UnreadableThreadEntry';
 import { CardRenderer } from '@/components/cards/CardRenderer';
@@ -165,6 +167,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const pathname = usePathname();
   const colors = useColors();
   const { t, locale } = useTranslation();
+  const deliveryLabel = useDeliveryLabel();
 
   const { data: currentMessage, isLoading, isError, refetch } = useMessage(messageId);
   const {
@@ -669,8 +672,13 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         />
       ),
       ...(msg.flags.draft ? { time: t('message.draftLabel') } : {}),
+      // A sent message that has not left says so where its time would be, so
+      // a collapsed conversation shows it too.
+      ...(isOutstanding(msg.delivery) ? { time: deliveryLabel(msg.delivery) } : {}),
       children: (
         <>
+          {/* Why it has not left, and what to do about it. */}
+          <DeliveryNotice message={msg} />
           {parts.body.trim() ? (
             renderBody(parts.body)
           ) : parts.quoted ? null : (

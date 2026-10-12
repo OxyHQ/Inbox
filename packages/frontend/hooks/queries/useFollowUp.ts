@@ -71,6 +71,9 @@ export function getFollowUpReason(
   inboxMessages: Message[] | undefined,
   now = new Date(),
 ): FollowUpReason | null {
+  // A message that never left is not awaiting a reply: it is awaiting the
+  // sender, and says so on the message itself.
+  if (message.delivery && message.delivery.state !== 'sent') return null;
   const messageTime = new Date(message.date).getTime();
   const cutoff = now.getTime() - FOLLOW_UP_DAYS * 24 * 60 * 60 * 1000;
   if (!Number.isFinite(messageTime) || messageTime > cutoff) return null;

@@ -37,34 +37,6 @@ const fr: LocaleDict = {
   templates: {
     insert: 'Insérer un modèle',
   },
-  outbound: {
-    stuckTitle_one: "{{count}} message n'a pas pu être envoyé",
-    stuckTitle_other: "{{count}} messages n'ont pas pu être envoyés",
-    waitingTitle_one: "{{count}} message en attente d'envoi",
-    waitingTitle_other: "{{count}} messages en attente d'envoi",
-    stuckDetail:
-      "Ils sont toujours enregistrés. Ouvre la file d'envoi pour voir pourquoi et réessayer.",
-    waitingDetail:
-      "Ils partiront d'eux-mêmes ; ouvre la file d'envoi pour suivre leur progression.",
-    status: {
-      sending: 'Envoi…',
-      waiting: "En attente d'envoi",
-      notDelivered_one: 'Non distribué après {{count}} tentative',
-      notDelivered_other: 'Non distribué après {{count}} tentatives',
-      retrying_one: 'Nouvel essai après {{count}} tentative',
-      retrying_other: 'Nouvel essai après {{count}} tentatives',
-      cancelled: 'Annulé',
-    },
-    queue: {
-      title: "File d'envoi",
-      description:
-        'Les messages sont relancés en toute sécurité en arrière-plan. Tu peux examiner un échec ou arrêter un envoi en file.',
-      noMoreAttempts: 'Aucune autre tentative ne sera faite automatiquement.',
-      nextAttempt: 'Prochaine tentative : {{time}}',
-      retryLabel: 'Relancer le message en file',
-      cancelLabel: 'Annuler le message en file',
-    },
-  },
   time: {
     today: "Aujourd'hui",
     todayAt: "Aujourd'hui, {{time}}",
@@ -447,7 +419,6 @@ const fr: LocaleDict = {
     },
     replyParentError:
       'Impossible de charger le message auquel tu réponds : cette réponse ne peut pas encore être envoyée sans casser la conversation.',
-    queuedNotice: "Ce message est déjà dans la file d'envoi. Le renvoyer ne créera pas de doublon.",
     titleCompose: 'Rédiger',
     titleReply: 'Répondre',
     titleForward: 'Transférer',
@@ -558,6 +529,39 @@ const fr: LocaleDict = {
     actionItems: 'Actions à faire',
     due: 'Échéance : {{date}}',
     unavailable: 'Impossible de résumer cette conversation pour le moment.',
+  },
+
+  delivery: {
+    sending: 'Envoi…',
+    retrying: 'Nouvel essai ({{count}})',
+    failed: 'Non distribué',
+    retry: 'Réessayer',
+    editAsNew: 'Modifier comme nouveau',
+    editAsNewError: "Impossible d'ouvrir ce message comme un nouveau.",
+    retryStarted: 'Nouvel envoi en cours.',
+    retryError: 'Impossible de réessayer ce message.',
+    failedToast: 'Non distribué : {{subject}}',
+    view: 'Voir',
+    nextAttempt: 'Prochain essai à {{time}}',
+    bannerFailed_one: "{{count}} message n'a pas pu être envoyé",
+    bannerFailed_other: "{{count}} messages n'ont pas pu être envoyés",
+    bannerSending_one: '{{count}} message en attente d’envoi',
+    bannerSending_other: '{{count}} messages en attente d’envoi',
+    bannerFailedDetail: 'Ouvrez Envoyés pour voir pourquoi, puis réessayez ou modifiez-le.',
+    bannerSendingDetail: 'Ils partiront tout seuls. Ouvrez Envoyés pour les suivre.',
+    reason: {
+      relay_unavailable:
+        "Le serveur de messagerie n'a pas répondu. Oxy continue d'essayer tout seul.",
+      relay_unconfigured:
+        "L'envoi n'est pas configuré sur ce serveur. Rien ne partira tant qu'un administrateur ne l'aura pas corrigé.",
+      relay_auth:
+        "Le serveur de messagerie a refusé la connexion d'Oxy. Rien ne partira tant qu'un administrateur ne l'aura pas corrigé.",
+      rejected: 'Le serveur de messagerie a refusé ce message.',
+      retries_exhausted: "Le serveur de messagerie n'a pas répondu après plusieurs essais.",
+      bounced:
+        "Le serveur de messagerie d'un destinataire l'a refusé après l'envoi. Modifiez-le pour le renvoyer.",
+      cancelled: "L'envoi a été annulé.",
+    },
   },
 
   staleThread: {
@@ -1110,12 +1114,6 @@ const fr: LocaleDict = {
       bulkFailed: 'Impossible de mettre à jour les messages.',
       bulkUpdated: 'Messages mis à jour.',
       moveFailed: 'Impossible de déplacer les messages.',
-      queuedDescription:
-        "Il n'a pas encore été distribué. Suis-le dans Réglages → Avancé → File d'envoi.",
-      retryQueued: 'Message remis en file pour un nouvel essai.',
-      retryFailed: 'Impossible de réessayer le message.',
-      queuedCancelled: 'Message en file annulé.',
-      cancelFailed: "Impossible d'annuler le message.",
       bundleUpdateFailed: 'Impossible de mettre à jour le groupe.',
       bundleReorderFailed: 'Impossible de réorganiser le groupe.',
       contactCreateFailed: 'Impossible de créer le contact',

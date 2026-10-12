@@ -47,8 +47,10 @@ jest.mock('@tanstack/react-query', () => ({
 }));
 
 let viewMode: unknown = null;
+const getMessage = jest.fn();
 jest.mock('@/hooks/useEmail', () => ({
-  useEmailStore: (selector: (s: unknown) => unknown) => selector({ viewMode }),
+  useEmailStore: (selector: (s: unknown) => unknown) =>
+    selector({ viewMode, _api: { getMessage } }),
 }));
 
 jest.mock('@/lib/i18n', () => ({
@@ -58,7 +60,8 @@ jest.mock('@/lib/i18n', () => ({
 }));
 
 let pathname = '/';
-jest.mock('expo-router', () => ({ usePathname: () => pathname }));
+const push = jest.fn();
+jest.mock('expo-router', () => ({ usePathname: () => pathname, useRouter: () => ({ push }) }));
 
 const recordInboxMetric = jest.fn();
 jest.mock('@/utils/inboxTelemetry', () => ({ recordInboxMetric }));
@@ -269,6 +272,59 @@ describe('email:changed', () => {
     emit('email:changed', { id: 'row-1', mailboxIds: 'not-an-array', reason: 'moved' });
     expect(invalidateQueries).not.toHaveBeenCalled();
     expect(recordInboxMetric).toHaveBeenCalledWith('realtime_malformed_event');
+  });
+});
+
+describe('email:changed — delivery', () => {
+  const changed = { id: 'row-sent', mailboxIds: ['mb-sent'], reason: 'delivery' };
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  it('re-reads the message, and is quiet when it went out', async () => {
+    getMessage.mockResolvedValue({
+      _id: 'row-sent',
+      subject: 'Re: Quota',
+      delivery: { state: 'sent' },
+    });
+    mount();
+    emit('email:changed', changed);
+    await flush();
+
+    expect(getMessage).toHaveBeenCalledWith('row-sent');
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('says so, wherever the user is, when a message was not delivered', async () => {
+    getMessage.mockResolvedValue({
+      _id: 'row-sent',
+      subject: 'Re: Quota',
+      delivery: { state: 'failed' },
+    });
+    mount();
+    emit('email:changed', changed);
+    await flush();
+
+    expect(toast.error).toHaveBeenCalledWith(
+      'delivery.failedToast:',
+      expect.objectContaining({ action: expect.objectContaining({ label: 'delivery.view:' }) }),
+    );
+    const { action } = toast.error.mock.calls[0][1] as { action: { onClick: () => void } };
+    action.onClick();
+    expect(push).toHaveBeenCalledWith('/conversation/row-sent');
+  });
+
+  it('is quiet for a message without a delivery, from a server that does not track it', async () => {
+    getMessage.mockResolvedValue({ _id: 'row-sent', subject: 'Re: Quota' });
+    mount();
+    emit('email:changed', changed);
+    await flush();
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('reads nothing for other kinds of change', async () => {
+    mount();
+    emit('email:changed', { ...changed, reason: 'flags' });
+    await flush();
+    expect(getMessage).not.toHaveBeenCalled();
   });
 });
 

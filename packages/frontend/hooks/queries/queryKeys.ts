@@ -77,7 +77,6 @@ export const emailKeys = {
   filters: ['filters'] as const,
   bundles: ['bundles'] as const,
   subscriptions: ['subscriptions'] as const,
-  outbox: ['outbox'] as const,
   savedSearches: ['saved-searches'] as const,
   reminders: {
     root: ['reminders'] as const,
@@ -125,7 +124,6 @@ export const PERSISTED_QUERY_ROOTS: ReadonlySet<string> = new Set([
   'contacts',
   'reminders',
   'subscriptions',
-  'outbox',
   'saved-searches',
   // Without this the brief is in-memory only, so a cold start re-runs the LLM
   // call the comment above it claims happens once a day.

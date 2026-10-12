@@ -37,32 +37,6 @@ const pt: LocaleDict = {
   templates: {
     insert: 'Inserir modelo',
   },
-  outbound: {
-    stuckTitle_one: 'Não foi possível enviar {{count}} mensagem',
-    stuckTitle_other: 'Não foi possível enviar {{count}} mensagens',
-    waitingTitle_one: '{{count}} mensagem à espera de envio',
-    waitingTitle_other: '{{count}} mensagens à espera de envio',
-    stuckDetail: 'Continuam guardadas. Abre a fila de entrega para ver porquê e tentar novamente.',
-    waitingDetail: 'Vão ser enviadas automaticamente; abre a fila de entrega para acompanhar.',
-    status: {
-      sending: 'A enviar…',
-      waiting: 'À espera de envio',
-      notDelivered_one: 'Não entregue após {{count}} tentativa',
-      notDelivered_other: 'Não entregue após {{count}} tentativas',
-      retrying_one: 'A tentar novamente após {{count}} tentativa',
-      retrying_other: 'A tentar novamente após {{count}} tentativas',
-      cancelled: 'Cancelada',
-    },
-    queue: {
-      title: 'Fila de entrega',
-      description:
-        'As mensagens são reenviadas em segurança em segundo plano. Podes analisar uma falha ou parar uma entrega em fila.',
-      noMoreAttempts: 'Não serão feitas mais tentativas automáticas.',
-      nextAttempt: 'Próxima tentativa: {{time}}',
-      retryLabel: 'Tentar novamente a mensagem em fila',
-      cancelLabel: 'Cancelar mensagem em fila',
-    },
-  },
   time: {
     today: 'Hoje',
     todayAt: 'Hoje, {{time}}',
@@ -446,7 +420,6 @@ const pt: LocaleDict = {
     },
     replyParentError:
       'Não foi possível carregar a mensagem a que respondes, por isso esta resposta ainda não pode ser enviada sem partir a conversa.',
-    queuedNotice: 'Esta mensagem já está na fila de envio. Enviá-la de novo não cria um duplicado.',
     titleCompose: 'Escrever',
     titleReply: 'Responder',
     titleForward: 'Reencaminhar',
@@ -557,6 +530,38 @@ const pt: LocaleDict = {
     actionItems: 'Ações pendentes',
     due: 'Prazo: {{date}}',
     unavailable: 'Não foi possível resumir esta conversa agora.',
+  },
+
+  delivery: {
+    sending: 'A enviar…',
+    retrying: 'A tentar de novo ({{count}})',
+    failed: 'Não entregue',
+    retry: 'Tentar de novo',
+    editAsNew: 'Editar como nova',
+    editAsNewError: 'Não foi possível abrir esta mensagem como uma nova.',
+    retryStarted: 'A enviar de novo.',
+    retryError: 'Não foi possível tentar de novo esta mensagem.',
+    failedToast: 'Não entregue: {{subject}}',
+    view: 'Ver',
+    nextAttempt: 'Próxima tentativa às {{time}}',
+    bannerFailed_one: '{{count}} mensagem não pôde ser enviada',
+    bannerFailed_other: '{{count}} mensagens não puderam ser enviadas',
+    bannerSending_one: '{{count}} mensagem à espera de envio',
+    bannerSending_other: '{{count}} mensagens à espera de envio',
+    bannerFailedDetail: 'Abre Enviadas para ver porquê e tentar de novo ou editar.',
+    bannerSendingDetail: 'Vão sair sozinhas. Abre Enviadas para acompanhar.',
+    reason: {
+      relay_unavailable: 'O servidor de email não respondeu. O Oxy continua a tentar sozinho.',
+      relay_unconfigured:
+        'O envio não está configurado neste servidor. Nada sai até um administrador corrigir.',
+      relay_auth:
+        'O servidor de email recusou o acesso do Oxy. Nada sai até um administrador corrigir.',
+      rejected: 'O servidor de email recusou esta mensagem.',
+      retries_exhausted: 'O servidor de email não respondeu após várias tentativas.',
+      bounced:
+        'O servidor de email de um destinatário recusou-o depois do envio. Edite-o para o enviar de novo.',
+      cancelled: 'O envio foi cancelado.',
+    },
   },
 
   staleThread: {
@@ -1107,12 +1112,6 @@ const pt: LocaleDict = {
       bulkFailed: 'Não foi possível atualizar as mensagens.',
       bulkUpdated: 'Mensagens atualizadas.',
       moveFailed: 'Não foi possível mover as mensagens.',
-      queuedDescription:
-        'Ainda não foi entregue. Acompanhe em Configurações → Avançado → Fila de entrega.',
-      retryQueued: 'Mensagem na fila para nova tentativa.',
-      retryFailed: 'Não foi possível tentar novamente.',
-      queuedCancelled: 'Mensagem da fila cancelada.',
-      cancelFailed: 'Não foi possível cancelar a mensagem.',
       bundleUpdateFailed: 'Falha ao atualizar o grupo.',
       bundleReorderFailed: 'Falha ao reordenar o grupo.',
       contactCreateFailed: 'Falha ao criar o contacto',

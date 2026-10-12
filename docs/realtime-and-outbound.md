@@ -52,24 +52,48 @@ that is a normal condition, not an exceptional one.
 
 ## Sending reported success for messages that never left
 
-`POST /email/messages` answers 202 in two very different situations: the relay
-took the message, or the relay refused it and the server parked it in the
-durable outbox. The second is `{ queued: true }`.
+`POST /email/messages` used to relay inside the request and answer 202 in two
+very different situations: the relay took the message, or it refused and the
+server parked it in an outbox (`{ queued: true }`). The second was treated as
+success, so a total outbound outage looked like a working inbox. And because
+the relay ran inside the request, a relay slower than the client's timeout made
+the client report a failure while the server was still sending, and the user
+pressed Send again.
 
-It used to be treated as success — an info toast, the composer closing, and
-`clearComposeRecovery()` deleting the local snapshot. With the relay
-misconfigured **every** message took that branch, so a total outbound outage
-looked like a working inbox.
+Since OxyHQ/oxy#1662 (2026-10) a send is **filed first and delivered
+afterwards** (`packages/api/src/services/emailDelivery.service.ts`):
 
-`queued` now has its own callback. The composer still closes (the server holds
-the message) but the crash-recovery snapshot survives, and `OutboundQueueBanner`
-puts the delivery queue at the top of the inbox instead of leaving it three taps
-deep in Settings → Advanced, hidden when empty.
+- The API claims the message's `email_outbox` row, files it in Sent linked to
+  that row, and answers 202 with `id` (the Sent row) and `delivery` — normally
+  `sending`. It never waits on SMTP, so the client needs no long timeout, and
+  `retry` is safe because the Idempotency-Key makes a repeat the same message.
+  Only "no relay configured at all" (503) and a refused recipient (400) still
+  fail the request itself.
+- The outbox row IS the delivery; there is no second table. Every message read
+  carries `delivery` (`@oxy.so/contracts` `emailMessageDeliverySchema`):
+  `sending`, `retrying` (with `nextAttemptAt`), `sent`, or `failed`, with the
+  relay's own words in `error` and a typed `errorCode` (`relay_unavailable`,
+  `relay_unconfigured`, `relay_auth`, `rejected`, `retries_exhausted`,
+  `bounced`, `cancelled`). An SES permanent bounce turns a `sent` message into
+  `failed`/`bounced`. Each change emits `email:changed` with reason `delivery`.
+- `POST /email/messages/:id/delivery/retry` tries again with a fresh budget. It
+  is refused for a recipient suppressed since, which is why a bounce offers only
+  **Edit as new** (`canRetry` in `utils/delivery.ts`).
+- The client shows it where the message is: a chip on the Sent row and the
+  delivery label in place of the time in a conversation (`useDeliveryLabel`), a
+  notice with **Retry** and **Edit as new** on the message (`DeliveryNotice`),
+  `UndeliveredBanner` at the top of the inbox, and a toast on any `failed`
+  transition wherever the user is (`useInboxSocket`).
 
-The API distinguishes "will retry" from "will not": `terminal` on the outbox DTO
-is true once the retry budget is spent or the failure was permanent. A
-configuration error, a rejected credential and a 5xx refusal are all permanent
-and are never queued — the API answers **503** with something actionable.
+It degrades to nothing: received mail and mail sent before delivery was tracked
+have no `delivery` and read as delivered; an `errorCode` this client does not
+know parses as `null` (the relay's words are still shown), and a `delivery` it
+cannot parse is dropped rather than dropping the message.
+
+There is no separate "delivery queue" in the app any more — the Sent message
+IS the queue entry. Do not reintroduce `queued`: the server sends it only for
+older clients, true only when an earlier attempt under the same key failed, and
+the message's own `delivery` already says so.
 
 ## Where outbound actually goes
 

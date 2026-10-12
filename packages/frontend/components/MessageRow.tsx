@@ -40,6 +40,8 @@ import { ImportanceBadge } from './ImportanceBadge';
 import { SentimentIndicator } from './SentimentIndicator';
 import { calendarDaysBetween } from '@oxy.so/utils/date';
 import { dateFormatter, formatRowTime } from '@/utils/dateFormat';
+import { useDeliveryLabel } from '@/components/DeliveryStatus';
+import { deliveryTone, isOutstanding } from '@/utils/delivery';
 
 const TIME: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' };
 const WEEKDAY_MONTH_DAY: Intl.DateTimeFormatOptions = {
@@ -198,6 +200,7 @@ function MessageRowInner({
   archived = false,
 }: MessageRowProps) {
   const { t, locale } = useTranslation();
+  const deliveryLabel = useDeliveryLabel();
   const actions: MailAction[] = [];
   if (onToggleSelect)
     actions.push({
@@ -247,6 +250,20 @@ function MessageRowInner({
         showSnoozeTime && message.snoozedUntil
           ? formatSnoozeTime(message.snoozedUntil, t, locale)
           : formatRowTime(message.date, t('inbox.sections.yesterday'), locale)
+      }
+      // A sent message that has not left says so on the row — the one place a
+      // glance at Sent always lands. Delivered mail and received mail carry
+      // no delivery chip.
+      labels={
+        isOutstanding(message.delivery)
+          ? [
+              {
+                id: 'delivery',
+                name: deliveryLabel(message.delivery),
+                tone: deliveryTone(message.delivery),
+              },
+            ]
+          : undefined
       }
       unread={!message.flags.seen}
       starred={message.flags.starred}

@@ -37,33 +37,6 @@ const ca: LocaleDict = {
   templates: {
     insert: 'Insereix una plantilla',
   },
-  outbound: {
-    stuckTitle_one: "No s'ha pogut enviar {{count}} missatge",
-    stuckTitle_other: "No s'han pogut enviar {{count}} missatges",
-    waitingTitle_one: "{{count}} missatge pendent d'enviament",
-    waitingTitle_other: "{{count}} missatges pendents d'enviament",
-    stuckDetail:
-      "Encara estan desats. Obre la cua de lliurament per veure'n el motiu i tornar-ho a provar.",
-    waitingDetail: "S'enviaran sols; obre la cua de lliurament per seguir-los.",
-    status: {
-      sending: "S'està enviant…",
-      waiting: "Pendent d'enviament",
-      notDelivered_one: "No s'ha lliurat després de {{count}} intent",
-      notDelivered_other: "No s'ha lliurat després de {{count}} intents",
-      retrying_one: 'Tornant-ho a provar després de {{count}} intent',
-      retrying_other: 'Tornant-ho a provar després de {{count}} intents',
-      cancelled: 'Cancel·lat',
-    },
-    queue: {
-      title: 'Cua de lliurament',
-      description:
-        'Els missatges es tornen a provar de manera segura en segon pla. Pots revisar un error o aturar un lliurament de la cua.',
-      noMoreAttempts: 'No es faran més intents automàticament.',
-      nextAttempt: 'Proper intent: {{time}}',
-      retryLabel: 'Torna a provar el missatge de la cua',
-      cancelLabel: 'Cancel·la el missatge de la cua',
-    },
-  },
   time: {
     today: 'Avui',
     todayAt: 'Avui, {{time}}',
@@ -444,8 +417,6 @@ const ca: LocaleDict = {
     },
     replyParentError:
       "No s'ha pogut carregar el missatge al qual respons, així que aquesta resposta encara no es pot enviar sense trencar la conversa.",
-    queuedNotice:
-      "Aquest missatge ja és a la cua d'enviament. Tornar-lo a enviar no crearà un duplicat.",
     titleCompose: 'Redacta',
     titleReply: 'Respon',
     titleForward: 'Reenvia',
@@ -556,6 +527,38 @@ const ca: LocaleDict = {
     actionItems: 'Accions pendents',
     due: 'Per a: {{date}}',
     unavailable: "No s'ha pogut resumir aquesta conversa ara mateix.",
+  },
+
+  delivery: {
+    sending: 'Enviant…',
+    retrying: 'Tornant-ho a provar ({{count}})',
+    failed: 'No lliurat',
+    retry: 'Torna-ho a provar',
+    editAsNew: 'Edita com a nou',
+    editAsNewError: "No s'ha pogut obrir aquest missatge com un de nou.",
+    retryStarted: "S'està tornant a enviar.",
+    retryError: "No s'ha pogut tornar a provar aquest missatge.",
+    failedToast: 'No lliurat: {{subject}}',
+    view: 'Mostra',
+    nextAttempt: 'Proper intent a les {{time}}',
+    bannerFailed_one: "{{count}} missatge no s'ha pogut enviar",
+    bannerFailed_other: "{{count}} missatges no s'han pogut enviar",
+    bannerSending_one: '{{count}} missatge pendent d’enviar',
+    bannerSending_other: '{{count}} missatges pendents d’enviar',
+    bannerFailedDetail: 'Obre Enviats per veure per què i tornar-ho a provar o editar-lo.',
+    bannerSendingDetail: 'Sortiran sols. Obre Enviats per seguir-los.',
+    reason: {
+      relay_unavailable: "El servidor de correu no ha respost. L'Oxy continua provant-ho sol.",
+      relay_unconfigured:
+        "L'enviament no està configurat en aquest servidor. No sortirà res fins que un administrador ho arregli.",
+      relay_auth:
+        "El servidor de correu ha rebutjat l'accés de l'Oxy. No sortirà res fins que un administrador ho arregli.",
+      rejected: 'El servidor de correu ha rebutjat aquest missatge.',
+      retries_exhausted: 'El servidor de correu no ha respost després de diversos intents.',
+      bounced:
+        "El servidor de correu d'un destinatari l'ha rebutjat després de l'enviament. Edita'l per tornar-lo a enviar.",
+      cancelled: "S'ha cancel·lat l'enviament.",
+    },
   },
 
   staleThread: {
@@ -1105,12 +1108,6 @@ const ca: LocaleDict = {
       bulkFailed: "No s'han pogut actualitzar els missatges.",
       bulkUpdated: 'Missatges actualitzats.',
       moveFailed: "No s'han pogut moure els missatges.",
-      queuedDescription:
-        "Encara no s'ha lliurat. Segueix-lo a Ajustos → Avançat → Cua de lliurament.",
-      retryQueued: 'Missatge a la cua per tornar-ho a provar.',
-      retryFailed: "No s'ha pogut tornar a provar el missatge.",
-      queuedCancelled: 'Missatge de la cua cancel·lat.',
-      cancelFailed: "No s'ha pogut cancel·lar el missatge.",
       bundleUpdateFailed: "No s'ha pogut actualitzar el grup.",
       bundleReorderFailed: "No s'ha pogut reordenar el grup.",
       contactCreateFailed: "No s'ha pogut crear el contacte",

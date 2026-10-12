@@ -214,7 +214,6 @@ export function useComposeSession({
   // One key per compose session (see utils/sendIdempotency.ts); replaced by the
   // recovered one when this composer resumes an earlier session.
   const [idempotencyKey, setIdempotencyKey] = useState(newSendIdempotencyKey);
-  const [alreadyQueued, setAlreadyQueued] = useState(false);
   const [to, setTo] = useState(seed.to);
   const [cc, setCc] = useState(seed.cc);
   const [bcc, setBcc] = useState(seed.bcc);
@@ -276,11 +275,10 @@ export function useComposeSession({
       })),
       ...(replyTo ? { replyTo } : {}),
       idempotencyKey,
-      ...(alreadyQueued ? { queued: true } : {}),
     }),
-    [to, cc, bcc, subject, body, attachments, replyTo, idempotencyKey, alreadyQueued],
+    [to, cc, bcc, subject, body, attachments, replyTo, idempotencyKey],
   );
-  // The idempotency key and the queued mark are not content.
+  // The idempotency key is not content.
   const contentKey = contentKeyOf({ to, cc, bcc, subject, body, attachments });
   // The session starts with nothing unsaved: a reopened draft is saved as it
   // is, and the fields a reply or a link starts with are not the user's
@@ -315,22 +313,24 @@ export function useComposeSession({
     };
   }, []);
 
-  // ── Local crash recovery ──────────────────────────────────────────
+  // ── A send that may have reached the server ──────────────────────
   /**
-   * The content of a recovered snapshot whose send was queued. Sending it again
-   * reuses its idempotency key — the same message to the API. Once the content
-   * differs it is a different message, and a new key: with the old one the API
-   * answered with the queued message's outcome and the new one never left.
+   * The content of the last send that went to the server without an answer —
+   * it failed, or timed out, and the server may hold it all the same. Sending
+   * that content again reuses the key, so the API sees the same message. Once
+   * the content differs it is a different message and needs a new key: under
+   * the old one the API answers with the message it already filed, and the
+   * edits would be dropped while the composer closed as if they had gone.
    */
-  const queuedContentKeyRef = useRef<string | null>(null);
+  const attemptedContentKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!alreadyQueued || queuedContentKeyRef.current === null) return;
-    if (contentKey === queuedContentKeyRef.current) return;
-    queuedContentKeyRef.current = null;
-    setAlreadyQueued(false);
+    const attempted = attemptedContentKeyRef.current;
+    if (attempted === null || attempted === contentKey) return;
+    attemptedContentKeyRef.current = null;
     setIdempotencyKey(newSendIdempotencyKey());
-  }, [alreadyQueued, contentKey]);
+  }, [contentKey]);
 
+  // ── Local crash recovery ──────────────────────────────────────────
   // biome-ignore lint/correctness/useExhaustiveDependencies: Seeded once per session, like the fields themselves.
   useEffect(() => {
     let cancelled = false;
@@ -342,19 +342,6 @@ export function useComposeSession({
       const usable = record && (!draft || record.savedAt > Date.parse(draft.date));
       if (record && usable) {
         if (record.snapshot.idempotencyKey) setIdempotencyKey(record.snapshot.idempotencyKey);
-        const queued = record.snapshot.queued === true;
-        setAlreadyQueued(queued);
-        queuedContentKeyRef.current = queued
-          ? contentKeyOf({
-              ...record.snapshot,
-              attachments: (record.snapshot.attachments ?? []).map((attachment) => ({
-                fileId: attachment.fileId,
-                name: attachment.name ?? attachment.fileId,
-                contentType: attachment.contentType ?? 'application/octet-stream',
-                size: attachment.size ?? 0,
-              })),
-            })
-          : null;
         setTo(record.snapshot.to);
         setCc(record.snapshot.cc);
         setBcc(record.snapshot.bcc);
@@ -646,21 +633,16 @@ export function useComposeSession({
     await settleSaves();
     if (discardedRef.current) return;
     pendingSendRef.current = sendWithUndo(messagePayload(recipients), {
+      // Accepted: filed in Sent, its delivery shown on it from now on. The
+      // server holds the message, so the local snapshot has done its job.
       onSuccess: () => {
         void clearComposeRecovery(recoveryKey);
-        finish();
-      },
-      // Accepted but NOT delivered. Close — the server holds the message — but
-      // keep the local snapshot, marked queued with the session's key, because
-      // `queued` includes the case where delivery never happens; pressing Send
-      // on it again is the same message to the API.
-      onQueued: () => {
-        void saveComposeRecovery(recoveryKey, { ...latest.current.snapshot, queued: true });
         finish();
       },
       onError: () => {
         pendingSendRef.current = null;
         sentRef.current = false;
+        attemptedContentKeyRef.current = latest.current.contentKey;
       },
       onCancel: () => {
         pendingSendRef.current = null;
@@ -705,6 +687,7 @@ export function useComposeSession({
           },
           onError: (err: Error) => {
             sentRef.current = false;
+            attemptedContentKeyRef.current = latest.current.contentKey;
             toast.error(err.message || t('compose.toast.scheduleFailed'));
           },
         },
@@ -830,7 +813,6 @@ export function useComposeSession({
     hasUnsavedWork,
     draftStatusLabel,
     draftSaveError: visibleSaveState === 'error',
-    alreadyQueued,
     sending,
     sendDisabled,
     send,

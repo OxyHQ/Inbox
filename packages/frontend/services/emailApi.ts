@@ -27,8 +27,8 @@ import {
   ContactSchema,
   EmailFilterSchema,
   EmailTemplateSchema,
-  EmailOutboxSchema,
   SavedEmailSearchSchema,
+  SendResultSchema,
 } from '@/schemas/emailSchemas';
 import { recordInboxMetric } from '@/utils/inboxTelemetry';
 import type {
@@ -51,9 +51,9 @@ import type {
   EmailFilterCondition,
   EmailFilterAction,
   EmailTemplate,
-  EmailOutbox,
   SavedEmailSearch,
   SavedEmailSearchFilters,
+  SendResult,
 } from '@/schemas/emailSchemas';
 
 export * from '@/schemas/emailSchemas';
@@ -213,8 +213,6 @@ async function inBatches(
   }
   return total;
 }
-
-const SEND_TIMEOUT_MS = 60_000;
 
 // ─── API Client ────────────────────────────────────────────────────
 
@@ -388,25 +386,26 @@ export function createEmailApi(http: HttpService) {
       draftId?: string;
       /** Required: one per compose session, see `utils/sendIdempotency.ts`. */
       idempotencyKey: string;
-    }): Promise<{ messageId: string; queued?: boolean; scheduledAt?: string; message: string }> {
+    }): Promise<SendResult> {
       const { idempotencyKey, ...payload } = message;
+      // The API files the message in Sent and answers before it talks to any
+      // relay, so the SDK's default timeout is ample. `retry` is safe only
+      // because the key makes a repeat the same message.
       const res = await http.post('/email/messages', payload, {
         headers: { 'Idempotency-Key': idempotencyKey },
         cache: false,
-        // The API relays synchronously; the SDK's 5 s default cut a slow relay
-        // off mid-send, the composer reopened, and the user sent it again.
-        timeout: SEND_TIMEOUT_MS,
-        // Safe only because the key makes a repeat the same message.
         retry: true,
       });
-      return z
-        .object({
-          messageId: z.string(),
-          queued: z.boolean().optional(),
-          scheduledAt: z.string().optional(),
-          message: z.string(),
-        })
-        .parse(res);
+      return SendResultSchema.parse(res);
+    },
+
+    /**
+     * Deliver a message whose delivery failed again, now, with a fresh retry
+     * budget. Answers with the message, its delivery back at `sending`.
+     */
+    async retryDelivery(messageId: string): Promise<Message> {
+      const res = await http.post(`/email/messages/${messageId}/delivery/retry`);
+      return MessageSchema.parse(res);
     },
 
     async saveDraft(draft: {
@@ -424,25 +423,6 @@ export function createEmailApi(http: HttpService) {
     }): Promise<Message> {
       const res = await http.post('/email/drafts', draft);
       return MessageSchema.parse(res);
-    },
-
-    // ─── Durable outbound delivery ─────────────────────────────────
-
-    async listOutboundMessages(options: { limit?: number } = {}): Promise<EmailOutbox[]> {
-      const res = await http.get('/email/outbox', {
-        params: options.limit === undefined ? undefined : { limit: String(options.limit) },
-      });
-      return z.array(EmailOutboxSchema).parse(res);
-    },
-
-    async retryOutboundMessage(outboxId: string): Promise<EmailOutbox> {
-      const res = await http.post(`/email/outbox/${outboxId}/retry`);
-      return EmailOutboxSchema.parse(res);
-    },
-
-    async cancelOutboundMessage(outboxId: string): Promise<EmailOutbox> {
-      const res = await http.post(`/email/outbox/${outboxId}/cancel`);
-      return EmailOutboxSchema.parse(res);
     },
 
     // ─── Search ─────────────────────────────────────────────────────

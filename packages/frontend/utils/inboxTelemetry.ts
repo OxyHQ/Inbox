@@ -22,13 +22,11 @@ export type InboxMetricName =
   | 'message_parse_failed'
   | 'search_submitted'
   | 'composer_send_succeeded'
-  | 'composer_send_queued'
   | 'composer_send_failed';
 
 export interface InboxMetricDimensions {
   hasQuery?: boolean;
   hasOperators?: boolean;
-  queued?: boolean;
 }
 
 export function recordInboxMetric(

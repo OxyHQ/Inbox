@@ -22,11 +22,9 @@ export interface ComposeRecoverySnapshot {
   replyTo?: string;
   /**
    * The compose session's send key. Restored with the snapshot so a re-send
-   * after a crash, a timeout or a queued send is the SAME message to the API.
+   * after a crash or a timeout is the SAME message to the API.
    */
   idempotencyKey?: string;
-  /** The API accepted this message into its delivery queue. */
-  queued?: boolean;
 }
 
 export interface ComposeRecoveryRecord {
@@ -84,7 +82,6 @@ function normalizeSnapshot(value: unknown): ComposeRecoverySnapshot | null {
     ...(typeof candidate.idempotencyKey === 'string'
       ? { idempotencyKey: candidate.idempotencyKey }
       : {}),
-    ...(candidate.queued === true ? { queued: true } : {}),
   };
 }
 

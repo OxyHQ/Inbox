@@ -26,7 +26,6 @@ const mockSession = {
   isDirty: true,
   sending: false,
   sendDisabled: false,
-  alreadyQueued: false,
   draftStatusLabel: null,
   draftSaveError: null,
   setTo: jest.fn(),

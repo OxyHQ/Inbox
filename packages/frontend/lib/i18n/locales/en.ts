@@ -26,32 +26,6 @@ const en: LocaleDict = {
     todayAt: 'Today, {{time}}',
     today: 'Today',
   },
-  outbound: {
-    queue: {
-      cancelLabel: 'Cancel queued message',
-      retryLabel: 'Retry queued message',
-      nextAttempt: 'Next attempt: {{time}}',
-      noMoreAttempts: 'No further attempts will be made automatically.',
-      description:
-        'Messages are retried safely in the background. You can inspect a failure or stop a queued delivery.',
-      title: 'Delivery queue',
-    },
-    status: {
-      cancelled: 'Cancelled',
-      retrying_other: 'Retrying after {{count}} attempts',
-      retrying_one: 'Retrying after {{count}} attempt',
-      notDelivered_other: 'Not delivered after {{count}} attempts',
-      notDelivered_one: 'Not delivered after {{count}} attempt',
-      waiting: 'Waiting to send',
-      sending: 'Sending…',
-    },
-    waitingDetail: 'They will go out on their own; open the delivery queue to follow along.',
-    stuckDetail: 'They are still saved. Open the delivery queue to see why and retry.',
-    waitingTitle_other: '{{count}} messages waiting to send',
-    waitingTitle_one: '{{count}} message waiting to send',
-    stuckTitle_other: '{{count}} messages could not be sent',
-    stuckTitle_one: '{{count}} message could not be sent',
-  },
   templates: {
     insert: 'Insert template',
   },
@@ -440,8 +414,6 @@ const en: LocaleDict = {
     },
     replyParentError:
       "Couldn't load the message you're replying to, so this reply can't be sent yet without breaking the conversation.",
-    queuedNotice:
-      'This message is already in the send queue. Sending it again will not send a duplicate.',
     titleCompose: 'Compose',
     titleReply: 'Reply',
     titleForward: 'Forward',
@@ -551,6 +523,36 @@ const en: LocaleDict = {
     actionItems: 'Action Items',
     due: 'Due: {{date}}',
     unavailable: 'Unable to summarize this thread right now.',
+  },
+
+  delivery: {
+    sending: 'Sending…',
+    retrying: 'Retrying ({{count}})',
+    failed: 'Not delivered',
+    retry: 'Retry',
+    editAsNew: 'Edit as new',
+    retryStarted: 'Sending it again.',
+    retryError: "Couldn't retry this message.",
+    failedToast: 'Not delivered: {{subject}}',
+    view: 'View',
+    nextAttempt: 'Next attempt at {{time}}',
+    bannerFailed_one: '{{count}} message could not be sent',
+    bannerFailed_other: '{{count}} messages could not be sent',
+    bannerSending_one: '{{count}} message waiting to send',
+    bannerSending_other: '{{count}} messages waiting to send',
+    bannerFailedDetail: 'Open Sent to see why, then retry or edit it.',
+    bannerSendingDetail: "They'll go out on their own. Open Sent to follow along.",
+    reason: {
+      relay_unavailable: "The mail server didn't answer. Oxy keeps trying on its own.",
+      relay_unconfigured:
+        'Sending is not set up on this server. Nothing can go out until an administrator fixes it.',
+      relay_auth:
+        "The mail server rejected Oxy's sign-in. Nothing can go out until an administrator fixes it.",
+      rejected: 'The mail server refused this message.',
+      retries_exhausted: "The mail server didn't answer after several tries.",
+      bounced: "A recipient's mail server refused it after it was sent. Edit it to send it again.",
+      cancelled: 'Sending was cancelled.',
+    },
   },
 
   staleThread: {
@@ -1111,12 +1113,6 @@ const en: LocaleDict = {
       bulkFailed: 'Failed to update messages.',
       bulkUpdated: 'Messages updated.',
       moveFailed: 'Failed to move messages.',
-      queuedDescription:
-        'It has not been delivered yet. Track it in Settings → Advanced → Delivery queue.',
-      retryQueued: 'Message queued for retry.',
-      retryFailed: 'Unable to retry message.',
-      queuedCancelled: 'Queued message cancelled.',
-      cancelFailed: 'Unable to cancel message.',
       bundleUpdateFailed: 'Failed to update bundle.',
       bundleReorderFailed: 'Failed to reorder bundle.',
       contactCreateFailed: 'Failed to create contact',

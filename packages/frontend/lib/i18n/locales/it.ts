@@ -37,32 +37,6 @@ const it: LocaleDict = {
   templates: {
     insert: 'Inserisci modello',
   },
-  outbound: {
-    stuckTitle_one: 'Impossibile inviare {{count}} messaggio',
-    stuckTitle_other: 'Impossibile inviare {{count}} messaggi',
-    waitingTitle_one: '{{count}} messaggio in attesa di invio',
-    waitingTitle_other: '{{count}} messaggi in attesa di invio',
-    stuckDetail: 'Sono ancora salvati. Apri la coda di consegna per vedere il motivo e riprovare.',
-    waitingDetail: 'Partiranno da soli; apri la coda di consegna per seguirli.',
-    status: {
-      sending: 'Invio in corso…',
-      waiting: 'In attesa di invio',
-      notDelivered_one: 'Non consegnato dopo {{count}} tentativo',
-      notDelivered_other: 'Non consegnato dopo {{count}} tentativi',
-      retrying_one: 'Nuovo tentativo dopo {{count}} tentativo',
-      retrying_other: 'Nuovo tentativo dopo {{count}} tentativi',
-      cancelled: 'Annullato',
-    },
-    queue: {
-      title: 'Coda di consegna',
-      description:
-        'I messaggi vengono ritentati in sicurezza in background. Puoi esaminare un errore o interrompere una consegna in coda.',
-      noMoreAttempts: 'Non verranno effettuati altri tentativi automatici.',
-      nextAttempt: 'Prossimo tentativo: {{time}}',
-      retryLabel: 'Riprova il messaggio in coda',
-      cancelLabel: 'Annulla il messaggio in coda',
-    },
-  },
   time: {
     today: 'Oggi',
     todayAt: 'Oggi, {{time}}',
@@ -442,8 +416,6 @@ const it: LocaleDict = {
     },
     replyParentError:
       'Impossibile caricare il messaggio a cui rispondi: questa risposta non può ancora essere inviata senza spezzare la conversazione.',
-    queuedNotice:
-      'Questo messaggio è già nella coda di invio. Inviarlo di nuovo non creerà un duplicato.',
     titleCompose: 'Scrivi',
     titleReply: 'Rispondi',
     titleForward: 'Inoltra',
@@ -554,6 +526,37 @@ const it: LocaleDict = {
     actionItems: 'Azioni da fare',
     due: 'Scadenza: {{date}}',
     unavailable: 'Impossibile riassumere questa conversazione ora.',
+  },
+
+  delivery: {
+    sending: 'Invio…',
+    retrying: 'Nuovo tentativo ({{count}})',
+    failed: 'Non consegnato',
+    retry: 'Riprova',
+    editAsNew: 'Modifica come nuovo',
+    retryStarted: 'Nuovo invio in corso.',
+    retryError: 'Impossibile riprovare questo messaggio.',
+    failedToast: 'Non consegnato: {{subject}}',
+    view: 'Vedi',
+    nextAttempt: 'Prossimo tentativo alle {{time}}',
+    bannerFailed_one: '{{count}} messaggio non è stato inviato',
+    bannerFailed_other: '{{count}} messaggi non sono stati inviati',
+    bannerSending_one: '{{count}} messaggio in attesa di invio',
+    bannerSending_other: '{{count}} messaggi in attesa di invio',
+    bannerFailedDetail: 'Apri Inviati per vedere il motivo, poi riprova o modificalo.',
+    bannerSendingDetail: 'Partiranno da soli. Apri Inviati per seguirli.',
+    reason: {
+      relay_unavailable: 'Il server di posta non ha risposto. Oxy continua a riprovare da solo.',
+      relay_unconfigured:
+        "L'invio non è configurato su questo server. Non partirà nulla finché un amministratore non lo sistema.",
+      relay_auth:
+        "Il server di posta ha rifiutato l'accesso di Oxy. Non partirà nulla finché un amministratore non lo sistema.",
+      rejected: 'Il server di posta ha rifiutato questo messaggio.',
+      retries_exhausted: 'Il server di posta non ha risposto dopo diversi tentativi.',
+      bounced:
+        "Il server di posta di un destinatario lo ha rifiutato dopo l'invio. Modificalo per inviarlo di nuovo.",
+      cancelled: "L'invio è stato annullato.",
+    },
   },
 
   staleThread: {
@@ -1105,12 +1108,6 @@ const it: LocaleDict = {
       bulkFailed: 'Impossibile aggiornare i messaggi.',
       bulkUpdated: 'Messaggi aggiornati.',
       moveFailed: 'Impossibile spostare i messaggi.',
-      queuedDescription:
-        'Non è ancora stato consegnato. Seguilo in Impostazioni → Avanzate → Coda di consegna.',
-      retryQueued: 'Messaggio in coda per un nuovo tentativo.',
-      retryFailed: 'Impossibile riprovare il messaggio.',
-      queuedCancelled: 'Messaggio in coda annullato.',
-      cancelFailed: 'Impossibile annullare il messaggio.',
       bundleUpdateFailed: 'Impossibile aggiornare il gruppo.',
       bundleReorderFailed: 'Impossibile riordinare il gruppo.',
       contactCreateFailed: 'Impossibile creare il contatto',

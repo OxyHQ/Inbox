@@ -347,15 +347,13 @@ export function useSendMessageWithUndo() {
     (
       params: Parameters<NonNullable<typeof api>['sendMessage']>[0],
       options?: {
-        /** The message LEFT. Safe to discard the local recovery snapshot. */
-        onSuccess?: () => void;
         /**
-         * The server accepted the message but has not delivered it yet. The
-         * composer may close — the server holds the message — but the local
-         * crash-recovery snapshot MUST survive, because "queued" includes the
-         * case where delivery never happens.
+         * The API accepted it: the message is filed in Sent and its delivery
+         * follows in the background, shown on the message itself (`delivery`).
+         * Safe to discard the local recovery snapshot — the server holds the
+         * message, and a delivery that fails is retried from there.
          */
-        onQueued?: () => void;
+        onSuccess?: () => void;
         onError?: (err: unknown) => void;
         /** Undo was pressed: nothing was sent and the composer is live again. */
         onCancel?: () => void;
@@ -401,24 +399,6 @@ export function useSendMessageWithUndo() {
         try {
           const result = await api.sendMessage(params);
           invalidateAfterSend(queryClient);
-
-          if (result.queued) {
-            // `queued` is NOT `sent`. It means the relay refused the message
-            // for a reason the server judged transient and parked it in the
-            // durable outbox; it may still never leave. Treating it as success
-            // is how a total outbound outage looked like a working inbox — an
-            // info toast, the composer closing, and the recovery snapshot
-            // deleted. Surface it as an outstanding delivery and keep the
-            // snapshot.
-            queryClient.invalidateQueries({ queryKey: emailKeys.outbox });
-            toast.warning(result.message, {
-              duration: 10000,
-              description: t('ui.mutations.queuedDescription'),
-            } as Record<string, unknown>);
-            recordInboxMetric('composer_send_queued', { queued: true });
-            options?.onQueued?.();
-            return;
-          }
 
           toast.success(result.message);
           recordInboxMetric('composer_send_succeeded');

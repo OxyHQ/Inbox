@@ -1,7 +1,6 @@
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { parseByteSize } from '@/utils/byteSize';
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
-import { OutboundQueueSection } from '@/components/settings/OutboundQueueSection';
 import { useReorderBundle, useUpdateBundle } from '@/hooks/mutations/useBundleMutations';
 import {
   useCreateFilter,
@@ -683,7 +682,6 @@ export function AdvancedSection() {
             : []),
         ]}
       />
-      <OutboundQueueSection />
       <Dialog
         control={filterDelete}
         title={t('ui.settings.advanced.deleteFilterTitle')}

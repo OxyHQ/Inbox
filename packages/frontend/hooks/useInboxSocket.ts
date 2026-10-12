@@ -33,7 +33,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { toast } from '@oxy.so/bloom';
 import { useOxy, useOxyEvent } from '@oxy.so/services';
-import { usePathname } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { useEmailStore } from '@/hooks/useEmail';
@@ -73,7 +73,11 @@ export interface EmailUnreadCountEvent {
   unread: number;
 }
 
-export type EmailChangedReason = 'flags' | 'labels' | 'moved' | 'deleted' | 'sent';
+/**
+ * `delivery`: a message the user sent moved between sending, retrying,
+ * delivered and not delivered. The event carries no state — re-read it.
+ */
+export type EmailChangedReason = 'flags' | 'labels' | 'moved' | 'deleted' | 'sent' | 'delivery';
 
 export interface EmailChangedEvent {
   id: string;
@@ -246,6 +250,8 @@ export function useInboxSocket() {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const viewMode = useEmailStore((s) => s.viewMode);
+  const api = useEmailStore((s) => s._api);
+  const router = useRouter();
   const userId = user?.id ?? null;
   // `viewMode` keeps the last folder while Search, Subscriptions or Settings
   // is on screen; the route says whether a mail list is actually showing.
@@ -343,6 +349,35 @@ export function useInboxSocket() {
     [],
   );
 
+  /**
+   * A message the user sent moved between sending, retrying, sent and not
+   * delivered. The views re-read it with everything else below; a failed
+   * delivery is also said wherever the user is, because it is the one outcome
+   * of a send that must never be discovered by accident.
+   */
+  const onDeliveryChanged = useCallback(
+    async (messageId: string) => {
+      if (!api) return;
+      let message: Message;
+      try {
+        message = await api.getMessage(messageId);
+      } catch {
+        return;
+      }
+      if (message.delivery?.state !== 'failed') return;
+      toast.error(
+        t('delivery.failedToast', { subject: message.subject || t('message.detail.noSubject') }),
+        {
+          action: {
+            label: t('delivery.view'),
+            onClick: () => router.push(`/conversation/${messageId}`),
+          },
+        } as Record<string, unknown>,
+      );
+    },
+    [api, router, t],
+  );
+
   const onEmailChanged = useCallback(
     (payload: unknown) => {
       if (!userId) return;
@@ -362,9 +397,10 @@ export function useInboxSocket() {
         reconcileTimer.current = null;
         invalidateMailViews(queryClient);
       }, CHANGED_COALESCE_MS);
+      if (payload.reason === 'delivery') void onDeliveryChanged(payload.id);
       recordInboxMetric('realtime_email_changed');
     },
-    [queryClient, userId],
+    [onDeliveryChanged, queryClient, userId],
   );
 
   useOxyEvent('email:new', onEmailNew);

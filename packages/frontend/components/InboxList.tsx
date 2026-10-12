@@ -28,7 +28,7 @@ import { CreateReminderSheet } from '@/components/CreateReminderSheet';
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
 import { DailyBrief } from '@/components/DailyBrief';
 import { MessageRow, MessageRowExtras } from '@/components/MessageRow';
-import { OutboundQueueBanner } from '@/components/OutboundQueueBanner';
+import { UndeliveredBanner } from '@/components/UndeliveredBanner';
 import { ReminderRow } from '@/components/ReminderRow';
 import { SelectionToolbar } from '@/components/SelectionToolbar';
 import { SnoozeSheet } from '@/components/SnoozeSheet';
@@ -1115,7 +1115,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
             getItemType={getItemType}
             ListHeaderComponent={
               <>
-                <OutboundQueueBanner />
+                <UndeliveredBanner />
                 {showBrief && <DailyBrief onOpenMessage={openMessageById} />}
               </>
             }

@@ -37,34 +37,6 @@ const de: LocaleDict = {
   templates: {
     insert: 'Vorlage einfügen',
   },
-  outbound: {
-    stuckTitle_one: '{{count}} Nachricht konnte nicht gesendet werden',
-    stuckTitle_other: '{{count}} Nachrichten konnten nicht gesendet werden',
-    waitingTitle_one: '{{count}} Nachricht wartet auf Versand',
-    waitingTitle_other: '{{count}} Nachrichten warten auf Versand',
-    stuckDetail:
-      'Sie sind weiterhin gespeichert. Öffne die Zustellwarteschlange, um den Grund zu sehen und es erneut zu versuchen.',
-    waitingDetail:
-      'Sie werden automatisch verschickt. Öffne die Zustellwarteschlange, um sie zu verfolgen.',
-    status: {
-      sending: 'Wird gesendet…',
-      waiting: 'Wartet auf Versand',
-      notDelivered_one: 'Nach {{count}} Versuch nicht zugestellt',
-      notDelivered_other: 'Nach {{count}} Versuchen nicht zugestellt',
-      retrying_one: 'Neuer Versuch nach {{count}} Versuch',
-      retrying_other: 'Neuer Versuch nach {{count}} Versuchen',
-      cancelled: 'Abgebrochen',
-    },
-    queue: {
-      title: 'Zustellwarteschlange',
-      description:
-        'Nachrichten werden im Hintergrund sicher erneut versucht. Du kannst einen Fehler prüfen oder eine eingereihte Zustellung stoppen.',
-      noMoreAttempts: 'Es werden keine weiteren automatischen Versuche unternommen.',
-      nextAttempt: 'Nächster Versuch: {{time}}',
-      retryLabel: 'Eingereihte Nachricht erneut senden',
-      cancelLabel: 'Eingereihte Nachricht abbrechen',
-    },
-  },
   time: {
     today: 'Heute',
     todayAt: 'Heute, {{time}}',
@@ -448,8 +420,6 @@ const de: LocaleDict = {
     },
     replyParentError:
       'Die Nachricht, auf die du antwortest, konnte nicht geladen werden. Die Antwort kann noch nicht gesendet werden, ohne die Unterhaltung zu trennen.',
-    queuedNotice:
-      'Diese Nachricht ist bereits in der Sendewarteschlange. Erneutes Senden erzeugt kein Duplikat.',
     titleCompose: 'Verfassen',
     titleReply: 'Antworten',
     titleForward: 'Weiterleiten',
@@ -560,6 +530,39 @@ const de: LocaleDict = {
     actionItems: 'Aufgaben',
     due: 'Fällig: {{date}}',
     unavailable: 'Diese Unterhaltung kann gerade nicht zusammengefasst werden.',
+  },
+
+  delivery: {
+    sending: 'Wird gesendet…',
+    retrying: 'Neuer Versuch ({{count}})',
+    failed: 'Nicht zugestellt',
+    retry: 'Erneut versuchen',
+    editAsNew: 'Als neu bearbeiten',
+    retryStarted: 'Wird erneut gesendet.',
+    retryError: 'Diese Nachricht konnte nicht erneut versucht werden.',
+    failedToast: 'Nicht zugestellt: {{subject}}',
+    view: 'Ansehen',
+    nextAttempt: 'Nächster Versuch um {{time}}',
+    bannerFailed_one: '{{count}} Nachricht konnte nicht gesendet werden',
+    bannerFailed_other: '{{count}} Nachrichten konnten nicht gesendet werden',
+    bannerSending_one: '{{count}} Nachricht wartet auf den Versand',
+    bannerSending_other: '{{count}} Nachrichten warten auf den Versand',
+    bannerFailedDetail:
+      'Öffne Gesendet, um den Grund zu sehen, und versuche es erneut oder bearbeite sie.',
+    bannerSendingDetail: 'Sie gehen von selbst raus. Öffne Gesendet, um sie zu verfolgen.',
+    reason: {
+      relay_unavailable:
+        'Der Mailserver hat nicht geantwortet. Oxy versucht es selbstständig weiter.',
+      relay_unconfigured:
+        'Der Versand ist auf diesem Server nicht eingerichtet. Nichts geht raus, bis ein Administrator das behebt.',
+      relay_auth:
+        'Der Mailserver hat die Anmeldung von Oxy abgelehnt. Nichts geht raus, bis ein Administrator das behebt.',
+      rejected: 'Der Mailserver hat diese Nachricht abgelehnt.',
+      retries_exhausted: 'Der Mailserver hat nach mehreren Versuchen nicht geantwortet.',
+      bounced:
+        'Der Mailserver eines Empfängers hat sie nach dem Versand abgelehnt. Bearbeite sie, um sie erneut zu senden.',
+      cancelled: 'Der Versand wurde abgebrochen.',
+    },
   },
 
   staleThread: {
@@ -1116,12 +1119,6 @@ const de: LocaleDict = {
       bulkFailed: 'Nachrichten konnten nicht aktualisiert werden.',
       bulkUpdated: 'Nachrichten aktualisiert.',
       moveFailed: 'Nachrichten konnten nicht verschoben werden.',
-      queuedDescription:
-        'Sie wurde noch nicht zugestellt. Verfolge sie unter Einstellungen → Erweitert → Zustellwarteschlange.',
-      retryQueued: 'Nachricht für erneuten Versuch eingereiht.',
-      retryFailed: 'Nachricht konnte nicht erneut gesendet werden.',
-      queuedCancelled: 'Eingereihte Nachricht abgebrochen.',
-      cancelFailed: 'Nachricht konnte nicht abgebrochen werden.',
       bundleUpdateFailed: 'Bündel konnte nicht aktualisiert werden.',
       bundleReorderFailed: 'Bündel konnte nicht neu angeordnet werden.',
       contactCreateFailed: 'Kontakt konnte nicht erstellt werden',

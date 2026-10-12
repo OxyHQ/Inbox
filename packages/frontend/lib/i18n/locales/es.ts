@@ -37,32 +37,6 @@ const es: LocaleDict = {
   templates: {
     insert: 'Insertar plantilla',
   },
-  outbound: {
-    stuckTitle_one: 'No se pudo enviar {{count}} mensaje',
-    stuckTitle_other: 'No se pudieron enviar {{count}} mensajes',
-    waitingTitle_one: '{{count}} mensaje pendiente de envío',
-    waitingTitle_other: '{{count}} mensajes pendientes de envío',
-    stuckDetail: 'Siguen guardados. Abre la cola de entrega para ver el motivo y reintentar.',
-    waitingDetail: 'Se enviarán solos; abre la cola de entrega para seguirlos.',
-    status: {
-      sending: 'Enviando…',
-      waiting: 'Pendiente de envío',
-      notDelivered_one: 'No entregado tras {{count}} intento',
-      notDelivered_other: 'No entregado tras {{count}} intentos',
-      retrying_one: 'Reintentando tras {{count}} intento',
-      retrying_other: 'Reintentando tras {{count}} intentos',
-      cancelled: 'Cancelado',
-    },
-    queue: {
-      title: 'Cola de entrega',
-      description:
-        'Los mensajes se reintentan de forma segura en segundo plano. Puedes revisar un fallo o detener un envío en cola.',
-      noMoreAttempts: 'No se harán más intentos automáticamente.',
-      nextAttempt: 'Próximo intento: {{time}}',
-      retryLabel: 'Reintentar mensaje en cola',
-      cancelLabel: 'Cancelar mensaje en cola',
-    },
-  },
   time: {
     today: 'Hoy',
     todayAt: 'Hoy, {{time}}',
@@ -436,8 +410,6 @@ const es: LocaleDict = {
     },
     replyParentError:
       'No se pudo cargar el mensaje al que respondes, así que esta respuesta aún no se puede enviar sin romper la conversación.',
-    queuedNotice:
-      'Este mensaje ya está en la cola de envío. Volver a enviarlo no creará un duplicado.',
     titleCompose: 'Redactar',
     titleReply: 'Responder',
     titleForward: 'Reenviar',
@@ -548,6 +520,37 @@ const es: LocaleDict = {
     actionItems: 'Acciones pendientes',
     due: 'Para: {{date}}',
     unavailable: 'No se pudo resumir esta conversación ahora.',
+  },
+
+  delivery: {
+    sending: 'Enviando…',
+    retrying: 'Reintentando ({{count}})',
+    failed: 'No entregado',
+    retry: 'Reintentar',
+    editAsNew: 'Editar como nuevo',
+    retryStarted: 'Volviendo a enviarlo.',
+    retryError: 'No se pudo reintentar este mensaje.',
+    failedToast: 'No entregado: {{subject}}',
+    view: 'Ver',
+    nextAttempt: 'Próximo intento a las {{time}}',
+    bannerFailed_one: '{{count}} mensaje no se pudo enviar',
+    bannerFailed_other: '{{count}} mensajes no se pudieron enviar',
+    bannerSending_one: '{{count}} mensaje pendiente de enviar',
+    bannerSending_other: '{{count}} mensajes pendientes de enviar',
+    bannerFailedDetail: 'Abre Enviados para ver por qué y reintentar o editarlo.',
+    bannerSendingDetail: 'Saldrán solos. Abre Enviados para seguirlos.',
+    reason: {
+      relay_unavailable: 'El servidor de correo no respondió. Oxy sigue intentándolo solo.',
+      relay_unconfigured:
+        'El envío no está configurado en este servidor. No saldrá nada hasta que un administrador lo arregle.',
+      relay_auth:
+        'El servidor de correo rechazó el acceso de Oxy. No saldrá nada hasta que un administrador lo arregle.',
+      rejected: 'El servidor de correo rechazó este mensaje.',
+      retries_exhausted: 'El servidor de correo no respondió tras varios intentos.',
+      bounced:
+        'El servidor de correo de un destinatario lo rechazó después del envío. Edítalo para volver a enviarlo.',
+      cancelled: 'Se canceló el envío.',
+    },
   },
 
   staleThread: {
@@ -1097,11 +1100,6 @@ const es: LocaleDict = {
       bulkFailed: 'No se pudieron actualizar los mensajes.',
       bulkUpdated: 'Mensajes actualizados.',
       moveFailed: 'No se pudieron mover los mensajes.',
-      queuedDescription: 'Aún no se ha entregado. Síguelo en Ajustes → Avanzado → Cola de entrega.',
-      retryQueued: 'Mensaje en cola para reintentar.',
-      retryFailed: 'No se pudo reintentar el mensaje.',
-      queuedCancelled: 'Mensaje en cola cancelado.',
-      cancelFailed: 'No se pudo cancelar el mensaje.',
       bundleUpdateFailed: 'No se pudo actualizar el grupo.',
       bundleReorderFailed: 'No se pudo reordenar el grupo.',
       contactCreateFailed: 'No se pudo crear el contacto',

@@ -535,43 +535,26 @@ describe('an address that does not parse yet', () => {
   });
 });
 
-describe('a recovered message whose send was queued', () => {
-  async function recoverQueued() {
+describe('a recovered message', () => {
+  it('sends again under its own key, so the API sees the same message', async () => {
     await saveComposeRecovery(composeRecoveryStorageKey('user-1', 'new'), {
       to: 'ann@example.com',
       cc: '',
       bcc: '',
       subject: 'Plan',
-      body: 'Queued text',
+      body: 'Recovered text',
       attachments: [],
-      idempotencyKey: 'inbox-send-queued',
-      queued: true,
+      idempotencyKey: 'inbox-send-recovered',
     });
-    const rendered = renderHook(() => useComposeSession(options()));
+    const { result } = renderHook(() => useComposeSession(options()));
     await settle();
-    return rendered;
-  }
-
-  it('sends again as the same message while it is unchanged', async () => {
-    const { result } = await recoverQueued();
-    expect(result.current.alreadyQueued).toBe(true);
 
     await act(async () => {
       await result.current.send();
     });
-    expect(sendWithUndo.mock.calls[0][0]).toMatchObject({ idempotencyKey: 'inbox-send-queued' });
-  });
-
-  it('is a new message once it is edited, with a new key', async () => {
-    const { result } = await recoverQueued();
-    act(() => result.current.updateBody('Something else entirely'));
-    await settle();
-    expect(result.current.alreadyQueued).toBe(false);
-
-    await act(async () => {
-      await result.current.send();
+    expect(sendWithUndo.mock.calls[0][0]).toMatchObject({
+      idempotencyKey: 'inbox-send-recovered',
     });
-    expect(sendWithUndo.mock.calls[0][0].idempotencyKey).not.toBe('inbox-send-queued');
   });
 });
 

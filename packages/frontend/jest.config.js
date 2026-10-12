@@ -23,7 +23,28 @@ module.exports = {
         },
       },
     ],
+    '^.+\\.js$': [
+      'ts-jest',
+      {
+        diagnostics: false,
+        tsconfig: {
+          allowJs: true,
+          module: 'commonjs',
+          moduleResolution: 'node',
+          esModuleInterop: true,
+          isolatedModules: true,
+          target: 'es2020',
+        },
+      },
+    ],
   },
+  // htmlparser2 12 and the dom* / entities packages it pulls in ship ESM only
+  // ("type": "module"), which jest's CommonJS runtime cannot `require`. Let
+  // ts-jest down-compile exactly those packages; everything else in
+  // node_modules stays untransformed, as before.
+  transformIgnorePatterns: [
+    '/node_modules/(?!(htmlparser2|domhandler|domutils|domelementtype|dom-serializer|entities)/)',
+  ],
   testMatch: ['<rootDir>/__tests__/**/*.(test|spec).(ts|tsx)'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',

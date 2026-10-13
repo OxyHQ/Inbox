@@ -69,6 +69,22 @@ afterwards** (`packages/api/src/services/emailDelivery.service.ts`):
   `retry` is safe because the Idempotency-Key makes a repeat the same message.
   Only "no relay configured at all" (503) and a refused recipient (400) still
   fail the request itself.
+- A key reused for a DIFFERENT message is refused (OxyHQ/oxy#1676): 422 with
+  `details.reason: "idempotency_key_reused"`, and `id`, `deliveryState` and
+  `scheduledAt` of what the key already sent (`alreadySentUnderKey` in
+  `utils/sendIdempotency.ts`; no `deliveryState` reads as `unknown`). A
+  composer restored after a crash meets it: it resumes the old key but renders
+  the body again. The restored key is kept through every edit — a new one would
+  send the edits as a second message without asking. On the 422
+  (`handleKeyReused` in `hooks/useComposeSession.ts`): content unchanged since
+  the restore or attempt, and that version not `failed`/`cancelled`, closes the
+  composer as sent — a toast linking to it, the leftover server draft and the
+  snapshot discarded. Anything else stays open with its edits and asks whether
+  to send it as a new message; only a yes mints a new key. A composer already
+  gone (closed in the undo window) says it in a toast: View, and Open draft
+  when only the local snapshot holds the text. Because a refused send keeps
+  its server draft, a send first runs the autosave still waiting out its delay
+  (`saveBeforeSend`), so that draft holds what was sent.
 - The outbox row IS the delivery; there is no second table. Every message read
   carries `delivery` (`@oxy.so/contracts` `emailMessageDeliverySchema`):
   `sending`, `retrying` (with `nextAttemptAt`), `sent`, or `failed`, with the

@@ -446,6 +446,20 @@ const de: LocaleDict = {
       discard: 'Verwerfen',
       discardDraft: 'Entwurf verwerfen',
     },
+    alreadySent: {
+      closedSent: 'Aus diesem Entwurf bereits gesendet.',
+      closedScheduled: 'Aus diesem Entwurf bereits für {{time}} geplant.',
+      versionSent: 'Eine Version dieser Nachricht wurde bereits gesendet.',
+      versionScheduled: 'Eine Version dieser Nachricht ist bereits für {{time}} geplant.',
+      versionFailed:
+        'Eine Version dieser Nachricht konnte nicht gesendet werden. Öffne sie, um es dort erneut zu versuchen.',
+      versionCancelled: 'Eine Version dieser Nachricht wurde abgebrochen.',
+      prompt: 'Als neue Nachricht senden?',
+      sendAsNew: 'Als neu senden',
+      view: 'Ansehen',
+      keepEditing: 'Weiter bearbeiten',
+      openDraft: 'Entwurf öffnen',
+    },
     saveDraftPrompt: {
       title: 'Entwurf speichern?',
       description: 'Möchtest du diese Nachricht als Entwurf speichern?',

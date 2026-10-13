@@ -182,6 +182,14 @@ function ComposeSessionForm({
     trailer,
     insertSignature: !draft,
     onFinished: closeCompose,
+    // The route that mounts this same recovery identity.
+    reopen: draft
+      ? { pathname: '/compose', params: { draftId: draft._id } }
+      : replyTo
+        ? { pathname: '/compose', params: { replyTo } }
+        : forwarded
+          ? { pathname: '/compose', params: { forward: forwarded._id } }
+          : '/compose',
   });
 
   const isReply = Boolean(replyTo || (draft && replyHeaders));

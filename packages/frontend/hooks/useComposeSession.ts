@@ -15,6 +15,7 @@
 import { toast } from '@oxy.so/bloom';
 import type { FileMetadata } from '@oxy.so/core';
 import { useOxy } from '@oxy.so/services';
+import { type Href, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
@@ -26,7 +27,6 @@ import {
   type PendingSend,
 } from '@/hooks/mutations/useMessageMutations';
 import { useEmailStore } from '@/hooks/useEmail';
-import { useTranslation } from '@/lib/i18n';
 import type { Message } from '@/services/emailApi';
 import {
   appendTextToBody,
@@ -52,7 +52,12 @@ import {
 } from '@/utils/composeRecovery';
 import type { ReplyHeaders } from '@/utils/replyHeaders';
 import { joinAddresses } from '@/utils/replyRecipients';
-import { newSendIdempotencyKey } from '@/utils/sendIdempotency';
+import { type TranslateFn, useTranslation } from '@/lib/i18n';
+import {
+  type AlreadySent,
+  alreadySentUnderKey,
+  newSendIdempotencyKey,
+} from '@/utils/sendIdempotency';
 
 const isWeb = Platform.OS === 'web';
 const AUTOSAVE_DELAY_MS = 8_000;
@@ -100,6 +105,54 @@ function contentKeyOf(fields: {
       size,
     })),
   ]);
+}
+
+/** How the composer repeats a send once the user says to send it as a new message. */
+export type SentVersionRetry = { kind: 'send' } | { kind: 'schedule'; at: Date };
+
+/** A send refused because its key already sent another version of the message. */
+export interface SentVersion {
+  sent: AlreadySent;
+  retry: SentVersionRetry;
+  /** What happened to the version already sent, in the user's words. */
+  notice: string;
+}
+
+/** A scheduled time as the composer shows it. */
+function scheduledTimeLabel(date: Date): string {
+  return date.toLocaleString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+/**
+ * What to tell the user about the message their key already sent: `closed`
+ * when the composer closes because this compose IS that message, `open` when
+ * it stays open to ask about sending this one as new. Worded from where that
+ * message is — a failed or cancelled one never closes the composer.
+ */
+export function alreadySentNotice(
+  t: TranslateFn,
+  sent: AlreadySent,
+  outcome: 'closed' | 'open',
+): string {
+  const due =
+    sent.deliveryState === 'scheduled' && sent.scheduledAt ? new Date(sent.scheduledAt) : null;
+  const time = due && !Number.isNaN(due.getTime()) ? scheduledTimeLabel(due) : null;
+  if (sent.deliveryState === 'failed') return t('compose.alreadySent.versionFailed');
+  if (sent.deliveryState === 'cancelled') return t('compose.alreadySent.versionCancelled');
+  if (outcome === 'closed') {
+    return time
+      ? t('compose.alreadySent.closedScheduled', { time })
+      : t('compose.alreadySent.closedSent');
+  }
+  return time
+    ? t('compose.alreadySent.versionScheduled', { time })
+    : t('compose.alreadySent.versionSent');
 }
 
 /** Every address field parses: a save of it keeps exactly what was typed. */
@@ -160,6 +213,12 @@ export interface ComposeSessionOptions {
   insertSignature: boolean;
   /** The session is over (sent, saved, discarded); the caller closes. */
   onFinished: () => void;
+  /**
+   * Where this compose opens again from its local snapshot (the same recovery
+   * identity). Offered as Open draft when a send is refused after the composer
+   * has gone and the snapshot is all that holds the text.
+   */
+  reopen?: Href;
 }
 
 export function useComposeSession({
@@ -172,9 +231,11 @@ export function useComposeSession({
   trailer = '',
   insertSignature,
   onFinished,
+  reopen,
 }: ComposeSessionOptions) {
   const { t } = useTranslation();
   const { user } = useOxy();
+  const router = useRouter();
   const api = useEmailStore((s) => s._api);
   const { sendWithUndo, isPending: sendPending } = useSendMessageWithUndo();
   const sendMessageMutation = useSendMessage();
@@ -319,13 +380,22 @@ export function useComposeSession({
    * it failed, or timed out, and the server may hold it all the same. Sending
    * that content again reuses the key, so the API sees the same message. Once
    * the content differs it is a different message and needs a new key: under
-   * the old one the API answers with the message it already filed, and the
-   * edits would be dropped while the composer closed as if they had gone.
+   * the old one the API refuses it as a reused key (422, see
+   * `alreadySentUnderKey` and `handleKeyReused`).
    */
   const attemptedContentKeyRef = useRef<string | null>(null);
+  /**
+   * The content a snapshot was restored with, under the key it was composed
+   * with — a key that may have sent it before the crash. That key is kept
+   * through every edit: a new one would send the edits as a second message
+   * without asking. Sent under the old key, edits are refused (422) and
+   * `handleKeyReused` asks. Cleared once the user chooses a new key.
+   */
+  const restoredKeyContentRef = useRef<string | null>(null);
   useEffect(() => {
     const attempted = attemptedContentKeyRef.current;
     if (attempted === null || attempted === contentKey) return;
+    if (restoredKeyContentRef.current !== null) return;
     attemptedContentKeyRef.current = null;
     setIdempotencyKey(newSendIdempotencyKey());
   }, [contentKey]);
@@ -341,20 +411,29 @@ export function useComposeSession({
       // the snapshot, so one that is still there and newer was never saved.
       const usable = record && (!draft || record.savedAt > Date.parse(draft.date));
       if (record && usable) {
-        if (record.snapshot.idempotencyKey) setIdempotencyKey(record.snapshot.idempotencyKey);
-        setTo(record.snapshot.to);
-        setCc(record.snapshot.cc);
-        setBcc(record.snapshot.bcc);
-        setSubject(record.snapshot.subject);
-        updateBody(record.snapshot.body);
-        setAttachments(
-          (record.snapshot.attachments ?? []).map((attachment) => ({
+        const restored = {
+          to: record.snapshot.to,
+          cc: record.snapshot.cc,
+          bcc: record.snapshot.bcc,
+          subject: record.snapshot.subject,
+          body: record.snapshot.body,
+          attachments: (record.snapshot.attachments ?? []).map((attachment) => ({
             fileId: attachment.fileId,
             name: attachment.name ?? attachment.fileId,
             contentType: attachment.contentType ?? 'application/octet-stream',
             size: attachment.size ?? 0,
           })),
-        );
+        };
+        if (record.snapshot.idempotencyKey) {
+          setIdempotencyKey(record.snapshot.idempotencyKey);
+          restoredKeyContentRef.current = contentKeyOf(restored);
+        }
+        setTo(restored.to);
+        setCc(restored.cc);
+        setBcc(restored.bcc);
+        setSubject(restored.subject);
+        updateBody(restored.body);
+        setAttachments(restored.attachments);
       }
       setRecoveryLoaded(true);
     });
@@ -397,11 +476,18 @@ export function useComposeSession({
   const latest = useRef({ snapshot, contentKey, hasContent, hasUnsavedWork });
 
   const saveToServer = useCallback(
-    (current: ComposeDraftSnapshot, key: string): Promise<boolean> => {
+    (
+      current: ComposeDraftSnapshot,
+      key: string,
+      { beforeSend = false }: { beforeSend?: boolean } = {},
+    ): Promise<boolean> => {
       const save = async (): Promise<boolean> => {
         // A server draft of a reply without its threading headers would be sent
         // unthreaded later. The local recovery snapshot still keeps the text.
-        if (!api || sentRef.current || discardedRef.current || awaitingReplyHeaders) return false;
+        if (!api || discardedRef.current || awaitingReplyHeaders) return false;
+        // Nothing saves once a send has begun — except the send's own save,
+        // decided before it began (`saveBeforeSend`).
+        if (sentRef.current && !beforeSend) return false;
         if (mountedRef.current) setDraftSaveState('saving');
         try {
           const saved = await saveDraftAsync({
@@ -464,12 +550,19 @@ export function useComposeSession({
     ],
   );
 
+  /** The autosave waiting out its delay; a send runs it at once (`saveBeforeSend`). */
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!api || !recoveryLoaded || !hasUnsavedWork || sending || sentRef.current) return;
     const timer = setTimeout(() => {
+      autosaveTimerRef.current = null;
       void saveToServer(snapshot, contentKey);
     }, AUTOSAVE_DELAY_MS);
-    return () => clearTimeout(timer);
+    autosaveTimerRef.current = timer;
+    return () => {
+      clearTimeout(timer);
+      if (autosaveTimerRef.current === timer) autosaveTimerRef.current = null;
+    };
   }, [api, recoveryLoaded, hasUnsavedWork, sending, snapshot, contentKey, saveToServer]);
 
   useEffect(() => {
@@ -610,8 +703,26 @@ export function useComposeSession({
     [draftSaveQueue],
   );
 
+  /**
+   * Before a send: the autosave still waiting out its delay — up to 8 s behind
+   * the typing — runs now, after any save in flight, so the server draft the
+   * send names holds what is being sent. A send the API refuses keeps that
+   * draft, and it must not be missing the last edits. Only what the autosave
+   * would have saved anyway: an untouched session makes no draft. Called while
+   * the send begins, so this one save is let past `sentRef`.
+   */
+  const saveBeforeSend = useCallback((): Promise<boolean> => {
+    if (autosaveTimerRef.current !== null) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    const { snapshot: last, contentKey: key, hasUnsavedWork: unsaved } = latest.current;
+    if (!api || !recoveryLoaded || !unsaved) return settleSaves();
+    return saveToServer(last, key, { beforeSend: true });
+  }, [api, recoveryLoaded, saveToServer, settleSaves]);
+
   const messagePayload = useCallback(
-    (recipients: NonNullable<ReturnType<typeof validatedRecipients>>) => ({
+    (recipients: NonNullable<ReturnType<typeof validatedRecipients>>, key: string) => ({
       ...recipients,
       subject,
       ...bodyParts(body + trailer, isWeb),
@@ -619,73 +730,167 @@ export function useComposeSession({
       attachments:
         attachments.length > 0 ? attachments.map((a) => ({ fileId: a.fileId })) : undefined,
       ...(draftIdRef.current ? { draftId: draftIdRef.current } : {}),
-      idempotencyKey,
+      idempotencyKey: key,
     }),
-    [attachments, body, idempotencyKey, replyHeaders, subject, trailer],
+    [attachments, body, replyHeaders, subject, trailer],
   );
 
-  const send = useCallback(async () => {
-    if (awaitingReplyHeaders || sentRef.current) return;
-    const recipients = validatedRecipients();
-    if (!recipients) return;
+  // ── A key that already sent a different message ───────────────────
+  /** A refused key the user has to answer: send this compose as a new message, or not. */
+  const [sentVersion, setSentVersion] = useState<SentVersion | null>(null);
 
-    sentRef.current = true;
-    await settleSaves();
-    if (discardedRef.current) return;
-    pendingSendRef.current = sendWithUndo(messagePayload(recipients), {
-      // Accepted: filed in Sent, its delivery shown on it from now on. The
-      // server holds the message, so the local snapshot has done its job.
-      onSuccess: () => {
-        void clearComposeRecovery(recoveryKey);
+  const viewSent = useCallback(
+    (sent: AlreadySent) => {
+      if (sent.id) router.push(`/conversation/${sent.id}`);
+    },
+    [router],
+  );
+
+  /**
+   * The API refused this session's key: it already sent a different message
+   * under it (`alreadySentUnderKey`). `attempt` is what was sent now and the
+   * content the key was first used with — a restored snapshot, or a send that
+   * got no answer.
+   *
+   * Unchanged since then, and not failed or cancelled: this compose WAS sent,
+   * typically before a crash it was restored from. End the session as a send
+   * that went through — say so, link to it, drop the leftover server draft and
+   * the local snapshot, and close without asking to save.
+   *
+   * Otherwise the user has written something the sent version does not hold,
+   * or that version never left: keep the composer, its edits and its snapshot,
+   * and ask whether to send this as a new message. Only a yes mints a new key:
+   * resending under one on its own could deliver the same message twice. When
+   * the composer has gone already — closed in the undo window, navigated away
+   * from — the answer is a toast instead: what happened, View, and Open draft
+   * when the text is left only in the local snapshot.
+   */
+  const handleKeyReused = useCallback(
+    (
+      sent: AlreadySent,
+      retry: SentVersionRetry,
+      attempt: { attempted: string | null; sent: string },
+    ) => {
+      pendingSendRef.current = null;
+      const unchanged =
+        attempt.attempted !== null &&
+        attempt.attempted === attempt.sent &&
+        latest.current.contentKey === attempt.sent;
+      const left = sent.deliveryState !== 'failed' && sent.deliveryState !== 'cancelled';
+      if (unchanged && left) {
+        toast.info(
+          alreadySentNotice(t, sent, 'closed'),
+          sent.id
+            ? {
+                action: { label: t('compose.alreadySent.view'), onClick: () => viewSent(sent) },
+              }
+            : undefined,
+        );
+        // `sentRef` stays set, so nothing saves the session again.
         finish();
-      },
-      onError: () => {
-        pendingSendRef.current = null;
-        sentRef.current = false;
-        attemptedContentKeyRef.current = latest.current.contentKey;
-      },
-      onCancel: () => {
-        pendingSendRef.current = null;
-        sentRef.current = false;
-      },
-    });
-  }, [
-    awaitingReplyHeaders,
-    messagePayload,
-    finish,
-    recoveryKey,
-    sendWithUndo,
-    settleSaves,
-    validatedRecipients,
-  ]);
+        void deleteServerDraftRef.current();
+        return;
+      }
+      sentRef.current = false;
+      const notice = alreadySentNotice(t, sent, 'open');
+      if (mountedRef.current) {
+        setSentVersion({ sent, retry, notice });
+        return;
+      }
+      // No server draft holds the text: the local snapshot does, and Open
+      // draft resumes the composer from it, under the same key, to ask again.
+      const snapshotOnly = Boolean(reopen) && !draftIdRef.current;
+      if (snapshotOnly) void saveComposeRecovery(recoveryKey, latest.current.snapshot);
+      const buttons = [
+        ...(snapshotOnly && reopen
+          ? [{ label: t('compose.alreadySent.openDraft'), onClick: () => router.push(reopen) }]
+          : []),
+        ...(sent.id
+          ? [{ label: t('compose.alreadySent.view'), onClick: () => viewSent(sent) }]
+          : []),
+      ];
+      toast.warning(notice, {
+        ...(buttons[0] ? { action: buttons[0] } : {}),
+        ...(buttons[1] ? { cancel: buttons[1] } : {}),
+      });
+    },
+    [finish, recoveryKey, reopen, router, t, viewSent],
+  );
 
-  const schedule = useCallback(
-    async (scheduledDate: Date) => {
+  const startSend = useCallback(
+    async (key: string) => {
       if (awaitingReplyHeaders || sentRef.current) return;
       const recipients = validatedRecipients();
       if (!recipients) return;
 
       sentRef.current = true;
-      await settleSaves();
+      await saveBeforeSend();
+      if (discardedRef.current) return;
+      const attempt = {
+        attempted: restoredKeyContentRef.current ?? attemptedContentKeyRef.current,
+        sent: latest.current.contentKey,
+      };
+      pendingSendRef.current = sendWithUndo(messagePayload(recipients, key), {
+        // Accepted: filed in Sent, its delivery shown on it from now on. The
+        // server holds the message, so the local snapshot has done its job.
+        onSuccess: () => {
+          void clearComposeRecovery(recoveryKey);
+          finish();
+        },
+        onError: () => {
+          pendingSendRef.current = null;
+          sentRef.current = false;
+          attemptedContentKeyRef.current = latest.current.contentKey;
+        },
+        onAlreadySent: (sent) => handleKeyReused(sent, { kind: 'send' }, attempt),
+        onCancel: () => {
+          pendingSendRef.current = null;
+          sentRef.current = false;
+        },
+      });
+    },
+    [
+      awaitingReplyHeaders,
+      messagePayload,
+      finish,
+      handleKeyReused,
+      recoveryKey,
+      sendWithUndo,
+      saveBeforeSend,
+      validatedRecipients,
+    ],
+  );
+
+  const send = useCallback(() => startSend(idempotencyKey), [idempotencyKey, startSend]);
+
+  const startSchedule = useCallback(
+    async (scheduledDate: Date, key: string) => {
+      if (awaitingReplyHeaders || sentRef.current) return;
+      const recipients = validatedRecipients();
+      if (!recipients) return;
+
+      sentRef.current = true;
+      await saveBeforeSend();
+      const attempt = {
+        attempted: restoredKeyContentRef.current ?? attemptedContentKeyRef.current,
+        sent: latest.current.contentKey,
+      };
       sendMessageMutation.mutate(
-        { ...messagePayload(recipients), scheduledAt: scheduledDate.toISOString() },
+        { ...messagePayload(recipients, key), scheduledAt: scheduledDate.toISOString() },
         {
           onSuccess: () => {
             toast.success(
-              t('compose.toast.scheduled', {
-                time: scheduledDate.toLocaleString(undefined, {
-                  weekday: 'short',
-                  month: 'short',
-                  day: 'numeric',
-                  hour: 'numeric',
-                  minute: '2-digit',
-                }),
-              }),
+              t('compose.toast.scheduled', { time: scheduledTimeLabel(scheduledDate) }),
             );
             void clearComposeRecovery(recoveryKey);
             finish();
           },
           onError: (err: Error) => {
+            const alreadySent = alreadySentUnderKey(err);
+            if (alreadySent) {
+              handleKeyReused(alreadySent, { kind: 'schedule', at: scheduledDate }, attempt);
+              return;
+            }
             sentRef.current = false;
             attemptedContentKeyRef.current = latest.current.contentKey;
             toast.error(err.message || t('compose.toast.scheduleFailed'));
@@ -697,13 +902,35 @@ export function useComposeSession({
       awaitingReplyHeaders,
       messagePayload,
       finish,
+      handleKeyReused,
       recoveryKey,
       sendMessageMutation,
-      settleSaves,
+      saveBeforeSend,
       t,
       validatedRecipients,
     ],
   );
+
+  const schedule = useCallback(
+    (scheduledDate: Date) => startSchedule(scheduledDate, idempotencyKey),
+    [idempotencyKey, startSchedule],
+  );
+
+  /** The user said yes: this compose is a new message, under a new key. */
+  const sendAsNew = useCallback(
+    (version: SentVersion) => {
+      setSentVersion(null);
+      const key = newSendIdempotencyKey();
+      attemptedContentKeyRef.current = null;
+      restoredKeyContentRef.current = null;
+      setIdempotencyKey(key);
+      if (version.retry.kind === 'schedule') void startSchedule(version.retry.at, key);
+      else void startSend(key);
+    },
+    [startSchedule, startSend],
+  );
+
+  const dismissSentVersion = useCallback(() => setSentVersion(null), []);
 
   const deleteServerDraft = useCallback(async () => {
     discardedRef.current = true;
@@ -817,6 +1044,10 @@ export function useComposeSession({
     sendDisabled,
     send,
     schedule,
+    sentVersion,
+    sendAsNew,
+    viewSent,
+    dismissSentVersion,
     saveAndClose,
     discardChanges,
     discardDraft,

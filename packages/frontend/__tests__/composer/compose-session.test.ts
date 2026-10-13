@@ -27,6 +27,9 @@ jest.mock('@/hooks/mutations/useMessageMutations', () => ({
   useDiscardDraft: () => ({ mutateAsync: discardDraft }),
 }));
 
+const routerPush = jest.fn();
+jest.mock('expo-router', () => ({ useRouter: () => ({ push: routerPush }) }));
+
 const getSettings = jest.fn();
 jest.mock('@/hooks/useEmail', () => ({
   useEmailStore: (selector: (s: unknown) => unknown) => selector({ _api: { getSettings } }),
@@ -48,13 +51,20 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 import { act, renderHook } from '@testing-library/react';
 import { __setOxyState } from '@oxy.so/services';
 import {
+  alreadySentNotice,
   draftConflictKind,
   useComposeSession,
   type ComposeSessionOptions,
 } from '@/hooks/useComposeSession';
+import { type AlreadySent, alreadySentUnderKey } from '@/utils/sendIdempotency';
 import { MessageSchema } from '@/schemas/emailSchemas';
 import { wireMessage } from '../fixtures/wire';
-import { composeRecoveryStorageKey, saveComposeRecovery } from '@/utils/composeRecovery';
+import {
+  composeRecoveryStorageKey,
+  loadComposeRecovery,
+  saveComposeRecovery,
+} from '@/utils/composeRecovery';
+import { keyReusedError } from '../fixtures/sendKeyReused';
 
 const DRAFT_FLAGS = {
   seen: true,
@@ -383,14 +393,17 @@ describe('a new message', () => {
   });
 
   it('sends without a draft id when nothing was ever saved', async () => {
-    const { result } = renderHook(() => useComposeSession(options()));
+    // A reply or a link starts with its fields: not writing, so no draft.
+    const { result } = renderHook(() =>
+      useComposeSession(options({ initial: { to: 'ann@example.com', subject: 'Hi' } })),
+    );
     await settle();
-    act(() => result.current.setTo('ann@example.com'));
 
     await act(async () => {
       await result.current.send();
     });
 
+    expect(saveDraft).not.toHaveBeenCalled();
     expect(sendWithUndo.mock.calls[0][0]).not.toHaveProperty('draftId');
   });
 
@@ -558,6 +571,474 @@ describe('a recovered message', () => {
   });
 });
 
+describe('a compose the API already sent under its key', () => {
+  /**
+   * Restored after a crash, the composer resumes its key, but the body renders
+   * differently (a new build, a new signature), so the API refuses the key as
+   * reused for a different message (422, OxyHQ/oxy#1676). Unchanged since the
+   * restore, the message WAS sent before the crash: the session ends as sent.
+   * Edited, it is a new message: closing it as "already sent" threw the edits
+   * away, and resending on its own could deliver the same message twice.
+   */
+  const recoveryKey = composeRecoveryStorageKey('user-1', 'new');
+  const RECOVERED_KEY = 'inbox-send-recovered';
+
+  function sentVersion(overrides: Partial<AlreadySent> = {}): AlreadySent {
+    return {
+      id: 'sent-row-1',
+      messageId: '<m@oxy.so>',
+      deliveryState: 'sent',
+      scheduledAt: null,
+      ...overrides,
+    };
+  }
+
+  async function recoveredSession(onFinished = jest.fn()) {
+    await saveComposeRecovery(recoveryKey, {
+      to: 'ann@example.com',
+      cc: '',
+      bcc: '',
+      subject: 'Plan',
+      body: 'Recovered text',
+      attachments: [],
+      idempotencyKey: RECOVERED_KEY,
+    });
+    const rendered = renderHook(() => useComposeSession(options({ onFinished })));
+    await settle();
+    return { ...rendered, onFinished };
+  }
+
+  /** Send, and have it refused as `useSendMessageWithUndo` reports it. */
+  async function sendRefused(
+    result: { current: ReturnType<typeof useComposeSession> },
+    sent: AlreadySent = sentVersion(),
+  ) {
+    const call = sendWithUndo.mock.calls.length;
+    await act(async () => {
+      await result.current.send();
+    });
+    const [payload, callbacks] = sendWithUndo.mock.calls[call] as [
+      { idempotencyKey: string },
+      { onAlreadySent?: (sent: AlreadySent) => void },
+    ];
+    act(() => callbacks.onAlreadySent?.(sent));
+    await settle();
+    return payload.idempotencyKey;
+  }
+
+  async function edit(result: { current: ReturnType<typeof useComposeSession> }) {
+    act(() => result.current.updateBody('Recovered text, and a correction'));
+    // Long enough for the local snapshot to keep it, not for an autosave.
+    await advance(1_000);
+  }
+
+  describe('unchanged since the restore', () => {
+    it('closes as a send that went through, linking to what was sent', async () => {
+      const { result, onFinished } = await recoveredSession();
+      expect(await sendRefused(result)).toBe(RECOVERED_KEY);
+
+      expect(onFinished).toHaveBeenCalledTimes(1);
+      expect(toast.error).not.toHaveBeenCalled();
+      expect(toast.info).toHaveBeenCalledWith(
+        'compose.alreadySent.closedSent',
+        expect.objectContaining({
+          action: expect.objectContaining({ label: 'compose.alreadySent.view' }),
+        }),
+      );
+      const [, { action }] = toast.info.mock.calls[0];
+      action.onClick();
+      expect(routerPush).toHaveBeenCalledWith('/conversation/sent-row-1');
+      // The server holds the message; the crash snapshot has done its job.
+      expect(await loadComposeRecovery(recoveryKey)).toBeNull();
+    });
+
+    it('discards the draft this session left, a stale copy of what is in Sent', async () => {
+      const { result } = await recoveredSession();
+      await sendRefused(result);
+
+      // The send saved the restored text first (`saveBeforeSend`).
+      expect(saveDraft).toHaveBeenCalledTimes(1);
+
+      expect(sendWithUndo.mock.calls[0][0]).toMatchObject({ draftId: 'created-1' });
+      expect(discardDraft).toHaveBeenCalledWith('created-1');
+    });
+
+    it('is over: nothing saves it, sends it again, or asks to keep it', async () => {
+      const { result, onFinished, unmount } = await recoveredSession();
+      await sendRefused(result);
+
+      await act(async () => {
+        await result.current.send();
+      });
+      expect(sendWithUndo).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        await result.current.saveAndClose();
+      });
+      expect(onFinished).toHaveBeenCalledTimes(2);
+
+      await advance(10_000);
+      unmount();
+      await settle();
+      // Only the save the send made before it went; that draft is gone too.
+      expect(saveDraft).toHaveBeenCalledTimes(1);
+      expect(discardDraft).toHaveBeenCalledTimes(1);
+    });
+
+    it('only says so when the API cannot name the message', async () => {
+      const { result, onFinished } = await recoveredSession();
+      await sendRefused(result, sentVersion({ id: null }));
+
+      expect(onFinished).toHaveBeenCalledTimes(1);
+      expect(toast.info).toHaveBeenCalledWith('compose.alreadySent.closedSent', undefined);
+    });
+
+    it('closes a scheduled send the same way', async () => {
+      const { result, onFinished } = await recoveredSession();
+      await act(async () => {
+        await result.current.schedule(new Date('2030-01-01T09:00:00Z'));
+      });
+      const [, callbacks] = scheduleMutate.mock.calls[0] as [
+        unknown,
+        { onError: (err: Error) => void },
+      ];
+      act(() =>
+        callbacks.onError(
+          keyReusedError({
+            id: 'scheduled-row-1',
+            deliveryState: 'scheduled',
+            scheduledAt: '2030-01-01T09:00:00.000Z',
+          }),
+        ),
+      );
+      await settle();
+
+      expect(onFinished).toHaveBeenCalledTimes(1);
+      expect(toast.error).not.toHaveBeenCalled();
+      const [notice, { action }] = toast.info.mock.calls[0];
+      expect(notice).toBe('compose.alreadySent.closedScheduled');
+      action.onClick();
+      expect(routerPush).toHaveBeenCalledWith('/conversation/scheduled-row-1');
+      expect(await loadComposeRecovery(recoveryKey)).toBeNull();
+    });
+
+    it.each(['failed', 'cancelled'] as const)(
+      'stays open when the version already sent %s, and asks',
+      async (deliveryState) => {
+        const { result, onFinished } = await recoveredSession();
+        await sendRefused(result, sentVersion({ deliveryState }));
+
+        expect(onFinished).not.toHaveBeenCalled();
+        expect(toast.info).not.toHaveBeenCalled();
+        expect(discardDraft).not.toHaveBeenCalled();
+        expect(result.current.sentVersion?.notice).toBe(
+          deliveryState === 'failed'
+            ? 'compose.alreadySent.versionFailed'
+            : 'compose.alreadySent.versionCancelled',
+        );
+        expect(result.current.sendDisabled).toBe(false);
+      },
+    );
+  });
+
+  describe('edited after the restore', () => {
+    /**
+     * The restored key may have sent the first version before the crash. A
+     * new key for the edits would send them as a second message without a
+     * word; under the old one the API refuses them and the composer asks.
+     */
+    it('is sent under the restored key, and the refusal asks', async () => {
+      const { result, onFinished } = await recoveredSession();
+      await edit(result);
+      expect(await sendRefused(result)).toBe(RECOVERED_KEY);
+
+      expect(onFinished).not.toHaveBeenCalled();
+      expect(result.current.body).toBe('Recovered text, and a correction');
+      expect(result.current.sentVersion?.notice).toBe('compose.alreadySent.versionSent');
+    });
+
+    it('keeps the restored key after a send that got no answer and more edits', async () => {
+      const { result } = await recoveredSession();
+      await edit(result);
+      await act(async () => {
+        await result.current.send();
+      });
+      const callbacks = sendWithUndo.mock.calls[0][1] as { onError: (err: unknown) => void };
+      act(() => callbacks.onError(new Error('timeout')));
+      await settle();
+      act(() => result.current.updateBody('Recovered text, corrected twice'));
+      await settle();
+      await act(async () => {
+        await result.current.send();
+      });
+
+      expect(sendWithUndo.mock.calls[1][0].idempotencyKey).toBe(RECOVERED_KEY);
+    });
+
+    it('refused all the same: stays open with the edits, and sends as new only when told', async () => {
+      const { result, onFinished } = await recoveredSession();
+      await edit(result);
+      const refusedKey = await sendRefused(result);
+
+      expect(onFinished).not.toHaveBeenCalled();
+      expect(toast.info).not.toHaveBeenCalled();
+      expect(toast.error).not.toHaveBeenCalled();
+      expect(result.current.body).toBe('Recovered text, and a correction');
+      // The send saved the edits as a draft before it went; it is kept.
+      expect(saveDraft).toHaveBeenLastCalledWith(
+        expect.objectContaining({ text: 'Recovered text, and a correction' }),
+      );
+      expect(discardDraft).not.toHaveBeenCalled();
+      expect(result.current.sentVersion).toMatchObject({
+        notice: 'compose.alreadySent.versionSent',
+        sent: { id: 'sent-row-1' },
+      });
+      // Nothing goes out on its own.
+      await advance(10_000);
+      expect(sendWithUndo).toHaveBeenCalledTimes(1);
+
+      const version = result.current.sentVersion;
+      if (!version) throw new Error('no question was asked');
+      await act(async () => {
+        result.current.sendAsNew(version);
+        await Promise.resolve();
+      });
+      await settle();
+
+      expect(result.current.sentVersion).toBeNull();
+      expect(sendWithUndo).toHaveBeenCalledTimes(2);
+      const resent = sendWithUndo.mock.calls[1][0];
+      expect(resent.idempotencyKey).not.toBe(refusedKey);
+      expect(resent.idempotencyKey).not.toBe(RECOVERED_KEY);
+      expect(resent.text).toBe('Recovered text, and a correction');
+      expect(discardDraft).not.toHaveBeenCalled();
+    });
+
+    it('keeps editing, unsent, when the user says not now', async () => {
+      const { result, onFinished } = await recoveredSession();
+      await edit(result);
+      await sendRefused(result);
+
+      act(() => result.current.dismissSentVersion());
+
+      expect(result.current.sentVersion).toBeNull();
+      expect(onFinished).not.toHaveBeenCalled();
+      expect(sendWithUndo).toHaveBeenCalledTimes(1);
+    });
+
+    it('a scheduled send asks too, and is scheduled for the same time as new', async () => {
+      const { result, onFinished } = await recoveredSession();
+      await edit(result);
+      const at = new Date('2030-01-01T09:00:00Z');
+      await act(async () => {
+        await result.current.schedule(at);
+      });
+      const [refused, callbacks] = scheduleMutate.mock.calls[0] as [
+        { idempotencyKey: string },
+        { onError: (err: Error) => void },
+      ];
+      act(() => callbacks.onError(keyReusedError()));
+      await settle();
+
+      expect(onFinished).not.toHaveBeenCalled();
+      const version = result.current.sentVersion;
+      if (!version) throw new Error('no question was asked');
+      await act(async () => {
+        result.current.sendAsNew(version);
+        await Promise.resolve();
+      });
+      await settle();
+
+      const [rescheduled] = scheduleMutate.mock.calls[1] as [
+        { idempotencyKey: string; scheduledAt: string },
+      ];
+      expect(rescheduled.scheduledAt).toBe(at.toISOString());
+      expect(rescheduled.idempotencyKey).not.toBe(refused.idempotencyKey);
+    });
+  });
+
+  describe('refused after the composer has gone', () => {
+    /**
+     * Closed inside the undo window, or navigated away from: the question has
+     * no composer to ask in, so a refusal that does not end the session is
+     * said in a toast instead of nowhere. Nothing is sent.
+     */
+    async function closedThenRefused(
+      sent: AlreadySent,
+      {
+        saveFails = false,
+        reopen = '/compose',
+      }: { saveFails?: boolean; reopen?: ComposeSessionOptions['reopen'] | null } = {},
+    ) {
+      // Without a server draft — the save before the send failed — the local
+      // snapshot is all that holds the text.
+      if (saveFails) saveDraft.mockRejectedValue(new Error('offline'));
+      await saveComposeRecovery(recoveryKey, {
+        to: 'ann@example.com',
+        cc: '',
+        bcc: '',
+        subject: 'Plan',
+        body: 'Recovered text',
+        attachments: [],
+        idempotencyKey: RECOVERED_KEY,
+      });
+      const rendered = renderHook(() =>
+        useComposeSession(options({ reopen: reopen ?? undefined })),
+      );
+      await settle();
+      await edit(rendered.result);
+      await act(async () => {
+        await rendered.result.current.send();
+      });
+      await act(async () => {
+        await rendered.result.current.saveAndClose();
+      });
+      rendered.unmount();
+      const callbacks = sendWithUndo.mock.calls[0][1] as {
+        onAlreadySent?: (sent: AlreadySent) => void;
+      };
+      act(() => callbacks.onAlreadySent?.(sent));
+      await settle();
+    }
+
+    /** The labels and handlers of the toast's buttons, whichever slot they are in. */
+    function toastButtons(): Record<string, () => void> {
+      const [, opts] = toast.warning.mock.calls[0] as [
+        string,
+        { action?: { label: string; onClick: () => void }; cancel?: typeof opts.action },
+      ];
+      return Object.fromEntries(
+        [opts.action, opts.cancel].flatMap((button) =>
+          button ? [[button.label, button.onClick]] : [],
+        ),
+      );
+    }
+
+    it('says so, links to what was sent, and opens the draft only the snapshot holds', async () => {
+      await closedThenRefused(sentVersion(), { saveFails: true });
+
+      expect(toast.warning).toHaveBeenCalledWith(
+        'compose.alreadySent.versionSent',
+        expect.any(Object),
+      );
+      const buttons = toastButtons();
+      expect(Object.keys(buttons).sort()).toEqual([
+        'compose.alreadySent.openDraft',
+        'compose.alreadySent.view',
+      ]);
+      buttons['compose.alreadySent.openDraft']();
+      expect(routerPush).toHaveBeenLastCalledWith('/compose');
+      buttons['compose.alreadySent.view']();
+      expect(routerPush).toHaveBeenLastCalledWith('/conversation/sent-row-1');
+
+      // The snapshot Open draft resumes holds the edits, under the same key.
+      const record = await loadComposeRecovery(recoveryKey);
+      expect(record?.snapshot).toMatchObject({
+        body: 'Recovered text, and a correction',
+        idempotencyKey: RECOVERED_KEY,
+      });
+      expect(sendWithUndo).toHaveBeenCalledTimes(1);
+      expect(discardDraft).not.toHaveBeenCalled();
+      expect(toast.info).not.toHaveBeenCalled();
+    });
+
+    it('offers no Open draft when a server draft holds the text', async () => {
+      await closedThenRefused(sentVersion());
+
+      expect(Object.keys(toastButtons())).toEqual(['compose.alreadySent.view']);
+      expect(discardDraft).not.toHaveBeenCalled();
+    });
+
+    it('words a failed version as failed, and offers only the draft without an id', async () => {
+      await closedThenRefused(sentVersion({ id: null, deliveryState: 'failed' }), {
+        saveFails: true,
+      });
+
+      expect(toast.warning).toHaveBeenCalledWith(
+        'compose.alreadySent.versionFailed',
+        expect.any(Object),
+      );
+      expect(Object.keys(toastButtons())).toEqual(['compose.alreadySent.openDraft']);
+    });
+
+    it('cannot offer Open draft for a composer with nowhere to reopen', async () => {
+      await closedThenRefused(sentVersion(), { saveFails: true, reopen: null });
+
+      expect(Object.keys(toastButtons())).toEqual(['compose.alreadySent.view']);
+    });
+  });
+
+  it('leaves any other scheduling failure open, to try again', async () => {
+    const { result, onFinished } = await recoveredSession();
+    await act(async () => {
+      await result.current.schedule(new Date('2030-01-01T09:00:00Z'));
+    });
+    const [, callbacks] = scheduleMutate.mock.calls[0] as [
+      unknown,
+      { onError: (err: Error) => void },
+    ];
+    act(() =>
+      callbacks.onError(
+        Object.assign(new Error('Invalid recipient'), { status: 422, details: { field: 'to' } }),
+      ),
+    );
+    await settle();
+
+    expect(onFinished).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith('Invalid recipient');
+  });
+});
+
+describe('what the user is told about the version already sent', () => {
+  const tWithVars = (key: string, vars?: Record<string, unknown>) =>
+    vars ? `${key} ${JSON.stringify(vars)}` : key;
+  const due = '2030-01-01T09:00:00.000Z';
+  const dueLabel = new Date(due).toLocaleString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+
+  function notice(details: Record<string, unknown>, outcome: 'closed' | 'open') {
+    const sent = alreadySentUnderKey(keyReusedError(details));
+    if (!sent) throw new Error('not recognised');
+    return alreadySentNotice(tWithVars, sent, outcome);
+  }
+
+  it.each(['sent', 'sending', 'retrying', 'unknown', undefined])(
+    'a %s one was already sent',
+    (deliveryState) => {
+      expect(notice({ deliveryState }, 'closed')).toBe('compose.alreadySent.closedSent');
+      expect(notice({ deliveryState }, 'open')).toBe('compose.alreadySent.versionSent');
+    },
+  );
+
+  it('a scheduled one is due at its time', () => {
+    const details = { deliveryState: 'scheduled', scheduledAt: due };
+    expect(notice(details, 'closed')).toBe(
+      `compose.alreadySent.closedScheduled ${JSON.stringify({ time: dueLabel })}`,
+    );
+    expect(notice(details, 'open')).toBe(
+      `compose.alreadySent.versionScheduled ${JSON.stringify({ time: dueLabel })}`,
+    );
+  });
+
+  it('a scheduled one without a time is said to be sent', () => {
+    expect(notice({ deliveryState: 'scheduled', scheduledAt: null }, 'open')).toBe(
+      'compose.alreadySent.versionSent',
+    );
+  });
+
+  it('a failed or cancelled one never reads as sent', () => {
+    expect(notice({ deliveryState: 'failed' }, 'open')).toBe('compose.alreadySent.versionFailed');
+    expect(notice({ deliveryState: 'cancelled' }, 'open')).toBe(
+      'compose.alreadySent.versionCancelled',
+    );
+  });
+});
+
 describe('a send that failed without an answer', () => {
   async function failedSend() {
     const rendered = renderHook(() =>
@@ -595,6 +1076,118 @@ describe('a send that failed without an answer', () => {
   });
 });
 
+describe('saving before a send', () => {
+  /**
+   * The autosave runs 8 s after the last keystroke, and a save in flight was
+   * all a send used to wait for. So the draft a send named could be missing
+   * the last edits — and since OxyHQ/oxy#1676 a refused send keeps that
+   * draft, as the only server copy of what the user wrote.
+   */
+  it('saves what was typed since the last autosave first, and sends naming that draft', async () => {
+    const { result } = renderHook(() => useComposeSession(options()));
+    await settle();
+    act(() => {
+      result.current.setTo('ann@example.com');
+      result.current.updateBody('Typed just now');
+    });
+    await advance(1_000);
+    expect(saveDraft).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await result.current.send();
+    });
+
+    expect(saveDraft).toHaveBeenCalledTimes(1);
+    expect(saveDraft).toHaveBeenCalledWith(expect.objectContaining({ text: 'Typed just now' }));
+    expect(saveDraft.mock.invocationCallOrder[0]).toBeLessThan(
+      sendWithUndo.mock.invocationCallOrder[0],
+    );
+    expect(sendWithUndo.mock.calls[0][0]).toMatchObject({
+      draftId: 'created-1',
+      text: 'Typed just now',
+    });
+    // The autosave it replaced does not run as well.
+    await advance(10_000);
+    expect(saveDraft).toHaveBeenCalledTimes(1);
+  });
+
+  it('saves after a save already in flight, with the newest text', async () => {
+    let finishFirst: (value: { _id: string; draftRevision: number }) => void = () => {};
+    saveDraft.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishFirst = resolve;
+        }),
+    );
+    const { result } = renderHook(() => useComposeSession(options()));
+    await settle();
+    act(() => {
+      result.current.setTo('ann@example.com');
+      result.current.updateBody('First');
+    });
+    await advance(8_000);
+    expect(saveDraft).toHaveBeenCalledTimes(1);
+    act(() => result.current.updateBody('First, then more'));
+    await settle();
+
+    let sending: Promise<void> = Promise.resolve();
+    act(() => {
+      sending = result.current.send();
+    });
+    await settle();
+    expect(sendWithUndo).not.toHaveBeenCalled();
+    await act(async () => {
+      finishFirst({ _id: 'created-1', draftRevision: 1 });
+      await sending;
+    });
+
+    expect(saveDraft).toHaveBeenCalledTimes(2);
+    expect(saveDraft).toHaveBeenLastCalledWith(
+      expect.objectContaining({ existingDraftId: 'created-1', text: 'First, then more' }),
+    );
+    expect(sendWithUndo.mock.calls[0][0]).toMatchObject({ draftId: 'created-1' });
+  });
+
+  it('makes no draft for a session nothing was written in', async () => {
+    const { result } = renderHook(() =>
+      useComposeSession(
+        options({
+          recoveryIdentity: 'reply:p1',
+          initial: { to: 'ann@example.com', subject: 'Re: Plan' },
+        }),
+      ),
+    );
+    await settle();
+
+    await act(async () => {
+      await result.current.send();
+    });
+
+    expect(saveDraft).not.toHaveBeenCalled();
+    expect(sendWithUndo).toHaveBeenCalledTimes(1);
+  });
+
+  it('saves nothing once the session is discarded', async () => {
+    const { result } = renderHook(() => useComposeSession(options()));
+    await settle();
+    act(() => {
+      result.current.setTo('ann@example.com');
+      result.current.updateBody('Never mind');
+    });
+    await act(async () => {
+      await result.current.discardDraft();
+    });
+
+    await act(async () => {
+      await result.current.send();
+    });
+    await advance(10_000);
+
+    expect(saveDraft).not.toHaveBeenCalled();
+    expect(sendWithUndo).not.toHaveBeenCalled();
+  });
+});
+
 describe('discarding inside the undo window', () => {
   it('calls the send off', async () => {
     const cancel = jest.fn(() => true);
@@ -625,10 +1218,16 @@ describe('undo', () => {
     const callbacks = sendWithUndo.mock.calls[0][1] as { onCancel: () => void };
     act(() => callbacks.onCancel());
 
+    // The send saved what it sent first.
+    expect(saveDraft).toHaveBeenCalledTimes(1);
+
     act(() => result.current.updateBody('One more line'));
     await advance(8_000);
 
-    expect(saveDraft).toHaveBeenCalledTimes(1);
+    expect(saveDraft).toHaveBeenCalledTimes(2);
+    expect(saveDraft).toHaveBeenLastCalledWith(
+      expect.objectContaining({ existingDraftId: 'created-1', text: 'One more line' }),
+    );
   });
 });
 

@@ -436,6 +436,20 @@ const es: LocaleDict = {
       discard: 'Descartar',
       discardDraft: 'Descartar borrador',
     },
+    alreadySent: {
+      closedSent: 'Ya se había enviado desde esta redacción.',
+      closedScheduled: 'Ya se había programado desde esta redacción para el {{time}}.',
+      versionSent: 'Ya se envió una versión de este mensaje.',
+      versionScheduled: 'Ya hay una versión de este mensaje programada para el {{time}}.',
+      versionFailed:
+        'No se pudo enviar una versión de este mensaje. Ábrela para reintentarlo allí.',
+      versionCancelled: 'Se canceló una versión de este mensaje.',
+      prompt: '¿Enviar esto como un mensaje nuevo?',
+      sendAsNew: 'Enviar como nuevo',
+      view: 'Ver',
+      keepEditing: 'Seguir editando',
+      openDraft: 'Abrir borrador',
+    },
     saveDraftPrompt: {
       title: '¿Guardar borrador?',
       description: '¿Quieres guardar este mensaje como borrador?',

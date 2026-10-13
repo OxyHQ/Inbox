@@ -9,6 +9,7 @@ import { invalidateMailViews } from '@/hooks/queries/invalidateMailViews';
 import { INBOX_MUTATION_KEYS, RETRY_IDEMPOTENT } from '@/hooks/queries/queryClient';
 import type { Message } from '@/services/emailApi';
 import { recordInboxMetric } from '@/utils/inboxTelemetry';
+import { type AlreadySent, alreadySentUnderKey } from '@/utils/sendIdempotency';
 import {
   cancelMessageQueries,
   findCachedMessage,
@@ -355,6 +356,12 @@ export function useSendMessageWithUndo() {
          */
         onSuccess?: () => void;
         onError?: (err: unknown) => void;
+        /**
+         * The API refused the key: it already sent a different message for this
+         * compose session (see `alreadySentUnderKey`). Not a failure — the
+         * message is in Sent — so no error toast; the caller says so and closes.
+         */
+        onAlreadySent?: (sent: AlreadySent) => void;
         /** Undo was pressed: nothing was sent and the composer is live again. */
         onCancel?: () => void;
       },
@@ -404,6 +411,13 @@ export function useSendMessageWithUndo() {
           recordInboxMetric('composer_send_succeeded');
           options?.onSuccess?.();
         } catch (err: unknown) {
+          const alreadySent = alreadySentUnderKey(err);
+          if (alreadySent) {
+            invalidateAfterSend(queryClient);
+            recordInboxMetric('composer_send_already_sent');
+            options?.onAlreadySent?.(alreadySent);
+            return;
+          }
           const message = err instanceof Error ? err.message : t('compose.toast.sendFailed');
           toast.error(message);
           recordInboxMetric('composer_send_failed');

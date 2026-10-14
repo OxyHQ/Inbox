@@ -55,7 +55,7 @@ export function BundleRow({ bundle, messages, unreadCount, isExpanded, onToggle 
             <CardTitle>{bundle.name}</CardTitle>
           </View>
           {unreadCount > 0 && (
-            <Badge color="primary" variant="subtle" content={unreadCount} size="small" />
+            <Badge color="primary" variant="subtle" content={unreadCount} size="sm" />
           )}
           <Text variant="caption-1-regular">{messages.length}</Text>
           {isExpanded ? <RiArrowUpSLine /> : <RiArrowDownSLine />}

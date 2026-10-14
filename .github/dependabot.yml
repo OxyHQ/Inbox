@@ -5,14 +5,21 @@ updates:
     directories:
       - "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
       time: "06:00"
       timezone: "Europe/Bucharest"
     open-pull-requests-limit: 5
     versioning-strategy: increase
     # One group for EVERY update, majors included: one PR per week.
     groups:
+      # First-party SDKs get their own PR, and it is the one that auto-merges
+      # (.github/workflows/automerge-first-party.yml). Listed BEFORE `all`: a
+      # dependency joins the first group it matches.
+      oxy:
+        patterns:
+          - "@oxy.so/*"
+          - "@alia.onl/*"
+          - "@clarity.surf/*"
       all:
         patterns:
           - "*"

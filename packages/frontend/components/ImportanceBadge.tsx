@@ -102,7 +102,7 @@ export function ImportanceBadge({ message, onPress }: ImportanceBadgeProps) {
   const config = BADGE_CONFIG[importance];
 
   const badge = (
-    <Badge variant="subtle" color={config.color} content={t(config.labelKey)} size="small" />
+    <Badge variant="subtle" color={config.color} content={t(config.labelKey)} size="sm" />
   );
 
   if (onPress) {

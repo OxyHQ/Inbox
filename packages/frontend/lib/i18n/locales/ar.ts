@@ -256,15 +256,12 @@ const ar: LocaleDict = {
     },
     aliaSuggestions: {
       unread: {
-        label: 'الرسائل غير المقروءة',
         prompt: 'أيّ الرسائل تحتاج إلى اهتمامي؟',
       },
       todaysSummary: {
-        label: 'ملخّص اليوم',
         prompt: 'لخّص رسائلي اليوم',
       },
       withAttachments: {
-        label: 'مع مرفقات',
         prompt: 'ابحث عن الرسائل التي تحتوي على مرفقات',
       },
     },

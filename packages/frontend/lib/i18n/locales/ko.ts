@@ -231,15 +231,12 @@ const ko: LocaleDict = {
     },
     aliaSuggestions: {
       unread: {
-        label: '읽지 않은 메일',
         prompt: '어떤 메일에 주의를 기울여야 할까요?',
       },
       todaysSummary: {
-        label: '오늘의 요약',
         prompt: '오늘의 메일을 요약해 주세요',
       },
       withAttachments: {
-        label: '첨부 있음',
         prompt: '첨부 파일이 있는 메일 찾기',
       },
     },

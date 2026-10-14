@@ -15,7 +15,7 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "@alia.onl/sdk": "^10.1.1",
+    "@alia.onl/sdk": "^13.0.0",
     "@clarity.surf/sdk": "^0.4.0",
     "@expo/metro-runtime": "~57.0.8",
     "@expo/vector-icons": "^15.1.1",
@@ -25,7 +25,7 @@
     "@lottiefiles/dotlottie-react-native": "^0.12.1",
     "@lottiefiles/dotlottie-web": "0.81.0",
     "@oxy.so/app-preset": "^3.0.0",
-    "@oxy.so/bloom": "^10.2.1",
+    "@oxy.so/bloom": "^10.4.0",
     "@oxy.so/contracts": "^4.12.0",
     "@oxy.so/core": "^4.5.0",
     "@oxy.so/services": "^11.2.0",

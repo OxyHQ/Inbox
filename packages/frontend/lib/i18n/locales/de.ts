@@ -233,15 +233,12 @@ const de: LocaleDict = {
     },
     aliaSuggestions: {
       unread: {
-        label: 'Ungelesene E-Mails',
         prompt: 'Welche E-Mails brauchen meine Aufmerksamkeit?',
       },
       todaysSummary: {
-        label: 'Zusammenfassung von heute',
         prompt: 'Fasse meine heutigen E-Mails zusammen',
       },
       withAttachments: {
-        label: 'Mit Anhängen',
         prompt: 'Suche E-Mails mit Anhängen',
       },
     },

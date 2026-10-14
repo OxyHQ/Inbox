@@ -233,15 +233,12 @@ const fr: LocaleDict = {
     },
     aliaSuggestions: {
       unread: {
-        label: 'Courriels non lus',
         prompt: 'Quels courriels nécessitent mon attention ?',
       },
       todaysSummary: {
-        label: "Résumé d'aujourd'hui",
         prompt: "Résume mes courriels d'aujourd'hui",
       },
       withAttachments: {
-        label: 'Avec pièces jointes',
         prompt: 'Trouve les courriels avec pièces jointes',
       },
     },

@@ -165,18 +165,15 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     () => [
       {
         id: 'unread',
-        title: t('inbox.aliaSuggestions.unread.label'),
-        description: t('inbox.aliaSuggestions.unread.prompt'),
+        text: t('inbox.aliaSuggestions.unread.prompt'),
       },
       {
         id: 'today-summary',
-        title: t('inbox.aliaSuggestions.todaysSummary.label'),
-        description: t('inbox.aliaSuggestions.todaysSummary.prompt'),
+        text: t('inbox.aliaSuggestions.todaysSummary.prompt'),
       },
       {
         id: 'with-attachments',
-        title: t('inbox.aliaSuggestions.withAttachments.label'),
-        description: t('inbox.aliaSuggestions.withAttachments.prompt'),
+        text: t('inbox.aliaSuggestions.withAttachments.prompt'),
       },
     ],
     [t],

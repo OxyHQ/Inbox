@@ -229,15 +229,12 @@ const zh: LocaleDict = {
     },
     aliaSuggestions: {
       unread: {
-        label: '未读邮件',
         prompt: '哪些邮件需要关注?',
       },
       todaysSummary: {
-        label: '今日摘要',
         prompt: '总结一下今天的邮件',
       },
       withAttachments: {
-        label: '带附件',
         prompt: '查找带附件的邮件',
       },
     },

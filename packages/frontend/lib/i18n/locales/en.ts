@@ -231,15 +231,12 @@ const en: LocaleDict = {
     },
     aliaSuggestions: {
       unread: {
-        label: 'Unread emails',
         prompt: 'What emails need my attention?',
       },
       todaysSummary: {
-        label: "Today's summary",
         prompt: 'Summarize my emails from today',
       },
       withAttachments: {
-        label: 'With attachments',
         prompt: 'Find emails with attachments',
       },
     },

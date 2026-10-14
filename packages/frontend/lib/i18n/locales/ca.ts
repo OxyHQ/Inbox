@@ -233,15 +233,12 @@ const ca: LocaleDict = {
     },
     aliaSuggestions: {
       unread: {
-        label: 'Correus sense llegir',
         prompt: 'Quins correus necessiten la meva atenció?',
       },
       todaysSummary: {
-        label: "Resum d'avui",
         prompt: "Resumeix els correus d'avui",
       },
       withAttachments: {
-        label: 'Amb adjunts',
         prompt: 'Cerca correus amb adjunts',
       },
     },

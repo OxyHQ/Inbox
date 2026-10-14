@@ -232,15 +232,12 @@ const ja: LocaleDict = {
     },
     aliaSuggestions: {
       unread: {
-        label: '未読メール',
         prompt: '注意が必要なメールはどれですか?',
       },
       todaysSummary: {
-        label: '今日のサマリー',
         prompt: '今日のメールを要約してください',
       },
       withAttachments: {
-        label: '添付付き',
         prompt: '添付ファイルのあるメールを探して',
       },
     },

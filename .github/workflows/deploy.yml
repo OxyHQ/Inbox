@@ -5,32 +5,174 @@ name: Deploy to Cloudflare
 # build, no image to push and no ECS service to wait on. A web export and a
 # Worker deploy is the whole of it.
 
+# It runs only AFTER CI has passed on a push to main, for the exact commit it
+# releases (`workflow_run`). Until 2026-10 it ran on `push` beside CI, so a
+# commit whose CI went red still reached production. `gate` below owns the
+# guards and the scope a `push` trigger used to give for free.
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
+  # A manual redeploy of main's head, and still only once CI has succeeded on a
+  # push for it (`gate` checks that once and refuses otherwise).
   workflow_dispatch:
 
-# Serialised, not cancelled: a cancelled deploy leaves the Worker on whichever
-# build happened to land last, which is not necessarily the newest.
-concurrency:
-  group: deploy-inbox
-  cancel-in-progress: false
+permissions:
+  contents: read
+
+env:
+  # The commit under release: the head CI tested on `workflow_run`, main's head
+  # on a dispatch. Never `github.sha` alone, which on `workflow_run` is whatever
+  # main points at when the event is created.
+  DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 
 jobs:
-  deploy:
+  # Decides, OUTSIDE the release concurrency group, whether this run releases
+  # anything. It must sit outside: GitHub cancels a PENDING run when another
+  # queues behind it in the same group, so a run for an older commit (its CI
+  # finished late) could displace a pending release of a newer one and then
+  # hold itself, leaving neither deployed.
+  gate:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') || (
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
-    environment: production
+    timeout-minutes: 10
     permissions:
       contents: read
+      actions: read
+    outputs:
+      release: ${{ steps.newer.outputs.release == 'true' && steps.scope.outputs.release == 'true' }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+          # Both decisions below walk history: to main's head, and from the
+          # commit that is live, which can be any number of commits back.
+          fetch-depth: 0
+          persist-credentials: false
+
+      # One-shot, not a poll: a dispatch is a manual redeploy of a commit CI
+      # has already judged. `workflow_run` needs no such check; the guards
+      # above already read CI's conclusion for this exact SHA.
+      - name: Require a successful CI run on push for this commit (dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          passed=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$DEPLOY_SHA&event=push&branch=main&status=success&per_page=1" --jq '.total_count')
+          if [ "$passed" -lt 1 ]; then
+            echo "::error::CI has not succeeded on push to main for $DEPLOY_SHA; refusing to deploy it"
+            exit 1
+          fi
+          echo "CI succeeded on push for $DEPLOY_SHA"
+
+      # An older commit is held ONLY when a newer commit on main has a CI run of
+      # its own (queued, in progress or succeeded): that commit's release will
+      # carry this one. A newer commit with NO CI run, pushed with GITHUB_TOKEN
+      # as a bot merge is (automerge-first-party.yml), starts no workflow at
+      # all, so holding on "is this still main's head" alone would strand the
+      # newest CI-tested commit behind it. Measured on OxyHQ/Alia, 2026-10-15.
+      - name: Hold only for a newer main commit that CI is testing or passed
+        id: newer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          release() { echo "release=$1" >>"$GITHUB_OUTPUT"; echo "$2"; exit 0; }
+          main=$(git rev-parse origin/main)
+          if [ "$main" = "$DEPLOY_SHA" ]; then
+            release true "$DEPLOY_SHA is main's head"
+          fi
+          if ! git merge-base --is-ancestor "$DEPLOY_SHA" "$main"; then
+            release false "::notice::$DEPLOY_SHA is no longer on main ($main); not releasing it"
+          fi
+          # Newest first. A run counts unless it finished without succeeding.
+          for sha in $(git rev-list --first-parent "$DEPLOY_SHA..$main"); do
+            live=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$sha&event=push&per_page=20" \
+              --jq '[.workflow_runs[] | select(.status != "completed" or .conclusion == "success")] | length')
+            if [ "$live" -gt 0 ]; then
+              release false "::notice::newer main commit $sha has its own CI run; its release carries $DEPLOY_SHA"
+            fi
+            echo "newer main commit $sha has no live or successful CI run; it does not hold $DEPLOY_SHA"
+          done
+          release true "no newer main commit is being released; releasing $DEPLOY_SHA"
+
+      # `workflow_run` takes no `paths:`, and one push's own diff would miss
+      # commits whose release was held or failed. So the scope is measured from
+      # what inbox.oxy.so actually SERVES: every deploy publishes the commit it
+      # was built from as /release.txt. An unknown path on this host answers
+      # 200 with the SPA shell, so only a body that is exactly a 40-hex commit
+      # counts as a marker.
+      #
+      #   * the live commit already contains this one (a re-run, or CI
+      #     finishing out of order): hold, never roll production back;
+      #   * everything changed since the live commit cannot reach the bundle
+      #     (Markdown, docs/, CI-only workflow and bot config): hold;
+      #   * anything else, or anything this cannot establish (no marker, a live
+      #     commit that is not an ancestor, a failed fetch): release.
+      #
+      # A dispatch always releases: it is the manual redeploy.
+      - name: Decide whether this commit changes what inbox.oxy.so serves
+        id: scope
+        if: steps.newer.outputs.release == 'true'
+        run: |
+          set -uo pipefail
+          decide() { echo "release=$1" >>"$GITHUB_OUTPUT"; echo "$2"; exit 0; }
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            decide true "manual dispatch: releasing $DEPLOY_SHA"
+          fi
+          live=$(curl -fsS --max-time 20 "https://inbox.oxy.so/release.txt?scope=${DEPLOY_SHA}" | tr -d '[:space:]') || live=
+          [[ "$live" =~ ^[0-9a-f]{40}$ ]] || decide true "no release marker is live; releasing"
+          git cat-file -e "$live^{commit}" 2>/dev/null || decide true "live commit $live is not in this history; releasing"
+          if git merge-base --is-ancestor "$DEPLOY_SHA" "$live"; then
+            decide false "::notice::live commit $live already contains $DEPLOY_SHA; nothing to release"
+          fi
+          git merge-base --is-ancestor "$live" "$DEPLOY_SHA" || decide true "live commit $live is not an ancestor of $DEPLOY_SHA; releasing"
+          changed=$(git diff --name-only "$live" "$DEPLOY_SHA") || decide true "could not diff $live..$DEPLOY_SHA; releasing"
+          relevant=$(grep -vE '\.md$|^docs/|^\.github/dependabot\.yml$|^\.github/workflows/(ci|automerge-first-party)\.yml$|^\.mailmap$' <<<"$changed" || true)
+          if [ -z "$relevant" ]; then
+            decide false "::notice::nothing that reaches the bundle changed since live $live; not releasing"
+          fi
+          echo "changed since live $live:"
+          printf '  %s\n' $relevant
+          decide true "releasing $DEPLOY_SHA"
+
+  deploy:
+    needs: gate
+    if: needs.gate.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    # A good run takes 3-4 minutes, most of it the install and the export.
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    # Serialised, not cancelled: a cancelled deploy leaves the Worker on
+    # whichever build happened to land last, which is not necessarily the
+    # newest. On the JOB, not the workflow, so only a run `gate` judged
+    # releasable ever enters the group. A newer pending run replacing an older
+    # pending one is safe: it releases everything since what is live.
+    concurrency:
+      group: deploy-inbox
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
 
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.3
 
-      # Not --frozen-lockfile — see the comment in ci.yml. Lockfile sync is
-      # gated on the pull request.
+      # Lockfile sync is CI's job, and CI has already passed on this exact
+      # commit (`gate`): its install is --frozen-lockfile, and it re-resolves
+      # and diffs bun.lock as well.
       - run: bun install
 
       # tsc BEFORE the export: `expo export` bundles happily through a type
@@ -143,12 +285,17 @@ jobs:
       # must be deleted BEFORE the first run of this: a Worker custom domain
       # refuses a hostname that already has externally managed records
       # (code 100117).
+      #
+      # /release.txt names the commit this bundle was built from. `gate` diffs
+      # from it to decide the next release, and the smoke below reads it back.
       - name: Deploy the Worker
         working-directory: packages/frontend
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: bunx wrangler@4 deploy
+        run: |
+          printf '%s\n' "$DEPLOY_SHA" > dist/release.txt
+          bunx wrangler@4 deploy
 
       # Post-deploy gate on the LIVE host, public endpoints only. A blank SPA or
       # a stylesheet-less build turns this job red instead of sitting quietly in
@@ -161,15 +308,18 @@ jobs:
           [ -n "$expected_entry" ] || { echo "::error::built index has no entry bundle"; exit 1; }
           for attempt in {1..12}; do
             echo "::group::smoke ${attempt}/12"
-            html=$(curl -sS --max-time 20 "https://inbox.oxy.so/?build=${GITHUB_SHA}" || true)
+            html=$(curl -sS --max-time 20 "https://inbox.oxy.so/?build=${DEPLOY_SHA}" || true)
+            release=$(curl -sS --max-time 20 "https://inbox.oxy.so/release.txt?build=${DEPLOY_SHA}" | tr -d '[:space:]' || true)
             csp=$(curl -sSI --max-time 20 https://inbox.oxy.so/ | tr -d '\r' | grep -i '^content-security-policy:' || true)
-            if echo "$html" | grep -q 'Inbox by Oxy' \
+            if [ "$release" = "$DEPLOY_SHA" ] \
+               && echo "$html" | grep -q 'Inbox by Oxy' \
                && echo "$html" | grep -qF "$expected_entry" \
                && echo "$csp" | grep -qF 'https://api.alia.onl' \
                && echo "$csp" | grep -qF 'wss://api.alia.onl'; then
-              echo "::endgroup::"; echo "OK: $expected_entry"; exit 0
+              echo "::endgroup::"; echo "OK: $expected_entry · release $release"; exit 0
             fi
-            echo "expected: $expected_entry"
+            echo "expected: $expected_entry · release $DEPLOY_SHA"
+            echo "release: ${release:0:40}"
             echo "title: $(echo "$html" | grep -o '<title>[^<]*</title>' || echo MISSING)"
             echo "entry: $(echo "$html" | grep -o '_expo/static/js/web/entry-[^\"]*' || echo MISSING)"
             echo "csp:   ${csp:-MISSING}"

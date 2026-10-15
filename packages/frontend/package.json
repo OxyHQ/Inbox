@@ -15,7 +15,7 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "@alia.onl/sdk": "^13.2.0",
+    "@alia.onl/sdk": "^15.4.0",
     "@clarity.surf/sdk": "^0.4.0",
     "@expo/metro-runtime": "~57.0.8",
     "@expo/vector-icons": "^15.1.1",
@@ -25,7 +25,7 @@
     "@lottiefiles/dotlottie-react-native": "^0.12.1",
     "@lottiefiles/dotlottie-web": "0.81.0",
     "@oxy.so/app-preset": "^3.0.0",
-    "@oxy.so/bloom": "^10.4.0",
+    "@oxy.so/bloom": "^10.7.0",
     "@oxy.so/contracts": "^4.12.0",
     "@oxy.so/core": "^4.5.0",
     "@oxy.so/services": "^11.2.0",
@@ -76,12 +76,12 @@
     "expo-secure-store": "~57.0.1",
     "expo-sensors": "~57.0.2",
     "expo-sharing": "~57.0.5",
-    "expo-speech-recognition": "~57.1.0",
     "expo-splash-screen": "~57.0.2",
     "expo-status-bar": "~57.0.1",
     "expo-symbols": "~57.0.1",
     "expo-system-ui": "~57.0.1",
     "expo-web-browser": "~57.0.1",
+    "htmlparser2": "^12.0.0",
     "jszip": "^3.10.2",
     "lottie-react-native": "~7.5.0",
     "lucide-react-native": "^0.577.0",
@@ -89,6 +89,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.0",
+    "react-native-audio-api": "^0.13.6",
     "react-native-css": "3.1.0-rc.0",
     "react-native-gesture-handler": "~2.32.0",
     "react-native-keyboard-controller": "1.21.13",
@@ -103,8 +104,7 @@
     "tailwind-merge": "^3.7.0",
     "zeego": "^3.0.6",
     "zod": "^3.25.67",
-    "zustand": "^5.0.15",
-    "htmlparser2": "^12.0.0"
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@types/node": "^26.6.4",

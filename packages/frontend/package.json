@@ -15,7 +15,7 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "@alia.onl/sdk": "^15.4.0",
+    "@alia.onl/sdk": "^15.6.0",
     "@clarity.surf/sdk": "^0.4.0",
     "@expo/metro-runtime": "~57.0.8",
     "@expo/vector-icons": "^15.1.1",

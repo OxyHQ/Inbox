@@ -55,14 +55,14 @@
       "expo-web-browser",
       "expo-audio",
       [
-"react-native-audio-api",
-{
-"iosMicrophonePermission": "Allow Inbox to hear what you dictate and say to Alia.",
-"iosBackgroundMode": false,
-"androidForegroundService": false,
-"androidPermissions": ["android.permission.RECORD_AUDIO"]
-}
-],
+        "react-native-audio-api",
+        {
+          "iosMicrophonePermission": "Allow Inbox to hear what you dictate and say to Alia.",
+          "iosBackgroundMode": false,
+          "androidForegroundService": false,
+          "androidPermissions": ["android.permission.RECORD_AUDIO"]
+        }
+      ],
       "expo-status-bar",
       "@oxy.so/services/plugins/withOxySharedPermissions",
       "@oxy.so/app-preset/plugin/withOxyAndroidRelease"

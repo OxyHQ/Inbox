@@ -19,6 +19,9 @@ jobs:
   check:
     name: typecheck · lint · test
     runs-on: ubuntu-latest
+    # A good run takes about a minute; the budget is for a cold runner and a
+    # slow registry, not for a hang to hold one of the org's 20 job slots.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
 
@@ -30,15 +33,14 @@ jobs:
       # protocol, core, services and expo-splash from workspace source; here all
       # five arrive prebuilt from npm. That is the whole simplification of the
       # split.
-      - run: bun install
+      # --frozen-lockfile fails fast on the obvious desync. It is not the whole
+      # check: on bun 1.3.14 it exited 0 on both desync shapes that actually
+      # ship (a workspace version bump, and a widened-but-satisfiable range)
+      # and false-positived on configVersion churn. On 1.4.3 the committed lock
+      # installs frozen cleanly (measured 2026-10-15). The step below still
+      # asks the full question without bun's judgement in the middle.
+      - run: bun install --frozen-lockfile
 
-      # `--frozen-lockfile` is deliberately NOT used, here or in the deploy. On
-      # bun 1.3.14 it exits 0 on both desync shapes that actually ship (a
-      # workspace version bump, and a widened-but-satisfiable range) AND
-      # false-positives on non-deterministic configVersion churn — a flag that
-      # misses what it exists to catch and fails correct builds. This asks the
-      # same question without bun's judgement in the middle.
-      #
       # `--minimum-release-age=0`: this step RE-RESOLVES by design, and on a
       # cold manifest cache the bunfig quarantine judges every dependency
       # afresh, including already-locked ones.

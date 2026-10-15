@@ -61,6 +61,7 @@ import type { Bundle, Message, Reminder, UnreadableMessage } from '@/services/em
 import { messageRoute } from '@/utils/messageRoute';
 import { useCurrentList } from '@/hooks/useCurrentList';
 import { AliaChatSheet, type AliaChatSheetRef } from '@alia.onl/sdk';
+import { AliaAvatarIcon } from '@alia.onl/sdk/avatar';
 import { VoiceSession } from '@alia.onl/sdk/voice';
 
 type ListItem =
@@ -1065,7 +1066,9 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
                       accessibilityLabel={t('reminder.create.title')}
                       onPress={() => setCreateReminderVisible(true)}
                     />
-                    <ButtonGroupItem onPress={handleAskAlia}>{t('inbox.askAlia')}</ButtonGroupItem>
+                    <ButtonGroupItem leadingIcon={AliaAvatarIcon} onPress={handleAskAlia}>
+                      {t('inbox.askAlia')}
+                    </ButtonGroupItem>
                   </>
                 )}
                 <ButtonGroupItem

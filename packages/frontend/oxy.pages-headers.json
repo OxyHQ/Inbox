@@ -1,8 +1,6 @@
 {
   "csp": {
-    "scriptSrc": ["'wasm-unsafe-eval'", "https://alia.onl"],
     "workerSrc": ["'self'"],
-    "imgSrc": ["blob:", "https:"],
-    "connectSrc": ["https://alia.onl", "https://api.alia.onl", "wss://api.alia.onl"]
+    "imgSrc": ["blob:", "https:"]
   }
 }

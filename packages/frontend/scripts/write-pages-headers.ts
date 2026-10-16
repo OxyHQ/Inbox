@@ -13,10 +13,11 @@
  * of truth for the Oxy CSP baseline — the Cloudflare Insights beacon (both the
  * script origin and the reporting origin), api.oxy.so, wss://api.oxy.so and
  * cloud.oxy.so — and it lives in `@oxy.so/core/server`, so this origin cannot
- * drift from every other Oxy document origin. Extensions that are genuinely
- * this app's (the Alia agent API, worker-src for public/sw.js and img-src
- * blob:/https: for remote mail images) stay declarative in
- * `oxy.pages-headers.json`.
+ * drift from every other Oxy document origin. What the embedded Alia SDK loads
+ * (its API and voice socket, the avatar runtime, the voice worklets) is the
+ * SDK's own declaration, composed in with `withAliaSdkCsp`. Extensions that are
+ * genuinely this app's (worker-src for public/sw.js and img-src blob:/https:
+ * for remote mail images) stay declarative in `oxy.pages-headers.json`.
  *
  * In OxyHQServices this step was `bun ../core/scripts/writePagesHeaders.ts
  * public`, reaching across a package boundary into a file @oxy.so/core does not
@@ -33,6 +34,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { withAliaSdkCsp } from '@alia.onl/sdk/csp';
 import { buildOxyPagesHeaders, type OxyPagesHeadersOptions } from '@oxy.so/core/server';
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -60,5 +62,9 @@ const html = outputDir === resolve(projectRoot, 'dist') ? readBuiltHtml(outputDi
 
 const outputPath = resolve(outputDir, '_headers');
 mkdirSync(outputDir, { recursive: true });
-writeFileSync(outputPath, buildOxyPagesHeaders({ ...config, html }), 'utf8');
+writeFileSync(
+  outputPath,
+  buildOxyPagesHeaders({ ...config, csp: withAliaSdkCsp(config.csp), html }),
+  'utf8',
+);
 process.stdout.write(`Wrote ${outputPath}\n`);

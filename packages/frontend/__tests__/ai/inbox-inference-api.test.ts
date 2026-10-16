@@ -8,6 +8,7 @@ import {
   INFERENCE_TIMEOUT_MS,
   streamInboxDraft,
 } from '@/services/inboxInferenceApi';
+import { withAliaSdkCsp } from '@alia.onl/sdk/csp';
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -181,11 +182,16 @@ describe('Inbox point-inference API client', () => {
     expect(localeSource).not.toMatch(
       /drafted by Alia|Daily Brief and Smart Reply use Alia|conversation to Alia for summarization|Alia will draft it/,
     );
-    expect(headers.csp?.connectSrc).toEqual(
+    // What the embedded SDK loads is the SDK's declaration, composed in by the
+    // writer (`withAliaSdkCsp`), never a hand-kept copy of Alia's origins.
+    expect(JSON.stringify(headers)).not.toContain('alia.onl');
+    expect(readFileSync(resolve(frontendRoot, 'scripts/write-pages-headers.ts'), 'utf8')).toContain(
+      'withAliaSdkCsp(config.csp)',
+    );
+    expect(withAliaSdkCsp(headers.csp).connectSrc).toEqual(
       expect.arrayContaining(['https://api.alia.onl', 'wss://api.alia.onl']),
     );
-    // Voice runs on the device since @alia.onl/sdk 8: no LiveKit room to reach.
-    expect(headers.csp?.connectSrc).not.toContain('wss://livekit.oxy.so');
+    expect(withAliaSdkCsp(headers.csp).connectSrc).not.toContain('wss://livekit.oxy.so');
   });
 
   it('fails closed on malformed non-streaming data', async () => {

@@ -39,11 +39,12 @@ module.exports = {
     ],
   },
   // htmlparser2 12 and the dom* / entities packages it pulls in ship ESM only
-  // ("type": "module"), which jest's CommonJS runtime cannot `require`. Let
-  // ts-jest down-compile exactly those packages; everything else in
-  // node_modules stays untransformed, as before.
+  // ("type": "module"), which jest's CommonJS runtime cannot `require`, and
+  // `@alia.onl/sdk` ships raw TypeScript source. Let ts-jest down-compile
+  // exactly those packages; everything else in node_modules stays
+  // untransformed, as before.
   transformIgnorePatterns: [
-    '/node_modules/(?!(htmlparser2|domhandler|domutils|domelementtype|dom-serializer|entities)/)',
+    '/node_modules/(?!(htmlparser2|domhandler|domutils|domelementtype|dom-serializer|entities|@alia\\.onl/sdk)/)',
   ],
   testMatch: ['<rootDir>/__tests__/**/*.(test|spec).(ts|tsx)'],
   moduleNameMapper: {

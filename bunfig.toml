@@ -33,6 +33,7 @@ linker = "hoisted"
 # one of these was published within the preceding four days — so without them
 # listed `bun install` refuses to resolve them outright. @oxy.so/protocol and
 # @oxy.so/expo-splash are transitive but resolve the same way.
+# @peable.to/* (Peable, first-party) arrive through @oxy.so/services >= 11.10.
 #
 # The quarantine keeps doing its actual job: it guards against a freshly
 # compromised THIRD-PARTY release. These are first-party.
@@ -51,6 +52,9 @@ minimumReleaseAgeExcludes = [
   "@oxy.so/stickers",
   "@oxy.so/telemetry",
   "@oxy.so/utils",
+  "@peable.to/contracts",
+  "@peable.to/sdk",
+  "@peable.to/shared-types",
 ]
 
 [test]

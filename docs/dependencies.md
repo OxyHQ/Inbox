@@ -29,7 +29,7 @@ dependency the fix removed.
 ## The root `overrides` are a second place versions live
 
 `package.json` at the ROOT pins `@oxy.so/bloom`, `@oxy.so/services`,
-`@oxy.so/core` and `@oxy.so/contracts` alongside the ranges in
+`@oxy.so/core`, `@oxy.so/contracts` and `@oxy.so/protocol` alongside the ranges in
 `packages/frontend/package.json`. A bump in one and not the other resolves to
 the OLD version, silently, with no error and no warning: measured 2026-09-19,
 when the frontend asked for `@oxy.so/bloom@^3.1.0` and `bun install` kept

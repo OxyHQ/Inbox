@@ -72,6 +72,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const { isAuthenticated } = useOxy();
   const router = useRouter();
+  const [listWidth, setListWidth] = useState(380);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const onClose = useCallback(() => setDrawerOpen(false), []);
   const collapsed = useEmailStore((s) => s.sidebarCollapsed);
@@ -440,8 +441,10 @@ export function MailboxShell({ children }: { children: ReactNode }) {
         <AppShellPanels testID="mail-workspace">
           {isDesktop && !isSubscriptions ? (
             <AppShellPanel
+              key="list"
               id="list"
-              width={380}
+              width={listWidth}
+              onWidthChange={setListWidth}
               minWidth={320}
               maxWidth={480}
               resizable
@@ -467,6 +470,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
             </AppShellPanel>
           ) : null}
           <AppShellPanel
+            key="detail"
             id="detail"
             appearance={isSubscriptions ? 'solid' : 'plain'}
             chrome="none"

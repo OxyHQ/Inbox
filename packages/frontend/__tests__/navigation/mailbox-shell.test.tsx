@@ -9,7 +9,7 @@ jest.mock('@/components/InboxBottomBar', () => ({
 import { MailboxShell } from '@/components/MailboxShell';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { type ReactNode, useState } from 'react';
+import { Children as ReactChildren, isValidElement, type ReactNode, useState } from 'react';
 import { defined } from '../fixtures/defined';
 import type { Children, DialogAction, Pressable } from '../fixtures/mockProps';
 
@@ -22,6 +22,7 @@ const mockCreate = jest.fn();
 const mockDelete = jest.fn();
 const mockToggle = jest.fn();
 let mockPath = '/';
+let mockDesktop = true;
 let mockAuthenticated = true;
 /** What the suite reads from the sidebar MailboxShell hands Bloom's AppShell. */
 interface SidebarItem {
@@ -95,21 +96,17 @@ jest.mock('@oxy.so/bloom/app-shell', () => ({
       </div>
     );
   },
-  AppShellSplitPanes: ({
-    list,
-    detail,
-    showList,
-    showDetail,
-  }: {
-    list?: ReactNode;
-    detail?: ReactNode;
-    showList?: boolean;
-    showDetail?: boolean;
-  }) => (
+  AppShellPanels: ({ children }: Children) => (
     <div>
-      {showList && list}
-      {showDetail && detail}
+      {ReactChildren.toArray(children)
+        .filter(isValidElement)
+        .map((panel, index) => (
+          <div key={panel.key ?? index}>{panel}</div>
+        ))}
     </div>
+  ),
+  AppShellPanel: ({ children, appearance }: Children & { appearance?: string }) => (
+    <div data-panel-appearance={appearance}>{children}</div>
   ),
 }));
 jest.mock('@oxy.so/bloom/icons', () => new Proxy({}, { get: () => () => null }));
@@ -161,7 +158,7 @@ jest.mock('@/constants/theme', () => ({
 }));
 jest.mock('@/assets/logo', () => ({ LogoIcon: () => null }));
 jest.mock('@/hooks/useIsDesktopLayout', () => ({
-  useIsDesktopLayout: () => true,
+  useIsDesktopLayout: () => mockDesktop,
 }));
 // Keys echo back — except the mailbox names, so a test can tell a translated
 // name from the raw `specialUse` fallback.
@@ -191,6 +188,7 @@ jest.mock('@/hooks/useEmail', () => ({
 beforeEach(() => {
   jest.clearAllMocks();
   mockAuthenticated = true;
+  mockDesktop = true;
   mockPath = '/';
   mockState = {
     sidebarCollapsed: false,
@@ -287,6 +285,22 @@ it('gives subscriptions one solid workspace while preserving the routed navigato
   const appearance = () =>
     draft.closest('[data-panel-appearance]')?.getAttribute('data-panel-appearance');
   expect(appearance()).toBe('plain');
+  mockDesktop = false;
+  view.rerender(
+    <MailboxShell>
+      <RetainedRoute />
+    </MailboxShell>,
+  );
+  expect(screen.getByLabelText('Retained draft')).toBe(draft);
+  expect((screen.getByLabelText('Retained draft') as HTMLInputElement).value).toBe('Keep my draft');
+  mockDesktop = true;
+  view.rerender(
+    <MailboxShell>
+      <RetainedRoute />
+    </MailboxShell>,
+  );
+  expect(screen.getByLabelText('Retained draft')).toBe(draft);
+
   mockPath = '/subscriptions';
   view.rerender(
     <MailboxShell>

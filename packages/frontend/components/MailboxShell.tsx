@@ -16,9 +16,13 @@ import { useEmailStore } from '@/hooks/useEmail';
 import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 import { useTranslation } from '@/lib/i18n';
 import type { Mailbox } from '@/services/emailApi';
-import { APP_SHELL_DEFAULTS, AppShell, AppShellSplitPanes } from '@oxy.so/bloom/app-shell';
+import {
+  APP_SHELL_DEFAULTS,
+  AppShell,
+  AppShellPanel,
+  AppShellPanels,
+} from '@oxy.so/bloom/app-shell';
 import { Button } from '@oxy.so/bloom/button';
-import { ContentPanel } from '@oxy.so/bloom/content-panel';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
 import {
   RiAddLine,
@@ -416,6 +420,8 @@ export function MailboxShell({ children }: { children: ReactNode }) {
   return (
     <MailScrollProvider>
       <AppShell
+        panels
+        framedFrom={BREAKPOINTS.md}
         safeArea
         drawer="reveal"
         scroll="fixed"
@@ -431,59 +437,54 @@ export function MailboxShell({ children }: { children: ReactNode }) {
         drawerOpenLabel={t('search.openMenu')}
         drawerCloseLabel={t('common.close')}
       >
-        <AppShellSplitPanes
-          variant="separated"
-          listErrorBoundary={{
-            resetKey: pathname,
-            bottomInset: isMobile ? undefined : 0,
-            emptyState: {
-              variant: 'comfortable',
-              illustration: <EmptyStateSticker name="loadError" />,
-              title: t('empty.errorTitle'),
-              description: t('empty.errorDescription'),
-              action: { label: t('common.retry') },
-            },
-          }}
-          detailErrorBoundary={{
-            resetKey: pathname,
-            bottomInset: isMobile ? undefined : 0,
-            emptyState: {
-              variant: 'comfortable',
-              illustration: <EmptyStateSticker name="loadError" />,
-              title: t('empty.errorTitle'),
-              description: t('empty.errorDescription'),
-              action: { label: t('common.retry') },
-            },
-          }}
-          list={
-            <ContentPanel framedFrom={BREAKPOINTS.md} chrome="none" fill overlaySizing="panel">
+        <AppShellPanels testID="mail-workspace">
+          {isDesktop && !isSubscriptions ? (
+            <AppShellPanel
+              id="list"
+              width={380}
+              minWidth={320}
+              maxWidth={480}
+              resizable
+              resizeLabel={t('inbox.resizePanes')}
+              chrome="none"
+              errorBoundary={{
+                resetKey: pathname,
+                bottomInset: isMobile ? undefined : 0,
+                emptyState: {
+                  variant: 'comfortable',
+                  illustration: <EmptyStateSticker name="loadError" />,
+                  title: t('empty.errorTitle'),
+                  description: t('empty.errorDescription'),
+                  action: { label: t('common.retry') },
+                },
+              }}
+            >
               {pathname.startsWith('/search') ? (
                 <SearchList replaceNavigation={pathname.includes('/conversation/')} />
               ) : (
                 <InboxList replaceNavigation={pathname.includes('/conversation/')} />
               )}
-            </ContentPanel>
-          }
-          detail={
-            <ContentPanel
-              appearance={isSubscriptions ? 'solid' : 'plain'}
-              framedFrom={BREAKPOINTS.md}
-              chrome="none"
-              fill
-              overlaySizing="panel"
-            >
-              {children}
-            </ContentPanel>
-          }
-          showList={isDesktop && !isSubscriptions}
-          showDetail
-          listWidth={380}
-          listMinWidth={320}
-          listMaxWidth={480}
-          paneScroll={false}
-          resizeLabel={t('inbox.resizePanes')}
-          testID="mail-workspace"
-        />
+            </AppShellPanel>
+          ) : null}
+          <AppShellPanel
+            id="detail"
+            appearance={isSubscriptions ? 'solid' : 'plain'}
+            chrome="none"
+            errorBoundary={{
+              resetKey: pathname,
+              bottomInset: isMobile ? undefined : 0,
+              emptyState: {
+                variant: 'comfortable',
+                illustration: <EmptyStateSticker name="loadError" />,
+                title: t('empty.errorTitle'),
+                description: t('empty.errorDescription'),
+                action: { label: t('common.retry') },
+              },
+            }}
+          >
+            {children}
+          </AppShellPanel>
+        </AppShellPanels>
       </AppShell>
       <Dialog
         control={createFolderControl}

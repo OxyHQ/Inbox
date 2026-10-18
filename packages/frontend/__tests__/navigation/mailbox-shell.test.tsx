@@ -95,21 +95,9 @@ jest.mock('@oxy.so/bloom/app-shell', () => ({
       </div>
     );
   },
-  AppShellSplitPanes: ({
-    list,
-    detail,
-    showList,
-    showDetail,
-  }: {
-    list?: ReactNode;
-    detail?: ReactNode;
-    showList?: boolean;
-    showDetail?: boolean;
-  }) => (
-    <div>
-      {showList && list}
-      {showDetail && detail}
-    </div>
+  AppShellPanels: ({ children }: Children) => <div>{children}</div>,
+  AppShellPanel: ({ children, appearance }: Children & { appearance?: string }) => (
+    <div data-panel-appearance={appearance}>{children}</div>
   ),
 }));
 jest.mock('@oxy.so/bloom/icons', () => new Proxy({}, { get: () => () => null }));

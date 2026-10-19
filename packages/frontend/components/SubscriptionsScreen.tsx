@@ -9,7 +9,7 @@ import {
 import { PageHeader } from '@oxy.so/bloom/page-header';
 import { ScrollRestorationProvider, useScrollRestoration } from '@oxy.so/bloom/scroll';
 import { expoRouterScrollAdapter } from '@oxy.so/bloom/scroll/expo-router';
-import { useOxy } from '@oxy.so/services';
+import { useOxy } from '@oxy.so/services/ui/client';
 /**
  * Subscriptions management screen.
  *

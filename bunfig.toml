@@ -12,11 +12,12 @@
 linker = "hoisted"
 
 # NOTE: `peer = false` is deliberately NOT set here, though OxyHQServices sets it
-# at its root. In the monorepo three REQUIRED peers reach this app only because
-# some OTHER workspace package declares them — expo-symbols (@oxy.so/bloom), and
+# at its root. In the monorepo two REQUIRED peers reach this app only because
+# some OTHER workspace package declares them —
 # @react-native-community/netinfo + react-native-qrcode-svg (@oxy.so/services,
-# neither in peerDependenciesMeta, so both are hard requirements). This repo has
-# no other package. All three are now declared explicitly in
+# neither in peerDependenciesMeta, so both are hard requirements; expo-symbols
+# was a third until Bloom 15 dropped it). This repo has
+# no other package. Both are now declared explicitly in
 # packages/frontend/package.json as well; letting bun install peers is the belt
 # to that braces.
 

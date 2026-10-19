@@ -9,7 +9,7 @@ import { Switch } from '@oxy.so/bloom/switch';
 import { Textarea } from '@oxy.so/bloom/textarea';
 import { toast } from '@oxy.so/bloom/toast';
 import { getNormalizedUserHandle } from '@oxy.so/core';
-import { useOxy } from '@oxy.so/services';
+import { useOxy } from '@oxy.so/services/ui/client';
 import { useCallback, useState } from 'react';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 type SettingsDraft = {

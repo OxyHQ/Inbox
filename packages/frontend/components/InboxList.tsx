@@ -15,7 +15,7 @@ import { PageHeader } from '@oxy.so/bloom/page-header';
 
 import { toast } from '@oxy.so/bloom';
 import { Loading } from '@oxy.so/bloom/loading';
-import { OxySignInButton, useOxy } from '@oxy.so/services';
+import { OxySignInButton, useOxy } from '@oxy.so/services/ui/client';
 import { FlashList, type FlashListProps, type FlashListRef } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import type React from 'react';

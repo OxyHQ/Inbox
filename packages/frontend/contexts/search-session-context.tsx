@@ -1,6 +1,6 @@
 import type { SearchFilters } from '@/utils/searchFilters';
 import type { ParsedSearchQuery } from '@/hooks/queries/useNaturalLanguageSearch';
-import { useOxy } from '@oxy.so/services';
+import { useOxy } from '@oxy.so/services/ui/client';
 import {
   createContext,
   useCallback,

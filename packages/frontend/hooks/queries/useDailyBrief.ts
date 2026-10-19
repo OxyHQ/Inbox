@@ -8,7 +8,7 @@
 
 import { useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useOxy } from '@oxy.so/services';
+import { useOxy } from '@oxy.so/services/ui/client';
 import { useLocale } from '@/lib/i18n';
 import {
   fetchInboxDailyBrief,

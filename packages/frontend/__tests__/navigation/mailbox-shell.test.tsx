@@ -148,10 +148,9 @@ jest.mock('@oxy.so/bloom/text-field', () => ({
   ),
 }));
 jest.mock('@oxy.so/services', () => ({
-  useOxy: () => ({ isAuthenticated: mockAuthenticated }),
+  useOxy: () => ({ isAuthenticated: mockAuthenticated, openAccountDialog: jest.fn() }),
   ProfileButton: () => <button type="button">{mockAuthenticated ? 'Account' : 'Sign in'}</button>,
   OxySignInButton: () => <button type="button">Sign in</button>,
-  openAccountDialog: jest.fn(),
 }));
 jest.mock('@/constants/theme', () => ({
   useColors: () => ({ primary: 'purple' }),

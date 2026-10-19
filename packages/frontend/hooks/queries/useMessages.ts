@@ -1,5 +1,5 @@
 import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query';
-import { useOxy } from '@oxy.so/services';
+import { useOxy } from '@oxy.so/services/ui/client';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import type { MessagesPage } from '@/utils/messageCache';

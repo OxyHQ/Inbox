@@ -61,7 +61,7 @@ import {
   formatSearchInterpretation,
   parseSearchQuery,
 } from '@/utils/threadGrouping';
-import { useOxy } from '@oxy.so/services';
+import { useOxy } from '@oxy.so/services/ui/client';
 
 interface SearchListProps {
   replaceNavigation?: boolean;

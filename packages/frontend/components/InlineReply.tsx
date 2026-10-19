@@ -11,7 +11,7 @@
 import { Card } from '@oxy.so/bloom/card';
 import { useCallback, useMemo } from 'react';
 import { Platform } from 'react-native';
-import { useOxy } from '@oxy.so/services';
+import { useOxy } from '@oxy.so/services/ui/client';
 
 import { MailComposer } from '@/components/MailComposer';
 import { SmartReplyChips } from '@/components/SmartReplyChips';

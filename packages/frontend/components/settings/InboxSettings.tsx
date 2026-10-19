@@ -3,7 +3,7 @@ import { useTranslation } from '@/lib/i18n';
 import { useDialogControl } from '@oxy.so/bloom/dialog';
 import { RiAccountCircleLine } from '@oxy.so/bloom/icons';
 import { SettingsModal } from '@oxy.so/bloom/settings-modal';
-import { useOxy } from '@oxy.so/services';
+import { useOxy } from '@oxy.so/services/ui/client';
 import {
   createContext,
   useCallback,

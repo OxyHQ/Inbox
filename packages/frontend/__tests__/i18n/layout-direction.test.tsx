@@ -15,7 +15,7 @@ jest.mock('@oxy.so/bloom/locale', () => ({
 }));
 
 let currentLanguage = 'en-US';
-jest.mock('@oxy.so/services', () => ({
+jest.mock('@oxy.so/services/ui/client', () => ({
   useOxy: () => ({
     currentLanguage,
     currentLanguages: [currentLanguage],

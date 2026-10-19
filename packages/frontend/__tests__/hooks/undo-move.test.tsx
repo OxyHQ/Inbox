@@ -25,7 +25,7 @@ jest.mock('@/hooks/useEmail', () => {
 import type { ReactNode } from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { __setOxyState } from '@oxy.so/services';
+import { __setOxyState } from '@oxy.so/services/ui/client';
 
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import { useArchiveMessage, useBulkMoveMessages } from '@/hooks/mutations/useMessageMutations';

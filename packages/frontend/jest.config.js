@@ -74,8 +74,9 @@ module.exports = {
     '^@oxy.so/services/notifications$': '<rootDir>/__mocks__/oxyhq-services.ts',
     // App code imports the lean `ui/client` / `ui` entries (the root barrel
     // registers every account screen at import, which kept them in web first
-    // paint). Same stub, so a test's `jest.mock('@oxy.so/services', ...)` —
-    // keyed by the resolved path — still replaces whichever entry the code used.
+    // paint; Biome's noRestrictedImports now forbids it). Same stub, so a test's
+    // `jest.mock('@oxy.so/services/ui/client', ...)` — keyed by the resolved
+    // path — still replaces whichever entry the code used.
     '^@oxy.so/services/ui(/client)?$': '<rootDir>/__mocks__/oxyhq-services.ts',
     '^@oxy.so/bloom/tab-bar$': '<rootDir>/__mocks__/bloom-tab-bar.tsx',
     '^@expo/vector-icons(/.*)?$': '<rootDir>/__mocks__/expo-vector-icons.tsx',

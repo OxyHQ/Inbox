@@ -32,7 +32,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { toast } from '@oxy.so/bloom';
-import { useOxy, useOxyEvent } from '@oxy.so/services';
+import { useOxy, useOxyEvent } from '@oxy.so/services/ui/client';
 import { usePathname, useRouter } from 'expo-router';
 
 import { SPECIAL_USE } from '@/constants/mailbox';

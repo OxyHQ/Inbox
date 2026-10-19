@@ -32,7 +32,7 @@ jest.mock('@/hooks/useEmail', () => ({
   useEmailStore: (selector: (s: unknown) => unknown) => selector({ _api: { sendMessage } }),
 }));
 
-jest.mock('@oxy.so/services', () => ({ useOxy: () => ({ user: { id: 'u1' } }) }));
+jest.mock('@oxy.so/services/ui/client', () => ({ useOxy: () => ({ user: { id: 'u1' } }) }));
 
 // Toasts are translated; the keys are what these tests read.
 const t = (key: string) => key;

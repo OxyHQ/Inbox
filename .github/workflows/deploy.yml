@@ -170,6 +170,13 @@ jobs:
         with:
           bun-version: 1.4.3
 
+      # Expo SDK 58's CLI supports Node 22.13+ / 24.3+ only (`expo export`
+      # here, `expo lint` in CI). Pinned rather than trusting the runner
+      # image's default Node.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
       # Lockfile sync is CI's job, and CI has already passed on this exact
       # commit (`gate`): its install is --frozen-lockfile, and it re-resolves
       # and diffs bun.lock as well.
@@ -220,6 +227,23 @@ jobs:
           echo "global css: $css ($bytes bytes)"
           [ "$bytes" -ge 20000 ] || { echo "::error::global CSS is only $bytes bytes; the SDK/Bloom @source globs matched nothing"; exit 1; }
           grep -q 'flex-row' "$css" || { echo "::error::global CSS carries no SDK layout utilities"; exit 1; }
+          # The HTML must LOAD the bundle and the stylesheet. On Expo SDK 58 a
+          # custom app/+html.tsx that does not render useServerDocumentContext()'s
+          # headNodes/bodyNodes exports every page without them: exit 0, every
+          # file present, and a site that shows its server-rendered spinner
+          # forever (2026-10-19, #113). Checked on every exported page, and by
+          # bundle LOCATION, not name: Metro's chunk names (entry-*,
+          # __expo-metro-runtime-*, index-*) depend on the router's split.
+          while IFS= read -r -d '' page; do
+            scripts=$(grep -oE '<script[^>]* src="/_expo/static/js/web/[^"]+\.js"' "$page" | grep -oE '/_expo/static/js/web/[^"]+\.js' || true)
+            [ -n "$scripts" ] || { echo "::error::$page loads no bundle from /_expo/static/js/web/"; exit 1; }
+            for js in $scripts; do
+              test -f "$d$js" || { echo "::error::$page loads $js, which the export does not contain"; exit 1; }
+            done
+            grep -qE '<link rel="stylesheet" href="/_expo/static/css/global-[^"]+\.css"' "$page" \
+              || { echo "::error::$page does not link the global stylesheet"; exit 1; }
+          done < <(find "$d" -name '*.html' -print0)
+          echo "every exported page loads its bundle and the global stylesheet"
 
       # THE POINT OF THE WORKER, asserted rather than assumed. Deleting
       # `workers_dev = false` is a one-line, entirely silent regression to the
@@ -304,7 +328,9 @@ jobs:
         run: |
           set +e
           set -uo pipefail
-          expected_entry=$(grep -o '_expo/static/js/web/entry-[^"]*\.js' packages/frontend/dist/index.html | head -1)
+          # The app's own bundle is the LAST script the page loads (runtime and
+          # shared chunks come first); its hashed name changes with every build.
+          expected_entry=$(grep -oE '_expo/static/js/web/[^"]+\.js' packages/frontend/dist/index.html | tail -1)
           [ -n "$expected_entry" ] || { echo "::error::built index has no entry bundle"; exit 1; }
           for attempt in {1..12}; do
             echo "::group::smoke ${attempt}/12"
@@ -321,7 +347,7 @@ jobs:
             echo "expected: $expected_entry · release $DEPLOY_SHA"
             echo "release: ${release:0:40}"
             echo "title: $(echo "$html" | grep -o '<title>[^<]*</title>' || echo MISSING)"
-            echo "entry: $(echo "$html" | grep -o '_expo/static/js/web/entry-[^\"]*' || echo MISSING)"
+            echo "entry: $(echo "$html" | grep -oE '_expo/static/js/web/[^\"]+\.js' | tail -1 || echo MISSING)"
             echo "csp:   ${csp:-MISSING}"
             echo "::endgroup::"
             [ "$attempt" -lt 12 ] && sleep 10

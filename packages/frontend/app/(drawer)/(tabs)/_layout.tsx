@@ -35,10 +35,29 @@ export default function TabsLayout() {
           sceneStyle: { backgroundColor: 'transparent' },
         }}
       >
+        {/*
+          Every child route is declared, and none with `href: null`. On
+          expo-router 58 a Tabs child that is undeclared, or declared with
+          `href: null`, does not render when its URL is loaded: the navigator
+          silently shows its first tab instead. There is no tab bar here
+          (`tabBar` renders nothing), so `href: null` hid nothing anyway.
+          __tests__/navigation/navigator-declarations.test.ts holds this.
+        */}
         <Tabs.Screen name="(inbox)" />
         <Tabs.Screen name="search" />
-        <Tabs.Screen name="settings/index" options={{ href: null }} />
-        <Tabs.Screen name="subscriptions" options={{ href: null }} />
+        <Tabs.Screen name="settings/index" />
+        <Tabs.Screen name="settings/about" />
+        <Tabs.Screen name="settings/account" />
+        <Tabs.Screen name="settings/advanced" />
+        <Tabs.Screen name="settings/ai" />
+        <Tabs.Screen name="settings/appearance" />
+        <Tabs.Screen name="settings/contacts" />
+        <Tabs.Screen name="settings/inbox-prefs" />
+        <Tabs.Screen name="settings/labels" />
+        <Tabs.Screen name="settings/notifications" />
+        <Tabs.Screen name="settings/privacy" />
+        <Tabs.Screen name="settings/storage" />
+        <Tabs.Screen name="subscriptions" />
       </Tabs>
     </>
   );

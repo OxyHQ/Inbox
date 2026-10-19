@@ -80,7 +80,7 @@ export function EventCard({ data }: EventCardProps) {
 
         const filename = `${(data.title || 'event').replace(/[^a-zA-Z0-9]/g, '_')}.ics`;
         const file = new File(Paths.cache, filename);
-        file.write(icsContent);
+        await file.write(icsContent);
 
         if (await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(file.uri, {

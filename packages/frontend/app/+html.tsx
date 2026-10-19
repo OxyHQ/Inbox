@@ -8,7 +8,7 @@
  * Reference: https://docs.expo.dev/router/reference/static-rendering/#root-html
  */
 
-import { ScrollViewStyleReset } from 'expo-router/html';
+import { ScrollViewStyleReset, useServerDocumentContext } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
 
 const DEFAULT_TITLE = 'Inbox by Oxy';
@@ -20,8 +20,13 @@ const SITE_NAME = 'Inbox by Oxy';
 const OG_IMAGE = 'https://inbox.oxy.so/icon-512.png';
 
 export default function Root({ children }: PropsWithChildren) {
+  // expo-router 58 renders static pages by streaming through React, and the
+  // entry <script>s, the global stylesheet <link> and react-native-web's style
+  // element arrive as `headNodes` / `bodyNodes`. A root that does not render
+  // them exports an HTML page that never loads its JavaScript.
+  const { htmlAttributes, bodyAttributes, headNodes, bodyNodes } = useServerDocumentContext();
   return (
-    <html lang="en">
+    <html lang="en" {...htmlAttributes}>
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
@@ -59,8 +64,12 @@ export default function Root({ children }: PropsWithChildren) {
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
         <ScrollViewStyleReset />
+        {headNodes}
       </head>
-      <body>{children}</body>
+      <body {...bodyAttributes}>
+        {children}
+        {bodyNodes}
+      </body>
     </html>
   );
 }

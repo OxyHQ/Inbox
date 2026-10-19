@@ -30,11 +30,13 @@ export function foregroundPresentationForPush(data: unknown): ForegroundPresenta
 }
 
 /**
- * Show new-mail notifications while Inbox is open.
+ * Decide which notifications show while Inbox is open.
  *
- * `expo-notifications` suppresses foreground banners by default. Without this
- * handler, the one moment the user is actively reading mail is the one moment a
- * new message produces no visible signal.
+ * Without a handler, `expo-notifications` (SDK 58) shows every foreground
+ * notification, so the same new mail would banner twice beside the socket's
+ * toast. With it, a new message the user is not already looking at still
+ * produces a visible signal, and nothing else does. Mounted first in the root
+ * effects, before push registration.
  */
 export function useForegroundNotificationHandler(): void {
   useEffect(() => {

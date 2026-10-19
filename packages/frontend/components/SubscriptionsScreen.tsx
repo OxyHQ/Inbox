@@ -73,12 +73,6 @@ function SubscriptionsContent() {
   const { data, isLoading, isRefetching, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useSubscriptions();
 
-  // RefreshControl's `onRefresh` resolves to nothing (React Native 0.88 types
-  // it), and `refetch` resolves to the query result.
-  const handleRefresh = useCallback(() => {
-    void refetch();
-  }, [refetch]);
-
   const unsubscribeMutation = useUnsubscribe();
   const [unsubscribingAddress, setUnsubscribingAddress] = useState<string | null>(null);
 
@@ -242,10 +236,7 @@ function SubscriptionsContent() {
           onEndReachedThreshold={0.3}
           {...scrollBinding}
           refreshControl={
-            <RefreshControl
-              refreshing={isRefetching && !isFetchingNextPage}
-              onRefresh={handleRefresh}
-            />
+            <RefreshControl refreshing={isRefetching && !isFetchingNextPage} onRefresh={refetch} />
           }
           contentContainerStyle={{
             ...(subscriptions.length === 0 ? { flexGrow: 1 } : undefined),

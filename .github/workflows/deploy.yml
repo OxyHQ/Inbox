@@ -170,13 +170,6 @@ jobs:
         with:
           bun-version: 1.4.3
 
-      # Expo SDK 58's CLI supports Node 22.13+ / 24.3+ only (`expo export`
-      # here, `expo lint` in CI). Pinned rather than trusting the runner
-      # image's default Node.
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '24'
-
       # Lockfile sync is CI's job, and CI has already passed on this exact
       # commit (`gate`): its install is --frozen-lockfile, and it re-resolves
       # and diffs bun.lock as well.

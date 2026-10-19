@@ -152,12 +152,10 @@ function RootEffects() {
   const { t } = useTranslation();
   const { canUsePrivateApi } = useOxy();
 
-  // First: on SDK 58 a notification with no handler installed shows in the
-  // foreground, so the handler goes in before anything can register for push.
-  useForegroundNotificationHandler();
   useInboxSocket();
   usePushRegistration();
   useEmailPushNotifications(canUsePrivateApi);
+  useForegroundNotificationHandler();
   useEffect(() => {
     void removeLegacyQueryCache();
   }, []);

@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useRef, type PropsWithChildren } from 'react';
-import type { TextInputInstance } from 'react-native';
+import type { TextInput } from 'react-native';
 
 type SearchFocusValue = {
   /**
@@ -7,7 +7,7 @@ type SearchFocusValue = {
    * `SearchHeader`'s `ref`, so it fires during commit as the input mounts and
    * again with `null` as it unmounts — no effect and no manual cleanup.
    */
-  registerInput: (node: TextInputInstance | null) => void;
+  registerInput: (node: TextInput | null) => void;
   /** Focus the registered search input. A no-op when none is mounted. */
   focusInput: () => void;
 };
@@ -30,7 +30,7 @@ const SearchFocusContext = createContext<SearchFocusValue | null>(null);
  * never re-render because of it.
  */
 export function SearchFocusProvider({ children }: PropsWithChildren) {
-  const inputRef = useRef<TextInputInstance | null>(null);
+  const inputRef = useRef<TextInput | null>(null);
 
   const value = useMemo<SearchFocusValue>(
     () => ({

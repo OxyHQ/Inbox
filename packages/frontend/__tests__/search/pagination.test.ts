@@ -1,13 +1,13 @@
 import { getNextSearchPageParam, useSearchMessages } from '@/hooks/queries/useSearchMessages';
 import { getNextMessagesPageParam } from '@/hooks/queries/useMessages';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { useOxy } from '@oxy.so/services';
+import { useOxy } from '@oxy.so/services/ui/client';
 import { useEmailStore } from '@/hooks/useEmail';
 
 jest.mock('@tanstack/react-query', () => ({
   useInfiniteQuery: jest.fn(),
 }));
-jest.mock('@oxy.so/services', () => ({
+jest.mock('@oxy.so/services/ui/client', () => ({
   useOxy: jest.fn(),
 }));
 jest.mock('@/hooks/useEmail', () => ({

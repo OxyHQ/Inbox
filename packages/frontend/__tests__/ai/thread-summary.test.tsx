@@ -5,7 +5,7 @@ import { useThreadSummary } from '@/hooks/queries/useThreadSummary';
 import { runInboxThreadSummary } from '@/services/inboxInferenceApi';
 import type { Message } from '@/services/emailApi';
 
-jest.mock('@oxy.so/services', () => ({
+jest.mock('@oxy.so/services/ui/client', () => ({
   useOxy: () => ({ user: { id: 'reader' }, oxyServices: { http: {} } }),
 }));
 jest.mock('@/services/inboxInferenceApi', () => ({ runInboxThreadSummary: jest.fn() }));

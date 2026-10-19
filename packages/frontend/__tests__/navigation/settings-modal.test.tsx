@@ -19,7 +19,7 @@ function mockModalProps(): ModalProps {
   if (!mockModal) throw new Error('the settings modal was not rendered');
   return mockModal;
 }
-jest.mock('@oxy.so/services', () => ({
+jest.mock('@oxy.so/services/ui/client', () => ({
   useOxy: () => ({
     isAuthenticated: mockAuthenticated,
     showBottomSheet: mockShowAccount,

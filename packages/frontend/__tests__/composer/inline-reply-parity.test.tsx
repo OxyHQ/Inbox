@@ -59,7 +59,7 @@ jest.mock('@/lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => ke
 jest.mock('@/constants/theme', () => ({
   useColors: () => ({ error: 'red', secondaryText: 'grey' }),
 }));
-jest.mock('@oxy.so/services', () => ({
+jest.mock('@oxy.so/services/ui/client', () => ({
   useOxy: () => ({ user: { username: 'nate' }, showBottomSheet: mockShowBottomSheet }),
 }));
 jest.mock('@/hooks/useComposeSession', () => ({ useComposeSession: () => mockSession }));

@@ -147,7 +147,7 @@ jest.mock('@oxy.so/bloom/text-field', () => ({
     />
   ),
 }));
-jest.mock('@oxy.so/services', () => ({
+jest.mock('@oxy.so/services/ui/client', () => ({
   useOxy: () => ({ isAuthenticated: mockAuthenticated, openAccountDialog: jest.fn() }),
   ProfileButton: () => <button type="button">{mockAuthenticated ? 'Account' : 'Sign in'}</button>,
   OxySignInButton: () => <button type="button">Sign in</button>,

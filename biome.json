@@ -61,5 +61,24 @@
     "rules": {
       "preset": "recommended"
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["packages/frontend/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "@oxy.so/services": "The root entry registers every Oxy account screen at import, which puts them in first paint (the web export has no async routes). Import from '@oxy.so/services/ui/client' (or a type from '@oxy.so/services/ui')."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

@@ -49,7 +49,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }));
 
 import { act, renderHook } from '@testing-library/react';
-import { __setOxyState } from '@oxy.so/services';
+import { __setOxyState } from '@oxy.so/services/ui/client';
 import {
   alreadySentNotice,
   draftConflictKind,

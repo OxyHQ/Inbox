@@ -28,7 +28,7 @@ const useOxyEvent = jest.fn((event: string, handler: (payload: unknown) => void)
   handlers.set(event, handler);
 });
 
-jest.mock('@oxy.so/services', () => ({
+jest.mock('@oxy.so/services/ui/client', () => ({
   useOxy: () => ({ user: { id: 'user-1' } }),
   useOxyEvent: (event: string, handler: (payload: unknown) => void) => useOxyEvent(event, handler),
 }));

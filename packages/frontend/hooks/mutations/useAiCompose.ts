@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from '@oxy.so/bloom';
-import { useOxy } from '@oxy.so/services';
+import { useOxy } from '@oxy.so/services/ui/client';
 import { useTranslation } from '@/lib/i18n';
 import { runInboxCompose, streamInboxDraft } from '@/services/inboxInferenceApi';
 import { aiKeys } from '@/hooks/queries/queryKeys';

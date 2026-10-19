@@ -9,7 +9,7 @@
  */
 
 import { useMutation } from '@tanstack/react-query';
-import { useOxy } from '@oxy.so/services';
+import { useOxy } from '@oxy.so/services/ui/client';
 import { runInboxNaturalSearch } from '@/services/inboxInferenceApi';
 import { aiKeys } from '@/hooks/queries/queryKeys';
 import { useTranslation } from '@/lib/i18n';

@@ -3,7 +3,7 @@ import { InboxSettingsProvider } from '@/components/settings/InboxSettings';
 import { SearchFocusProvider } from '@/contexts/search-focus-context';
 import { SearchSessionProvider } from '@/contexts/search-session-context';
 import { useEmailStore } from '@/hooks/useEmail';
-import { useOxy } from '@oxy.so/services';
+import { useOxy } from '@oxy.so/services/ui/client';
 import { Slot } from 'expo-router';
 import { useEffect } from 'react';
 

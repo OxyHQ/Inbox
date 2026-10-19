@@ -2,7 +2,7 @@ import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 /** A stable route stack preserves drafts and list state when the shell changes width. */
 
 import { useDialogControl } from '@oxy.so/bloom';
-import { useOxy } from '@oxy.so/services';
+import { useOxy } from '@oxy.so/services/ui/client';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useCallback, useMemo } from 'react';
 

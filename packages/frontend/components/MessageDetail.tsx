@@ -39,7 +39,7 @@ import { PageHeader } from '@oxy.so/bloom/page-header';
 
 import { Dialog, ScrollArea, ScrollMetricsProvider, toast, useDialogControl } from '@oxy.so/bloom';
 import { Loading } from '@oxy.so/bloom/loading';
-import { useOxy } from '@oxy.so/services';
+import { useOxy } from '@oxy.so/services/ui/client';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Print from 'expo-print';
 import { usePathname, useRouter } from 'expo-router';

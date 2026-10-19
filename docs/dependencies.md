@@ -2,11 +2,16 @@
 
 > Moved out of `AGENTS.md` unchanged. The rule stays there; this is the evidence.
 
-Three peers reach this app only because they are declared: `expo-symbols`
-(hard peer of `@oxy.so/bloom`), `@react-native-community/netinfo` and
-`react-native-qrcode-svg` (hard peers of `@oxy.so/services`). In the monorepo
-they arrived by hoisting from sibling packages. Removing them lets `bun install`,
-`tsc`, jest and `expo export` all pass and throws in the browser.
+Two peers reach this app only because they are declared:
+`@react-native-community/netinfo` and `react-native-qrcode-svg` (hard peers of
+`@oxy.so/services`). In the monorepo they arrived by hoisting from sibling
+packages. Removing them lets `bun install`, `tsc`, jest and `expo export` all
+pass and throws in the browser.
+
+`expo-symbols` was a third until Bloom 15.0.0 dropped it as a peer (2026-10-19).
+Nothing in the app imports it, and expo-router's peer on it is optional and
+loaded inside a try/catch (only its Android native tabs use it, which Inbox does
+not), so the direct dependency went with it.
 
 **A zero-import census cannot justify pruning a dependency here.** Measured:
 48 of this package's deps have zero source references, including `nativewind`,

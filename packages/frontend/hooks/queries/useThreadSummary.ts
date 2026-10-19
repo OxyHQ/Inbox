@@ -1,7 +1,7 @@
 /** Thread summaries through Oxy's exact message-scoped Inbox inference route. */
 
 import { useQuery } from '@tanstack/react-query';
-import { useOxy } from '@oxy.so/services';
+import { useOxy } from '@oxy.so/services/ui/client';
 import { aiKeys } from '@/hooks/queries/queryKeys';
 import { runInboxThreadSummary } from '@/services/inboxInferenceApi';
 import type { Message } from '@/services/emailApi';

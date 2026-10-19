@@ -17,7 +17,7 @@ import { Text } from '@oxy.so/bloom/typography';
  */
 
 import type { FileMetadata } from '@oxy.so/core';
-import { useOxy } from '@oxy.so/services';
+import { useOxy } from '@oxy.so/services/ui/client';
 import { type ReactNode, useCallback, useRef, useState } from 'react';
 import { Platform, ScrollView, type StyleProp, View, type ViewStyle } from 'react-native';
 

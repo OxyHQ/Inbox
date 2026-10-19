@@ -60,13 +60,14 @@ in the SAME commit.
 
 **A zero-import census cannot justify pruning a dependency here** — 48 of this
 package's deps have zero source references, build tooling and hard peers
-included. The three declared peers and the measured census:
+included. The declared peers and the measured census:
 `docs/dependencies.md`.
 
 ## Oxy SDK conventions
 
-- **One provider:** `OxyProvider` from `@oxy.so/services` with `clientId` +
-  `authRedirectUri`. Sign-in is the in-app `OxyAccountDialog` behind
+- **Import `@oxy.so/services/ui/client`** (or `/ui`) over the root barrel: the
+  root registers every account screen into web first paint.
+- **One provider:** `OxyProvider` with `clientId` + `authRedirectUri`. Sign-in is the in-app `OxyAccountDialog` behind
   `RequireOxyAuth` — never a redirect to auth.oxy.so.
 - **Config** comes from `@oxy.so/app-preset` (Metro, Babel, base CSS).
   Fix the preset upstream; never copy config back into the app. Lint and
@@ -74,5 +75,4 @@ included. The three declared peers and the measured census:
 - **Theming** is Bloom tokens + NativeWind classNames. Never hardcode brand
   colours, never redefine `--bloom-*`.
 - **Realtime** rides the SDK's socket via `useOxyEvent`. Never open a second
-  `io()`: the one this app had was gated on `activeSessionId` and so silently
-  never connected. `docs/realtime-and-outbound.md`.
+  `io()`: `docs/realtime-and-outbound.md`.

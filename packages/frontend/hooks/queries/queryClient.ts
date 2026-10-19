@@ -17,7 +17,7 @@
  */
 
 import { QueryClient, onlineManager } from '@tanstack/react-query';
-import type { AccountQueriesConfig } from '@oxy.so/services';
+import type { AccountQueriesConfig } from '@oxy.so/services/ui';
 import { useEmailStore } from '@/hooks/useEmail';
 
 import { MEMORY_ONLY_QUERY_ROOTS, PERSISTED_QUERY_ROOTS } from '@/hooks/queries/queryKeys';

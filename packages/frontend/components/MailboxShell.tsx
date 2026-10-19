@@ -44,7 +44,7 @@ import {
 } from '@oxy.so/bloom/icons';
 import type { SidebarNavItem, SidebarProps } from '@oxy.so/bloom/sidebar';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
-import { openAccountDialog, ProfileButton, useOxy } from '@oxy.so/services';
+import { ProfileButton, useOxy } from '@oxy.so/services/ui/client';
 import { usePathname, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { useWindowDimensions, View } from 'react-native';
@@ -70,7 +70,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
   const openSettings = useInboxSettings();
   const colors = useColors();
   const { t } = useTranslation();
-  const { isAuthenticated } = useOxy();
+  const { isAuthenticated, openAccountDialog } = useOxy();
   const router = useRouter();
   const [listWidth, setListWidth] = useState(380);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -84,7 +84,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
     // RootEffects (_layout.tsx) once a switch actually commits — not here, or
     // canceling sign-in would wipe the current inbox.
     openAccountDialog('signin');
-  }, []);
+  }, [openAccountDialog]);
 
   const handleNavigateManage = useCallback(() => {
     openSettings();
@@ -409,12 +409,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
       },
     ],
     footer: ({ collapsed: compact }) => (
-      <ProfileButton
-        expanded={!compact}
-        placement="up"
-        onNavigateManage={handleNavigateManage}
-        onAddAccount={handleAddAccount}
-      />
+      <ProfileButton expanded={!compact} placement="up" onAddAccount={handleAddAccount} />
     ),
   };
 

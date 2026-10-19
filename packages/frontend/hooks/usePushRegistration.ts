@@ -16,7 +16,7 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { useOxy } from '@oxy.so/services';
+import { useOxy } from '@oxy.so/services/ui/client';
 import { logger } from '@oxy.so/core';
 
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';

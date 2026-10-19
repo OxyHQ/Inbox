@@ -62,7 +62,6 @@ import { messageRoute } from '@/utils/messageRoute';
 import { useCurrentList } from '@/hooks/useCurrentList';
 import { AliaChatSheet, type AliaChatSheetRef } from '@alia.onl/sdk';
 import { AliaAvatarIcon } from '@alia.onl/sdk/avatar';
-import { VoiceSession } from '@alia.onl/sdk/voice';
 
 type ListItem =
   | { type: 'header'; title: string; key: string; count?: number }
@@ -1149,7 +1148,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       {isAuthenticated && (
         <AliaChatSheet
           ref={aliaChatRef}
-          voiceSession={VoiceSession}
           clientContext={t('inbox.aliaClientContext')}
           welcomeSuggestions={aliaWelcomeSuggestions}
         />

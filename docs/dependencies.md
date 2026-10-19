@@ -15,9 +15,13 @@ they arrived by hoisting from sibling packages. Removing them lets `bun install`
 and which makes the `@/*` alias work at runtime). Build tooling, `app.json`
 plugins and peers are all invisible to it.
 
-`expo.install.exclude` pins three packages ABOVE what SDK 57 bundles because
-`@oxy.so/services` requires it. Nothing in CI runs `expo install --fix`, so the
-exclusions look like dead config — they are not.
+There is no `expo.install.exclude` any more. Through SDK 57 it pinned
+`react-native-keyboard-controller`, `react-native-safe-area-context` and
+`react-native-svg` ABOVE what Expo bundled, because `@oxy.so/services` required
+it. SDK 58 bundles those same versions (1.22.7, ~5.10.1, 15.16.0), so the
+exclusions were removed in the SDK 58 upgrade and `expo install --fix` owns all
+three again. If a future services release needs one above the SDK again, the
+exclusion comes back with that reason next to it.
 
 `socket.io-client` is deliberately NOT a direct dependency. It was one until
 2026-09-19, when `useInboxSocket` stopped opening its own connection and moved

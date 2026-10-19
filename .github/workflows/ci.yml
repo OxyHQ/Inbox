@@ -29,6 +29,13 @@ jobs:
         with:
           bun-version: 1.4.3
 
+      # Expo SDK 58's CLI supports Node 22.13+ / 24.3+ only (`expo lint` here,
+      # `expo export` in the deploy). Pinned rather than trusting the runner
+      # image's default Node.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
       # No build prelude. In OxyHQ/oxy this job first built @oxy.so/contracts,
       # protocol, core, services and expo-splash from workspace source; here all
       # five arrive prebuilt from npm. That is the whole simplification of the

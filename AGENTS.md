@@ -50,7 +50,7 @@ plausible smaller number rather than an error. Both `bunfig.toml` files preload
 
 Deliberate divergence from Atlas, whose root solution file needs
 `composite: true` — which `packages/frontend/tsconfig.json` (extends
-`expo/tsconfig.base`) does not set. Typecheck via `bun run typecheck`.
+`expo/tsconfig.base.json`) does not set. Typecheck via `bun run typecheck`.
 
 ## Dependencies
 
@@ -60,8 +60,8 @@ in the SAME commit.
 
 **A zero-import census cannot justify pruning a dependency here** — 48 of this
 package's deps have zero source references, build tooling and hard peers
-included. The three declared peers, the measured census and the
-`expo.install.exclude` pins: `docs/dependencies.md`.
+included. The three declared peers and the measured census:
+`docs/dependencies.md`.
 
 ## Oxy SDK conventions
 

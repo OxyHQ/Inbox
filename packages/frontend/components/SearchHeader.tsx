@@ -7,7 +7,7 @@ import { PageHeader } from '@oxy.so/bloom/page-header';
 import { RiMenuLine, RiSearchLine } from '@oxy.so/bloom/icons';
 import { Search } from '@oxy.so/bloom/search';
 import { forwardRef } from 'react';
-import type { TextInputInstance } from 'react-native';
+import type { TextInput } from 'react-native';
 
 interface SearchHeaderProps {
   onLeftIcon: () => void;
@@ -22,7 +22,7 @@ interface SearchHeaderProps {
   autoFocus?: boolean;
 }
 
-export const SearchHeader = forwardRef<TextInputInstance, SearchHeaderProps>(function SearchHeader(
+export const SearchHeader = forwardRef<TextInput, SearchHeaderProps>(function SearchHeader(
   {
     onLeftIcon,
     leftIcon = 'menu',

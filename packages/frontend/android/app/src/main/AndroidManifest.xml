@@ -28,6 +28,12 @@
     <provider android:authorities="so.oxy.accounts.devicesession"/>
     <provider android:authorities="so.oxy.accounts.dev.devicesession"/>
   </queries>
+  <queries>
+    <package android:name="com.google.android.googlequicksearchbox"/>
+    <intent>
+      <action android:name="android.speech.RecognitionService"/>
+    </intent>
+  </queries>
   <permission android:name="so.oxy.permission.IDENTITY" android:protectionLevel="signature"/>
   <permission android:name="so.oxy.permission.DEVICE_SESSION" android:protectionLevel="signature"/>
   <application android:name=".MainApplication" android:label="@string/app_name" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:allowBackup="true" android:theme="@style/AppTheme" android:supportsRtl="true" android:enableOnBackInvokedCallback="false" android:fullBackupContent="@xml/secure_store_backup_rules" android:dataExtractionRules="@xml/secure_store_data_extraction_rules">

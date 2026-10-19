@@ -23,7 +23,7 @@ import {
   RiFormatClear,
 } from '@oxy.so/bloom/icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, StyleSheet, type TextInputInstance, View } from 'react-native';
+import { Platform, StyleSheet, type TextInput, View } from 'react-native';
 
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';
@@ -357,7 +357,7 @@ function NativeRichTextEditor(
   { value, onChange, placeholder, style, autoFocus }: RichTextEditorProps,
   ref: React.Ref<RichTextEditorHandle>,
 ) {
-  const inputRef = useRef<TextInputInstance>(null);
+  const inputRef = useRef<TextInput>(null);
 
   React.useImperativeHandle(ref, () => ({
     setContent(content: string) {

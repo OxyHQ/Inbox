@@ -25,13 +25,7 @@ import { Loading } from '@oxy.so/bloom/loading';
 import { Text } from '@oxy.so/bloom/typography';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import {
-  useWindowDimensions,
-  type FlatList,
-  StyleSheet,
-  type TextInputInstance,
-  View,
-} from 'react-native';
+import { useWindowDimensions, type FlatList, StyleSheet, type TextInput, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
@@ -72,14 +66,14 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   const colors = useColors();
   const { t } = useTranslation();
   const { density, showPreviews } = useInboxDisplayPrefs();
-  const inputRef = useRef<TextInputInstance | null>(null);
+  const inputRef = useRef<TextInput | null>(null);
   const { registerInput } = useSearchFocus();
   // Fans the input node out to BOTH the local ref (used by `handleClear` to
   // put the caret back) and the shared context the tab bar focuses through.
   // A callback ref rather than an effect: it runs during commit and is called
   // with null on unmount, so registration cannot outlive the input.
   const setInputRef = useCallback(
-    (node: TextInputInstance | null) => {
+    (node: TextInput | null) => {
       inputRef.current = node;
       registerInput(node);
     },

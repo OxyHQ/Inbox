@@ -20,6 +20,7 @@ import { QueryClient, onlineManager } from '@tanstack/react-query';
 import type { AccountQueriesConfig } from '@oxy.so/services/ui';
 import { useEmailStore } from '@/hooks/useEmail';
 import type { MessageFlags } from '@/services/emailApi';
+import { eachWithConcurrency, PER_MESSAGE_CONCURRENCY } from '@/utils/concurrency';
 
 import { MEMORY_ONLY_QUERY_ROOTS, PERSISTED_QUERY_ROOTS } from '@/hooks/queries/queryKeys';
 
@@ -181,9 +182,9 @@ queryClient.setMutationDefaults<void, Error, SnoozeVariables>(INBOX_MUTATION_KEY
   ...RETRY_IDEMPOTENT,
   mutationFn: async ({ messageIds, until }) => {
     const api = activeEmailApi();
-    const results = await Promise.allSettled(messageIds.map((id) => api.snoozeMessage(id, until)));
-    const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected');
-    if (failed) throw failed.reason;
+    await eachWithConcurrency(messageIds, PER_MESSAGE_CONCURRENCY, (id) =>
+      api.snoozeMessage(id, until),
+    );
   },
 });
 queryClient.setMutationDefaults<unknown, Error, { messageId: string }>(

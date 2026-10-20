@@ -17,6 +17,7 @@ import { toast } from '@oxy.so/bloom';
 import { Loading } from '@oxy.so/bloom/loading';
 import { OxySignInButton, useOxy } from '@oxy.so/services/ui/client';
 import { FlashList, type FlashListProps, type FlashListRef } from '@shopify/flash-list';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -44,6 +45,7 @@ import {
   useDeleteReminder,
   useUpdateReminder,
 } from '@/hooks/mutations/useReminderMutations';
+import { emailKeys } from '@/hooks/queries/queryKeys';
 import { useBundles } from '@/hooks/queries/useBundles';
 import { useDailyBrief } from '@/hooks/queries/useDailyBrief';
 import { useFollowUp } from '@/hooks/queries/useFollowUp';
@@ -215,6 +217,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
 
   const togglePin = useTogglePin();
   const bulkFlags = useBulkUpdateFlags();
+  const queryClient = useQueryClient();
   const { data: bundles = [] } = useBundles();
 
   const [snoozeTargetId, setSnoozeTargetId] = useState<string | null>(null);
@@ -563,15 +566,27 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       if (togglePin.isPending) return;
       const row = displayMessages.find((m) => m._id === rowId) ?? triageRow(rowId);
       if (!row) return;
-      if (row.flags.pinned) {
-        for (const m of conversationOf(rowId)) {
-          if (m.flags.pinned) togglePin.mutate({ messageId: m._id, pinned: false });
-        }
-      } else {
+      if (!row.flags.pinned) {
         togglePin.mutate({ messageId: rowId, pinned: true });
+        return;
       }
+      const pinned = conversationOf(rowId).filter((m) => m.flags.pinned);
+      if (pinned.length === 1) {
+        togglePin.mutate({ messageId: pinned[0]._id, pinned: false });
+        return;
+      }
+      // One request and one re-read for the conversation. It was a request and
+      // a full re-read of every view per message. Re-read, not just marked
+      // stale, as for one: an unpin moves the rows (the API lists pins first).
+      bulkFlags.mutate(
+        { messageIds: pinned.map((m) => m._id), flags: { pinned: false }, quiet: true },
+        {
+          onSettled: () =>
+            void queryClient.invalidateQueries({ queryKey: emailKeys.messages.root }),
+        },
+      );
     },
-    [displayMessages, conversationOf, togglePin, triageRow],
+    [displayMessages, conversationOf, togglePin, bulkFlags, queryClient, triageRow],
   );
 
   const handleToggleRead = useCallback(

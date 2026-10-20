@@ -9,6 +9,7 @@ import { invalidateMailViews } from '@/hooks/queries/invalidateMailViews';
 import { INBOX_MUTATION_KEYS, RETRY_IDEMPOTENT } from '@/hooks/queries/queryClient';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import type { Mailbox, Message } from '@/services/emailApi';
+import { eachWithConcurrency, PER_MESSAGE_CONCURRENCY } from '@/utils/concurrency';
 import { recordInboxMetric } from '@/utils/inboxTelemetry';
 import { type AlreadySent, alreadySentUnderKey } from '@/utils/sendIdempotency';
 import {
@@ -540,11 +541,9 @@ export function useSnoozeMessage() {
     // snoozed.
     mutationFn: async ({ messageIds, until }: { messageIds: string[]; until: string }) => {
       if (!api) throw new Error('Email API not initialized');
-      const results = await Promise.allSettled(
-        messageIds.map((id) => api.snoozeMessage(id, until)),
+      await eachWithConcurrency(messageIds, PER_MESSAGE_CONCURRENCY, (id) =>
+        api.snoozeMessage(id, until),
       );
-      const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected');
-      if (failed) throw failed.reason;
     },
     onMutate: async ({ messageIds }) => {
       await cancelMessageQueries(queryClient);
@@ -560,7 +559,10 @@ export function useSnoozeMessage() {
       toastWithUndo({
         message: t('ui.mutations.snoozed'),
         snapshot: context.snapshot,
-        reverse: (origins) => Promise.all([...origins.keys()].map((id) => api.unsnoozeMessage(id))),
+        reverse: (origins) =>
+          eachWithConcurrency([...origins.keys()], PER_MESSAGE_CONCURRENCY, (id) =>
+            api.unsnoozeMessage(id),
+          ),
         queryClient,
         t,
       });
@@ -771,9 +773,9 @@ export function useBulkDeleteMessages() {
         if (!trashMailboxId) throw new Error('Trash mailbox not found');
         await api.bulkMoveMessages(toTrash, trashMailboxId);
       }
-      const results = await Promise.allSettled(permanent.map((id) => api.deleteMessage(id, true)));
-      const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected');
-      if (failed) throw failed.reason;
+      await eachWithConcurrency(permanent, PER_MESSAGE_CONCURRENCY, (id) =>
+        api.deleteMessage(id, true),
+      );
     },
     onMutate: async ({ toTrash, permanent }) => {
       await queryClient.cancelQueries({ queryKey: emailKeys.messages.root });

@@ -57,6 +57,28 @@ describe('email search client contract', () => {
     });
   });
 
+  it('sends no cursor for the first page, which the infinite query starts at an empty one', async () => {
+    const http = {
+      get: jest.fn().mockResolvedValue({
+        data: [],
+        pagination: { total: 0, limit: 50, offset: 0, hasMore: false },
+      }),
+    };
+    const api = createEmailApi(http as never);
+
+    await api.listMessages({ mailboxId: 'inbox', limit: 50, cursor: '' });
+    await api.search({ q: 'budget', limit: 50, cursor: '' });
+    await api.listMessages({ mailboxId: 'inbox', limit: 50, cursor: 'next' });
+
+    expect(http.get.mock.calls[0][1].params).toEqual({ mailbox: 'inbox', limit: '50' });
+    expect(http.get.mock.calls[1][1].params).toEqual({ q: 'budget', limit: '50' });
+    expect(http.get.mock.calls[2][1].params).toEqual({
+      mailbox: 'inbox',
+      limit: '50',
+      cursor: 'next',
+    });
+  });
+
   it('validates saved-search responses', async () => {
     const http = {
       get: jest.fn().mockResolvedValueOnce([

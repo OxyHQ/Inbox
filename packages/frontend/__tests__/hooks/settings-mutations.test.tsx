@@ -66,7 +66,7 @@ function setup() {
   return { queryClient, invalidate, invalidatedRoots, wrapper: Wrapper };
 }
 
-const MAIL_VIEW_ROOTS = ['messages', 'message', 'thread', 'search', 'bundles', 'mailboxes'];
+const MAIL_VIEW_ROOTS = ['messages', 'message', 'thread', 'search', 'mailboxes'];
 
 beforeEach(() => jest.clearAllMocks());
 
@@ -125,7 +125,9 @@ describe('labels', () => {
     await act(async () => {
       await result.current.mutateAsync({ labelId: 'a', updates: { name: 'Job' } });
     });
-    expect(invalidatedRoots()).toEqual(expect.arrayContaining(['labels', ...MAIL_VIEW_ROOTS]));
+    expect(invalidatedRoots()).toEqual(
+      expect.arrayContaining(['labels', 'bundles', ...MAIL_VIEW_ROOTS]),
+    );
   });
 
   it('reconciles every view that shows mail after a delete', async () => {
@@ -135,7 +137,9 @@ describe('labels', () => {
     await act(async () => {
       await result.current.mutateAsync('a');
     });
-    expect(invalidatedRoots()).toEqual(expect.arrayContaining(['labels', ...MAIL_VIEW_ROOTS]));
+    expect(invalidatedRoots()).toEqual(
+      expect.arrayContaining(['labels', 'bundles', ...MAIL_VIEW_ROOTS]),
+    );
   });
 });
 

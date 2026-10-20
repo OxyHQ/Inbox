@@ -38,12 +38,24 @@ jest.mock('@oxy.so/bloom', () => ({ toast }));
 
 const setQueriesData = jest.fn();
 const setQueryData = jest.fn();
-const invalidateQueries = jest.fn();
+const invalidateQueries = jest.fn((_filters: unknown) => Promise.resolve());
 let cachedMailboxes: unknown[] = [];
 const getQueryData = jest.fn(() => cachedMailboxes);
+let cachedLists: [unknown, unknown][] = [];
+const getQueriesData = jest.fn(() => cachedLists);
+const fetchQuery = jest.fn(
+  ({ queryFn }: { queryFn: (context: { signal?: AbortSignal }) => unknown }) => queryFn({}),
+);
 jest.mock('@tanstack/react-query', () => ({
   ...jest.requireActual('@tanstack/react-query'),
-  useQueryClient: () => ({ setQueriesData, setQueryData, invalidateQueries, getQueryData }),
+  useQueryClient: () => ({
+    setQueriesData,
+    setQueryData,
+    invalidateQueries,
+    getQueryData,
+    getQueriesData,
+    fetchQuery,
+  }),
 }));
 
 let viewMode: unknown = null;
@@ -74,6 +86,7 @@ import {
   noteSettingsOpen,
 } from '@/lib/notifications/new-mail-attention';
 import { defined } from '../fixtures/defined';
+import { __resetOwnChanges, isOwnChange, noteOwnChange } from '@/utils/ownChanges';
 
 const emailNew = {
   id: 'row-abc',
@@ -96,8 +109,18 @@ beforeEach(() => {
   jest.clearAllMocks();
   viewMode = null;
   pathname = '/';
+  cachedLists = [];
   __resetNewMailAttention();
+  __resetOwnChanges();
 });
+
+/** Which roots were invalidated, and how. */
+function invalidated() {
+  return invalidateQueries.mock.calls.map(([filters]) => {
+    const f = filters as { queryKey?: unknown[]; refetchType?: string; predicate?: unknown };
+    return { key: f.queryKey ?? [], refetchType: f.refetchType, targeted: Boolean(f.predicate) };
+  });
+}
 
 describe('subscription', () => {
   it('rides the SDK connection instead of opening a second socket', () => {
@@ -156,6 +179,33 @@ describe('email:new', () => {
     expect(update([{ _id: 'mb-1', unseenMessages: 2 }])).toEqual([
       { _id: 'mb-1', unseenMessages: 3 },
     ]);
+  });
+
+  it('re-reads the conversation the new mail joined, not every one, and leaves searches stale', async () => {
+    cachedLists = [
+      [
+        ['messages', 'mb-1', false, null, 'user-1'],
+        { pages: [{ data: [{ _id: 'row-abc', threadId: 'row-root' }] }] },
+      ],
+    ];
+    mount();
+    emit('email:new', emailNew);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const calls = invalidated();
+    expect(calls).toContainEqual({ key: ['search'], refetchType: 'none', targeted: false });
+    expect(calls).toContainEqual({ key: ['thread'], refetchType: undefined, targeted: true });
+    expect(calls.map((call) => call.key[0])).not.toContain('bundles');
+    const threads = invalidateQueries.mock.calls
+      .map(([filters]) => filters as { queryKey?: unknown[]; predicate?: (q: unknown) => boolean })
+      .find((filters) => filters.queryKey?.[0] === 'thread');
+    const holding = (threadId: string) => ({
+      queryKey: ['thread', 'x'],
+      state: { data: { messages: [{ _id: 'x', threadId }], unreadable: [] } },
+    });
+    expect(threads?.predicate?.(holding('row-root'))).toBe(true);
+    expect(threads?.predicate?.(holding('other'))).toBe(false);
   });
 
   it('toasts when the user is looking at a different mailbox', () => {
@@ -272,14 +322,59 @@ describe('email:changed', () => {
     expect(invalidateQueries).not.toHaveBeenCalled();
     jest.advanceTimersByTime(300);
     jest.useRealTimers();
-    // One reconcile for the whole burst: six roots, once each.
-    expect(invalidateQueries).toHaveBeenCalledTimes(6);
-    const keys = invalidateQueries.mock.calls.map(
-      ([filters]) => (filters as { queryKey: unknown[] }).queryKey[0],
-    );
+    // One reconcile for the whole burst: five roots, once each — and never
+    // the bundle configuration, which no change to mail touches.
+    expect(invalidateQueries).toHaveBeenCalledTimes(5);
+    const keys = invalidated().map((call) => call.key[0]);
     expect(keys).toEqual(
-      expect.arrayContaining(['messages', 'message', 'thread', 'search', 'bundles', 'mailboxes']),
+      expect.arrayContaining(['messages', 'message', 'thread', 'search', 'mailboxes']),
     );
+    expect(keys).not.toContain('bundles');
+  });
+
+  it('skips the echo of a change this client made itself', () => {
+    jest.useFakeTimers();
+    mount();
+    noteOwnChange(['row-1', 'row-2']);
+    emit('email:changed', { id: 'row-1', mailboxIds: ['mb-1'], reason: 'moved' });
+    emit('email:changed', { id: 'row-2', mailboxIds: ['mb-1'], reason: 'flags' });
+    jest.advanceTimersByTime(300);
+    jest.useRealTimers();
+
+    expect(invalidateQueries).not.toHaveBeenCalled();
+  });
+
+  it('still reconciles a change of its own messages that came from elsewhere', () => {
+    jest.useFakeTimers();
+    mount();
+    noteOwnChange(['row-1']);
+    emit('email:changed', { id: 'row-1', mailboxIds: ['mb-1'], reason: 'moved' });
+    emit('email:changed', { id: 'row-3', mailboxIds: ['mb-1'], reason: 'moved' });
+    jest.advanceTimersByTime(300);
+    jest.useRealTimers();
+
+    expect(invalidated().map((call) => call.key[0])).toContain('mailboxes');
+  });
+
+  it('re-reads only the message, its conversation and the lists for a flag change', () => {
+    jest.useFakeTimers();
+    mount();
+    emit('email:changed', { id: 'row-1', mailboxIds: ['mb-1'], reason: 'flags' });
+    jest.advanceTimersByTime(300);
+    jest.useRealTimers();
+
+    const calls = invalidated();
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        { key: ['messages'], refetchType: undefined, targeted: false },
+        { key: ['message', 'row-1'], refetchType: undefined, targeted: false },
+        { key: ['thread'], refetchType: undefined, targeted: true },
+        { key: ['search'], refetchType: 'none', targeted: false },
+      ]),
+    );
+    // Its folder's count arrives as `email:unread_count`; nothing else moved.
+    expect(calls.map((call) => call.key[0])).not.toContain('mailboxes');
+    expect(calls).toHaveLength(4);
   });
 
   it('ignores a malformed payload', () => {
@@ -292,7 +387,8 @@ describe('email:changed', () => {
 
 describe('email:changed — delivery', () => {
   const changed = { id: 'row-sent', mailboxIds: ['mb-sent'], reason: 'delivery' };
-  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+  // After the coalescing window, when the burst is reconciled.
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 350));
 
   it('re-reads the message, and is quiet when it went out', async () => {
     getMessage.mockResolvedValue({
@@ -304,7 +400,11 @@ describe('email:changed — delivery', () => {
     emit('email:changed', changed);
     await flush();
 
-    expect(getMessage).toHaveBeenCalledWith('row-sent');
+    expect(getMessage).toHaveBeenCalledWith('row-sent', expect.anything());
+    // Through the message's own query, so an open message is read once.
+    expect(fetchQuery).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['message', 'row-sent', 'user-1'] }),
+    );
     expect(toast.error).not.toHaveBeenCalled();
   });
 
@@ -351,5 +451,14 @@ describe('email:new into spam', () => {
     emit('email:new', { ...emailNew, mailboxId: 'mb-junk', folder: 'spam' });
     expect(toast.info).not.toHaveBeenCalled();
     cachedMailboxes = [];
+  });
+});
+
+describe('own changes', () => {
+  it("are forgotten after a while: a later event is someone else's change", () => {
+    noteOwnChange(['row-1'], 1_000);
+    expect(isOwnChange('row-1', 2_000)).toBe(true);
+    expect(isOwnChange('row-1', 1_000 + 16_000)).toBe(false);
+    expect(isOwnChange('row-2', 2_000)).toBe(false);
   });
 });

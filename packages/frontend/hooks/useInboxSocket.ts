@@ -37,7 +37,7 @@ import { usePathname, useRouter } from 'expo-router';
 
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { useEmailStore } from '@/hooks/useEmail';
-import { invalidateMailViews } from '@/hooks/queries/invalidateMailViews';
+import { invalidateChangedMail } from '@/hooks/queries/invalidateMailViews';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import { useTranslation } from '@/lib/i18n';
 import {
@@ -45,9 +45,10 @@ import {
   isLookingAtMailbox,
   noteCurrentPath,
 } from '@/lib/notifications/new-mail-attention';
-import type { Mailbox, Message } from '@/services/emailApi';
-import type { MessagesPage } from '@/utils/messageCache';
+import type { Mailbox, Message, ThreadData } from '@/services/emailApi';
+import { findCachedMessage, type MessagesPage } from '@/utils/messageCache';
 import { recordInboxMetric } from '@/utils/inboxTelemetry';
+import { isOwnChange } from '@/utils/ownChanges';
 
 /**
  * Server → client payload contracts. These mirror
@@ -89,6 +90,17 @@ type MessagesInfinite = InfiniteData<MessagesPage>;
 
 /** How long a burst of `email:changed` events is gathered before one reconcile. */
 const CHANGED_COALESCE_MS = 300;
+
+/** Reasons that leave a message where it was: its folder and the counts are unchanged. */
+const IN_PLACE_REASONS: ReadonlySet<EmailChangedReason> = new Set(['flags', 'labels', 'delivery']);
+
+/** Reasons this client's own mutations cause, and so echo back to it. */
+const OWN_REASONS: ReadonlySet<EmailChangedReason> = new Set([
+  'flags',
+  'labels',
+  'moved',
+  'deleted',
+]);
 
 /** How many `email:new` ids are remembered to recognise a repeat. */
 const SEEN_NEW_MAIL_LIMIT = 500;
@@ -302,12 +314,28 @@ export function useInboxSocket() {
       });
 
       // 3. Reconcile: replace the placeholder with the real, fully-typed row.
-      void queryClient.invalidateQueries(messagesInMailbox(payload.mailboxId, userId));
-      //    New mail can also belong in an open search, a bundle or the open
-      //    conversation, none of which the prepend touches.
-      void queryClient.invalidateQueries({ queryKey: emailKeys.searchRoot });
-      void queryClient.invalidateQueries({ queryKey: emailKeys.bundles });
-      void queryClient.invalidateQueries({ queryKey: emailKeys.thread.root });
+      //    Then the conversation it joined — found by the real row's thread
+      //    id once it is in; every thread was re-read for each new mail. A row
+      //    that is its own thread (a new conversation, or the placeholder
+      //    still) cannot say, so the open threads are re-read as before.
+      //    Searches are only marked stale: re-run on every arrival, an open
+      //    search cost a full search per new mail.
+      void queryClient.invalidateQueries(messagesInMailbox(payload.mailboxId, userId)).then(() => {
+        const row = findCachedMessage(queryClient, payload.id, userId);
+        const threadId = row?.threadId && row.threadId !== row._id ? row.threadId : null;
+        void queryClient.invalidateQueries(
+          threadId
+            ? {
+                queryKey: emailKeys.thread.root,
+                predicate: (query) =>
+                  (query.state.data as ThreadData | undefined)?.messages.some(
+                    (m) => m.threadId === threadId,
+                  ) ?? false,
+              }
+            : { queryKey: emailKeys.thread.root },
+        );
+      });
+      void queryClient.invalidateQueries({ queryKey: emailKeys.searchRoot, refetchType: 'none' });
 
       // 4. Toast only when the user is looking somewhere else. When they are
       //    already on the folder it landed in, the new row IS the notification.
@@ -366,17 +394,25 @@ export function useInboxSocket() {
    * delivered. The views re-read it with everything else below; a failed
    * delivery is also said wherever the user is, because it is the one outcome
    * of a send that must never be discovered by accident.
+   *
+   * Read through the message's own query, after the reconcile has asked for
+   * it: an open message is then read once, not once for the views and again
+   * here, and the answer is cached for opening it.
    */
   const onDeliveryChanged = useCallback(
     async (messageId: string) => {
-      if (!api) return;
-      let message: Message;
+      if (!api || !userId) return;
+      let message: Message | null;
       try {
-        message = await api.getMessage(messageId);
+        message = await queryClient.fetchQuery({
+          queryKey: emailKeys.message.detail(messageId, userId),
+          queryFn: ({ signal }) => api.getMessage(messageId, { signal }),
+          staleTime: 0,
+        });
       } catch {
         return;
       }
-      if (message.delivery?.state !== 'failed') return;
+      if (message?.delivery?.state !== 'failed') return;
       toast.error(
         t('delivery.failedToast', { subject: message.subject || t('message.detail.noSubject') }),
         {
@@ -387,8 +423,15 @@ export function useInboxSocket() {
         } as Record<string, unknown>,
       );
     },
-    [api, router, t],
+    [api, queryClient, router, t, userId],
   );
+
+  /** The burst being gathered: which messages changed, and whether any changed folder. */
+  const pendingChanges = useRef({
+    ids: new Set<string>(),
+    folders: false,
+    delivery: new Set<string>(),
+  });
 
   const onEmailChanged = useCallback(
     (payload: unknown) => {
@@ -397,20 +440,32 @@ export function useInboxSocket() {
         recordInboxMetric('realtime_malformed_event');
         return;
       }
+      recordInboxMetric('realtime_email_changed');
+      // The echo of a change this client made itself: the mutation has
+      // already shown it, and re-reading every view for it was most of the
+      // reconciles this hook ran.
+      if (OWN_REASONS.has(payload.reason) && isOwnChange(payload.id)) return;
+
       // Not only the lists of the mailboxes it names: the message may be open,
-      // in a conversation on screen, in search results or in a bundle — a draft
-      // sent from another device stayed open here as a draft.
+      // in a conversation on screen or in search results — a draft sent from
+      // another device stayed open here as a draft.
       //
       // Coalesced: the server sends one event per message changed, so a bulk
       // action on 100 messages arrived as 100 events and re-read every view
-      // 100 times. A burst is reconciled once, after it settles.
+      // 100 times. A burst is reconciled once, after it settles, and only as
+      // far as its changes reach (`invalidateChangedMail`).
+      const pending = pendingChanges.current;
+      pending.ids.add(payload.id);
+      if (!IN_PLACE_REASONS.has(payload.reason)) pending.folders = true;
+      if (payload.reason === 'delivery') pending.delivery.add(payload.id);
       if (reconcileTimer.current) clearTimeout(reconcileTimer.current);
       reconcileTimer.current = setTimeout(() => {
         reconcileTimer.current = null;
-        invalidateMailViews(queryClient);
+        const { ids, folders, delivery } = pendingChanges.current;
+        pendingChanges.current = { ids: new Set(), folders: false, delivery: new Set() };
+        invalidateChangedMail(queryClient, ids, { folders });
+        for (const id of delivery) void onDeliveryChanged(id);
       }, CHANGED_COALESCE_MS);
-      if (payload.reason === 'delivery') void onDeliveryChanged(payload.id);
-      recordInboxMetric('realtime_email_changed');
     },
     [onDeliveryChanged, queryClient, userId],
   );

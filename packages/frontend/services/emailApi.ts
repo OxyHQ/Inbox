@@ -31,6 +31,7 @@ import {
   SendResultSchema,
 } from '@/schemas/emailSchemas';
 import { recordInboxMetric } from '@/utils/inboxTelemetry';
+import { noteOwnChange } from '@/utils/ownChanges';
 import type {
   RecipientInput,
   Message,
@@ -308,31 +309,37 @@ export function createEmailApi(http: HttpService) {
     },
 
     async updateFlags(messageId: string, flags: Partial<MessageFlags>): Promise<Message> {
+      noteOwnChange([messageId]);
       const res = await http.put(`/email/messages/${messageId}/flags`, { flags });
       return MessageSchema.parse(res);
     },
 
     async updateLabels(messageId: string, add: string[], remove: string[]): Promise<Message> {
+      noteOwnChange([messageId]);
       const res = await http.put(`/email/messages/${messageId}/labels`, { add, remove });
       return MessageSchema.parse(res);
     },
 
     async moveMessage(messageId: string, mailboxId: string): Promise<Message> {
+      noteOwnChange([messageId]);
       const res = await http.post(`/email/messages/${messageId}/move`, { mailboxId });
       return MessageSchema.parse(res);
     },
 
     async snoozeMessage(messageId: string, until: string): Promise<Message> {
+      noteOwnChange([messageId]);
       const res = await http.post(`/email/messages/${messageId}/snooze`, { until });
       return MessageSchema.parse(res);
     },
 
     async unsnoozeMessage(messageId: string): Promise<Message> {
+      noteOwnChange([messageId]);
       const res = await http.post(`/email/messages/${messageId}/unsnooze`);
       return MessageSchema.parse(res);
     },
 
     async deleteMessage(messageId: string, permanent = false): Promise<void> {
+      noteOwnChange([messageId]);
       const params = permanent ? '?permanent=true' : '';
       await http.delete(`/email/messages/${messageId}${params}`);
     },
@@ -347,6 +354,7 @@ export function createEmailApi(http: HttpService) {
       messageIds: string[],
       flags: Partial<MessageFlags>,
     ): Promise<{ matched: number; modified: number }> {
+      noteOwnChange(messageIds);
       return inBatches(messageIds, async (batch) => {
         const res = await http.post('/email/messages/bulk/flags', { messageIds: batch, flags });
         return BulkResultSchema.parse(res);
@@ -357,6 +365,7 @@ export function createEmailApi(http: HttpService) {
       messageIds: string[],
       mailboxId: string,
     ): Promise<{ matched: number; modified: number }> {
+      noteOwnChange(messageIds);
       return inBatches(messageIds, async (batch) => {
         const res = await http.post('/email/messages/bulk/move', { messageIds: batch, mailboxId });
         return BulkResultSchema.parse(res);

@@ -38,16 +38,20 @@ export function useMessageActions() {
   const { t } = useTranslation();
   const { data: mailboxes = [] } = useMailboxes();
 
-  const toggleRead = useToggleRead();
-  const toggleStar = useToggleStar();
-  const togglePin = useTogglePin();
-  const archiveMutation = useArchiveMessage();
-  const deleteMutation = useDeleteMessage();
-  const snoozeMutation = useSnoozeMessage();
-  const unsnoozeMutation = useUnsnoozeMessage();
-  const bulkFlags = useBulkUpdateFlags();
-  const bulkMove = useBulkMoveMessages();
-  const bulkDelete = useBulkDeleteMessages();
+  // Each mutation's `mutate`, which is stable across renders — unlike the
+  // mutation objects, which change with every state change of any of them.
+  // Depending on those made every action, and the object returned here, new
+  // on each pending/settled transition, and every memoized row re-rendered.
+  const { mutate: toggleRead } = useToggleRead();
+  const { mutate: toggleStar } = useToggleStar();
+  const { mutate: togglePin } = useTogglePin();
+  const { mutate: archiveMessage } = useArchiveMessage();
+  const { mutate: deleteMessage } = useDeleteMessage();
+  const { mutate: snoozeMessages } = useSnoozeMessage();
+  const { mutate: unsnoozeMessage } = useUnsnoozeMessage();
+  const { mutate: bulkFlags } = useBulkUpdateFlags();
+  const { mutate: bulkMove } = useBulkMoveMessages();
+  const { mutate: bulkDelete } = useBulkDeleteMessages();
 
   /**
    * Mark a conversation read or unread. Only the messages whose state changes
@@ -58,10 +62,10 @@ export function useMessageActions() {
       const changed = conversation.filter((m) => m.flags.seen !== seen && !m.flags.draft);
       if (changed.length === 0) return;
       if (changed.length === 1) {
-        toggleRead.mutate({ messageId: changed[0]._id, seen });
+        toggleRead({ messageId: changed[0]._id, seen });
         return;
       }
-      bulkFlags.mutate({ messageIds: changed.map((m) => m._id), flags: { seen }, quiet });
+      bulkFlags({ messageIds: changed.map((m) => m._id), flags: { seen }, quiet });
     },
     [toggleRead, bulkFlags],
   );
@@ -72,12 +76,12 @@ export function useMessageActions() {
   }, []);
 
   const star = useCallback(
-    (messageId: string, starred: boolean) => toggleStar.mutate({ messageId, starred }),
+    (messageId: string, starred: boolean) => toggleStar({ messageId, starred }),
     [toggleStar],
   );
 
   const pin = useCallback(
-    (messageId: string, pinned: boolean) => togglePin.mutate({ messageId, pinned }),
+    (messageId: string, pinned: boolean) => togglePin({ messageId, pinned }),
     [togglePin],
   );
 
@@ -85,16 +89,12 @@ export function useMessageActions() {
     (conversation: Message[], mailboxId: string, kind: MoveKind = 'move') => {
       if (conversation.length === 0) return;
       if (conversation.length === 1) {
-        archiveMutation.mutate({
-          messageId: conversation[0]._id,
-          archiveMailboxId: mailboxId,
-          kind,
-        });
+        archiveMessage({ messageId: conversation[0]._id, archiveMailboxId: mailboxId, kind });
         return;
       }
-      bulkMove.mutate({ messageIds: conversation.map((m) => m._id), mailboxId, kind });
+      bulkMove({ messageIds: conversation.map((m) => m._id), mailboxId, kind });
     },
-    [archiveMutation, bulkMove],
+    [archiveMessage, bulkMove],
   );
 
   const archiveBox = useMemo(
@@ -142,33 +142,33 @@ export function useMessageActions() {
       const trashBox = mailboxes.find((m) => m.specialUse === SPECIAL_USE.TRASH);
       const inTrash = (m: Message) => !!trashBox && m.mailboxId === trashBox._id;
       if (conversation.length === 1) {
-        deleteMutation.mutate({
+        deleteMessage({
           messageId: conversation[0]._id,
           trashMailboxId: trashBox?._id,
           isInTrash: inTrash(conversation[0]),
         });
         return;
       }
-      bulkDelete.mutate({
+      bulkDelete({
         toTrash: conversation.filter((m) => !inTrash(m)).map((m) => m._id),
         permanent: conversation.filter(inTrash).map((m) => m._id),
         trashMailboxId: trashBox?._id,
       });
     },
-    [mailboxes, deleteMutation, bulkDelete],
+    [mailboxes, deleteMessage, bulkDelete],
   );
 
   const snooze = useCallback(
     (conversation: Message[], until: string) => {
       if (conversation.length === 0) return;
-      snoozeMutation.mutate({ messageIds: conversation.map((m) => m._id), until });
+      snoozeMessages({ messageIds: conversation.map((m) => m._id), until });
     },
-    [snoozeMutation],
+    [snoozeMessages],
   );
 
   const unsnooze = useCallback(
-    (messageId: string) => unsnoozeMutation.mutate({ messageId }),
-    [unsnoozeMutation],
+    (messageId: string) => unsnoozeMessage({ messageId }),
+    [unsnoozeMessage],
   );
 
   return useMemo(
@@ -183,19 +183,6 @@ export function useMessageActions() {
       deleteConversation,
       snooze,
       unsnooze,
-      // Expose underlying mutations for pending/variables introspection.
-      mutations: {
-        toggleRead,
-        toggleStar,
-        togglePin,
-        archiveMutation,
-        deleteMutation,
-        snoozeMutation,
-        unsnoozeMutation,
-        bulkFlags,
-        bulkMove,
-        bulkDelete,
-      },
     }),
     [
       setRead,
@@ -208,16 +195,6 @@ export function useMessageActions() {
       deleteConversation,
       snooze,
       unsnooze,
-      toggleRead,
-      toggleStar,
-      togglePin,
-      archiveMutation,
-      deleteMutation,
-      snoozeMutation,
-      unsnoozeMutation,
-      bulkFlags,
-      bulkMove,
-      bulkDelete,
     ],
   );
 }

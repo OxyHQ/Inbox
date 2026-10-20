@@ -690,7 +690,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         }
         data={searching ? [] : items}
         renderItem={renderItem}
-        keyExtractor={(item) => item.key}
+        keyExtractor={searchItemKey}
         extraData={listExtraData}
         ListEmptyComponent={renderEmpty}
         ListFooterComponent={renderFooter}
@@ -705,11 +705,16 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           paddingBottom: bottomClearance,
         }}
         showsVerticalScrollIndicator={false}
-        ItemSeparatorComponent={() => <Divider spacing={0} />}
+        ItemSeparatorComponent={SearchItemSeparator}
       />
     </View>
   );
 }
+
+// Defined once, not inline: an inline separator is a new component type on
+// every render, and the list remounts every separator for it.
+const searchItemKey = (item: SearchItem) => item.key;
+const SearchItemSeparator = () => <Divider spacing={0} />;
 
 const styles = StyleSheet.create({
   container: {

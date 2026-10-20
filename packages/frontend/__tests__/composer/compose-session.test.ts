@@ -48,7 +48,9 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   },
 }));
 
-import { act, renderHook } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, renderHook as render } from '@testing-library/react';
+import { createElement, type ReactNode } from 'react';
 import { __setOxyState } from '@oxy.so/services/ui/client';
 import {
   alreadySentNotice,
@@ -65,6 +67,14 @@ import {
   saveComposeRecovery,
 } from '@/utils/composeRecovery';
 import { keyReusedError } from '../fixtures/sendKeyReused';
+
+/** Each test with its own query cache: the settings are read through it. */
+const renderHook: typeof render = (callback, options) => {
+  const client = new QueryClient();
+  const wrapper = ({ children }: { children: ReactNode }) =>
+    createElement(QueryClientProvider, { client }, children);
+  return render(callback, { ...options, wrapper } as typeof options);
+};
 
 const DRAFT_FLAGS = {
   seen: true,

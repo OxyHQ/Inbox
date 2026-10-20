@@ -13,6 +13,7 @@
  */
 
 import { toast } from '@oxy.so/bloom';
+import { useQueryClient } from '@tanstack/react-query';
 import type { FileMetadata } from '@oxy.so/core';
 import { useOxy } from '@oxy.so/services/ui/client';
 import { type Href, useRouter } from 'expo-router';
@@ -26,6 +27,7 @@ import {
   useSendMessageWithUndo,
   type PendingSend,
 } from '@/hooks/mutations/useMessageMutations';
+import { emailKeys } from '@/hooks/queries/queryKeys';
 import { useEmailStore } from '@/hooks/useEmail';
 import type { Message } from '@/services/emailApi';
 import {
@@ -251,6 +253,7 @@ export function useComposeSession({
   const { t, locale } = useTranslation();
   const { user } = useOxy();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const api = useEmailStore((s) => s._api);
   const { sendWithUndo, isPending: sendPending } = useSendMessageWithUndo();
   const sendMessageMutation = useSendMessage();
@@ -462,8 +465,14 @@ export function useComposeSession({
   useEffect(() => {
     if (!api || !insertSignature) return;
     let cancelled = false;
-    void api
-      .getSettings()
+    // Through the settings query (`useSettings`): read once while fresh, not
+    // once more for every composer and inline reply opened.
+    void queryClient
+      .fetchQuery({
+        queryKey: emailKeys.settings(user?.id ?? null),
+        queryFn: () => api.getSettings(),
+        staleTime: 60_000,
+      })
       .then((settings) => {
         if (cancelled || !settings.signature) return;
         if (!isBodyBlank(bodyValueRef.current, null, isWeb)) return;

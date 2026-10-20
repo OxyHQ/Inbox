@@ -577,7 +577,9 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
       />
     ) : null;
 
-  if (isLoading) {
+  // Before the email API exists (it is created in an effect after sign-in) the
+  // read has not even started: that is loading, not "message not found".
+  if (isLoading || (!emailApi && !currentMessage)) {
     return (
       <View style={styles.container}>
         {standaloneToolbar}

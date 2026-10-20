@@ -52,6 +52,17 @@ export function editorContentToText(content: string, web: boolean): string {
   return web ? stripHtml(content) : content;
 }
 
+/**
+ * What the web editor reports for its DOM: its HTML, or `''` when it holds
+ * nothing at all — an empty element, or the lone `<br>` a browser leaves once
+ * everything is deleted. Blank lines and leading spaces are content: treating
+ * every DOM without text as empty reported `''` for them, and the editor was
+ * then rewritten to nothing under the caret.
+ */
+export function editorDomValue(html: string, text: string): string {
+  return text === '' && (html === '' || /^<br\s*\/?>$/i.test(html)) ? '' : html;
+}
+
 /** Append plain text on a new line after whatever the body already holds. */
 export function appendTextToBody(body: string, text: string, web: boolean): string {
   const addition = textToEditorContent(text, web);

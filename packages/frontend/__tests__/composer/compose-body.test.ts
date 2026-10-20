@@ -9,6 +9,7 @@ import {
   appendTextToBody,
   bodyParts,
   draftToEditorContent,
+  editorDomValue,
   forwardedAttachments,
   forwardedBody,
   isBodyBlank,
@@ -38,6 +39,22 @@ describe('plain text into the web editor', () => {
     expect(appendTextToBody('', 'Hello', true)).toBe('Hello');
     expect(appendTextToBody('<div>Hi</div>', 'Hello', true)).toBe('<div>Hi</div><br>Hello');
     expect(appendTextToBody('Hi', 'Hello', false)).toBe('Hi\nHello');
+  });
+});
+
+describe('what the web editor reports', () => {
+  it('is empty only for a DOM that holds nothing', () => {
+    expect(editorDomValue('', '')).toBe('');
+    expect(editorDomValue('<br>', '')).toBe('');
+  });
+
+  it('keeps the blank lines and the leading spaces the user typed', () => {
+    expect(editorDomValue('<div><br></div><div><br></div>', '')).toBe(
+      '<div><br></div><div><br></div>',
+    );
+    expect(editorDomValue('&nbsp;', '\u00a0')).toBe('&nbsp;');
+    expect(editorDomValue(' ', ' ')).toBe(' ');
+    expect(editorDomValue('<img src="x">', '')).toBe('<img src="x">');
   });
 });
 

@@ -193,8 +193,17 @@ export interface ComposeSessionOptions {
   recoveryIdentity: string;
   /** The server draft this session continues. Its id is the session's draft. */
   draft?: Message;
-  /** Starting fields when there is no draft (a reply's recipients, a mailto link). */
-  initial?: { to?: string; cc?: string; subject?: string; body?: string };
+  /**
+   * Starting fields when there is no draft (a reply's recipients, a mailto
+   * link, a forward's attachments).
+   */
+  initial?: {
+    to?: string;
+    cc?: string;
+    subject?: string;
+    body?: string;
+    attachments?: ComposerAttachment[];
+  };
   /** Row id of the message replied to; kept with the recovery snapshot. */
   replyTo?: string;
   /** The RFC threading headers every save and send carries. */
@@ -268,7 +277,7 @@ export function useComposeSession({
       bcc: '',
       subject: initial?.subject ?? '',
       body: initial?.body ?? '',
-      attachments: [] as ComposerAttachment[],
+      attachments: initial?.attachments ?? [],
     };
   });
 

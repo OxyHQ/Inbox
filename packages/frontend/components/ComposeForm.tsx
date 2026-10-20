@@ -30,7 +30,7 @@ import { useGoBack } from '@/hooks/useGoBack';
 import { useReplyParent } from '@/hooks/useReplyParent';
 import { useTranslation } from '@/lib/i18n';
 import type { Message } from '@/services/emailApi';
-import { forwardedBody, textToEditorContent } from '@/utils/composeBody';
+import { forwardedAttachments, forwardedBody, textToEditorContent } from '@/utils/composeBody';
 import { formatQuoteDate } from '@/utils/quoteDate';
 import { draftReplyHeaders } from '@/utils/replyHeaders';
 
@@ -175,6 +175,8 @@ function ComposeSessionForm({
             : `Fwd: ${forwarded.subject}`
           : undefined),
       body: initialBody ? textToEditorContent(initialBody, isWeb) : undefined,
+      // A forward sends the original's files on, as other clients do.
+      attachments: forwarded ? forwardedAttachments(forwarded) : undefined,
     },
     replyTo,
     replyHeaders,

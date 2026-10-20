@@ -9,6 +9,8 @@ import {
   appendTextToBody,
   bodyParts,
   draftToEditorContent,
+  forwardedAttachments,
+  forwardedBody,
   isBodyBlank,
   quotedReply,
   sanitizeEditorHtml,
@@ -64,6 +66,55 @@ describe('quotes', () => {
     expect(html).toBe(
       '<br><br><div>On Mon, Ann wrote:</div><blockquote type="cite">&lt;img src=x onerror=alert(1)&gt;<br>line</blockquote>',
     );
+  });
+});
+
+describe('mail sent as HTML alone', () => {
+  const htmlOnly = { text: null, html: '<p>Hi Ann</p><p>The <b>plan</b> is ready.</p>' };
+
+  it('is quoted from its HTML as text, not left empty', () => {
+    expect(quotedReply(htmlOnly, 'On Mon, Ann wrote:', false)).toBe(
+      '\n\nOn Mon, Ann wrote:\n> Hi Ann\n> \n> The plan is ready.',
+    );
+    expect(quotedReply(htmlOnly, 'On Mon, Ann wrote:', true)).toBe(
+      '<br><br><div>On Mon, Ann wrote:</div><blockquote type="cite">Hi Ann<br><br>The plan is ready.</blockquote>',
+    );
+  });
+
+  it('is forwarded with its body, never as live markup', () => {
+    expect(forwardedBody(htmlOnly, 'Forwarded:\n', false)).toBe(
+      'Forwarded:\nHi Ann\n\nThe plan is ready.',
+    );
+    expect(
+      forwardedBody({ text: null, html: '<img src=x onerror=alert(1)>&lt;b&gt;' }, '', true),
+    ).toBe('&lt;b&gt;');
+  });
+});
+
+describe('a forward', () => {
+  const file = (overrides: Record<string, unknown>) => ({
+    fileId: 'f1',
+    name: 'plan.pdf',
+    contentType: 'application/pdf',
+    size: 2048,
+    contentId: null,
+    isInline: false,
+    ...overrides,
+  });
+
+  it('carries the files the reader lists, not the inline images of its HTML', () => {
+    const attachments = [
+      file({}),
+      file({ fileId: 'logo', name: 'logo.png', contentId: '<logo@x>', isInline: true }),
+    ];
+    expect(forwardedAttachments({ html: '<img src="cid:logo@x">', attachments })).toEqual([
+      { fileId: 'f1', name: 'plan.pdf', contentType: 'application/pdf', size: 2048 },
+    ]);
+    // Without an HTML body the image has nowhere else to go: it is a file.
+    expect(forwardedAttachments({ html: null, attachments }).map((a) => a.fileId)).toEqual([
+      'f1',
+      'logo',
+    ]);
   });
 });
 

@@ -18,7 +18,7 @@ import { SmartReplyChips } from '@/components/SmartReplyChips';
 import { useComposeSession } from '@/hooks/useComposeSession';
 import { useTranslation } from '@/lib/i18n';
 import type { Message } from '@/services/emailApi';
-import { forwardedBody, quotedReply } from '@/utils/composeBody';
+import { forwardedAttachments, forwardedBody, quotedReply } from '@/utils/composeBody';
 import { formatQuoteDate } from '@/utils/quoteDate';
 import { buildReplyHeaders } from '@/utils/replyHeaders';
 import { buildReplyRecipients, joinAddresses } from '@/utils/replyRecipients';
@@ -51,6 +51,8 @@ export function InlineReply({ message, mode, onClose }: InlineReplyProps) {
       subject: message.subject.startsWith(prefix)
         ? message.subject
         : `${prefix} ${message.subject}`,
+      // A forward sends the original's files on; a reply does not.
+      attachments: mode === 'forward' ? forwardedAttachments(message) : undefined,
     };
   }, []);
 

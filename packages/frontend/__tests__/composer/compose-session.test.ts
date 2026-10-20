@@ -421,6 +421,21 @@ describe('a new message', () => {
     expect(discardDraft).toHaveBeenCalledWith('created-1');
   });
 
+  it('starts a forward with the forwarded files, which are not writing', async () => {
+    const attachment = { fileId: 'f1', name: 'plan.pdf', contentType: 'application/pdf', size: 1 };
+    const { result } = renderHook(() =>
+      useComposeSession(options({ initial: { to: 'ann@example.com', attachments: [attachment] } })),
+    );
+    await settle();
+
+    expect(result.current.attachments).toEqual([attachment]);
+    expect(result.current.hasUnsavedWork).toBe(false);
+    await act(async () => {
+      await result.current.send();
+    });
+    expect(sendWithUndo.mock.calls[0][0].attachments).toEqual([{ fileId: 'f1' }]);
+  });
+
   it('sends without a draft id when nothing was ever saved', async () => {
     // A reply or a link starts with its fields: not writing, so no draft.
     const { result } = renderHook(() =>

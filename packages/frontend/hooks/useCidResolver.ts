@@ -6,8 +6,11 @@
  * messageId → resolvedHtml.
  */
 
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { OxyServices } from '@oxy.so/core';
+import { ATTACHMENT_URL_STALE_MS } from '@/hooks/queries/useAttachmentUrl';
+import { emailKeys } from '@/hooks/queries/queryKeys';
 import type { Message } from '@/services/emailApi';
 import { normalizeContentId, resolveCidImages } from '@/utils/htmlTransform';
 
@@ -21,6 +24,7 @@ export function useCidResolver(
   oxyServices: OxyServices | null | undefined,
   resetKey: string,
 ): Record<string, string> {
+  const queryClient = useQueryClient();
   // The maps belong to the message they were resolved for. When the displayed
   // message changes they are simply not read any more — derived during render,
   // so the first render of the new message already has none. Clearing them in
@@ -68,7 +72,14 @@ export function useCidResolver(
           msg.attachments.map(async (att) => {
             if (!att.contentId) return;
             try {
-              cidMap[normalizeContentId(att.contentId)] = await oxyServices.assets.url(att.fileId);
+              // Through the same query as `useAttachmentUrl`: the signed URL of
+              // an image is asked for once while it is fresh, not again every
+              // time the message is opened or its thread refetched.
+              cidMap[normalizeContentId(att.contentId)] = await queryClient.fetchQuery({
+                queryKey: emailKeys.attachmentUrl(att.fileId),
+                queryFn: () => oxyServices.assets.url(att.fileId),
+                staleTime: ATTACHMENT_URL_STALE_MS,
+              });
             } catch {
               /* that image stays a cid: reference */
             }
@@ -84,7 +95,7 @@ export function useCidResolver(
         return { key, maps: next };
       });
     })();
-  }, [messages, oxyServices, cidMaps, resetKey]);
+  }, [messages, oxyServices, cidMaps, resetKey, queryClient]);
 
   // Pre-compute resolved HTML per message — stable references
   return useMemo(() => {

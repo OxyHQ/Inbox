@@ -99,6 +99,31 @@ export function decideNativeNavigation(request: {
   };
 }
 
+/**
+ * What a click in the web email body does: `null` when it is not on a link,
+ * `{ anchor }` for an in-page `#…` jump, otherwise `{ open }` with the URL to
+ * open outside the frame — `null` when it fails the protocol allowlist.
+ *
+ * An image-map `<area>` is a link too. Matched as `a` alone it escaped the
+ * interception, and the sandboxed frame navigated itself to wherever it
+ * pointed. An `#anchor` was swallowed: refused as external, and nothing else.
+ */
+export function bodyLinkAction(
+  target: EventTarget | null,
+): { anchor: string } | { open: string | null } | null {
+  const link = (target as Element | null)?.closest?.('a, area');
+  if (!link) return null;
+  const href = link.getAttribute('href')?.trim() ?? '';
+  if (href.startsWith('#')) {
+    try {
+      return { anchor: decodeURIComponent(href.slice(1)) };
+    } catch {
+      return { anchor: href.slice(1) };
+    }
+  }
+  return { open: getSafeExternalUrl(href) };
+}
+
 interface WrapStrings {
   videoLinkLabel: string;
   audioLinkLabel: string;
@@ -232,14 +257,19 @@ function HtmlBodyWeb({ html }: HtmlBodyProps) {
       // Intercept link clicks — validate and open safe external links from the parent.
       // Email HTML is attacker-controlled, so never allow the sandbox to open popups directly.
       doc.addEventListener('click', (e: MouseEvent) => {
-        const anchor = (e.target as HTMLElement).closest?.('a');
-        if (!anchor) return;
+        const action = bodyLinkAction(e.target);
+        if (!action) return;
 
         e.preventDefault();
-        const safeUrl = getSafeExternalUrl(anchor.getAttribute('href'));
-        if (!safeUrl) return;
-
-        window.open(safeUrl, '_blank', 'noopener,noreferrer');
+        if ('anchor' in action) {
+          // Within the message: the frame does not scroll, the reader does.
+          const destination = action.anchor
+            ? (doc.getElementById(action.anchor) ?? doc.getElementsByName(action.anchor)[0])
+            : undefined;
+          destination?.scrollIntoView({ block: 'start' });
+          return;
+        }
+        if (action.open) window.open(action.open, '_blank', 'noopener,noreferrer');
       });
     };
 

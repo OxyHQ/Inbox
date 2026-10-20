@@ -1,5 +1,14 @@
 import { TextEncoder as NodeTextEncoder } from 'node:util';
 
+jest.mock('@oxy.so/bloom/theme', () => ({ useTheme: () => ({}) }));
+jest.mock('@/lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+jest.mock('react-native-webview', () => ({ WebView: () => null }));
+jest.mock('react-native', () => ({
+  ...jest.requireActual('react-native'),
+  StyleSheet: { create: <T>(styles: T) => styles },
+}));
+
+import { bodyLinkAction } from '@/components/HtmlBody';
 import {
   proxyExternalImages,
   normalizeContentId,
@@ -317,5 +326,29 @@ describe('email HTML security boundary', () => {
     expect(
       sanitizeEmailHtml('<a href="https://site.example/" ping="https://t.example/ping">x</a>'),
     ).not.toContain('ping');
+  });
+});
+
+describe('a click in the email body', () => {
+  function clickOn(html: string, selector: string) {
+    const document = new DOMParser().parseFromString(html, 'text/html');
+    return bodyLinkAction(document.querySelector(selector));
+  }
+
+  it('treats an image-map area as the link it is, under the same allowlist', () => {
+    const map =
+      '<img usemap="#m"><map name="m"><area id="ok" href="https://example.com/a"><area id="bad" href="javascript:alert(1)"></map>';
+    expect(clickOn(map, '#ok')).toEqual({ open: 'https://example.com/a' });
+    expect(clickOn(map, '#bad')).toEqual({ open: null });
+  });
+
+  it('jumps to an in-page anchor instead of swallowing it', () => {
+    expect(clickOn('<a href="#terms%20of%20use"><b>Terms</b></a>', 'b')).toEqual({
+      anchor: 'terms of use',
+    });
+  });
+
+  it('leaves a click that is not on a link alone', () => {
+    expect(clickOn('<p><span>text</span></p>', 'span')).toBeNull();
   });
 });

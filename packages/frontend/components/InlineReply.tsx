@@ -32,7 +32,7 @@ interface InlineReplyProps {
 }
 
 export function InlineReply({ message, mode, onClose }: InlineReplyProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { user } = useOxy();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Seeded once for this reply; the recipients do not follow later edits.
@@ -63,7 +63,7 @@ export function InlineReply({ message, mode, onClose }: InlineReplyProps) {
             message,
             t('inlineReply.forwardHeader', {
               from: message.from.name || message.from.address,
-              date: formatQuoteDate(message.date),
+              date: formatQuoteDate(message.date, locale),
               subject: message.subject,
               to: message.to.map((a) => a.name || a.address).join(', '),
             }),
@@ -72,12 +72,12 @@ export function InlineReply({ message, mode, onClose }: InlineReplyProps) {
         : quotedReply(
             message,
             t('inlineReply.quotedPrefix', {
-              date: formatQuoteDate(message.date),
+              date: formatQuoteDate(message.date, locale),
               author: message.from.name || message.from.address,
             }),
             isWeb,
           ),
-    [message, mode, t],
+    [message, mode, t, locale],
   );
 
   const replyHeaders = useMemo(

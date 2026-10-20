@@ -23,7 +23,10 @@ import { useEditAsNew } from '@/hooks/mutations/useEditAsNew';
 import { useRetryDelivery } from '@/hooks/mutations/useRetryDelivery';
 import { useTranslation } from '@/lib/i18n';
 import type { Message, MessageDelivery } from '@/schemas/emailSchemas';
+import { dateFormatter } from '@/utils/dateFormat';
 import { canRetry, deliveryReasonKey, isOutstanding } from '@/utils/delivery';
+
+const NEXT_ATTEMPT_TIME: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };
 
 /** The one-line label for a delivery: "Sending…", "Retrying (2)", "Not delivered". */
 export function useDeliveryLabel() {
@@ -63,7 +66,7 @@ export function DeliveryBadge({ delivery }: { delivery: MessageDelivery | undefi
 
 /** Full status for an open message: why, when it retries, and what to do. */
 export function DeliveryNotice({ message }: { message: Message }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const editAsNew = useEditAsNew();
   const label = useDeliveryLabel();
   const retry = useRetryDelivery();
@@ -77,10 +80,7 @@ export function DeliveryNotice({ message }: { message: Message }) {
   const nextAttempt =
     delivery.state === 'retrying' && delivery.nextAttemptAt
       ? t('delivery.nextAttempt', {
-          time: new Date(delivery.nextAttemptAt).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          }),
+          time: dateFormatter(locale, NEXT_ATTEMPT_TIME).format(new Date(delivery.nextAttemptAt)),
         })
       : null;
 

@@ -1,4 +1,5 @@
 import { useTranslation } from '@/lib/i18n';
+import { dateFormatter } from '@/utils/dateFormat';
 import { presetsThatMakeSense } from '@/utils/timePresets';
 import { Button } from '@oxy.so/bloom/button';
 import { Text as BloomText } from '@oxy.so/bloom/typography';
@@ -22,7 +23,7 @@ interface ScheduleOption {
   getDate: () => Date;
 }
 
-function getScheduleOptions(): ScheduleOption[] {
+function getScheduleOptions(locale: string): ScheduleOption[] {
   const now = new Date();
 
   // Later today: 3 hours from now (or 6 PM if < 3 PM)
@@ -50,14 +51,11 @@ function getScheduleOptions(): ScheduleOption[] {
   monday.setDate(monday.getDate() + daysUntilMon);
   monday.setHours(8, 0, 0, 0);
 
+  // In the app's language, like the labels beside them.
   const formatTime = (d: Date) =>
-    d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    dateFormatter(locale, { hour: 'numeric', minute: '2-digit' }).format(d);
   const formatDay = (d: Date) =>
-    d.toLocaleDateString(undefined, {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    });
+    dateFormatter(locale, { weekday: 'short', month: 'short', day: 'numeric' }).format(d);
 
   const options: ScheduleOption[] = [
     {
@@ -95,8 +93,8 @@ interface ScheduleSendSheetProps {
 }
 
 export function ScheduleSendSheet({ visible, onClose, onSchedule }: ScheduleSendSheetProps) {
-  const { t } = useTranslation();
-  const options = getScheduleOptions();
+  const { t, locale } = useTranslation();
+  const options = getScheduleOptions(locale);
   const sheetRef = useRef<BottomSheetRef>(null);
 
   useEffect(() => {

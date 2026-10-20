@@ -130,7 +130,7 @@ function ComposeSessionForm({
   const occupiedBottom = useBottomEdgeInset();
   const { width: viewportWidth } = useWindowDimensions();
   const bottomClearance = viewportWidth < BREAKPOINTS.md ? occupiedBottom : 0;
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   // A reply's parent is loaded by its row id only to read its RFC headers. A
   // reopened draft already carries them.
@@ -145,14 +145,14 @@ function ComposeSessionForm({
             forwarded,
             t('inlineReply.forwardHeader', {
               from: forwarded.from.name || forwarded.from.address,
-              date: formatQuoteDate(forwarded.date),
+              date: formatQuoteDate(forwarded.date, locale),
               subject: forwarded.subject,
               to: forwarded.to.map((a) => a.name || a.address).join(', '),
             }),
             isWeb,
           )
         : '',
-    [forwarded, t],
+    [forwarded, t, locale],
   );
 
   const session = useComposeSession({

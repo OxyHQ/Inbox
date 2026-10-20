@@ -53,6 +53,7 @@ import {
 import type { ReplyHeaders } from '@/utils/replyHeaders';
 import { joinAddresses } from '@/utils/replyRecipients';
 import { type TranslateFn, useTranslation } from '@/lib/i18n';
+import { dateFormatter } from '@/utils/dateFormat';
 import {
   type AlreadySent,
   alreadySentUnderKey,
@@ -118,15 +119,19 @@ export interface SentVersion {
   notice: string;
 }
 
-/** A scheduled time as the composer shows it. */
-function scheduledTimeLabel(date: Date): string {
-  return date.toLocaleString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+const SCHEDULED_TIME: Intl.DateTimeFormatOptions = {
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+};
+
+/** A scheduled time as the composer shows it, in the app's language. */
+function scheduledTimeLabel(date: Date, locale: string | undefined): string {
+  return locale
+    ? dateFormatter(locale, SCHEDULED_TIME).format(date)
+    : date.toLocaleString(undefined, SCHEDULED_TIME);
 }
 
 /**
@@ -139,10 +144,11 @@ export function alreadySentNotice(
   t: TranslateFn,
   sent: AlreadySent,
   outcome: 'closed' | 'open',
+  locale?: string,
 ): string {
   const due =
     sent.deliveryState === 'scheduled' && sent.scheduledAt ? new Date(sent.scheduledAt) : null;
-  const time = due && !Number.isNaN(due.getTime()) ? scheduledTimeLabel(due) : null;
+  const time = due && !Number.isNaN(due.getTime()) ? scheduledTimeLabel(due, locale) : null;
   if (sent.deliveryState === 'failed') return t('compose.alreadySent.versionFailed');
   if (sent.deliveryState === 'cancelled') return t('compose.alreadySent.versionCancelled');
   if (outcome === 'closed') {
@@ -242,7 +248,7 @@ export function useComposeSession({
   onFinished,
   reopen,
 }: ComposeSessionOptions) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { user } = useOxy();
   const router = useRouter();
   const api = useEmailStore((s) => s._api);
@@ -788,7 +794,7 @@ export function useComposeSession({
       const left = sent.deliveryState !== 'failed' && sent.deliveryState !== 'cancelled';
       if (unchanged && left) {
         toast.info(
-          alreadySentNotice(t, sent, 'closed'),
+          alreadySentNotice(t, sent, 'closed', locale),
           sent.id
             ? {
                 action: { label: t('compose.alreadySent.view'), onClick: () => viewSent(sent) },
@@ -801,7 +807,7 @@ export function useComposeSession({
         return;
       }
       sentRef.current = false;
-      const notice = alreadySentNotice(t, sent, 'open');
+      const notice = alreadySentNotice(t, sent, 'open', locale);
       if (mountedRef.current) {
         setSentVersion({ sent, retry, notice });
         return;
@@ -823,7 +829,7 @@ export function useComposeSession({
         ...(buttons[1] ? { cancel: buttons[1] } : {}),
       });
     },
-    [finish, recoveryKey, reopen, router, t, viewSent],
+    [finish, locale, recoveryKey, reopen, router, t, viewSent],
   );
 
   const startSend = useCallback(
@@ -892,7 +898,7 @@ export function useComposeSession({
         {
           onSuccess: () => {
             toast.success(
-              t('compose.toast.scheduled', { time: scheduledTimeLabel(scheduledDate) }),
+              t('compose.toast.scheduled', { time: scheduledTimeLabel(scheduledDate, locale) }),
             );
             void clearComposeRecovery(recoveryKey);
             finish();
@@ -916,6 +922,7 @@ export function useComposeSession({
       finish,
       handleKeyReused,
       recoveryKey,
+      locale,
       sendMessageMutation,
       saveBeforeSend,
       t,

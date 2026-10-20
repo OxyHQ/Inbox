@@ -315,7 +315,9 @@ if (Platform.OS !== 'web') {
 
     // JavaScript is disabled in the WebView (see props below), so the email body
     // is rendered statically. No height-measuring script is injected; the WebView
-    // owns its own scroll instead of growing to fit.
+    // owns its own scroll instead of growing to fit — nested in the reader's
+    // scroll view, which on Android took every gesture and left the body cut
+    // off at its 400px (`nestedScrollEnabled`).
     const wrappedHtml = useMemo(
       () => wrapHtml(html, isDark, colors, { videoLinkLabel, audioLinkLabel }),
       [html, isDark, colors, videoLinkLabel, audioLinkLabel],
@@ -339,6 +341,7 @@ if (Platform.OS !== 'web') {
         style={styles.webView}
         scalesPageToFit={false}
         scrollEnabled
+        nestedScrollEnabled
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
         onShouldStartLoadWithRequest={handleNavigation}

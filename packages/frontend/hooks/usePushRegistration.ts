@@ -15,7 +15,7 @@
  * socket lifecycle pattern.
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useOxy } from '@oxy.so/services/ui/client';
 import { logger } from '@oxy.so/core';
 
@@ -38,6 +38,27 @@ export function usePushRegistration(): void {
    * exactly what was registered even after the pref has already flipped.
    */
   const registeredTokenRef = useRef<string | null>(null);
+
+  /**
+   * Registrations and retirements, one at a time and in order. Run side by
+   * side, a retirement could land after the registration that followed it —
+   * turning push off and on, a sign-in after a switch — and leave the device
+   * registered for nothing.
+   */
+  const [enqueue] = useState(() => {
+    let queue: Promise<unknown> = Promise.resolve();
+    return <T>(task: () => Promise<T>): Promise<T> => {
+      const run = queue.then(task, task);
+      queue = run.catch(() => undefined);
+      return run;
+    };
+  });
+
+  /** Who is signed in now, for a retirement queued by the account before. */
+  const currentUserRef = useRef(userId);
+  useEffect(() => {
+    currentUserRef.current = userId;
+  }, [userId]);
 
   // The channel's name and description are read when registering, not
   // depended on: with `t` in the dependencies, every language change (the
@@ -64,25 +85,32 @@ export function usePushRegistration(): void {
 
     let cancelled = false;
 
+    const registeredFor = userId;
     const retire = (expoPushToken: string): void => {
-      // Retirement is scoped server-side to the identity holding the bearer, so
-      // it can only succeed while that session is live. After a sign-out there
-      // is nothing left to authorise it — the row is then retired with the
-      // device session, or pruned when a delivery to it first fails.
-      if (!oxyServices.session.accessToken) {
-        return;
-      }
-      void oxyServices.notifications.unregisterPushToken(expoPushToken).catch((error: unknown) => {
+      void enqueue(async () => {
+        // Retirement is scoped server-side to the identity holding the bearer,
+        // so it can only succeed while that session is live. After a sign-out
+        // there is nothing left to authorise it — the row is then retired with
+        // the device session, or pruned when a delivery to it first fails.
+        if (!oxyServices.session.accessToken) return;
+        // After an account switch the bearer is the NEW account's: retiring
+        // now removed the registration the new account was about to make, and
+        // could never reach the old account's row.
+        if (currentUserRef.current !== registeredFor) return;
+        await oxyServices.notifications.unregisterPushToken(expoPushToken);
+      }).catch((error: unknown) => {
         logger.warn('[inbox] could not retire the push token', LOG_CONTEXT, error);
       });
     };
 
     void (async () => {
       try {
-        const outcome = await registerInboxPushToken(
-          oxyServices.notifications,
-          channelRef.current,
-          sessionClient?.getState()?.deviceId,
+        const outcome = await enqueue(() =>
+          registerInboxPushToken(
+            oxyServices.notifications,
+            channelRef.current,
+            sessionClient?.getState()?.deviceId,
+          ),
         );
 
         if (outcome.status === 'skipped') {
@@ -118,5 +146,5 @@ export function usePushRegistration(): void {
         retire(expoPushToken);
       }
     };
-  }, [loaded, enabled, canUsePrivateApi, userId, oxyServices, sessionClient]);
+  }, [loaded, enabled, canUsePrivateApi, userId, oxyServices, sessionClient, enqueue]);
 }

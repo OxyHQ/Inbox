@@ -170,6 +170,61 @@ describe('usePushRegistration', () => {
     );
   });
 
+  it('never retires under the account switched to, and registers it in order', async () => {
+    const oxyServices = installSession({ canUsePrivateApi: true, userId: 'user-1' });
+
+    renderHook(() => usePushRegistration());
+    await waitFor(() =>
+      expect(oxyServices.notifications.registerPushToken).toHaveBeenCalledTimes(1),
+    );
+
+    // The bearer is the new account's by the time the old registration tears
+    // down: retiring the token then removed the NEW account's registration.
+    await act(async () => {
+      __setOxyState({ user: { id: 'user-2', username: 'ann' } });
+    });
+
+    await waitFor(() =>
+      expect(oxyServices.notifications.registerPushToken).toHaveBeenCalledTimes(2),
+    );
+    expect(oxyServices.notifications.unregisterPushToken).not.toHaveBeenCalled();
+  });
+
+  it('retires before it registers again, never after', async () => {
+    const oxyServices = installSession({ canUsePrivateApi: true });
+    const calls: string[] = [];
+    let finishRetire: () => void = () => {};
+    oxyServices.notifications.unregisterPushToken.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          calls.push('unregister');
+          finishRetire = resolve;
+        }),
+    );
+    oxyServices.notifications.registerPushToken.mockImplementation(async () => {
+      calls.push('register');
+    });
+
+    const { rerender } = renderHook(() => usePushRegistration());
+    await waitFor(() => expect(calls).toEqual(['register']));
+
+    pushNotifications = false;
+    await act(async () => {
+      rerender();
+    });
+    pushNotifications = true;
+    await act(async () => {
+      rerender();
+    });
+    await settle();
+    expect(calls).toEqual(['register', 'unregister']);
+
+    await act(async () => {
+      finishRetire();
+    });
+    await waitFor(() => expect(calls).toEqual(['register', 'unregister', 'register']));
+  });
+
   it('retires the registered token on unmount', async () => {
     const oxyServices = installSession({ canUsePrivateApi: true });
 

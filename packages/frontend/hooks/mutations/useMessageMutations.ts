@@ -396,6 +396,14 @@ export function useSendMessageWithUndo() {
 
       const timer = setTimeout(async () => {
         if (state !== 'waiting') return;
+        // The account changed in the undo window. The SDK's HTTP client now
+        // carries the other account's credentials, so sending would send this
+        // message FROM that account. Called off, as Undo would.
+        if (useEmailStore.getState()._api !== api) {
+          cancel();
+          toast(t('ui.mutations.sendCancelled'));
+          return;
+        }
         state = 'fired';
         toast.dismiss(toastId);
 
@@ -442,6 +450,7 @@ export function useUpdateMessageLabels() {
   const userId = user?.id ?? null;
 
   return useMutation({
+    mutationKey: INBOX_MUTATION_KEYS.updateLabels,
     ...RETRY_IDEMPOTENT,
     mutationFn: async ({
       messageId,
@@ -489,6 +498,7 @@ export function useTogglePin() {
   const userId = user?.id ?? null;
 
   return useMutation({
+    mutationKey: INBOX_MUTATION_KEYS.togglePin,
     ...RETRY_IDEMPOTENT,
     mutationFn: async ({ messageId, pinned }: { messageId: string; pinned: boolean }) => {
       if (!api) throw new Error('Email API not initialized');
@@ -521,6 +531,7 @@ export function useSnoozeMessage() {
   const userId = user?.id ?? null;
 
   return useMutation({
+    mutationKey: INBOX_MUTATION_KEYS.snooze,
     ...RETRY_IDEMPOTENT,
     // A conversation is one mutation: one toast, and one rollback that covers
     // exactly its messages. Snoozed message by message, it showed a toast per
@@ -572,6 +583,7 @@ export function useUnsnoozeMessage() {
   const userId = user?.id ?? null;
 
   return useMutation({
+    mutationKey: INBOX_MUTATION_KEYS.unsnooze,
     ...RETRY_IDEMPOTENT,
     mutationFn: async ({ messageId }: { messageId: string }) => {
       if (!api) throw new Error('Email API not initialized');
@@ -609,6 +621,7 @@ export function useBulkUpdateFlags() {
   const userId = user?.id ?? null;
 
   return useMutation({
+    mutationKey: INBOX_MUTATION_KEYS.bulkFlags,
     ...RETRY_IDEMPOTENT,
     mutationFn: async ({
       messageIds,
@@ -685,6 +698,7 @@ export function useBulkMoveMessages() {
   const userId = user?.id ?? null;
 
   return useMutation({
+    mutationKey: INBOX_MUTATION_KEYS.bulkMove,
     ...RETRY_IDEMPOTENT,
     mutationFn: async ({
       messageIds,

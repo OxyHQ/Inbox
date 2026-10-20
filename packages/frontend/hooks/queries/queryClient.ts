@@ -19,6 +19,7 @@
 import { QueryClient, onlineManager } from '@tanstack/react-query';
 import type { AccountQueriesConfig } from '@oxy.so/services/ui';
 import { useEmailStore } from '@/hooks/useEmail';
+import type { MessageFlags } from '@/services/emailApi';
 
 import { MEMORY_ONLY_QUERY_ROOTS, PERSISTED_QUERY_ROOTS } from '@/hooks/queries/queryKeys';
 
@@ -28,11 +29,23 @@ import { MEMORY_ONLY_QUERY_ROOTS, PERSISTED_QUERY_ROOTS } from '@/hooks/queries/
  */
 export const RETRY_IDEMPOTENT = { retry: 1 } as const;
 
+/**
+ * Every message mutation that can wait offline (`RETRY_IDEMPOTENT`). Keyed, so
+ * the SDK drops a waiting one when the account changes — unkeyed, it resumed
+ * after the switch and ran under the new account's credentials — and replays
+ * it after a restart for the same account.
+ */
 export const INBOX_MUTATION_KEYS = {
   toggleStar: ['inbox', 'message', 'toggle-star'] as const,
   toggleRead: ['inbox', 'message', 'toggle-read'] as const,
   archive: ['inbox', 'message', 'archive'] as const,
   delete: ['inbox', 'message', 'delete'] as const,
+  togglePin: ['inbox', 'message', 'toggle-pin'] as const,
+  updateLabels: ['inbox', 'message', 'labels'] as const,
+  snooze: ['inbox', 'message', 'snooze'] as const,
+  unsnooze: ['inbox', 'message', 'unsnooze'] as const,
+  bulkFlags: ['inbox', 'messages', 'flags'] as const,
+  bulkMove: ['inbox', 'messages', 'move'] as const,
 };
 
 interface ToggleStarVariables {
@@ -54,6 +67,32 @@ interface DeleteVariables {
   messageId: string;
   trashMailboxId?: string;
   isInTrash: boolean;
+}
+
+interface TogglePinVariables {
+  messageId: string;
+  pinned: boolean;
+}
+
+interface UpdateLabelsVariables {
+  messageId: string;
+  add: string[];
+  remove: string[];
+}
+
+interface SnoozeVariables {
+  messageIds: string[];
+  until: string;
+}
+
+interface BulkFlagsVariables {
+  messageIds: string[];
+  flags: Partial<MessageFlags>;
+}
+
+interface BulkMoveVariables {
+  messageIds: string[];
+  mailboxId: string;
 }
 
 function activeEmailApi() {
@@ -121,6 +160,50 @@ queryClient.setMutationDefaults<void, Error, DeleteVariables>(INBOX_MUTATION_KEY
     else if (trashMailboxId) await api.moveMessage(messageId, trashMailboxId);
     else await api.deleteMessage(messageId);
   },
+});
+
+queryClient.setMutationDefaults<unknown, Error, TogglePinVariables>(INBOX_MUTATION_KEYS.togglePin, {
+  networkMode: 'offlineFirst',
+  ...RETRY_IDEMPOTENT,
+  mutationFn: async ({ messageId, pinned }) => activeEmailApi().updateFlags(messageId, { pinned }),
+});
+queryClient.setMutationDefaults<unknown, Error, UpdateLabelsVariables>(
+  INBOX_MUTATION_KEYS.updateLabels,
+  {
+    networkMode: 'offlineFirst',
+    ...RETRY_IDEMPOTENT,
+    mutationFn: async ({ messageId, add, remove }) =>
+      activeEmailApi().updateLabels(messageId, add, remove),
+  },
+);
+queryClient.setMutationDefaults<void, Error, SnoozeVariables>(INBOX_MUTATION_KEYS.snooze, {
+  networkMode: 'offlineFirst',
+  ...RETRY_IDEMPOTENT,
+  mutationFn: async ({ messageIds, until }) => {
+    const api = activeEmailApi();
+    const results = await Promise.allSettled(messageIds.map((id) => api.snoozeMessage(id, until)));
+    const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected');
+    if (failed) throw failed.reason;
+  },
+});
+queryClient.setMutationDefaults<unknown, Error, { messageId: string }>(
+  INBOX_MUTATION_KEYS.unsnooze,
+  {
+    networkMode: 'offlineFirst',
+    ...RETRY_IDEMPOTENT,
+    mutationFn: async ({ messageId }) => activeEmailApi().unsnoozeMessage(messageId),
+  },
+);
+queryClient.setMutationDefaults<unknown, Error, BulkFlagsVariables>(INBOX_MUTATION_KEYS.bulkFlags, {
+  networkMode: 'offlineFirst',
+  ...RETRY_IDEMPOTENT,
+  mutationFn: async ({ messageIds, flags }) => activeEmailApi().bulkUpdateFlags(messageIds, flags),
+});
+queryClient.setMutationDefaults<unknown, Error, BulkMoveVariables>(INBOX_MUTATION_KEYS.bulkMove, {
+  networkMode: 'offlineFirst',
+  ...RETRY_IDEMPOTENT,
+  mutationFn: async ({ messageIds, mailboxId }) =>
+    activeEmailApi().bulkMoveMessages(messageIds, mailboxId),
 });
 
 // Replay paused (offline) mutations the moment the network returns, but only

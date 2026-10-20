@@ -7,7 +7,8 @@ import { useTranslation } from '@/lib/i18n';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import { invalidateMailViews } from '@/hooks/queries/invalidateMailViews';
 import { INBOX_MUTATION_KEYS, RETRY_IDEMPOTENT } from '@/hooks/queries/queryClient';
-import type { Message } from '@/services/emailApi';
+import { SPECIAL_USE } from '@/constants/mailbox';
+import type { Mailbox, Message } from '@/services/emailApi';
 import { recordInboxMetric } from '@/utils/inboxTelemetry';
 import { type AlreadySent, alreadySentUnderKey } from '@/utils/sendIdempotency';
 import {
@@ -826,6 +827,8 @@ function removeMessagesFromLists(
 export function useSaveDraft() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { user } = useOxy();
+  const userId = user?.id ?? null;
 
   return useMutation({
     mutationFn: async (params: Parameters<NonNullable<typeof api>['saveDraft']>[0]) => {
@@ -834,10 +837,27 @@ export function useSaveDraft() {
     },
     // No toast here: this runs for every autosave. The composer shows the save
     // state beside the subject, and says "saved" itself when the user asked.
-    onSettled: () => {
-      // Refetch the Drafts list (the saved draft appears) and mailbox badges
-      // (the Drafts unseen count) so the sidebar reflects the new draft.
-      invalidateMailViews(queryClient);
+    //
+    // What a save changes: the Drafts list (the draft appears or changes), the
+    // counts, the draft's own cached copy, and — for a reply — the
+    // conversation it is shown in. It used to re-read every view that shows
+    // mail, every 8 seconds of typing.
+    onSettled: (saved, _error, params) => {
+      const drafts = queryClient
+        .getQueryData<Mailbox[]>(emailKeys.mailboxes.list(userId))
+        ?.find((mailbox) => mailbox.specialUse === SPECIAL_USE.DRAFTS);
+      void queryClient.invalidateQueries({
+        queryKey: drafts ? emailKeys.messages.mailboxScope(drafts._id) : emailKeys.messages.root,
+      });
+      void queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
+      const draftId = saved?._id ?? params.existingDraftId;
+      if (draftId) {
+        void queryClient.invalidateQueries({
+          queryKey: emailKeys.message.byId(draftId),
+          refetchType: 'none',
+        });
+      }
+      if (params.inReplyTo) void queryClient.invalidateQueries({ queryKey: emailKeys.thread.root });
     },
   });
 }

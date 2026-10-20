@@ -76,7 +76,7 @@ import { useEmailStore } from '@/hooks/useEmail';
 import { useGoBack } from '@/hooks/useGoBack';
 import { useLeaveOpenConversation } from '@/hooks/useLeaveRemovedRows';
 import { useTranslation } from '@/lib/i18n';
-import type { Message } from '@/services/emailApi';
+import { type Message, UnreadableMessageError } from '@/services/emailApi';
 import { messageRoute } from '@/utils/messageRoute';
 import { toRfcMessageId } from '@/utils/replyHeaders';
 import { buildPrintHtml, printHtmlOnWeb } from '@/utils/printMessage';
@@ -170,7 +170,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const { t, locale } = useTranslation();
   const deliveryLabel = useDeliveryLabel();
 
-  const { data: currentMessage, isLoading, isError, refetch } = useMessage(messageId);
+  const { data: currentMessage, isLoading, isError, error, refetch } = useMessage(messageId);
   const {
     data: threadData,
     refetch: refetchThread,
@@ -583,6 +583,25 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         {standaloneToolbar}
         <View style={styles.loadingContainer}>
           <Loading />
+        </View>
+      </View>
+    );
+  }
+
+  // The message is there but this client cannot read it: the entry the
+  // conversation shows for such a row, with its source to download. The load
+  // error it used to show offered a retry that parsed the same row again.
+  if (error instanceof UnreadableMessageError) {
+    const row = error.unreadable;
+    return (
+      <View className="flex-1">
+        {standaloneToolbar}
+        <View className="flex-1 justify-center">
+          <UnreadableThreadEntry
+            row={{ ...row, _id: row._id ?? messageId }}
+            onRetry={() => void refetch()}
+            onOpenRaw={(id) => void downloadSource(id, row.subject)}
+          />
         </View>
       </View>
     );

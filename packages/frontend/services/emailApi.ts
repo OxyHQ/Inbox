@@ -177,8 +177,24 @@ function parseMessageList(
 }
 
 /**
- * A single-message read. Throws — the detail screen shows its error state with
- * a retry — but reports the failing fields exactly as a list row would.
+ * A single message the API sent that fails the schema, with what can still be
+ * read of it — the same `UnreadableMessage` a list row degrades to.
+ */
+export class UnreadableMessageError extends Error {
+  constructor(
+    readonly unreadable: UnreadableMessage,
+    readonly issues: z.ZodError['issues'],
+  ) {
+    super('The message failed schema validation');
+    this.name = 'UnreadableMessageError';
+  }
+}
+
+/**
+ * A single-message read. Throws an `UnreadableMessageError` — the reader shows
+ * the unreadable entry with its source download, as a conversation does, since
+ * a retry parses the same row again — and reports the failing fields exactly
+ * as a list row would.
  */
 function parseMessageStrict(item: unknown, source: string): Message {
   const result = MessageSchema.safeParse(item);
@@ -192,7 +208,7 @@ function parseMessageStrict(item: unknown, source: string): Message {
     })),
   });
   recordInboxMetric('message_parse_failed');
-  throw result.error;
+  throw new UnreadableMessageError(toUnreadable(item), result.error.issues);
 }
 
 /** Long enough for a synchronous SMTP relay; see `sendMessage`. */

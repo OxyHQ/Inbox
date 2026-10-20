@@ -223,6 +223,24 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
 
   const { data: remindersResult } = useReminders();
   const reminders = useMemo(() => remindersResult?.data ?? [], [remindersResult]);
+  // Which reminders are due is decided as of this clock, moved on when the
+  // next one comes due: decided once per render of the list, a reminder that
+  // came due while it was open stayed among the upcoming ones.
+  const [reminderClock, setReminderClock] = useState(() => Date.now());
+  const nextReminderDue = useMemo(() => {
+    const upcoming = reminders
+      .filter((r) => !r.completed)
+      .map((r) => Date.parse(r.remindAt))
+      .filter((at) => at > reminderClock);
+    return upcoming.length > 0 ? Math.min(...upcoming) : null;
+  }, [reminders, reminderClock]);
+  useEffect(() => {
+    if (nextReminderDue === null) return;
+    // Capped: a timer far in the future overflows, and a sleeping device is late.
+    const delay = Math.min(Math.max(nextReminderDue - Date.now(), 0) + 50, 60 * 60_000);
+    const timer = setTimeout(() => setReminderClock(Date.now()), delay);
+    return () => clearTimeout(timer);
+  }, [nextReminderDue]);
   const createReminderMutation = useCreateReminder();
   const updateReminderMutation = useUpdateReminder();
   const deleteReminderMutation = useDeleteReminder();
@@ -389,10 +407,10 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     // Due/active reminders at the top (only in inbox view)
     if (isInboxView && reminders.length > 0) {
       const dueReminders = reminders.filter(
-        (r) => !r.completed && new Date(r.remindAt) <= new Date(),
+        (r) => !r.completed && Date.parse(r.remindAt) <= reminderClock,
       );
       const upcomingReminders = reminders.filter(
-        (r) => !r.completed && new Date(r.remindAt) > new Date(),
+        (r) => !r.completed && Date.parse(r.remindAt) > reminderClock,
       );
 
       if (dueReminders.length > 0) {
@@ -488,6 +506,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     expandedBundles,
     isInboxView,
     isSnoozedView,
+    reminderClock,
     reminders,
     shownAboveIds,
     showBundles,

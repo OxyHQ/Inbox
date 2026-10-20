@@ -143,6 +143,21 @@ describe('email:new', () => {
     expect(updater(existing)).toBe(existing);
   });
 
+  it('bumps the unread badge once for an event delivered twice', () => {
+    mount();
+    emit('email:new', emailNew);
+    emit('email:new', emailNew);
+
+    const badgeWrites = setQueryData.mock.calls.filter(
+      ([key]) => (key as unknown[])[0] === 'mailboxes',
+    );
+    expect(badgeWrites).toHaveLength(1);
+    const update = badgeWrites[0][1] as (old: unknown) => unknown;
+    expect(update([{ _id: 'mb-1', unseenMessages: 2 }])).toEqual([
+      { _id: 'mb-1', unseenMessages: 3 },
+    ]);
+  });
+
   it('toasts when the user is looking at a different mailbox', () => {
     viewMode = { type: 'mailbox', mailbox: { _id: 'mb-OTHER' } };
     mount();

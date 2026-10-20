@@ -90,6 +90,9 @@ type MessagesInfinite = InfiniteData<MessagesPage>;
 /** How long a burst of `email:changed` events is gathered before one reconcile. */
 const CHANGED_COALESCE_MS = 300;
 
+/** How many `email:new` ids are remembered to recognise a repeat. */
+const SEEN_NEW_MAIL_LIMIT = 500;
+
 /**
  * Build a Message-shaped placeholder from an `EmailNewEvent` so the optimistic
  * prepend renders correctly until the reconciling refetch lands.
@@ -260,6 +263,9 @@ export function useInboxSocket() {
     noteCurrentPath(pathname);
   }, [pathname]);
 
+  /** Recently delivered `email:new` ids: the same event twice is one new message. */
+  const seenNewMail = useRef(new Set<string>());
+
   const onEmailNew = useCallback(
     (payload: unknown) => {
       if (!userId) return;
@@ -267,6 +273,12 @@ export function useInboxSocket() {
         recordInboxMetric('realtime_malformed_event');
         return;
       }
+      // A repeat (a re-emit, a reconnect) is the same message: it bumped the
+      // unread badge a second time and re-read the views for nothing.
+      const seen = seenNewMail.current;
+      if (seen.has(payload.id)) return;
+      seen.add(payload.id);
+      if (seen.size > SEEN_NEW_MAIL_LIMIT) seen.delete(seen.values().next().value as string);
 
       // 1. Optimistic prepend — instant, no round-trip.
       prependToMessageCache(

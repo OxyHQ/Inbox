@@ -1,6 +1,7 @@
 import type { Message } from '@/services/emailApi';
 import {
   collapseThreads,
+  followSelectedRows,
   groupThreads,
   formatSearchInterpretation,
   parseSearchQuery,
@@ -136,5 +137,27 @@ describe('groupThreads pin state', () => {
       date: '2026-01-03T00:00:00.000Z',
     });
     expect(groupThreads([olderPinned, newer])[0].row.flags.pinned).toBe(true);
+  });
+});
+
+describe('a multi-selection as the rows change', () => {
+  const msg = (id: string) => ({ ...baseMessage, _id: id });
+  const groups = new Map([
+    ['reply', [msg('reply'), msg('a1'), msg('a0')]],
+    ['b1', [msg('b1')]],
+  ]);
+  const rows = [msg('reply'), msg('b1')];
+  const conversationOf = (rowId: string) => groups.get(rowId) ?? [];
+
+  it('moves to the row a reply renamed, and drops a conversation no longer listed', () => {
+    const next = followSelectedRows(new Set(['a1', 'gone', 'b1']), rows, conversationOf);
+    expect(next && [...next].sort()).toEqual(['b1', 'reply']);
+  });
+
+  it('changes nothing while every id names a row, or a row shown outside the list', () => {
+    expect(followSelectedRows(new Set(['reply', 'b1']), rows, conversationOf)).toBeNull();
+    expect(
+      followSelectedRows(new Set(['sent-1']), rows, conversationOf, new Set(['sent-1'])),
+    ).toBeNull();
   });
 });

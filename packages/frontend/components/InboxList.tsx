@@ -59,6 +59,7 @@ import { calendarDaysBetween } from '@oxy.so/utils/date';
 import { useTranslation, type TranslateFn } from '@/lib/i18n';
 import type { Bundle, Message, Reminder, UnreadableMessage } from '@/services/emailApi';
 import { messageRoute } from '@/utils/messageRoute';
+import { followSelectedRows } from '@/utils/threadGrouping';
 import { useCurrentList } from '@/hooks/useCurrentList';
 import { AliaChatSheet, type AliaChatSheetRef } from '@alia.onl/sdk';
 import { AliaAvatarIcon } from '@alia.onl/sdk/avatar';
@@ -191,6 +192,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const toggleMessageSelection = useEmailStore((s) => s.toggleMessageSelection);
   const enterSelectionMode = useEmailStore((s) => s.enterSelectionMode);
   const clearSelection = useEmailStore((s) => s.clearSelection);
+  const selectAll = useEmailStore((s) => s.selectAll);
 
   const {
     data: mailboxes = [],
@@ -508,6 +510,19 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   useEffect(() => {
     clearSelection();
   }, [viewKey, clearSelection]);
+
+  // The selection follows its conversations when their rows change: a reply
+  // renames a conversation row, an archive elsewhere removes one.
+  useEffect(() => {
+    if (selectedMessageIds.size === 0) return;
+    const next = followSelectedRows(
+      selectedMessageIds,
+      displayMessages,
+      listConversationOf,
+      triageMessageIds,
+    );
+    if (next) selectAll([...next]);
+  }, [selectedMessageIds, displayMessages, listConversationOf, triageMessageIds, selectAll]);
 
   // The spinner is the pull's, not every refetch's: background polls, socket
   // events and mutations refetch too, and the spinner popped up for each.

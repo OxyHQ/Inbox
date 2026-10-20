@@ -301,14 +301,20 @@ export function useInboxSocket() {
       );
 
       // 2. Bump the badge by one; the `email:unread_count` the server emits
-      //    alongside reconciles the exact number a moment later.
+      //    alongside reconciles the exact number a moment later. The total
+      //    too: left as it was, the next mailbox poll saw the folder's count
+      //    move and re-read its lists for mail already shown (`useMailboxPoll`).
       queryClient.setQueryData<Mailbox[] | undefined>(emailKeys.mailboxes.list(userId), (old) => {
         if (!old) return old;
         let mutated = false;
         const next = old.map((mb) => {
           if (mb._id !== payload.mailboxId) return mb;
           mutated = true;
-          return { ...mb, unseenMessages: mb.unseenMessages + 1 };
+          return {
+            ...mb,
+            unseenMessages: mb.unseenMessages + 1,
+            totalMessages: mb.totalMessages + 1,
+          };
         });
         return mutated ? next : old;
       });

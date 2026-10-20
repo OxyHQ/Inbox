@@ -176,8 +176,8 @@ describe('email:new', () => {
     );
     expect(badgeWrites).toHaveLength(1);
     const update = badgeWrites[0][1] as (old: unknown) => unknown;
-    expect(update([{ _id: 'mb-1', unseenMessages: 2 }])).toEqual([
-      { _id: 'mb-1', unseenMessages: 3 },
+    expect(update([{ _id: 'mb-1', unseenMessages: 2, totalMessages: 10 }])).toEqual([
+      { _id: 'mb-1', unseenMessages: 3, totalMessages: 11 },
     ]);
   });
 

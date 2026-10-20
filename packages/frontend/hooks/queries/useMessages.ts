@@ -51,12 +51,8 @@ export function useMessages(options: UseMessagesOptions = {}) {
     initialPageParam: '',
     getNextPageParam: getNextMessagesPageParam,
     enabled: hasFilter && !!api && !!userId,
-    // The safety net under `useInboxSocket`, not the primary path. React Query
-    // pauses `refetchInterval` in a backgrounded tab by default, which is
-    // exactly the tab a user comes back to expecting their new mail to be
-    // there — so keep it ticking. Worst case with a dead socket is a minute,
-    // never "until you reload".
-    refetchInterval: 60_000,
-    refetchIntervalInBackground: true,
+    // No poll of its own: every page of every open list was re-read each
+    // minute. The safety net under `useInboxSocket` is the mailboxes poll
+    // (`useMailboxes`), which re-reads a folder's lists when its counts move.
   });
 }

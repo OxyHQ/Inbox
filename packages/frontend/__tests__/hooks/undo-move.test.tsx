@@ -10,9 +10,10 @@ jest.mock('@/lib/i18n', () => ({ useTranslation: () => ({ t }) }));
 
 const moveMessage = jest.fn().mockResolvedValue(undefined);
 const bulkMoveMessages = jest.fn().mockResolvedValue({ matched: 1, modified: 1 });
+const updateFlags = jest.fn();
 jest.mock('@/hooks/useEmail', () => {
   const state = {
-    _api: { moveMessage, bulkMoveMessages },
+    _api: { moveMessage, bulkMoveMessages, updateFlags },
     selectedMessageId: null,
     viewMode: null,
   };
@@ -28,7 +29,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { __setOxyState } from '@oxy.so/services/ui/client';
 
 import { emailKeys } from '@/hooks/queries/queryKeys';
-import { useArchiveMessage, useBulkMoveMessages } from '@/hooks/mutations/useMessageMutations';
+import {
+  useArchiveMessage,
+  useBulkMoveMessages,
+  useToggleStar,
+} from '@/hooks/mutations/useMessageMutations';
 import { MessageSchema, type Message } from '@/schemas/emailSchemas';
 import type { MessagesInfinite } from '@/utils/messageCache';
 import { wireMessage } from '../fixtures/wire';
@@ -112,4 +117,56 @@ it('says Archived only for an archive: a single move to Spam says so', async () 
     await result.current.mutateAsync({ messageId: 'a', archiveMailboxId: 'spam', kind: 'spam' });
   });
   expect(toast.success).toHaveBeenCalledWith('ui.mutations.movedToSpam', expect.any(Object));
+});
+
+it('offers Undo for a message cached only as the one open', async () => {
+  // Opened from search or a notification: in no list, only its detail.
+  const { client, wrapper } = setup();
+  client.setQueryData(emailKeys.message.detail('a', 'u1'), msg('a', 'inbox'));
+  const { result } = renderHook(() => useArchiveMessage(), { wrapper });
+
+  await act(async () => {
+    await result.current.mutateAsync({ messageId: 'a', archiveMailboxId: 'archive' });
+  });
+  act(() => undoAction()());
+  await waitFor(() => expect(bulkMoveMessages).toHaveBeenCalledWith(['a'], 'inbox'));
+});
+
+it('takes an unstarred message out of Starred, and only out of Starred', async () => {
+  const starred = MessageSchema.parse(
+    wireMessage({
+      _id: 'a',
+      id: 'a',
+      mailboxId: 'inbox',
+      flags: {
+        seen: true,
+        starred: true,
+        answered: false,
+        forwarded: false,
+        draft: false,
+        pinned: false,
+      },
+    }),
+  );
+  const { client, wrapper } = setup();
+  const page = (data: Message[]): MessagesInfinite => ({
+    pageParams: [undefined],
+    pages: [{ data, pagination: { total: data.length, limit: 50, offset: 0, hasMore: false } }],
+  });
+  const inboxKey = emailKeys.messages.list({ mailboxId: 'inbox', userId: 'u1' });
+  const starredKey = emailKeys.messages.list({ starred: true, userId: 'u1' });
+  client.removeQueries({ queryKey: emailKeys.messages.root, exact: true });
+  client.setQueryData(inboxKey, page([starred]));
+  client.setQueryData(starredKey, page([starred]));
+  updateFlags.mockResolvedValue({ ...starred, flags: { ...starred.flags, starred: false } });
+  const { result } = renderHook(() => useToggleStar(), { wrapper });
+
+  await act(async () => {
+    await result.current.mutateAsync({ messageId: 'a', starred: false });
+  });
+
+  const rows = (key: readonly unknown[]) =>
+    client.getQueryData<MessagesInfinite>(key)?.pages[0].data ?? [];
+  expect(rows(starredKey)).toEqual([]);
+  expect(rows(inboxKey).map((m) => [m._id, m.flags.starred])).toEqual([['a', false]]);
 });

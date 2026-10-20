@@ -19,6 +19,7 @@ import {
   patchMessageFlags,
   patchMessageInList,
   removeMessageFromList,
+  removeMessagesFromStarredLists,
   restoreSnapshot,
   snapshotForRollback,
   snapshotOrigins,
@@ -47,17 +48,9 @@ export function useToggleStar() {
     onMutate: async ({ messageId, starred }) => {
       await cancelMessageQueries(queryClient, messageId);
       const snapshot = snapshotForRollback(queryClient, messageId, userId);
-
-      // VIEW-AWARE UPDATE: in the starred view, unstarring removes the row.
-      const viewMode = useEmailStore.getState().viewMode;
-      if (viewMode?.type === 'starred' && !starred) {
-        removeMessageFromList(queryClient, messageId);
-        // Keep detail/thread flags in sync for any open panel.
-        patchMessageFlags(queryClient, messageId, userId, { starred });
-      } else {
-        patchMessageFlags(queryClient, messageId, userId, { starred });
-      }
-
+      // Unstarred, it leaves Starred — and only Starred, whatever view is open.
+      if (!starred) removeMessagesFromStarredLists(queryClient, [messageId]);
+      patchMessageFlags(queryClient, messageId, userId, { starred });
       return { snapshot };
     },
     onError: (_err, _vars, context) => {
@@ -65,12 +58,8 @@ export function useToggleStar() {
       toast.error(t('ui.mutations.starFailed'));
     },
     onSuccess: (updatedMessage, { messageId }) => {
-      if (updatedMessage) {
-        // Don't restore the row to the list if it was removed from starred view.
-        const viewMode = useEmailStore.getState().viewMode;
-        const skipList = viewMode?.type === 'starred' && !updatedMessage.flags.starred;
-        mergeServerMessage(queryClient, messageId, userId, updatedMessage, { skipList });
-      }
+      // Merged into the rows still listed; one taken out of Starred stays out.
+      if (updatedMessage) mergeServerMessage(queryClient, messageId, userId, updatedMessage);
     },
     onSettled: () => {
       // Reconcile filtered caches (e.g. Starred) with the server.
@@ -197,6 +186,8 @@ export function useArchiveMessage() {
   const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { user } = useOxy();
+  const userId = user?.id ?? null;
 
   return useMutation({
     mutationKey: INBOX_MUTATION_KEYS.archive,
@@ -215,7 +206,10 @@ export function useArchiveMessage() {
     },
     onMutate: async ({ messageId }) => {
       await cancelMessageQueries(queryClient, messageId);
-      const snapshot = snapshotForRollback(queryClient, messageId, null);
+      // The account's own detail key: under `null` the open message was never
+      // in the snapshot, and opened alone (from search, a notification) its
+      // archive had nowhere to Undo to.
+      const snapshot = snapshotForRollback(queryClient, messageId, userId);
       removeMessageFromList(queryClient, messageId);
       return { snapshot };
     },
@@ -247,6 +241,8 @@ export function useDeleteMessage() {
   const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { user } = useOxy();
+  const userId = user?.id ?? null;
 
   return useMutation({
     mutationKey: INBOX_MUTATION_KEYS.delete,
@@ -272,7 +268,7 @@ export function useDeleteMessage() {
     },
     onMutate: async ({ messageId }) => {
       await cancelMessageQueries(queryClient, messageId);
-      const snapshot = snapshotForRollback(queryClient, messageId, null);
+      const snapshot = snapshotForRollback(queryClient, messageId, userId);
       removeMessageFromList(queryClient, messageId);
       return { snapshot };
     },
@@ -659,6 +655,8 @@ export function useBulkUpdateFlags() {
         }
       }
 
+      // Unstarred, they leave Starred, as one message does (useToggleStar).
+      if (flags.starred === false) removeMessagesFromStarredLists(queryClient, messageIds);
       // Lists, the open message and the open conversation alike.
       for (const messageId of messageIds) {
         patchMessageFlags(queryClient, messageId, userId, flags);
@@ -683,6 +681,8 @@ export function useBulkMoveMessages() {
   const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { user } = useOxy();
+  const userId = user?.id ?? null;
 
   return useMutation({
     ...RETRY_IDEMPOTENT,
@@ -699,7 +699,7 @@ export function useBulkMoveMessages() {
     },
     onMutate: async ({ messageIds }) => {
       await queryClient.cancelQueries({ queryKey: emailKeys.messages.root });
-      const snapshot = snapshotForRollback(queryClient, messageIds, null);
+      const snapshot = snapshotForRollback(queryClient, messageIds, userId);
       removeMessagesFromLists(queryClient, messageIds);
       return { snapshot };
     },
@@ -736,6 +736,8 @@ export function useBulkDeleteMessages() {
   const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { user } = useOxy();
+  const userId = user?.id ?? null;
 
   return useMutation({
     mutationFn: async ({
@@ -761,7 +763,7 @@ export function useBulkDeleteMessages() {
     onMutate: async ({ toTrash, permanent }) => {
       await queryClient.cancelQueries({ queryKey: emailKeys.messages.root });
       const ids = [...toTrash, ...permanent];
-      const snapshot = snapshotForRollback(queryClient, ids, null);
+      const snapshot = snapshotForRollback(queryClient, ids, userId);
       removeMessagesFromLists(queryClient, ids);
       return { snapshot };
     },

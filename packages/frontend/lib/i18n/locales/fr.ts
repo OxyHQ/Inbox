@@ -153,6 +153,16 @@ const fr: LocaleDict = {
     inboxSection: 'Boîte',
     needsResponse: 'Réponse requise',
     followUp: 'À relancer',
+    triage: {
+      needsResponseDescription: 'Courriels non lus qui attendent quelque chose de vous.',
+      followUpDescription: 'Courriels envoyés restés sans réponse.',
+      reasons: {
+        question: 'Pose une question',
+        request: 'Vous demande de faire quelque chose',
+        waiting: 'Attend votre réponse',
+        awaitingReply: 'Pas encore de réponse',
+      },
+    },
     needsResponseA11y_one: 'Réponse requise, {{count}} courriel',
     needsResponseA11y_other: 'Réponse requise, {{count}} courriels',
     followUpA11y_one: 'À relancer, {{count}} courriel',

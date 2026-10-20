@@ -284,7 +284,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       items.push({
         type: 'triage-header',
         title: t('home.needsResponse'),
-        description: t('home.needsResponse'),
+        description: t('home.triage.needsResponseDescription'),
         key: 'triage-needs-response-header',
         count: needsResponseCount,
       });
@@ -301,11 +301,13 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       }
     }
 
-    if (!isSelectionMode && !isFollowUpLoading && followUpMessages.length > 0) {
+    // Kept in selection mode: long-pressing a follow-up row selects it, and the
+    // section it is selected in used to vanish with it.
+    if (!isFollowUpLoading && followUpMessages.length > 0) {
       items.push({
         type: 'triage-header',
         title: t('home.followUp'),
-        description: t('home.followUp'),
+        description: t('home.triage.followUpDescription'),
         key: 'triage-follow-up-header',
         count: followUpCount,
       });
@@ -326,7 +328,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     followUpMessages,
     isFollowUpLoading,
     isInboxView,
-    isSelectionMode,
     needsResponseCount,
     needsResponseMessages,
     needsResponseReasons,
@@ -849,14 +850,14 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
 
   const renderTriageMessage = useCallback(
     (item: Extract<ListItem, { type: 'triage-message' }>) => {
-      const reasonLabel =
-        item.category === 'follow-up'
-          ? t('home.followUp')
-          : item.reason === 'question'
-            ? t('home.needsResponse')
-            : item.reason === 'waiting'
-              ? t('home.needsResponse')
-              : t('home.needsResponse');
+      // Why the row was promoted. It used to say "Needs Response" whatever the reason.
+      const reasonLabels: Record<TriageReason, string> = {
+        question: t('home.triage.reasons.question'),
+        request: t('home.triage.reasons.request'),
+        waiting: t('home.triage.reasons.waiting'),
+        'awaiting-reply': t('home.triage.reasons.awaitingReply'),
+      };
+      const reasonLabel = reasonLabels[item.reason];
 
       return (
         <View style={styles.triageMessageItem}>
@@ -1091,7 +1092,10 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
                   >{`${t('home.needsResponse')} · ${needsResponseCount + followUpCount}`}</Button>
                 )}
                 {prefs.aiBrief && (
-                  <Button appearance="subtle" onPress={() => setShowBrief((value) => !value)}>
+                  <Button
+                    appearance={showBrief ? 'solid' : 'subtle'}
+                    onPress={() => setShowBrief((value) => !value)}
+                  >
                     {t('home.todaysBrief')}
                   </Button>
                 )}

@@ -153,6 +153,16 @@ const ca: LocaleDict = {
     inboxSection: 'Safata',
     needsResponse: 'Necessita resposta',
     followUp: 'Pendent de seguiment',
+    triage: {
+      needsResponseDescription: 'Correu sense llegir que et demana alguna cosa.',
+      followUpDescription: 'Correu que vas enviar i que encara no té resposta.',
+      reasons: {
+        question: 'Fa una pregunta',
+        request: 'Et demana que facis alguna cosa',
+        waiting: 'Espera la teva resposta',
+        awaitingReply: 'Encara sense resposta',
+      },
+    },
     needsResponseA11y_one: 'Necessita resposta, {{count}} correu',
     needsResponseA11y_other: 'Necessita resposta, {{count}} correus',
     followUpA11y_one: 'Pendent de seguiment, {{count}} correu',

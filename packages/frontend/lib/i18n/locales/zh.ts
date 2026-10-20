@@ -150,6 +150,16 @@ const zh: LocaleDict = {
     inboxSection: '收件箱',
     needsResponse: '需要回复',
     followUp: '待跟进',
+    triage: {
+      needsResponseDescription: '需要你回复或处理的未读邮件。',
+      followUpDescription: '你发出后尚未收到回复的邮件。',
+      reasons: {
+        question: '提出了问题',
+        request: '请你处理某事',
+        waiting: '等待你的回复',
+        awaitingReply: '尚未回复',
+      },
+    },
     needsResponseA11y_one: '需要回复,{{count}} 封邮件',
     needsResponseA11y_other: '需要回复,{{count}} 封邮件',
     followUpA11y_one: '待跟进,{{count}} 封邮件',

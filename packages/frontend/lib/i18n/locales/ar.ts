@@ -177,6 +177,16 @@ const ar: LocaleDict = {
     inboxSection: 'البريد الوارد',
     needsResponse: 'يحتاج إلى رد',
     followUp: 'متابعة',
+    triage: {
+      needsResponseDescription: 'رسائل غير مقروءة تطلب منك شيئًا.',
+      followUpDescription: 'رسائل أرسلتها ولم يصلك رد عليها بعد.',
+      reasons: {
+        question: 'يطرح سؤالًا',
+        request: 'يطلب منك القيام بشيء',
+        waiting: 'ينتظر ردك',
+        awaitingReply: 'لا رد بعد',
+      },
+    },
     needsResponseA11y_one: 'يحتاج إلى رد، {{count}} رسالة',
     needsResponseA11y_other: 'يحتاج إلى رد، {{count}} رسالة',
     followUpA11y_one: 'متابعة، {{count}} رسالة',

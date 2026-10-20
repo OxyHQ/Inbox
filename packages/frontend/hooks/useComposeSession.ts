@@ -871,6 +871,9 @@ export function useComposeSession({
 
       sentRef.current = true;
       await saveBeforeSend();
+      // Discarded while that save ran: the message the user threw away must not
+      // be scheduled behind the closed composer, as `startSend` already knows.
+      if (discardedRef.current) return;
       const attempt = {
         attempted: restoredKeyContentRef.current ?? attemptedContentKeyRef.current,
         sent: latest.current.contentKey,

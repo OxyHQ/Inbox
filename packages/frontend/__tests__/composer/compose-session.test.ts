@@ -392,6 +392,35 @@ describe('a new message', () => {
     );
   });
 
+  it('schedules nothing when it is discarded during the save before the send', async () => {
+    let finishSave: (value: unknown) => void = () => {};
+    const { result } = renderHook(() => useComposeSession(options()));
+    await settle();
+    act(() => {
+      result.current.setTo('ann@example.com');
+      result.current.updateBody('Hello');
+    });
+    saveDraft.mockImplementationOnce(() => new Promise((resolve) => (finishSave = resolve)));
+
+    let scheduled: Promise<void> = Promise.resolve();
+    act(() => {
+      scheduled = result.current.schedule(new Date(Date.now() + 3_600_000));
+    });
+    await settle();
+    let discarded: Promise<void> = Promise.resolve();
+    act(() => {
+      discarded = result.current.discardDraft();
+    });
+    await act(async () => {
+      finishSave({ _id: 'created-1', draftRevision: 1 });
+      await scheduled;
+      await discarded;
+    });
+
+    expect(scheduleMutate).not.toHaveBeenCalled();
+    expect(discardDraft).toHaveBeenCalledWith('created-1');
+  });
+
   it('sends without a draft id when nothing was ever saved', async () => {
     // A reply or a link starts with its fields: not writing, so no draft.
     const { result } = renderHook(() =>

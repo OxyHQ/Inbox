@@ -1,4 +1,5 @@
-import { Dialog, toast, useDialogControl } from '@oxy.so/bloom';
+import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
+import { toast } from '@oxy.so/bloom/toast';
 import { Button, IconButton } from '@oxy.so/bloom/button';
 import { RiArrowDownSLine, RiSaveLine, RiSendPlaneLine, RiTimeLine } from '@oxy.so/bloom/icons';
 import { MailComposeSurface } from '@oxy.so/bloom/mail-compose';

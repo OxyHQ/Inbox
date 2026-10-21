@@ -38,7 +38,8 @@ import { PageHeader } from '@oxy.so/bloom/page-header';
  * - embedded: inline panel without back button (desktop split-view)
  */
 
-import { Dialog, toast, useDialogControl } from '@oxy.so/bloom';
+import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
+import { toast } from '@oxy.so/bloom/toast';
 import { Loading } from '@oxy.so/bloom/loading';
 import { useOxy } from '@oxy.so/services/ui/client';
 import * as Print from 'expo-print';

@@ -11,8 +11,7 @@ import { PageHeader } from '@oxy.so/bloom/page-header';
  * The shell owns the content width on every platform.
  */
 
-import { toast } from '@oxy.so/bloom';
-import { Loading } from '@oxy.so/bloom/loading';
+import { toast } from '@oxy.so/bloom/toast';
 import { OxySignInButton, useOxy } from '@oxy.so/services/ui/client';
 import { FlashList, type FlashListProps, type FlashListRef } from '@shopify/flash-list';
 import { useQueryClient } from '@tanstack/react-query';
@@ -892,15 +891,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     t,
   ]);
 
-  const renderFooter = useCallback(() => {
-    if (!isFetchingNextPage) return null;
-    return (
-      <View style={styles.footer}>
-        <Loading variant="inline" size="sm" />
-      </View>
-    );
-  }, [isFetchingNextPage]);
-
   return (
     <Screen
       active={focused}
@@ -966,56 +956,49 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
         )
       }
     >
-      {isLoading && messages.length === 0 ? (
-        <View style={styles.loadingContainer}>
-          <Loading />
-        </View>
-      ) : (
-        <View style={styles.listContainer}>
-          <AnimatedInboxList
-            ref={listRef}
-            data={listItems}
-            renderItem={renderItem}
-            keyExtractor={keyExtractor}
-            getItemType={getItemType}
-            ListHeaderComponent={
-              <>
-                <UndeliveredBanner />
-                {briefVisible && (
-                  <DailyBrief
-                    onOpenMessage={openMessageById}
-                    onAction={handleBriefAction}
-                    messages={messages}
-                    renderMessage={renderMessageRow}
-                  />
-                )}
-              </>
-            }
-            ListEmptyComponent={shownAboveIds.size > 0 ? null : renderEmpty}
-            ListFooterComponent={renderFooter}
-            onEndReached={handleLoadMore}
-            onEndReachedThreshold={0.3}
-            onScroll={onListScroll}
-            scrollEventThrottle={16}
-            extraData={listExtraData}
-            refreshControl={
-              <RefreshControl
-                refreshing={pulling}
-                onRefresh={handleRefresh}
-                tintColor={colors.primary}
-                colors={[colors.primary]}
-              />
-            }
-            contentContainerStyle={{
-              ...(listItems.length === 0 ? styles.emptyListContent : null),
-              ...styles.listContent,
-              paddingTop: 0,
-              paddingBottom: 0,
-            }}
-            showsVerticalScrollIndicator={false}
-          />
-        </View>
-      )}
+      <View style={styles.listContainer}>
+        <AnimatedInboxList
+          ref={listRef}
+          data={listItems}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          getItemType={getItemType}
+          ListHeaderComponent={
+            <>
+              <UndeliveredBanner />
+              {briefVisible && (
+                <DailyBrief
+                  onOpenMessage={openMessageById}
+                  onAction={handleBriefAction}
+                  messages={messages}
+                  renderMessage={renderMessageRow}
+                />
+              )}
+            </>
+          }
+          ListEmptyComponent={shownAboveIds.size > 0 ? null : renderEmpty}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.3}
+          onScroll={onListScroll}
+          scrollEventThrottle={16}
+          extraData={listExtraData}
+          refreshControl={
+            <RefreshControl
+              refreshing={pulling}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
+          contentContainerStyle={{
+            ...(listItems.length === 0 ? styles.emptyListContent : null),
+            ...styles.listContent,
+            paddingTop: 0,
+            paddingBottom: 0,
+          }}
+          showsVerticalScrollIndicator={false}
+        />
+      </View>
 
       {/* Alia remains available from the inline header action. */}
       {isAuthenticated && (
@@ -1062,17 +1045,8 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
   },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   emptyListContent: {
     flexGrow: 1,
-  },
-  footer: {
-    paddingVertical: 20,
-    alignItems: 'center',
   },
   messageItem: {
     marginHorizontal: SPACING.md,

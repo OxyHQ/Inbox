@@ -14,7 +14,7 @@ import {
 } from '@/services/inboxInferenceApi';
 
 const mockToast = Object.assign(jest.fn(), { error: jest.fn() });
-jest.mock('@oxy.so/bloom', () => ({
+jest.mock('@oxy.so/bloom/toast', () => ({
   get toast() {
     return mockToast;
   },

@@ -11,7 +11,7 @@ import {
 } from '@/utils/calendarEvent';
 import { formatCardDate } from '@/utils/cardFormat';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { toast } from '@oxy.so/bloom';
+import { toast } from '@oxy.so/bloom/toast';
 import { Card, CardBody, CardHeader, CardTitle } from '@oxy.so/bloom/card';
 import { Text } from '@oxy.so/bloom/typography';
 import { useCallback, useMemo } from 'react';

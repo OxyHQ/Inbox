@@ -15,7 +15,8 @@ import { useMailboxes } from '@/hooks/queries/useMailboxes';
 import { useEmailStore } from '@/hooks/useEmail';
 import { useTranslation } from '@/lib/i18n';
 import type { Mailbox } from '@/services/emailApi';
-import { APP_SHELL_DEFAULTS, AppShell } from '@oxy.so/bloom/app-shell';
+import { AppShell } from '@oxy.so/bloom/app-shell';
+import { MAIL_DETAIL_PANEL, MAIL_LIST_PANEL, MAIL_PANELS, MAIL_WORKSPACE } from './mailWorkspace';
 import { Button } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
 import {
@@ -42,7 +43,6 @@ import { ProfileButton, useOxy } from '@oxy.so/services/ui/client';
 import { usePathname, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { View } from 'react-native';
-import { BREAKPOINTS } from '@oxy.so/bloom/styles';
 
 const PRIMARY_SPECIAL_USE: Set<string> = new Set([
   SPECIAL_USE.INBOX,
@@ -407,12 +407,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
   return (
     <MailScrollProvider>
       <AppShell
-        framedFrom={BREAKPOINTS.md}
-        safeArea
-        drawer="reveal"
-        header={null}
-        contentMaxWidth="none"
-        gutter={APP_SHELL_DEFAULTS.dashboardGutter}
+        {...MAIL_WORKSPACE}
         testID="mail-workspace"
         drawerOpen={drawerOpen}
         onDrawerOpenChange={setDrawerOpen}
@@ -421,24 +416,16 @@ export function MailboxShell({ children }: { children: ReactNode }) {
         drawerOpenLabel={t('search.openMenu')}
         drawerCloseLabel={t('common.close')}
         panelLayout={{
-          mode: 'split',
-          flow: 'bounded',
-          appearance: 'separated',
-          collapseBelow: BREAKPOINTS.lg,
+          ...MAIL_PANELS,
           activePanel: 'detail',
           widths: { list: listWidth },
           onWidthsChange: (widths) => setListWidth(widths.list ?? listWidth),
           panels: [
             {
-              id: 'list',
+              ...MAIL_LIST_PANEL,
               visible: !isSubscriptions,
-              width: 380,
-              minWidth: 320,
-              maxWidth: 480,
               resizable: true,
               resizeLabel: t('inbox.resizePanes'),
-              chrome: 'none',
-              scroll: 'content',
               errorBoundary: {
                 resetKey: pathname,
                 emptyState: {
@@ -456,10 +443,8 @@ export function MailboxShell({ children }: { children: ReactNode }) {
               ),
             },
             {
-              id: 'detail',
+              ...MAIL_DETAIL_PANEL,
               appearance: isSubscriptions ? 'solid' : 'plain',
-              chrome: 'none',
-              scroll: 'content',
               errorBoundary: {
                 resetKey: pathname,
                 emptyState: {

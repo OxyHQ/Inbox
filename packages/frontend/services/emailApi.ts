@@ -226,6 +226,35 @@ export interface ReadScope {
   signal?: AbortSignal;
 }
 
+/** `POST /email/import`'s per-request file limit (`IMPORT_MAX_FILES` in OxyHQ/oxy). */
+export const EML_IMPORT_MAX_FILES_PER_REQUEST = 5;
+/** Byte budget per import request, well under the proxy's 100 MB body cap. */
+export const EML_IMPORT_MAX_BYTES_PER_REQUEST = 48 * 1024 * 1024;
+
+/**
+ * Split files into import batches, in order: at most
+ * {@link EML_IMPORT_MAX_FILES_PER_REQUEST} files and
+ * {@link EML_IMPORT_MAX_BYTES_PER_REQUEST} bytes each.
+ */
+export function batchImportFiles<T extends { size: number }>(files: readonly T[]): T[][] {
+  const batches: T[][] = [];
+  let current: T[] = [];
+  let bytes = 0;
+  for (const file of files) {
+    const full = current.length >= EML_IMPORT_MAX_FILES_PER_REQUEST;
+    const over = current.length > 0 && bytes + file.size > EML_IMPORT_MAX_BYTES_PER_REQUEST;
+    if (full || over) {
+      batches.push(current);
+      current = [];
+      bytes = 0;
+    }
+    current.push(file);
+    bytes += file.size;
+  }
+  if (current.length > 0) batches.push(current);
+  return batches;
+}
+
 export function createEmailApi(http: HttpService) {
   return {
     // ─── Mailboxes ──────────────────────────────────────────────────
@@ -768,14 +797,29 @@ export function createEmailApi(http: HttpService) {
 
     /**
      * Import .eml files. Returns the count of successfully imported messages.
+     *
+     * Sent in batches: `POST /email/import` takes at most
+     * {@link EML_IMPORT_MAX_FILES_PER_REQUEST} files per request, and no
+     * request body may approach the Cloudflare proxy's 100 MB cap in front of
+     * api.oxy.so, so each batch also stays under
+     * {@link EML_IMPORT_MAX_BYTES_PER_REQUEST}. A file larger than that budget
+     * travels alone (the API refuses anything over its own 25 MiB per-file
+     * limit). Counts are summed across batches.
      */
     async importMessages(files: File[]): Promise<{ imported: number; total: number }> {
-      const formData = new FormData();
-      for (const file of files) {
-        formData.append('files', file, file.name);
+      const parse = z.object({ imported: z.number(), total: z.number() });
+      let imported = 0;
+      let total = 0;
+      for (const batch of batchImportFiles(files)) {
+        const formData = new FormData();
+        for (const file of batch) {
+          formData.append('files', file, file.name);
+        }
+        const res = parse.parse(await http.post('/email/import', formData));
+        imported += res.imported;
+        total += res.total;
       }
-      const res = await http.post('/email/import', formData);
-      return z.object({ imported: z.number(), total: z.number() }).parse(res);
+      return { imported, total };
     },
   };
 }

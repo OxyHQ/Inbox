@@ -16,9 +16,13 @@ import { useEmailStore } from '@/hooks/useEmail';
 import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 import { useTranslation } from '@/lib/i18n';
 import type { Mailbox } from '@/services/emailApi';
-import { APP_SHELL_DEFAULTS, AppShell, AppShellSplitPanes } from '@oxy.so/bloom/app-shell';
+import {
+  APP_SHELL_DEFAULTS,
+  AppShell,
+  AppShellPanel,
+  AppShellPanels,
+} from '@oxy.so/bloom/app-shell';
 import { Button } from '@oxy.so/bloom/button';
-import { ContentPanel } from '@oxy.so/bloom/content-panel';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
 import {
   RiAddLine,
@@ -43,8 +47,7 @@ import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { openAccountDialog, ProfileButton, useOxy } from '@oxy.so/services';
 import { usePathname, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
-import { useWindowDimensions, View } from 'react-native';
-import { BREAKPOINTS } from '@oxy.so/bloom/styles';
+import { View } from 'react-native';
 
 const PRIMARY_SPECIAL_USE: Set<string> = new Set([
   SPECIAL_USE.INBOX,
@@ -89,8 +92,6 @@ export function MailboxShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isSubscriptions = pathname === '/subscriptions';
   const isDesktop = useIsDesktopLayout();
-  const { width } = useWindowDimensions();
-  const isMobile = width < BREAKPOINTS.md;
   const moreExpanded = useEmailStore((s) => s.moreExpanded);
   const toggleMore = useEmailStore((s) => s.toggleMore);
   const { data: mailboxes = [] } = useMailboxes();
@@ -413,6 +414,18 @@ export function MailboxShell({ children }: { children: ReactNode }) {
     ),
   };
 
+  // One recovery for either panel; a route change clears a failed one.
+  const paneErrorBoundary = {
+    resetKey: pathname,
+    emptyState: {
+      variant: 'comfortable' as const,
+      illustration: <EmptyStateSticker name="loadError" />,
+      title: t('empty.errorTitle'),
+      description: t('empty.errorDescription'),
+      action: { label: t('common.retry') },
+    },
+  };
+
   return (
     <MailScrollProvider>
       <AppShell
@@ -421,8 +434,11 @@ export function MailboxShell({ children }: { children: ReactNode }) {
         scroll="fixed"
         header={null}
         contentMaxWidth="none"
-        gutter={isMobile ? 0 : APP_SHELL_DEFAULTS.dashboardGutter}
-        reserveBottomBarSpace={!isMobile}
+        // The shell frames the panels from `md` with this gutter on all four
+        // sides and between them, and drops it (full-bleed) below `md`.
+        panels
+        framedFrom="md"
+        gutter={APP_SHELL_DEFAULTS.dashboardGutter}
         testID="mail-workspace"
         drawerOpen={drawerOpen}
         onDrawerOpenChange={setDrawerOpen}
@@ -431,59 +447,38 @@ export function MailboxShell({ children }: { children: ReactNode }) {
         drawerOpenLabel={t('search.openMenu')}
         drawerCloseLabel={t('common.close')}
       >
-        <AppShellSplitPanes
-          variant="separated"
-          listErrorBoundary={{
-            resetKey: pathname,
-            bottomInset: isMobile ? undefined : 0,
-            emptyState: {
-              variant: 'comfortable',
-              illustration: <EmptyStateSticker name="loadError" />,
-              title: t('empty.errorTitle'),
-              description: t('empty.errorDescription'),
-              action: { label: t('common.retry') },
-            },
-          }}
-          detailErrorBoundary={{
-            resetKey: pathname,
-            bottomInset: isMobile ? undefined : 0,
-            emptyState: {
-              variant: 'comfortable',
-              illustration: <EmptyStateSticker name="loadError" />,
-              title: t('empty.errorTitle'),
-              description: t('empty.errorDescription'),
-              action: { label: t('common.retry') },
-            },
-          }}
-          list={
-            <ContentPanel framedFrom={BREAKPOINTS.md} chrome="none" fill overlaySizing="panel">
+        <AppShellPanels testID="mail-workspace">
+          {/* The routes decide with the same `isDesktop` whether they draw the
+              list themselves, so the list panel follows it exactly. */}
+          {isDesktop && !isSubscriptions ? (
+            <AppShellPanel
+              id="list"
+              testID="mail-workspace-pane-list"
+              chrome="none"
+              width={380}
+              minWidth={320}
+              maxWidth={480}
+              resizable
+              resizeLabel={t('inbox.resizePanes')}
+              errorBoundary={paneErrorBoundary}
+            >
               {pathname.startsWith('/search') ? (
                 <SearchList replaceNavigation={pathname.includes('/conversation/')} />
               ) : (
                 <InboxList replaceNavigation={pathname.includes('/conversation/')} />
               )}
-            </ContentPanel>
-          }
-          detail={
-            <ContentPanel
-              appearance={isSubscriptions ? 'solid' : 'plain'}
-              framedFrom={BREAKPOINTS.md}
-              chrome="none"
-              fill
-              overlaySizing="panel"
-            >
-              {children}
-            </ContentPanel>
-          }
-          showList={isDesktop && !isSubscriptions}
-          showDetail
-          listWidth={380}
-          listMinWidth={320}
-          listMaxWidth={480}
-          paneScroll={false}
-          resizeLabel={t('inbox.resizePanes')}
-          testID="mail-workspace"
-        />
+            </AppShellPanel>
+          ) : null}
+          <AppShellPanel
+            id="message"
+            testID="mail-workspace-pane-detail"
+            chrome="none"
+            appearance={isSubscriptions ? 'solid' : 'plain'}
+            errorBoundary={paneErrorBoundary}
+          >
+            {children}
+          </AppShellPanel>
+        </AppShellPanels>
       </AppShell>
       <Dialog
         control={createFolderControl}

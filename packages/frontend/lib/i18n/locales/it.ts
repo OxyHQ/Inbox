@@ -883,6 +883,7 @@ const it: LocaleDict = {
         useTheme: 'Usa il tema {{theme}}',
         systemHint: "Sistema segue l'impostazione di aspetto del dispositivo.",
         accentColor: 'Colore principale',
+        accentColorFailed: 'Impossibile salvare il colore principale.',
       },
       notifications: {
         deviceNotice:

@@ -9,7 +9,7 @@ import { Platform } from 'react-native';
 import 'react-native-reanimated';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { RequireOxyAuth } from '@oxy.so/services/ui';
-import { OxyProvider, useOxy } from '@oxy.so/services/ui/client';
+import { OxyProvider, useAccountColor, useOxy } from '@oxy.so/services/ui/client';
 import { toast } from '@oxy.so/bloom';
 import { ImageResolverProvider } from '@oxy.so/bloom/image-resolver';
 import type { ImageResolver } from '@oxy.so/bloom/image-resolver';
@@ -61,10 +61,10 @@ export default function RootLayout() {
 }
 
 function ThemedRoot() {
-  const { themePreference, colorPreset } = useThemeContext();
+  const { themePreference } = useThemeContext();
   const themeMode = themePreference as ThemeMode;
   return (
-    <BloomProvider mode={themeMode} colorPreset={colorPreset}>
+    <BloomProvider mode={themeMode}>
       <BloomScope size="md">
         <RootLayoutContent />
       </BloomScope>
@@ -157,6 +157,9 @@ function RootEffects() {
   // First: on SDK 58 a notification with no handler installed shows in the
   // foreground, so the handler goes in before anything can register for push.
   useForegroundNotificationHandler();
+  // The colour is the Oxy account colour, applied to the Bloom theme above;
+  // signed-out visitors keep Bloom's default.
+  useAccountColor();
   useInboxSocket();
   useMailboxPoll();
   usePushRegistration();

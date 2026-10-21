@@ -917,6 +917,7 @@ const ar: LocaleDict = {
         useTheme: 'استخدام السمة {{theme}}',
         systemHint: 'يتبع خيار "النظام" إعداد المظهر في جهازك.',
         accentColor: 'لون التمييز',
+        accentColorFailed: 'تعذّر حفظ لون التمييز.',
       },
       notifications: {
         deviceNotice: 'تُدار أذونات إشعارات النظام من إعدادات جهازك.',

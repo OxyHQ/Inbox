@@ -44,7 +44,9 @@
           "android": {
             "enableProguardInReleaseBuilds": true,
             "enableShrinkResourcesInReleaseBuilds": true,
-            "useLegacyPackaging": true
+            "useLegacyPackaging": true,
+            "gifEnabled": false,
+            "webpEnabled": false
           }
         }
       ],
@@ -53,7 +55,7 @@
       "expo-secure-store",
       "expo-sharing",
       "expo-web-browser",
-      "expo-audio",
+      ["expo-audio", { "enableBackgroundPlayback": false }],
       [
         "react-native-audio-api",
         {

@@ -1,12 +1,10 @@
-import {
-  RiArchiveLine,
-  RiInbox2Line,
-  RiCheckLine,
-  RiDeleteBinLine,
-  RiMailOpenLine,
-  RiPushpinLine,
-  RiPriceTag3Line,
-} from '@oxy.so/bloom/icons';
+import { RiArchiveLine } from '@oxy.so/bloom/icons/RiArchiveLine';
+import { RiInbox2Line } from '@oxy.so/bloom/icons/RiInbox2Line';
+import { RiCheckLine } from '@oxy.so/bloom/icons/RiCheckLine';
+import { RiDeleteBinLine } from '@oxy.so/bloom/icons/RiDeleteBinLine';
+import { RiMailOpenLine } from '@oxy.so/bloom/icons/RiMailOpenLine';
+import { RiPushpinLine } from '@oxy.so/bloom/icons/RiPushpinLine';
+import { RiPriceTag3Line } from '@oxy.so/bloom/icons/RiPriceTag3Line';
 import { MailRow, type MailAction } from '@oxy.so/bloom/mail-list';
 import { useTheme } from '@oxy.so/bloom/theme';
 /** Bloom owns row layout, selection, hover actions and density on every platform. */

@@ -1,7 +1,10 @@
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
 import { toast } from '@oxy.so/bloom/toast';
 import { Button, IconButton } from '@oxy.so/bloom/button';
-import { RiArrowDownSLine, RiSaveLine, RiSendPlaneLine, RiTimeLine } from '@oxy.so/bloom/icons';
+import { RiArrowDownSLine } from '@oxy.so/bloom/icons/RiArrowDownSLine';
+import { RiSaveLine } from '@oxy.so/bloom/icons/RiSaveLine';
+import { RiSendPlaneLine } from '@oxy.so/bloom/icons/RiSendPlaneLine';
+import { RiTimeLine } from '@oxy.so/bloom/icons/RiTimeLine';
 import { MailComposeSurface } from '@oxy.so/bloom/mail-compose';
 import { MailQuoteToggle } from '@oxy.so/bloom/mail-thread';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';

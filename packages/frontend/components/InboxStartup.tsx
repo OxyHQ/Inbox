@@ -1,7 +1,10 @@
 import { AppShell } from '@oxy.so/bloom/app-shell';
 import { PageHeader } from '@oxy.so/bloom/page-header';
 import { Screen } from '@oxy.so/bloom/screen';
-import { RiDraftLine, RiInbox2Line, RiSendPlaneLine, RiStarLine } from '@oxy.so/bloom/icons';
+import { RiDraftLine } from '@oxy.so/bloom/icons/RiDraftLine';
+import { RiInbox2Line } from '@oxy.so/bloom/icons/RiInbox2Line';
+import { RiSendPlaneLine } from '@oxy.so/bloom/icons/RiSendPlaneLine';
+import { RiStarLine } from '@oxy.so/bloom/icons/RiStarLine';
 import { LogoIcon } from '@/assets/logo';
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';

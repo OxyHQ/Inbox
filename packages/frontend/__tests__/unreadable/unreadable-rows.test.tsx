@@ -50,7 +50,6 @@ jest.mock('@oxy.so/bloom/card', () => ({
   CardTitle: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
   CardDescription: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
 }));
-jest.mock('@oxy.so/bloom/icons', () => ({ RiErrorWarningLine: () => null }));
 jest.mock('@oxy.so/bloom/empty-state', () => ({
   EmptyState: ({
     title,

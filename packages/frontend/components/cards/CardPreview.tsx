@@ -9,14 +9,12 @@ import { Card } from '@oxy.so/bloom/card';
 import { Text } from '@oxy.so/bloom/typography';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { View } from 'react-native';
-import {
-  RiSendPlaneLine,
-  RiShoppingBag3Line,
-  RiCalendarLine,
-  RiFileList2Line,
-  RiBox3Line,
-  RiFileTextLine,
-} from '@oxy.so/bloom/icons';
+import { RiSendPlaneLine } from '@oxy.so/bloom/icons/RiSendPlaneLine';
+import { RiShoppingBag3Line } from '@oxy.so/bloom/icons/RiShoppingBag3Line';
+import { RiCalendarLine } from '@oxy.so/bloom/icons/RiCalendarLine';
+import { RiFileList2Line } from '@oxy.so/bloom/icons/RiFileList2Line';
+import { RiBox3Line } from '@oxy.so/bloom/icons/RiBox3Line';
+import { RiFileTextLine } from '@oxy.so/bloom/icons/RiFileTextLine';
 import type { BloomIconComponent } from '@oxy.so/bloom/icons';
 import type { BloomTone } from '@oxy.so/bloom/appearance';
 import { useTranslation, type TranslateFn } from '@/lib/i18n';

@@ -19,7 +19,7 @@ import { useLabels } from '@/hooks/queries/useLabels';
 import { useTranslation } from '@/lib/i18n';
 import { Button, IconButton } from '@oxy.so/bloom/button';
 import { EmptyState } from '@oxy.so/bloom/empty-state';
-import { RiCloseLine } from '@oxy.so/bloom/icons';
+import { RiCloseLine } from '@oxy.so/bloom/icons/RiCloseLine';
 import { Loading } from '@oxy.so/bloom/loading';
 import { Text } from '@oxy.so/bloom/typography';
 import { useIsFocused, useRouter } from 'expo-router';

@@ -19,24 +19,22 @@ import { AppShell } from '@oxy.so/bloom/app-shell';
 import { MAIL_DETAIL_PANEL, MAIL_LIST_PANEL, MAIL_PANELS, MAIL_WORKSPACE } from './mailWorkspace';
 import { Button } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
-import {
-  RiAddLine,
-  RiArchiveLine,
-  RiArrowDownSLine,
-  RiArrowUpSLine,
-  RiDeleteBinLine,
-  RiDraftLine,
-  RiEditLine,
-  RiFolderLine,
-  RiInbox2Line,
-  RiMailLine,
-  RiPriceTag3Line,
-  RiSendPlaneLine,
-  RiSettings3Line,
-  RiSpamLine,
-  RiStarLine,
-  RiTimeLine,
-} from '@oxy.so/bloom/icons';
+import { RiAddLine } from '@oxy.so/bloom/icons/RiAddLine';
+import { RiArchiveLine } from '@oxy.so/bloom/icons/RiArchiveLine';
+import { RiArrowDownSLine } from '@oxy.so/bloom/icons/RiArrowDownSLine';
+import { RiArrowUpSLine } from '@oxy.so/bloom/icons/RiArrowUpSLine';
+import { RiDeleteBinLine } from '@oxy.so/bloom/icons/RiDeleteBinLine';
+import { RiDraftLine } from '@oxy.so/bloom/icons/RiDraftLine';
+import { RiEditLine } from '@oxy.so/bloom/icons/RiEditLine';
+import { RiFolderLine } from '@oxy.so/bloom/icons/RiFolderLine';
+import { RiInbox2Line } from '@oxy.so/bloom/icons/RiInbox2Line';
+import { RiMailLine } from '@oxy.so/bloom/icons/RiMailLine';
+import { RiPriceTag3Line } from '@oxy.so/bloom/icons/RiPriceTag3Line';
+import { RiSendPlaneLine } from '@oxy.so/bloom/icons/RiSendPlaneLine';
+import { RiSettings3Line } from '@oxy.so/bloom/icons/RiSettings3Line';
+import { RiSpamLine } from '@oxy.so/bloom/icons/RiSpamLine';
+import { RiStarLine } from '@oxy.so/bloom/icons/RiStarLine';
+import { RiTimeLine } from '@oxy.so/bloom/icons/RiTimeLine';
 import type { SidebarNavItem, SidebarProps } from '@oxy.so/bloom/sidebar';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { ProfileButton, useOxy } from '@oxy.so/services/ui/client';

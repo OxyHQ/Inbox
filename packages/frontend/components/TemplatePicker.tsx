@@ -2,7 +2,7 @@ import { useTemplates } from '@/hooks/queries/useTemplates';
 import type { EmailTemplate } from '@/services/emailApi';
 import { IconButton } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
-import { RiDraftLine } from '@oxy.so/bloom/icons';
+import { RiDraftLine } from '@oxy.so/bloom/icons/RiDraftLine';
 import { SettingsListItem } from '@oxy.so/bloom/settings-list';
 import { useCallback } from 'react';
 import { ScrollView } from 'react-native';

@@ -1,5 +1,5 @@
 import { Button } from '@oxy.so/bloom/button';
-import { RiCalendarLine } from '@oxy.so/bloom/icons';
+import { RiCalendarLine } from '@oxy.so/bloom/icons/RiCalendarLine';
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';
 import type { CardData } from '@/services/emailApi';

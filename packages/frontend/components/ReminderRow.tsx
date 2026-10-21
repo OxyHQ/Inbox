@@ -1,7 +1,7 @@
 import { useTranslation, type TranslateFn } from '@/lib/i18n';
 import { Button, IconButton } from '@oxy.so/bloom/button';
 import { Checkbox } from '@oxy.so/bloom/checkbox';
-import { RiDeleteBinLine } from '@oxy.so/bloom/icons';
+import { RiDeleteBinLine } from '@oxy.so/bloom/icons/RiDeleteBinLine';
 import { Item } from '@oxy.so/bloom/item';
 /**
  * Reminder row for the inbox list.

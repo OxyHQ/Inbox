@@ -107,7 +107,6 @@ jest.mock('@oxy.so/bloom/app-shell', () => ({
     );
   },
 }));
-jest.mock('@oxy.so/bloom/icons', () => new Proxy({}, { get: () => () => null }));
 jest.mock('@oxy.so/bloom/dialog', () => ({
   useDialogControl: () => ({ open: jest.fn(), close: jest.fn() }),
   Dialog: ({ children, actions }: Children & { actions?: DialogAction[] }) => (

@@ -4,7 +4,9 @@ import { Text } from '@oxy.so/bloom/typography';
 import { useMailboxScrollRestoration } from '@/hooks/useMailboxScrollRestoration';
 import { useAppShell } from '@oxy.so/bloom/app-shell';
 import { ButtonGroup, ButtonGroupItem } from '@oxy.so/bloom/button-group';
-import { RiAddLine, RiMenuLine, RiSearchLine } from '@oxy.so/bloom/icons';
+import { RiAddLine } from '@oxy.so/bloom/icons/RiAddLine';
+import { RiMenuLine } from '@oxy.so/bloom/icons/RiMenuLine';
+import { RiSearchLine } from '@oxy.so/bloom/icons/RiSearchLine';
 import { PageHeader } from '@oxy.so/bloom/page-header';
 /**
  * Routed mailbox list with Bloom page chrome and pull-to-refresh.
@@ -18,7 +20,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useIsFocused, useRouter } from 'expo-router';
 
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshControl, StyleSheet, View } from 'react-native';
 import Animated, { type AnimatedProps } from 'react-native-reanimated';
 
@@ -57,8 +59,11 @@ import type { Bundle, Message, Reminder, UnreadableMessage } from '@/services/em
 import { messageRoute } from '@/utils/messageRoute';
 import { followSelectedRows } from '@/utils/threadGrouping';
 import { useCurrentList } from '@/hooks/useCurrentList';
-import { AliaChatSheet, type AliaChatSheetRef } from '@alia.onl/sdk';
+import type { InboxAliaRequest } from './InboxAlia';
+
 import { AliaAvatarIcon } from '@alia.onl/sdk/avatar';
+
+const InboxAlia = lazy(() => import('./InboxAlia'));
 
 type ListItem =
   | { type: 'header'; title: string; key: string; count?: number }
@@ -137,32 +142,10 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const drawerAvailable = shell.drawerAvailable;
   const colors = useColors();
   const { t } = useTranslation();
-  const aliaChatRef = useRef<AliaChatSheetRef>(null);
-  const [briefAction, setBriefAction] = useState<InboxDailyBriefAction | null>(null);
+  const [aliaRequest, setAliaRequest] = useState<InboxAliaRequest | null>(null);
   const handleBriefAction = useCallback((action: InboxDailyBriefAction) => {
-    setBriefAction({ ...action });
+    setAliaRequest({ action });
   }, []);
-  // Wait for the sheet to receive the referenced message IDs before sending the turn.
-  useEffect(() => {
-    if (briefAction) aliaChatRef.current?.present({ text: briefAction.prompt });
-  }, [briefAction]);
-  const aliaWelcomeSuggestions = useMemo(
-    () => [
-      {
-        id: 'unread',
-        text: t('inbox.aliaSuggestions.unread.prompt'),
-      },
-      {
-        id: 'today-summary',
-        text: t('inbox.aliaSuggestions.todaysSummary.prompt'),
-      },
-      {
-        id: 'with-attachments',
-        text: t('inbox.aliaSuggestions.withAttachments.prompt'),
-      },
-    ],
-    [t],
-  );
   const { isAuthenticated, user } = useOxy();
   const { prefs } = useInboxPrefs();
   const { density, showPreviews } = useInboxDisplayPrefs();
@@ -581,8 +564,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const handleOpenDrawer = shell.openDrawer;
 
   const handleAskAlia = useCallback(() => {
-    setBriefAction(null);
-    aliaChatRef.current?.present();
+    setAliaRequest({});
   }, []);
 
   const handleSearch = useCallback(() => {
@@ -1001,17 +983,10 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       </View>
 
       {/* Alia remains available from the inline header action. */}
-      {isAuthenticated && (
-        <AliaChatSheet
-          ref={aliaChatRef}
-          app="inbox"
-          clientContext={
-            briefAction
-              ? `${t('inbox.aliaClientContext')}\nThe selected daily brief action refers to these Inbox message IDs: ${JSON.stringify(briefAction.messageIds)}. Read their current contents with Inbox tools before acting.`
-              : t('inbox.aliaClientContext')
-          }
-          welcomeSuggestions={aliaWelcomeSuggestions}
-        />
+      {isAuthenticated && aliaRequest && (
+        <Suspense fallback={null}>
+          <InboxAlia request={aliaRequest} />
+        </Suspense>
       )}
 
       {/* Snooze sheet */}

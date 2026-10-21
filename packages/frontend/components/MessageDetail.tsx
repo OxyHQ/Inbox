@@ -10,24 +10,22 @@ import { useAppShell } from '@oxy.so/bloom/app-shell';
 import { ButtonGroup, ButtonGroupItem } from '@oxy.so/bloom/button-group';
 import { Button, IconButton } from '@oxy.so/bloom/button';
 import { Checkbox } from '@oxy.so/bloom/checkbox';
-import {
-  RiArchiveLine,
-  RiCalendarLine,
-  RiInbox2Line,
-  RiArrowGoBackLine,
-  RiCornerUpLeftLine,
-  RiDeleteBinLine,
-  RiDraftLine,
-  RiMailLine,
-  RiMenuLine,
-  RiMoreLine,
-  RiPrinterLine,
-  RiPushpinLine,
-  RiShareForwardLine,
-  RiStarFill,
-  RiStarLine,
-  RiTimeLine,
-} from '@oxy.so/bloom/icons';
+import { RiArchiveLine } from '@oxy.so/bloom/icons/RiArchiveLine';
+import { RiCalendarLine } from '@oxy.so/bloom/icons/RiCalendarLine';
+import { RiInbox2Line } from '@oxy.so/bloom/icons/RiInbox2Line';
+import { RiArrowGoBackLine } from '@oxy.so/bloom/icons/RiArrowGoBackLine';
+import { RiCornerUpLeftLine } from '@oxy.so/bloom/icons/RiCornerUpLeftLine';
+import { RiDeleteBinLine } from '@oxy.so/bloom/icons/RiDeleteBinLine';
+import { RiDraftLine } from '@oxy.so/bloom/icons/RiDraftLine';
+import { RiMailLine } from '@oxy.so/bloom/icons/RiMailLine';
+import { RiMenuLine } from '@oxy.so/bloom/icons/RiMenuLine';
+import { RiMoreLine } from '@oxy.so/bloom/icons/RiMoreLine';
+import { RiPrinterLine } from '@oxy.so/bloom/icons/RiPrinterLine';
+import { RiPushpinLine } from '@oxy.so/bloom/icons/RiPushpinLine';
+import { RiShareForwardLine } from '@oxy.so/bloom/icons/RiShareForwardLine';
+import { RiStarFill } from '@oxy.so/bloom/icons/RiStarFill';
+import { RiStarLine } from '@oxy.so/bloom/icons/RiStarLine';
+import { RiTimeLine } from '@oxy.so/bloom/icons/RiTimeLine';
 import { MailMessage, MailThread, type MailThreadMessage } from '@oxy.so/bloom/mail-thread';
 import { PageHeader } from '@oxy.so/bloom/page-header';
 /**

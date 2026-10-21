@@ -20,12 +20,10 @@ import { useTranslation } from '@/lib/i18n';
 import type { EmailFilterAction, EmailFilterCondition } from '@/services/emailApi';
 import { Button, IconButton } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
-import {
-  RiArrowDownSLine,
-  RiArrowUpSLine,
-  RiDeleteBin6Line,
-  RiEditLine,
-} from '@oxy.so/bloom/icons';
+import { RiArrowDownSLine } from '@oxy.so/bloom/icons/RiArrowDownSLine';
+import { RiArrowUpSLine } from '@oxy.so/bloom/icons/RiArrowUpSLine';
+import { RiDeleteBin6Line } from '@oxy.so/bloom/icons/RiDeleteBin6Line';
+import { RiEditLine } from '@oxy.so/bloom/icons/RiEditLine';
 import { SettingsProfilePage } from '@oxy.so/bloom/settings-modal';
 import { Switch } from '@oxy.so/bloom/switch';
 import { Textarea } from '@oxy.so/bloom/textarea';

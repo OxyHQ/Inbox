@@ -11,11 +11,12 @@
  * Call it BEFORE the action, while the list still holds the rows.
  */
 
-import { useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import { useCallback } from 'react';
 
 import { useCurrentList } from '@/hooks/useCurrentList';
 import { useEmailStore } from '@/hooks/useEmail';
+import { useGoBack } from '@/hooks/useGoBack';
 import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 
 export function useLeaveRemovedRows() {
@@ -47,5 +48,39 @@ export function useLeaveRemovedRows() {
       else router.replace(`/conversation/${next._id}`);
     },
     [rows, conversationOf, viewHref, isDesktop, router],
+  );
+}
+
+/**
+ * Leave the conversation the reader shows, once an action has taken it out of
+ * its folder. Call it BEFORE the action, like `useLeaveRemovedRows`.
+ *
+ * Full screen, the reader goes back. As the reading pane beside the list it
+ * follows the selection to the neighbouring conversation, as the list's own
+ * actions and shortcuts do — it used to stay on the conversation the action
+ * had just removed, so the next Archive acted on a message no longer in the
+ * folder. Opened from search, whose results this list does not hold, the pane
+ * closes back to them.
+ */
+export function useLeaveOpenConversation(mode: 'standalone' | 'embedded') {
+  const router = useRouter();
+  const inSearch = usePathname().startsWith('/search');
+  const goBack = useGoBack(inSearch ? '/search' : '/');
+  const leaveRemovedRows = useLeaveRemovedRows();
+
+  return useCallback(
+    (removedIds: readonly string[]) => {
+      if (mode === 'standalone') {
+        goBack();
+        return;
+      }
+      if (inSearch) {
+        useEmailStore.setState({ selectedMessageId: null });
+        router.replace('/search');
+        return;
+      }
+      leaveRemovedRows(removedIds);
+    },
+    [mode, inSearch, goBack, leaveRemovedRows, router],
   );
 }

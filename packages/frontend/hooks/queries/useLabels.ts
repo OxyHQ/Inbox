@@ -127,9 +127,11 @@ export function useUpdateLabel() {
     },
     // A rename is rewritten on the server onto every message, bundle and
     // filter that carries the label, so the chips on every list, the open
-    // message and search results are all stale — not only the label list.
+    // message and search results are all stale — not only the label list —
+    // and so is the bundle configuration, which names labels.
     onSuccess: () => {
       invalidateMailViews(queryClient);
+      void queryClient.invalidateQueries({ queryKey: emailKeys.bundles });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: LABELS_KEY });
@@ -157,9 +159,11 @@ export function useDeleteLabel() {
       if (context?.prev) queryClient.setQueryData(LABELS_KEY, context.prev);
       toast.error(t('ui.mutations.labelDeleteFailed'));
     },
-    // Deleting a label removes it from every message that carried it.
+    // Deleting a label removes it from every message that carried it, and
+    // from the bundles that matched it.
     onSuccess: () => {
       invalidateMailViews(queryClient);
+      void queryClient.invalidateQueries({ queryKey: emailKeys.bundles });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: LABELS_KEY });

@@ -8,6 +8,9 @@ import { emailKeys } from '@/hooks/queries/queryKeys';
  * URL with a fallback to the authenticated `/assets/:id/stream` endpoint).
  * Signed URLs expire in 60 min; staleTime is 45 min to refresh before expiry.
  */
+/** Signed URLs expire in 60 min: refreshed before that. */
+export const ATTACHMENT_URL_STALE_MS = 45 * 60 * 1000;
+
 export function useAttachmentUrl(fileId: string, enabled = true, variant?: string) {
   const { oxyServices } = useOxy();
 
@@ -15,7 +18,7 @@ export function useAttachmentUrl(fileId: string, enabled = true, variant?: strin
     queryKey: emailKeys.attachmentUrl(fileId, variant),
     queryFn: () => oxyServices.assets.url(fileId, variant),
     enabled: enabled && !!fileId,
-    staleTime: 45 * 60 * 1000,
+    staleTime: ATTACHMENT_URL_STALE_MS,
   });
 
   return { url, isLoading };

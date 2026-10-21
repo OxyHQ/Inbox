@@ -29,6 +29,7 @@ import { formatReminderTime } from '@/components/ReminderRow';
 import { calendarTimes, generateIcs } from '@/utils/calendarEvent';
 import { formatCardDate, formatMoney } from '@/utils/cardFormat';
 import { buildPrintHtml } from '@/utils/printMessage';
+import { formatQuoteDate } from '@/utils/quoteDate';
 import { defined } from '../fixtures/defined';
 
 Object.defineProperty(globalThis, 'TextEncoder', { value: NodeTextEncoder });
@@ -189,5 +190,22 @@ describe('native WebView navigation', () => {
       allow: false,
       open: null,
     });
+  });
+});
+
+describe('the date in a quote or a forward', () => {
+  it('is written in the app language, not the device one', () => {
+    const date = '2026-10-10T12:00:00.000Z';
+    expect(formatQuoteDate(date, 'es')).toBe(
+      new Intl.DateTimeFormat('es', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      }).format(new Date(date)),
+    );
+    expect(formatQuoteDate(date, 'es')).not.toBe(formatQuoteDate(date, 'en'));
   });
 });

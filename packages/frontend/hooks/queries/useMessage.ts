@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useOxy } from '@oxy.so/services/ui/client';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
-import type { Message } from '@/services/emailApi';
+import { type Message, UnreadableMessageError } from '@/services/emailApi';
 
 export function useMessage(messageId: string | undefined) {
   const api = useEmailStore((s) => s._api);
@@ -17,5 +17,8 @@ export function useMessage(messageId: string | undefined) {
       return api.getMessage(messageId, { signal });
     },
     enabled: !!messageId && !!api && !!userId,
+    // A message that fails the schema fails it again: the reader shows it as
+    // unreadable at once rather than after the retries.
+    retry: (failureCount, error) => !(error instanceof UnreadableMessageError) && failureCount < 2,
   });
 }

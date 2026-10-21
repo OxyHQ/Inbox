@@ -30,7 +30,7 @@ import { useGoBack } from '@/hooks/useGoBack';
 import { useReplyParent } from '@/hooks/useReplyParent';
 import { useTranslation } from '@/lib/i18n';
 import type { Message } from '@/services/emailApi';
-import { forwardedBody, textToEditorContent } from '@/utils/composeBody';
+import { forwardedAttachments, forwardedBody, textToEditorContent } from '@/utils/composeBody';
 import { formatQuoteDate } from '@/utils/quoteDate';
 import { draftReplyHeaders } from '@/utils/replyHeaders';
 
@@ -130,7 +130,7 @@ function ComposeSessionForm({
   const occupiedBottom = useBottomEdgeInset();
   const { width: viewportWidth } = useWindowDimensions();
   const bottomClearance = viewportWidth < BREAKPOINTS.md ? occupiedBottom : 0;
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   // A reply's parent is loaded by its row id only to read its RFC headers. A
   // reopened draft already carries them.
@@ -145,14 +145,14 @@ function ComposeSessionForm({
             forwarded,
             t('inlineReply.forwardHeader', {
               from: forwarded.from.name || forwarded.from.address,
-              date: formatQuoteDate(forwarded.date),
+              date: formatQuoteDate(forwarded.date, locale),
               subject: forwarded.subject,
               to: forwarded.to.map((a) => a.name || a.address).join(', '),
             }),
             isWeb,
           )
         : '',
-    [forwarded, t],
+    [forwarded, t, locale],
   );
 
   const session = useComposeSession({
@@ -175,6 +175,8 @@ function ComposeSessionForm({
             : `Fwd: ${forwarded.subject}`
           : undefined),
       body: initialBody ? textToEditorContent(initialBody, isWeb) : undefined,
+      // A forward sends the original's files on, as other clients do.
+      attachments: forwarded ? forwardedAttachments(forwarded) : undefined,
     },
     replyTo,
     replyHeaders,

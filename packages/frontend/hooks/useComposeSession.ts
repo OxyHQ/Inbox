@@ -13,6 +13,7 @@
  */
 
 import { toast } from '@oxy.so/bloom';
+import { useQueryClient } from '@tanstack/react-query';
 import type { FileMetadata } from '@oxy.so/core';
 import { useOxy } from '@oxy.so/services/ui/client';
 import { type Href, useRouter } from 'expo-router';
@@ -26,6 +27,7 @@ import {
   useSendMessageWithUndo,
   type PendingSend,
 } from '@/hooks/mutations/useMessageMutations';
+import { emailKeys } from '@/hooks/queries/queryKeys';
 import { useEmailStore } from '@/hooks/useEmail';
 import type { Message } from '@/services/emailApi';
 import {
@@ -53,6 +55,7 @@ import {
 import type { ReplyHeaders } from '@/utils/replyHeaders';
 import { joinAddresses } from '@/utils/replyRecipients';
 import { type TranslateFn, useTranslation } from '@/lib/i18n';
+import { dateFormatter } from '@/utils/dateFormat';
 import {
   type AlreadySent,
   alreadySentUnderKey,
@@ -118,15 +121,19 @@ export interface SentVersion {
   notice: string;
 }
 
-/** A scheduled time as the composer shows it. */
-function scheduledTimeLabel(date: Date): string {
-  return date.toLocaleString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+const SCHEDULED_TIME: Intl.DateTimeFormatOptions = {
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+};
+
+/** A scheduled time as the composer shows it, in the app's language. */
+function scheduledTimeLabel(date: Date, locale: string | undefined): string {
+  return locale
+    ? dateFormatter(locale, SCHEDULED_TIME).format(date)
+    : date.toLocaleString(undefined, SCHEDULED_TIME);
 }
 
 /**
@@ -139,10 +146,11 @@ export function alreadySentNotice(
   t: TranslateFn,
   sent: AlreadySent,
   outcome: 'closed' | 'open',
+  locale?: string,
 ): string {
   const due =
     sent.deliveryState === 'scheduled' && sent.scheduledAt ? new Date(sent.scheduledAt) : null;
-  const time = due && !Number.isNaN(due.getTime()) ? scheduledTimeLabel(due) : null;
+  const time = due && !Number.isNaN(due.getTime()) ? scheduledTimeLabel(due, locale) : null;
   if (sent.deliveryState === 'failed') return t('compose.alreadySent.versionFailed');
   if (sent.deliveryState === 'cancelled') return t('compose.alreadySent.versionCancelled');
   if (outcome === 'closed') {
@@ -193,8 +201,17 @@ export interface ComposeSessionOptions {
   recoveryIdentity: string;
   /** The server draft this session continues. Its id is the session's draft. */
   draft?: Message;
-  /** Starting fields when there is no draft (a reply's recipients, a mailto link). */
-  initial?: { to?: string; cc?: string; subject?: string; body?: string };
+  /**
+   * Starting fields when there is no draft (a reply's recipients, a mailto
+   * link, a forward's attachments).
+   */
+  initial?: {
+    to?: string;
+    cc?: string;
+    subject?: string;
+    body?: string;
+    attachments?: ComposerAttachment[];
+  };
   /** Row id of the message replied to; kept with the recovery snapshot. */
   replyTo?: string;
   /** The RFC threading headers every save and send carries. */
@@ -233,9 +250,10 @@ export function useComposeSession({
   onFinished,
   reopen,
 }: ComposeSessionOptions) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { user } = useOxy();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const api = useEmailStore((s) => s._api);
   const { sendWithUndo, isPending: sendPending } = useSendMessageWithUndo();
   const sendMessageMutation = useSendMessage();
@@ -268,7 +286,7 @@ export function useComposeSession({
       bcc: '',
       subject: initial?.subject ?? '',
       body: initial?.body ?? '',
-      attachments: [] as ComposerAttachment[],
+      attachments: initial?.attachments ?? [],
     };
   });
 
@@ -447,8 +465,14 @@ export function useComposeSession({
   useEffect(() => {
     if (!api || !insertSignature) return;
     let cancelled = false;
-    void api
-      .getSettings()
+    // Through the settings query (`useSettings`): read once while fresh, not
+    // once more for every composer and inline reply opened.
+    void queryClient
+      .fetchQuery({
+        queryKey: emailKeys.settings(user?.id ?? null),
+        queryFn: () => api.getSettings(),
+        staleTime: 60_000,
+      })
       .then((settings) => {
         if (cancelled || !settings.signature) return;
         if (!isBodyBlank(bodyValueRef.current, null, isWeb)) return;
@@ -779,7 +803,7 @@ export function useComposeSession({
       const left = sent.deliveryState !== 'failed' && sent.deliveryState !== 'cancelled';
       if (unchanged && left) {
         toast.info(
-          alreadySentNotice(t, sent, 'closed'),
+          alreadySentNotice(t, sent, 'closed', locale),
           sent.id
             ? {
                 action: { label: t('compose.alreadySent.view'), onClick: () => viewSent(sent) },
@@ -792,7 +816,7 @@ export function useComposeSession({
         return;
       }
       sentRef.current = false;
-      const notice = alreadySentNotice(t, sent, 'open');
+      const notice = alreadySentNotice(t, sent, 'open', locale);
       if (mountedRef.current) {
         setSentVersion({ sent, retry, notice });
         return;
@@ -814,7 +838,7 @@ export function useComposeSession({
         ...(buttons[1] ? { cancel: buttons[1] } : {}),
       });
     },
-    [finish, recoveryKey, reopen, router, t, viewSent],
+    [finish, locale, recoveryKey, reopen, router, t, viewSent],
   );
 
   const startSend = useCallback(
@@ -871,6 +895,9 @@ export function useComposeSession({
 
       sentRef.current = true;
       await saveBeforeSend();
+      // Discarded while that save ran: the message the user threw away must not
+      // be scheduled behind the closed composer, as `startSend` already knows.
+      if (discardedRef.current) return;
       const attempt = {
         attempted: restoredKeyContentRef.current ?? attemptedContentKeyRef.current,
         sent: latest.current.contentKey,
@@ -880,7 +907,7 @@ export function useComposeSession({
         {
           onSuccess: () => {
             toast.success(
-              t('compose.toast.scheduled', { time: scheduledTimeLabel(scheduledDate) }),
+              t('compose.toast.scheduled', { time: scheduledTimeLabel(scheduledDate, locale) }),
             );
             void clearComposeRecovery(recoveryKey);
             finish();
@@ -904,6 +931,7 @@ export function useComposeSession({
       finish,
       handleKeyReused,
       recoveryKey,
+      locale,
       sendMessageMutation,
       saveBeforeSend,
       t,

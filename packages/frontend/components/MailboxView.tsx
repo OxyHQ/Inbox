@@ -11,7 +11,7 @@ import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
  * The route owns the list at every width; Bloom owns its surrounding panel.
  */
 
-import { useIsFocused } from 'expo-router';
+import { Redirect, useIsFocused } from 'expo-router';
 import Head from 'expo-router/head';
 import { useEffect, useMemo } from 'react';
 
@@ -63,6 +63,18 @@ export function MailboxView({ view }: { view: string }) {
     return view.charAt(0).toUpperCase() + view.slice(1);
   }, [view, t, mailboxes]);
 
+  // A view that names no folder of this account — a mistyped or stale link, a
+  // folder since deleted. It used to select nothing, so the list kept showing
+  // the folder viewed before under this URL.
+  const unknownView = useMemo(() => {
+    if (!view || mailboxes.length === 0) return false;
+    const viewLower = view.toLowerCase();
+    if (viewLower === 'starred') return false;
+    const specialUse = VIEW_TO_SPECIAL_USE[viewLower];
+    if (specialUse) return !mailboxes.some((m) => m.specialUse === specialUse);
+    return !mailboxes.some((m) => m._id === view);
+  }, [view, mailboxes]);
+
   // The folder's own count, not the unread messages that happen to be loaded
   // (one page of them, at most).
   const unreadCount = useMemo(
@@ -107,6 +119,8 @@ export function MailboxView({ view }: { view: string }) {
       selectMailbox(customMailbox);
     }
   }, [isFocused, view, mailboxes, selectMailbox, selectStarred]);
+
+  if (unknownView) return <Redirect href="/" />;
 
   return (
     <>

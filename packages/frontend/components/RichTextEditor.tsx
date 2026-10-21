@@ -27,6 +27,7 @@ import { Platform, StyleSheet, type TextInputInstance, View } from 'react-native
 
 import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';
+import { editorDomValue } from '@/utils/composeBody';
 
 export interface RichTextEditorProps {
   value: string;
@@ -84,10 +85,15 @@ function WebRichTextEditor(
     setActiveFormats(formats);
   }, []);
 
+  // What this editor last reported. A value that is its own report is already
+  // in the DOM, which may have moved on since (typing outruns a render), so it
+  // is never written back: that reset the caret, or dropped what was typed.
+  const lastEmitted = useRef<string | null>(null);
+
   // Sync external value changes into the editor
   useEffect(() => {
     const el = editorRef.current;
-    if (!el) return;
+    if (!el || value === lastEmitted.current) return;
     if (el.innerHTML !== value) {
       el.innerHTML = value;
     }
@@ -108,6 +114,7 @@ function WebRichTextEditor(
         const el = editorRef.current;
         if (!el) return;
         el.innerHTML = content;
+        lastEmitted.current = content;
         onChange(content);
       },
       focus() {
@@ -120,11 +127,9 @@ function WebRichTextEditor(
   const emitChange = useCallback(() => {
     const el = editorRef.current;
     if (!el) return;
-    const html = el.innerHTML;
-    // Treat <br> or empty tags as empty
-    const textContent = el.textContent || '';
-    const empty = !textContent.trim() && !html.includes('<img');
-    onChange(empty ? '' : html);
+    const next = editorDomValue(el.innerHTML, el.textContent ?? '');
+    lastEmitted.current = next;
+    onChange(next);
   }, [onChange]);
 
   const handleInput = useCallback(() => {
@@ -142,10 +147,10 @@ function WebRichTextEditor(
     emitChange();
   }, [emitChange]);
 
-  // Plain-text paste by default; Shift+paste keeps formatting
+  // Paste is plain text: markup from the clipboard would become live DOM on
+  // this origin. (A Shift+paste "keep formatting" path read `shiftKey` off the
+  // paste event, which has none, so it never ran.)
   const handlePaste = useCallback((e: ClipboardEvent) => {
-    // Check if Shift is held to allow rich paste (shiftKey exists on the native event)
-    if ((e as unknown as KeyboardEvent).shiftKey) return;
     e.preventDefault();
     const text = e.clipboardData?.getData('text/plain') ?? '';
     document.execCommand('insertText', false, text);

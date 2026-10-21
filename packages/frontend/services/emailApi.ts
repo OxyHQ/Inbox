@@ -31,6 +31,7 @@ import {
   SendResultSchema,
 } from '@/schemas/emailSchemas';
 import { recordInboxMetric } from '@/utils/inboxTelemetry';
+import { noteOwnChange } from '@/utils/ownChanges';
 import type {
   RecipientInput,
   Message,
@@ -177,8 +178,24 @@ function parseMessageList(
 }
 
 /**
- * A single-message read. Throws — the detail screen shows its error state with
- * a retry — but reports the failing fields exactly as a list row would.
+ * A single message the API sent that fails the schema, with what can still be
+ * read of it — the same `UnreadableMessage` a list row degrades to.
+ */
+export class UnreadableMessageError extends Error {
+  constructor(
+    readonly unreadable: UnreadableMessage,
+    readonly issues: z.ZodError['issues'],
+  ) {
+    super('The message failed schema validation');
+    this.name = 'UnreadableMessageError';
+  }
+}
+
+/**
+ * A single-message read. Throws an `UnreadableMessageError` — the reader shows
+ * the unreadable entry with its source download, as a conversation does, since
+ * a retry parses the same row again — and reports the failing fields exactly
+ * as a list row would.
  */
 function parseMessageStrict(item: unknown, source: string): Message {
   const result = MessageSchema.safeParse(item);
@@ -192,7 +209,7 @@ function parseMessageStrict(item: unknown, source: string): Message {
     })),
   });
   recordInboxMetric('message_parse_failed');
-  throw result.error;
+  throw new UnreadableMessageError(toUnreadable(item), result.error.issues);
 }
 
 /** Long enough for a synchronous SMTP relay; see `sendMessage`. */
@@ -293,7 +310,9 @@ export function createEmailApi(http: HttpService) {
       if (options.label) params.label = options.label;
       if (options.limit !== undefined) params.limit = String(options.limit);
       if (options.offset !== undefined) params.offset = String(options.offset);
-      if (options.cursor !== undefined) params.cursor = options.cursor;
+      // The first page has no cursor: `''` is what the infinite query starts
+      // from, and `cursor=` is a cursor the API has to parse, not its absence.
+      if (options.cursor) params.cursor = options.cursor;
       if (options.unseenOnly) params.unseen = 'true';
 
       const res = (await http.get('/email/messages', {
@@ -319,31 +338,37 @@ export function createEmailApi(http: HttpService) {
     },
 
     async updateFlags(messageId: string, flags: Partial<MessageFlags>): Promise<Message> {
+      noteOwnChange([messageId]);
       const res = await http.put(`/email/messages/${messageId}/flags`, { flags });
       return MessageSchema.parse(res);
     },
 
     async updateLabels(messageId: string, add: string[], remove: string[]): Promise<Message> {
+      noteOwnChange([messageId]);
       const res = await http.put(`/email/messages/${messageId}/labels`, { add, remove });
       return MessageSchema.parse(res);
     },
 
     async moveMessage(messageId: string, mailboxId: string): Promise<Message> {
+      noteOwnChange([messageId]);
       const res = await http.post(`/email/messages/${messageId}/move`, { mailboxId });
       return MessageSchema.parse(res);
     },
 
     async snoozeMessage(messageId: string, until: string): Promise<Message> {
+      noteOwnChange([messageId]);
       const res = await http.post(`/email/messages/${messageId}/snooze`, { until });
       return MessageSchema.parse(res);
     },
 
     async unsnoozeMessage(messageId: string): Promise<Message> {
+      noteOwnChange([messageId]);
       const res = await http.post(`/email/messages/${messageId}/unsnooze`);
       return MessageSchema.parse(res);
     },
 
     async deleteMessage(messageId: string, permanent = false): Promise<void> {
+      noteOwnChange([messageId]);
       const params = permanent ? '?permanent=true' : '';
       await http.delete(`/email/messages/${messageId}${params}`);
     },
@@ -358,6 +383,7 @@ export function createEmailApi(http: HttpService) {
       messageIds: string[],
       flags: Partial<MessageFlags>,
     ): Promise<{ matched: number; modified: number }> {
+      noteOwnChange(messageIds);
       return inBatches(messageIds, async (batch) => {
         const res = await http.post('/email/messages/bulk/flags', { messageIds: batch, flags });
         return BulkResultSchema.parse(res);
@@ -368,6 +394,7 @@ export function createEmailApi(http: HttpService) {
       messageIds: string[],
       mailboxId: string,
     ): Promise<{ matched: number; modified: number }> {
+      noteOwnChange(messageIds);
       return inBatches(messageIds, async (batch) => {
         const res = await http.post('/email/messages/bulk/move', { messageIds: batch, mailboxId });
         return BulkResultSchema.parse(res);
@@ -476,7 +503,7 @@ export function createEmailApi(http: HttpService) {
       if (options.label) params.label = options.label;
       if (options.limit !== undefined) params.limit = String(options.limit);
       if (options.offset !== undefined) params.offset = String(options.offset);
-      if (options.cursor !== undefined) params.cursor = options.cursor;
+      if (options.cursor) params.cursor = options.cursor;
 
       const res = (await http.get('/email/search', { params, signal })) as PaginatedResult<unknown>;
       const { messages, unreadable } = parseMessageList(res.data, 'search');

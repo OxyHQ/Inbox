@@ -28,9 +28,13 @@ jest.mock('@tanstack/react-query', () => ({
 }));
 
 const sendMessage = jest.fn();
-jest.mock('@/hooks/useEmail', () => ({
-  useEmailStore: (selector: (s: unknown) => unknown) => selector({ _api: { sendMessage } }),
-}));
+// One state, as the real store: the API is the same object until the account changes.
+const mockStore: { _api: unknown } = { _api: { sendMessage } };
+jest.mock('@/hooks/useEmail', () => {
+  const useEmailStore = (selector: (s: unknown) => unknown) => selector(mockStore);
+  useEmailStore.getState = () => mockStore;
+  return { useEmailStore };
+});
 
 jest.mock('@oxy.so/services/ui/client', () => ({ useOxy: () => ({ user: { id: 'u1' } }) }));
 
@@ -55,6 +59,7 @@ const recipients = {
 beforeEach(() => {
   jest.useFakeTimers();
   jest.clearAllMocks();
+  mockStore._api = { sendMessage };
 });
 
 afterEach(() => {
@@ -145,6 +150,24 @@ describe('undo', () => {
 
     expect(sendMessage).not.toHaveBeenCalled();
     expect(onSuccess).not.toHaveBeenCalled();
+  });
+});
+
+describe('an account switch inside the window', () => {
+  it('calls the send off instead of sending it from the other account', async () => {
+    const onCancel = jest.fn();
+    const { result } = renderHook(() => useSendMessageWithUndo());
+    await act(async () => {
+      void result.current.sendWithUndo(recipients, { onCancel });
+    });
+
+    // The SDK's client now carries the other account's credentials.
+    mockStore._api = { sendMessage: jest.fn() };
+    await elapseUndoWindow();
+
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(toast).toHaveBeenCalledWith('ui.mutations.sendCancelled');
   });
 });
 

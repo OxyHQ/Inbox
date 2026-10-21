@@ -152,6 +152,16 @@ const ja: LocaleDict = {
     inboxSection: '受信箱',
     needsResponse: '要返信',
     followUp: 'フォローアップ',
+    triage: {
+      needsResponseDescription: '返信や対応を求める未読メール。',
+      followUpDescription: '送信したまま返信のないメール。',
+      reasons: {
+        question: '質問があります',
+        request: '対応を求めています',
+        waiting: '返信を待っています',
+        awaitingReply: 'まだ返信がありません',
+      },
+    },
     needsResponseA11y_one: '要返信、メール {{count}} 件',
     needsResponseA11y_other: '要返信、メール {{count}} 件',
     followUpA11y_one: 'フォローアップ、メール {{count}} 件',

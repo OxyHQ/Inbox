@@ -153,6 +153,16 @@ const de: LocaleDict = {
     inboxSection: 'Posteingang',
     needsResponse: 'Antwort erforderlich',
     followUp: 'Nachfassen',
+    triage: {
+      needsResponseDescription: 'Ungelesene Mails, die etwas von dir wollen.',
+      followUpDescription: 'Gesendete Mails, auf die noch keine Antwort kam.',
+      reasons: {
+        question: 'Stellt eine Frage',
+        request: 'Bittet dich um etwas',
+        waiting: 'Wartet auf deine Antwort',
+        awaitingReply: 'Noch keine Antwort',
+      },
+    },
     needsResponseA11y_one: 'Antwort erforderlich, {{count}} E-Mail',
     needsResponseA11y_other: 'Antwort erforderlich, {{count}} E-Mails',
     followUpA11y_one: 'Nachfassen, {{count}} E-Mail',

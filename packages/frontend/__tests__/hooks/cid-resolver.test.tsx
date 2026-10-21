@@ -8,8 +8,10 @@
  * and that a lookup finishing after the user moved on is dropped.
  */
 
-import { act, renderHook } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, renderHook as render } from '@testing-library/react';
 import type { OxyServices } from '@oxy.so/core';
+import type { ReactNode } from 'react';
 
 import { useCidResolver } from '@/hooks/useCidResolver';
 import { MessageSchema, type Message } from '@/schemas/emailSchemas';
@@ -24,16 +26,25 @@ const inlineImage = {
   isInline: true,
 };
 
-function messageWithImage(id: string): Message {
+function messageWithImage(id: string, fileId = inlineImage.fileId): Message {
   return MessageSchema.parse(
     wireMessage({
       _id: id,
       id,
       html: '<p>Hi</p><img src="cid:logo@example">',
-      attachments: [inlineImage],
+      attachments: [{ ...inlineImage, fileId }],
     }),
   );
 }
+
+/** Each test with its own query cache: the signed URLs are cached in it. */
+const renderHook: typeof render = (callback, options) => {
+  const client = new QueryClient();
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  return render(callback, { ...options, wrapper } as typeof options);
+};
 
 function services(url: (fileId: string) => Promise<string>): OxyServices {
   return { assets: { url: jest.fn(url) } } as unknown as OxyServices;
@@ -89,8 +100,8 @@ it('drops a lookup that finishes after the displayed message changed', async () 
         lookups.push({ fileId, resolve });
       }),
   );
-  const first = [messageWithImage('a1')];
-  const second = [messageWithImage('b1')];
+  const first = [messageWithImage('a1', 'file-a')];
+  const second = [messageWithImage('b1', 'file-b')];
   const { result, rerender } = renderHook(
     ({ messages, resetKey }) => useCidResolver(messages, oxy, resetKey),
     { initialProps: { messages: first, resetKey: 'a1' } },
@@ -115,4 +126,17 @@ it('drops a lookup that finishes after the displayed message changed', async () 
     for (let i = 0; i < 10; i++) await Promise.resolve();
   });
   expect(result.current.b1).toBe('<p>Hi</p><img src="https://files.example/fresh">');
+});
+
+it('asks for an image URL once while it is fresh, not per message or per open', async () => {
+  const oxy = services(async (fileId) => `https://files.example/${fileId}`);
+  const { rerender } = renderHook(({ resetKey }) => useCidResolver(thread, oxy, resetKey), {
+    initialProps: { resetKey: 'm1' },
+  });
+  await settle();
+  rerender({ resetKey: 'm2' });
+  await settle();
+
+  // Two messages, two opens, one image: one request.
+  expect(oxy.assets.url).toHaveBeenCalledTimes(1);
 });

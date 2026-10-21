@@ -268,7 +268,7 @@ function MessageRowInner({
       unread={!message.flags.seen}
       starred={message.flags.starred}
       threadCount={message.threadCount ?? undefined}
-      hasAttachment={message.attachments.length > 0}
+      hasAttachment={fileAttachments(message).length > 0}
       selected={isSelected}
       checked={!!isMultiSelected}
       onCheckedChange={
@@ -307,7 +307,8 @@ function MessageRowExtrasInner({
 }) {
   const colors = useColors();
   const { colors: tokens } = useTheme();
-  const hasAttachments = message.attachments.length > 0;
+  const attachments = fileAttachments(message);
+  const hasAttachments = attachments.length > 0;
   const hasChips = message.labels.length > 0 || Boolean(sentiment);
 
   if (!hasChips && !message.card && !hasAttachments) return null;
@@ -347,7 +348,7 @@ function MessageRowExtrasInner({
         >
           {message.card && <CardPreview card={message.card} />}
 
-          {message.attachments.map((att, i) => {
+          {attachments.map((att, i) => {
             const isImage = att.contentType.toLowerCase().startsWith('image/');
             const info = getAttachmentInfo(att, tokens);
             return (
@@ -376,6 +377,16 @@ function MessageRowExtrasInner({
       )}
     </View>
   );
+}
+
+/**
+ * The files a message carries, as the reader lists them: an inline image of
+ * an HTML body is part of that body. Counted as attachments, a newsletter's
+ * logo and pictures put a paperclip on its row and a thumbnail card per image
+ * — one signed-URL request each, per row.
+ */
+function fileAttachments(message: Message): Message['attachments'] {
+  return message.attachments.filter((attachment) => !(attachment.isInline && attachment.contentId));
 }
 
 export const MessageRow = React.memo(MessageRowInner);

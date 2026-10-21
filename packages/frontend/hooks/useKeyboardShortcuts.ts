@@ -35,6 +35,17 @@ interface KeyboardShortcutsConfig {
   enabled?: boolean;
 }
 
+/** Something open over the list that keys belong to: a menu, a listbox, a popover. */
+const OVERLAY = '[role="menu"], [role="listbox"], [data-radix-popper-content-wrapper]';
+
+function isShown(element: Element): boolean {
+  // A closed panel may stay mounted, hidden. Where the browser cannot say, it counts as open.
+  return typeof element.checkVisibility === 'function' ? element.checkVisibility() : true;
+}
+
+/** Held down, a key repeats: only moving through the list may. */
+const REPEATABLE = new Set(['j', 'k']);
+
 export function useKeyboardShortcuts(config: KeyboardShortcutsConfig) {
   const {
     onCompose,
@@ -56,18 +67,30 @@ export function useKeyboardShortcuts(config: KeyboardShortcutsConfig) {
     (event: KeyboardEvent) => {
       // Don't trigger shortcuts when typing in inputs
       const target = event.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable
+      ) {
         return;
       }
 
       // Nothing behind an open dialog: with Settings or the AI draft dialog
       // open and a button focused, `#` deleted the message selected behind it.
+      // Nor behind an open menu or popover, whose own keys (type-ahead `e`,
+      // `s`) archived or starred the message behind it.
       if (
-        target.closest?.('[role="dialog"], [aria-modal="true"]') ||
-        document.querySelector('[aria-modal="true"]')
+        target.closest?.(`[role="dialog"], [aria-modal="true"], ${OVERLAY}`) ||
+        document.querySelector('[aria-modal="true"]') ||
+        [...document.querySelectorAll(OVERLAY)].some(isShown)
       ) {
         return;
       }
+
+      // A held key repeats: holding `e` archived conversation after
+      // conversation, `#` deleted them, `c` opened a composer per repeat.
+      if (event.repeat && !REPEATABLE.has(event.key.toLowerCase())) return;
 
       // Don't trigger shortcuts with modifier keys (except shift for some)
       if (event.ctrlKey || event.metaKey || event.altKey) {

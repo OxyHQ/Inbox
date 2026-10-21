@@ -17,6 +17,7 @@ import { toast } from '@oxy.so/bloom';
 import { Loading } from '@oxy.so/bloom/loading';
 import { OxySignInButton, useOxy } from '@oxy.so/services/ui/client';
 import { FlashList, type FlashListProps, type FlashListRef } from '@shopify/flash-list';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -44,6 +45,7 @@ import {
   useDeleteReminder,
   useUpdateReminder,
 } from '@/hooks/mutations/useReminderMutations';
+import { emailKeys } from '@/hooks/queries/queryKeys';
 import { useBundles } from '@/hooks/queries/useBundles';
 import { useDailyBrief } from '@/hooks/queries/useDailyBrief';
 import { useFollowUp } from '@/hooks/queries/useFollowUp';
@@ -59,6 +61,7 @@ import { calendarDaysBetween } from '@oxy.so/utils/date';
 import { useTranslation, type TranslateFn } from '@/lib/i18n';
 import type { Bundle, Message, Reminder, UnreadableMessage } from '@/services/emailApi';
 import { messageRoute } from '@/utils/messageRoute';
+import { followSelectedRows } from '@/utils/threadGrouping';
 import { useCurrentList } from '@/hooks/useCurrentList';
 import { AliaChatSheet, type AliaChatSheetRef } from '@alia.onl/sdk';
 import { AliaAvatarIcon } from '@alia.onl/sdk/avatar';
@@ -191,6 +194,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const toggleMessageSelection = useEmailStore((s) => s.toggleMessageSelection);
   const enterSelectionMode = useEmailStore((s) => s.enterSelectionMode);
   const clearSelection = useEmailStore((s) => s.clearSelection);
+  const selectAll = useEmailStore((s) => s.selectAll);
 
   const {
     data: mailboxes = [],
@@ -213,6 +217,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
 
   const togglePin = useTogglePin();
   const bulkFlags = useBulkUpdateFlags();
+  const queryClient = useQueryClient();
   const { data: bundles = [] } = useBundles();
 
   const [snoozeTargetId, setSnoozeTargetId] = useState<string | null>(null);
@@ -221,6 +226,24 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
 
   const { data: remindersResult } = useReminders();
   const reminders = useMemo(() => remindersResult?.data ?? [], [remindersResult]);
+  // Which reminders are due is decided as of this clock, moved on when the
+  // next one comes due: decided once per render of the list, a reminder that
+  // came due while it was open stayed among the upcoming ones.
+  const [reminderClock, setReminderClock] = useState(() => Date.now());
+  const nextReminderDue = useMemo(() => {
+    const upcoming = reminders
+      .filter((r) => !r.completed)
+      .map((r) => Date.parse(r.remindAt))
+      .filter((at) => at > reminderClock);
+    return upcoming.length > 0 ? Math.min(...upcoming) : null;
+  }, [reminders, reminderClock]);
+  useEffect(() => {
+    if (nextReminderDue === null) return;
+    // Capped: a timer far in the future overflows, and a sleeping device is late.
+    const delay = Math.min(Math.max(nextReminderDue - Date.now(), 0) + 50, 60 * 60_000);
+    const timer = setTimeout(() => setReminderClock(Date.now()), delay);
+    return () => clearTimeout(timer);
+  }, [nextReminderDue]);
   const createReminderMutation = useCreateReminder();
   const updateReminderMutation = useUpdateReminder();
   const deleteReminderMutation = useDeleteReminder();
@@ -284,7 +307,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       items.push({
         type: 'triage-header',
         title: t('home.needsResponse'),
-        description: t('home.needsResponse'),
+        description: t('home.triage.needsResponseDescription'),
         key: 'triage-needs-response-header',
         count: needsResponseCount,
       });
@@ -301,11 +324,13 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       }
     }
 
-    if (!isSelectionMode && !isFollowUpLoading && followUpMessages.length > 0) {
+    // Kept in selection mode: long-pressing a follow-up row selects it, and the
+    // section it is selected in used to vanish with it.
+    if (!isFollowUpLoading && followUpMessages.length > 0) {
       items.push({
         type: 'triage-header',
         title: t('home.followUp'),
-        description: t('home.followUp'),
+        description: t('home.triage.followUpDescription'),
         key: 'triage-follow-up-header',
         count: followUpCount,
       });
@@ -326,7 +351,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     followUpMessages,
     isFollowUpLoading,
     isInboxView,
-    isSelectionMode,
     needsResponseCount,
     needsResponseMessages,
     needsResponseReasons,
@@ -386,10 +410,10 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     // Due/active reminders at the top (only in inbox view)
     if (isInboxView && reminders.length > 0) {
       const dueReminders = reminders.filter(
-        (r) => !r.completed && new Date(r.remindAt) <= new Date(),
+        (r) => !r.completed && Date.parse(r.remindAt) <= reminderClock,
       );
       const upcomingReminders = reminders.filter(
-        (r) => !r.completed && new Date(r.remindAt) > new Date(),
+        (r) => !r.completed && Date.parse(r.remindAt) > reminderClock,
       );
 
       if (dueReminders.length > 0) {
@@ -485,6 +509,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     expandedBundles,
     isInboxView,
     isSnoozedView,
+    reminderClock,
     reminders,
     shownAboveIds,
     showBundles,
@@ -508,6 +533,19 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     clearSelection();
   }, [viewKey, clearSelection]);
 
+  // The selection follows its conversations when their rows change: a reply
+  // renames a conversation row, an archive elsewhere removes one.
+  useEffect(() => {
+    if (selectedMessageIds.size === 0) return;
+    const next = followSelectedRows(
+      selectedMessageIds,
+      displayMessages,
+      listConversationOf,
+      triageMessageIds,
+    );
+    if (next) selectAll([...next]);
+  }, [selectedMessageIds, displayMessages, listConversationOf, triageMessageIds, selectAll]);
+
   // The spinner is the pull's, not every refetch's: background polls, socket
   // events and mutations refetch too, and the spinner popped up for each.
   const [pulling, setPulling] = useState(false);
@@ -528,15 +566,27 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       if (togglePin.isPending) return;
       const row = displayMessages.find((m) => m._id === rowId) ?? triageRow(rowId);
       if (!row) return;
-      if (row.flags.pinned) {
-        for (const m of conversationOf(rowId)) {
-          if (m.flags.pinned) togglePin.mutate({ messageId: m._id, pinned: false });
-        }
-      } else {
+      if (!row.flags.pinned) {
         togglePin.mutate({ messageId: rowId, pinned: true });
+        return;
       }
+      const pinned = conversationOf(rowId).filter((m) => m.flags.pinned);
+      if (pinned.length === 1) {
+        togglePin.mutate({ messageId: pinned[0]._id, pinned: false });
+        return;
+      }
+      // One request and one re-read for the conversation. It was a request and
+      // a full re-read of every view per message. Re-read, not just marked
+      // stale, as for one: an unpin moves the rows (the API lists pins first).
+      bulkFlags.mutate(
+        { messageIds: pinned.map((m) => m._id), flags: { pinned: false }, quiet: true },
+        {
+          onSettled: () =>
+            void queryClient.invalidateQueries({ queryKey: emailKeys.messages.root }),
+        },
+      );
     },
-    [displayMessages, conversationOf, togglePin, triageRow],
+    [displayMessages, conversationOf, togglePin, bulkFlags, queryClient, triageRow],
   );
 
   const handleToggleRead = useCallback(
@@ -849,14 +899,14 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
 
   const renderTriageMessage = useCallback(
     (item: Extract<ListItem, { type: 'triage-message' }>) => {
-      const reasonLabel =
-        item.category === 'follow-up'
-          ? t('home.followUp')
-          : item.reason === 'question'
-            ? t('home.needsResponse')
-            : item.reason === 'waiting'
-              ? t('home.needsResponse')
-              : t('home.needsResponse');
+      // Why the row was promoted. It used to say "Needs Response" whatever the reason.
+      const reasonLabels: Record<TriageReason, string> = {
+        question: t('home.triage.reasons.question'),
+        request: t('home.triage.reasons.request'),
+        waiting: t('home.triage.reasons.waiting'),
+        'awaiting-reply': t('home.triage.reasons.awaitingReply'),
+      };
+      const reasonLabel = reasonLabels[item.reason];
 
       return (
         <View style={styles.triageMessageItem}>
@@ -1091,7 +1141,10 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
                   >{`${t('home.needsResponse')} · ${needsResponseCount + followUpCount}`}</Button>
                 )}
                 {prefs.aiBrief && (
-                  <Button appearance="subtle" onPress={() => setShowBrief((value) => !value)}>
+                  <Button
+                    appearance={showBrief ? 'solid' : 'subtle'}
+                    onPress={() => setShowBrief((value) => !value)}
+                  >
                     {t('home.todaysBrief')}
                   </Button>
                 )}

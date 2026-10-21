@@ -326,3 +326,33 @@ export function groupThreads(messages: Message[]): ThreadGroup[] {
 export function collapseThreads(messages: Message[]): Message[] {
   return groupThreads(messages).map((group) => group.row);
 }
+
+/**
+ * A multi-selection carried over to the rows as they are now, or `null` when
+ * nothing changed. A row in conversation view is named by its newest message,
+ * and a reply arriving renames it: the selection still held the old name, the
+ * row showed unselected, and a bulk action reached only that one message of the
+ * conversation. An id that names no row any more is moved to the row that now
+ * holds its message, and one whose message is gone from the list is dropped.
+ * `kept` are rows shown outside the list (a follow-up is a message in Sent).
+ */
+export function followSelectedRows(
+  selected: ReadonlySet<string>,
+  rows: readonly Message[],
+  conversationOf: (rowId: string) => readonly Message[],
+  kept: ReadonlySet<string> = new Set(),
+): Set<string> | null {
+  const rowIds = new Set(rows.map((row) => row._id));
+  const stale = [...selected].filter((id) => !rowIds.has(id) && !kept.has(id));
+  if (stale.length === 0) return null;
+  const rowOf = new Map<string, string>();
+  for (const row of rows) {
+    for (const member of conversationOf(row._id)) rowOf.set(member._id, row._id);
+  }
+  const next = new Set([...selected].filter((id) => rowIds.has(id) || kept.has(id)));
+  for (const id of stale) {
+    const rowId = rowOf.get(id);
+    if (rowId) next.add(rowId);
+  }
+  return next;
+}

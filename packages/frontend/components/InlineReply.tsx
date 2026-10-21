@@ -18,7 +18,7 @@ import { SmartReplyChips } from '@/components/SmartReplyChips';
 import { useComposeSession } from '@/hooks/useComposeSession';
 import { useTranslation } from '@/lib/i18n';
 import type { Message } from '@/services/emailApi';
-import { forwardedBody, quotedReply } from '@/utils/composeBody';
+import { forwardedAttachments, forwardedBody, quotedReply } from '@/utils/composeBody';
 import { formatQuoteDate } from '@/utils/quoteDate';
 import { buildReplyHeaders } from '@/utils/replyHeaders';
 import { buildReplyRecipients, joinAddresses } from '@/utils/replyRecipients';
@@ -32,7 +32,7 @@ interface InlineReplyProps {
 }
 
 export function InlineReply({ message, mode, onClose }: InlineReplyProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { user } = useOxy();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Seeded once for this reply; the recipients do not follow later edits.
@@ -51,6 +51,8 @@ export function InlineReply({ message, mode, onClose }: InlineReplyProps) {
       subject: message.subject.startsWith(prefix)
         ? message.subject
         : `${prefix} ${message.subject}`,
+      // A forward sends the original's files on; a reply does not.
+      attachments: mode === 'forward' ? forwardedAttachments(message) : undefined,
     };
   }, []);
 
@@ -61,7 +63,7 @@ export function InlineReply({ message, mode, onClose }: InlineReplyProps) {
             message,
             t('inlineReply.forwardHeader', {
               from: message.from.name || message.from.address,
-              date: formatQuoteDate(message.date),
+              date: formatQuoteDate(message.date, locale),
               subject: message.subject,
               to: message.to.map((a) => a.name || a.address).join(', '),
             }),
@@ -70,12 +72,12 @@ export function InlineReply({ message, mode, onClose }: InlineReplyProps) {
         : quotedReply(
             message,
             t('inlineReply.quotedPrefix', {
-              date: formatQuoteDate(message.date),
+              date: formatQuoteDate(message.date, locale),
               author: message.from.name || message.from.address,
             }),
             isWeb,
           ),
-    [message, mode, t],
+    [message, mode, t, locale],
   );
 
   const replyHeaders = useMemo(

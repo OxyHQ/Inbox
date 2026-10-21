@@ -7,7 +7,9 @@ import { useTranslation } from '@/lib/i18n';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import { invalidateMailViews } from '@/hooks/queries/invalidateMailViews';
 import { INBOX_MUTATION_KEYS, RETRY_IDEMPOTENT } from '@/hooks/queries/queryClient';
-import type { Message } from '@/services/emailApi';
+import { SPECIAL_USE } from '@/constants/mailbox';
+import type { Mailbox, Message } from '@/services/emailApi';
+import { eachWithConcurrency, PER_MESSAGE_CONCURRENCY } from '@/utils/concurrency';
 import { recordInboxMetric } from '@/utils/inboxTelemetry';
 import { type AlreadySent, alreadySentUnderKey } from '@/utils/sendIdempotency';
 import {
@@ -19,6 +21,7 @@ import {
   patchMessageFlags,
   patchMessageInList,
   removeMessageFromList,
+  removeMessagesFromStarredLists,
   restoreSnapshot,
   snapshotForRollback,
   snapshotOrigins,
@@ -47,17 +50,9 @@ export function useToggleStar() {
     onMutate: async ({ messageId, starred }) => {
       await cancelMessageQueries(queryClient, messageId);
       const snapshot = snapshotForRollback(queryClient, messageId, userId);
-
-      // VIEW-AWARE UPDATE: in the starred view, unstarring removes the row.
-      const viewMode = useEmailStore.getState().viewMode;
-      if (viewMode?.type === 'starred' && !starred) {
-        removeMessageFromList(queryClient, messageId);
-        // Keep detail/thread flags in sync for any open panel.
-        patchMessageFlags(queryClient, messageId, userId, { starred });
-      } else {
-        patchMessageFlags(queryClient, messageId, userId, { starred });
-      }
-
+      // Unstarred, it leaves Starred — and only Starred, whatever view is open.
+      if (!starred) removeMessagesFromStarredLists(queryClient, [messageId]);
+      patchMessageFlags(queryClient, messageId, userId, { starred });
       return { snapshot };
     },
     onError: (_err, _vars, context) => {
@@ -65,12 +60,8 @@ export function useToggleStar() {
       toast.error(t('ui.mutations.starFailed'));
     },
     onSuccess: (updatedMessage, { messageId }) => {
-      if (updatedMessage) {
-        // Don't restore the row to the list if it was removed from starred view.
-        const viewMode = useEmailStore.getState().viewMode;
-        const skipList = viewMode?.type === 'starred' && !updatedMessage.flags.starred;
-        mergeServerMessage(queryClient, messageId, userId, updatedMessage, { skipList });
-      }
+      // Merged into the rows still listed; one taken out of Starred stays out.
+      if (updatedMessage) mergeServerMessage(queryClient, messageId, userId, updatedMessage);
     },
     onSettled: () => {
       // Reconcile filtered caches (e.g. Starred) with the server.
@@ -197,6 +188,8 @@ export function useArchiveMessage() {
   const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { user } = useOxy();
+  const userId = user?.id ?? null;
 
   return useMutation({
     mutationKey: INBOX_MUTATION_KEYS.archive,
@@ -215,7 +208,10 @@ export function useArchiveMessage() {
     },
     onMutate: async ({ messageId }) => {
       await cancelMessageQueries(queryClient, messageId);
-      const snapshot = snapshotForRollback(queryClient, messageId, null);
+      // The account's own detail key: under `null` the open message was never
+      // in the snapshot, and opened alone (from search, a notification) its
+      // archive had nowhere to Undo to.
+      const snapshot = snapshotForRollback(queryClient, messageId, userId);
       removeMessageFromList(queryClient, messageId);
       return { snapshot };
     },
@@ -247,6 +243,8 @@ export function useDeleteMessage() {
   const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { user } = useOxy();
+  const userId = user?.id ?? null;
 
   return useMutation({
     mutationKey: INBOX_MUTATION_KEYS.delete,
@@ -272,7 +270,7 @@ export function useDeleteMessage() {
     },
     onMutate: async ({ messageId }) => {
       await cancelMessageQueries(queryClient, messageId);
-      const snapshot = snapshotForRollback(queryClient, messageId, null);
+      const snapshot = snapshotForRollback(queryClient, messageId, userId);
       removeMessageFromList(queryClient, messageId);
       return { snapshot };
     },
@@ -400,6 +398,14 @@ export function useSendMessageWithUndo() {
 
       const timer = setTimeout(async () => {
         if (state !== 'waiting') return;
+        // The account changed in the undo window. The SDK's HTTP client now
+        // carries the other account's credentials, so sending would send this
+        // message FROM that account. Called off, as Undo would.
+        if (useEmailStore.getState()._api !== api) {
+          cancel();
+          toast(t('ui.mutations.sendCancelled'));
+          return;
+        }
         state = 'fired';
         toast.dismiss(toastId);
 
@@ -446,6 +452,7 @@ export function useUpdateMessageLabels() {
   const userId = user?.id ?? null;
 
   return useMutation({
+    mutationKey: INBOX_MUTATION_KEYS.updateLabels,
     ...RETRY_IDEMPOTENT,
     mutationFn: async ({
       messageId,
@@ -493,6 +500,7 @@ export function useTogglePin() {
   const userId = user?.id ?? null;
 
   return useMutation({
+    mutationKey: INBOX_MUTATION_KEYS.togglePin,
     ...RETRY_IDEMPOTENT,
     mutationFn: async ({ messageId, pinned }: { messageId: string; pinned: boolean }) => {
       if (!api) throw new Error('Email API not initialized');
@@ -525,6 +533,7 @@ export function useSnoozeMessage() {
   const userId = user?.id ?? null;
 
   return useMutation({
+    mutationKey: INBOX_MUTATION_KEYS.snooze,
     ...RETRY_IDEMPOTENT,
     // A conversation is one mutation: one toast, and one rollback that covers
     // exactly its messages. Snoozed message by message, it showed a toast per
@@ -532,11 +541,9 @@ export function useSnoozeMessage() {
     // snoozed.
     mutationFn: async ({ messageIds, until }: { messageIds: string[]; until: string }) => {
       if (!api) throw new Error('Email API not initialized');
-      const results = await Promise.allSettled(
-        messageIds.map((id) => api.snoozeMessage(id, until)),
+      await eachWithConcurrency(messageIds, PER_MESSAGE_CONCURRENCY, (id) =>
+        api.snoozeMessage(id, until),
       );
-      const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected');
-      if (failed) throw failed.reason;
     },
     onMutate: async ({ messageIds }) => {
       await cancelMessageQueries(queryClient);
@@ -552,7 +559,10 @@ export function useSnoozeMessage() {
       toastWithUndo({
         message: t('ui.mutations.snoozed'),
         snapshot: context.snapshot,
-        reverse: (origins) => Promise.all([...origins.keys()].map((id) => api.unsnoozeMessage(id))),
+        reverse: (origins) =>
+          eachWithConcurrency([...origins.keys()], PER_MESSAGE_CONCURRENCY, (id) =>
+            api.unsnoozeMessage(id),
+          ),
         queryClient,
         t,
       });
@@ -576,6 +586,7 @@ export function useUnsnoozeMessage() {
   const userId = user?.id ?? null;
 
   return useMutation({
+    mutationKey: INBOX_MUTATION_KEYS.unsnooze,
     ...RETRY_IDEMPOTENT,
     mutationFn: async ({ messageId }: { messageId: string }) => {
       if (!api) throw new Error('Email API not initialized');
@@ -613,6 +624,7 @@ export function useBulkUpdateFlags() {
   const userId = user?.id ?? null;
 
   return useMutation({
+    mutationKey: INBOX_MUTATION_KEYS.bulkFlags,
     ...RETRY_IDEMPOTENT,
     mutationFn: async ({
       messageIds,
@@ -659,6 +671,8 @@ export function useBulkUpdateFlags() {
         }
       }
 
+      // Unstarred, they leave Starred, as one message does (useToggleStar).
+      if (flags.starred === false) removeMessagesFromStarredLists(queryClient, messageIds);
       // Lists, the open message and the open conversation alike.
       for (const messageId of messageIds) {
         patchMessageFlags(queryClient, messageId, userId, flags);
@@ -683,8 +697,11 @@ export function useBulkMoveMessages() {
   const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { user } = useOxy();
+  const userId = user?.id ?? null;
 
   return useMutation({
+    mutationKey: INBOX_MUTATION_KEYS.bulkMove,
     ...RETRY_IDEMPOTENT,
     mutationFn: async ({
       messageIds,
@@ -699,7 +716,7 @@ export function useBulkMoveMessages() {
     },
     onMutate: async ({ messageIds }) => {
       await queryClient.cancelQueries({ queryKey: emailKeys.messages.root });
-      const snapshot = snapshotForRollback(queryClient, messageIds, null);
+      const snapshot = snapshotForRollback(queryClient, messageIds, userId);
       removeMessagesFromLists(queryClient, messageIds);
       return { snapshot };
     },
@@ -736,6 +753,8 @@ export function useBulkDeleteMessages() {
   const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { user } = useOxy();
+  const userId = user?.id ?? null;
 
   return useMutation({
     mutationFn: async ({
@@ -754,14 +773,14 @@ export function useBulkDeleteMessages() {
         if (!trashMailboxId) throw new Error('Trash mailbox not found');
         await api.bulkMoveMessages(toTrash, trashMailboxId);
       }
-      const results = await Promise.allSettled(permanent.map((id) => api.deleteMessage(id, true)));
-      const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected');
-      if (failed) throw failed.reason;
+      await eachWithConcurrency(permanent, PER_MESSAGE_CONCURRENCY, (id) =>
+        api.deleteMessage(id, true),
+      );
     },
     onMutate: async ({ toTrash, permanent }) => {
       await queryClient.cancelQueries({ queryKey: emailKeys.messages.root });
       const ids = [...toTrash, ...permanent];
-      const snapshot = snapshotForRollback(queryClient, ids, null);
+      const snapshot = snapshotForRollback(queryClient, ids, userId);
       removeMessagesFromLists(queryClient, ids);
       return { snapshot };
     },
@@ -810,6 +829,8 @@ function removeMessagesFromLists(
 export function useSaveDraft() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
+  const { user } = useOxy();
+  const userId = user?.id ?? null;
 
   return useMutation({
     mutationFn: async (params: Parameters<NonNullable<typeof api>['saveDraft']>[0]) => {
@@ -818,10 +839,27 @@ export function useSaveDraft() {
     },
     // No toast here: this runs for every autosave. The composer shows the save
     // state beside the subject, and says "saved" itself when the user asked.
-    onSettled: () => {
-      // Refetch the Drafts list (the saved draft appears) and mailbox badges
-      // (the Drafts unseen count) so the sidebar reflects the new draft.
-      invalidateMailViews(queryClient);
+    //
+    // What a save changes: the Drafts list (the draft appears or changes), the
+    // counts, the draft's own cached copy, and — for a reply — the
+    // conversation it is shown in. It used to re-read every view that shows
+    // mail, every 8 seconds of typing.
+    onSettled: (saved, _error, params) => {
+      const drafts = queryClient
+        .getQueryData<Mailbox[]>(emailKeys.mailboxes.list(userId))
+        ?.find((mailbox) => mailbox.specialUse === SPECIAL_USE.DRAFTS);
+      void queryClient.invalidateQueries({
+        queryKey: drafts ? emailKeys.messages.mailboxScope(drafts._id) : emailKeys.messages.root,
+      });
+      void queryClient.invalidateQueries({ queryKey: emailKeys.mailboxes.root });
+      const draftId = saved?._id ?? params.existingDraftId;
+      if (draftId) {
+        void queryClient.invalidateQueries({
+          queryKey: emailKeys.message.byId(draftId),
+          refetchType: 'none',
+        });
+      }
+      if (params.inReplyTo) void queryClient.invalidateQueries({ queryKey: emailKeys.thread.root });
     },
   });
 }

@@ -74,8 +74,9 @@ import { useThread } from '@/hooks/queries/useThread';
 import { useCidResolver } from '@/hooks/useCidResolver';
 import { useEmailStore } from '@/hooks/useEmail';
 import { useGoBack } from '@/hooks/useGoBack';
+import { useLeaveOpenConversation } from '@/hooks/useLeaveRemovedRows';
 import { useTranslation } from '@/lib/i18n';
-import type { Message } from '@/services/emailApi';
+import { type Message, UnreadableMessageError } from '@/services/emailApi';
 import { messageRoute } from '@/utils/messageRoute';
 import { toRfcMessageId } from '@/utils/replyHeaders';
 import { buildPrintHtml, printHtmlOnWeb } from '@/utils/printMessage';
@@ -169,7 +170,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const { t, locale } = useTranslation();
   const deliveryLabel = useDeliveryLabel();
 
-  const { data: currentMessage, isLoading, isError, refetch } = useMessage(messageId);
+  const { data: currentMessage, isLoading, isError, error, refetch } = useMessage(messageId);
   const {
     data: threadData,
     refetch: refetchThread,
@@ -244,6 +245,12 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
   const backFallback = pathname.startsWith('/search') ? '/search' : '/';
   const handleBack = useGoBack(backFallback);
+  // Archive, Delete, Spam and Snooze take the conversation out of its folder.
+  const leaveOpenConversation = useLeaveOpenConversation(mode);
+  const leaveConversation = useCallback(
+    () => leaveOpenConversation(folderConversation.map((m) => m._id)),
+    [leaveOpenConversation, folderConversation],
+  );
 
   const handleStar = useCallback(() => {
     if (!messageId || !currentMessage || toggleStar.isPending) return;
@@ -258,11 +265,11 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const handleSnooze = useCallback(
     (until: Date) => {
       if (!messageId) return;
-      messageActions.snooze(folderConversation, until.toISOString());
       setSnoozeVisible(false);
-      if (mode === 'standalone') handleBack();
+      leaveConversation();
+      messageActions.snooze(folderConversation, until.toISOString());
     },
-    [messageId, messageActions, folderConversation, handleBack, mode],
+    [messageId, messageActions, folderConversation, leaveConversation],
   );
 
   // In Archive the button moves the conversation back to the Inbox.
@@ -273,18 +280,18 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
       toast.error(t('inbox.toast.archiveUnavailable'));
       return;
     }
+    leaveConversation();
     messageActions.archive(folderConversation);
-    if (mode === 'standalone') handleBack();
-  }, [messageId, mailboxes, messageActions, folderConversation, handleBack, mode, t]);
+  }, [messageId, mailboxes, messageActions, folderConversation, leaveConversation, t]);
 
   const handleDelete = useCallback(() => {
     if (!messageId) return;
     // Permanently or to Trash is decided per message from where it IS (see
     // useMessageActions). It was decided from the folder last browsed: opened
     // from a notification after visiting Trash, an Inbox message was destroyed.
+    leaveConversation();
     messageActions.deleteConversation(folderConversation);
-    if (mode === 'standalone') handleBack();
-  }, [messageId, messageActions, folderConversation, handleBack, mode]);
+  }, [messageId, messageActions, folderConversation, leaveConversation]);
 
   const handleMarkUnread = useCallback(() => {
     if (!currentMessage) return;
@@ -301,15 +308,14 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
       toast.error(t('message.toast.spamUnavailable'));
       return;
     }
+    leaveConversation();
     messageActions.moveTo(folderConversation, spamBox._id, 'spam');
-    if (mode === 'standalone') handleBack();
   }, [
     messageId,
     mailboxes,
     messageActions,
     folderConversation,
-    handleBack,
-    mode,
+    leaveConversation,
     moreMenuControl,
     t,
   ]);
@@ -571,12 +577,33 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
       />
     ) : null;
 
-  if (isLoading) {
+  // Before the email API exists (it is created in an effect after sign-in) the
+  // read has not even started: that is loading, not "message not found".
+  if (isLoading || (!emailApi && !currentMessage)) {
     return (
       <View style={styles.container}>
         {standaloneToolbar}
         <View style={styles.loadingContainer}>
           <Loading />
+        </View>
+      </View>
+    );
+  }
+
+  // The message is there but this client cannot read it: the entry the
+  // conversation shows for such a row, with its source to download. The load
+  // error it used to show offered a retry that parsed the same row again.
+  if (error instanceof UnreadableMessageError) {
+    const row = error.unreadable;
+    return (
+      <View className="flex-1">
+        {standaloneToolbar}
+        <View className="flex-1 justify-center">
+          <UnreadableThreadEntry
+            row={{ ...row, _id: row._id ?? messageId }}
+            onRetry={() => void refetch()}
+            onOpenRaw={(id) => void downloadSource(id, row.subject)}
+          />
         </View>
       </View>
     );

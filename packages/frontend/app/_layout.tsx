@@ -28,6 +28,7 @@ import { InboxPrefsProvider } from '@/contexts/inbox-prefs-context';
 import { LocaleProvider, useTranslation } from '@/lib/i18n';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useInboxSocket } from '@/hooks/useInboxSocket';
+import { useMailboxPoll } from '@/hooks/queries/useMailboxes';
 import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { useEmailPushNotifications } from '@/hooks/notifications/useEmailPushNotifications';
 import { useForegroundNotificationHandler } from '@/hooks/notifications/useForegroundNotificationHandler';
@@ -157,6 +158,7 @@ function RootEffects() {
   // foreground, so the handler goes in before anything can register for push.
   useForegroundNotificationHandler();
   useInboxSocket();
+  useMailboxPoll();
   usePushRegistration();
   useEmailPushNotifications(canUsePrivateApi);
   useEffect(() => {

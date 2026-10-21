@@ -153,6 +153,16 @@ const pt: LocaleDict = {
     inboxSection: 'Caixa de entrada',
     needsResponse: 'Precisa de resposta',
     followUp: 'Pendente de seguimento',
+    triage: {
+      needsResponseDescription: 'E-mails não lidos que pedem algo a você.',
+      followUpDescription: 'E-mails que você enviou ainda sem resposta.',
+      reasons: {
+        question: 'Faz uma pergunta',
+        request: 'Pede que você faça algo',
+        waiting: 'Aguarda sua resposta',
+        awaitingReply: 'Ainda sem resposta',
+      },
+    },
     needsResponseA11y_one: 'Precisa de resposta, {{count}} email',
     needsResponseA11y_other: 'Precisa de resposta, {{count}} emails',
     followUpA11y_one: 'Pendente de seguimento, {{count}} email',

@@ -152,6 +152,16 @@ const ko: LocaleDict = {
     inboxSection: '받은편지함',
     needsResponse: '답장 필요',
     followUp: '후속 조치',
+    triage: {
+      needsResponseDescription: '답장이나 조치를 요청하는 읽지 않은 메일.',
+      followUpDescription: '보냈지만 아직 답장이 없는 메일.',
+      reasons: {
+        question: '질문이 있음',
+        request: '조치를 요청함',
+        waiting: '답장을 기다리는 중',
+        awaitingReply: '아직 답장 없음',
+      },
+    },
     needsResponseA11y_one: '답장 필요, 메일 {{count}}개',
     needsResponseA11y_other: '답장 필요, 메일 {{count}}개',
     followUpA11y_one: '후속 조치, 메일 {{count}}개',

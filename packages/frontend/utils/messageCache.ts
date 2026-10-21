@@ -161,6 +161,29 @@ export function removeMessageFromList(queryClient: QueryClient, messageId: strin
 }
 
 /**
+ * Remove messages from the Starred lists only (`['messages', …, starred: true,
+ * …]`). Unstarring takes a message out of Starred, not out of its folder:
+ * removed from every list, it vanished from the Inbox too until a refetch.
+ */
+export function removeMessagesFromStarredLists(
+  queryClient: QueryClient,
+  messageIds: readonly string[],
+): void {
+  const ids = new Set(messageIds);
+  queryClient.setQueriesData<MessagesInfinite>(
+    { queryKey: emailKeys.messages.root, predicate: (query) => query.queryKey[2] === true },
+    (old) =>
+      old && {
+        ...old,
+        pages: old.pages.map((page) => ({
+          ...page,
+          data: page.data.filter((m) => !ids.has(m._id)),
+        })),
+      },
+  );
+}
+
+/**
  * Adjust the unseen-message count of a mailbox in the `['mailboxes']` cache.
  * Clamped at zero. Used to keep sidebar badges instant on read/unread toggles.
  */
@@ -186,16 +209,14 @@ export function mergeServerMessage(
   messageId: string,
   userId: string | null,
   updated: Message,
-  options: { skipList?: boolean } = {},
 ): void {
   queryClient.setQueryData<Message | null>(emailKeys.message.detail(messageId, userId), (old) =>
     mergeMessageUpdate(old, updated),
   );
-  if (!options.skipList) {
-    queryClient.setQueriesData<MessagesInfinite>({ queryKey: emailKeys.messages.root }, (old) =>
-      updateMessageInPages(old, messageId, (message) => mergeMessageUpdate(message, updated)),
-    );
-  }
+  // Rows still listed only: a message a mutation took out of a list stays out.
+  queryClient.setQueriesData<MessagesInfinite>({ queryKey: emailKeys.messages.root }, (old) =>
+    updateMessageInPages(old, messageId, (message) => mergeMessageUpdate(message, updated)),
+  );
   queryClient.setQueriesData<ThreadData>({ queryKey: emailKeys.thread.root }, (old) =>
     updateThreadMessage(old, messageId, (m) => mergeMessageUpdate(m, updated)),
   );

@@ -1,7 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { INBOX_ACCOUNT_QUERIES, INBOX_MUTATION_KEYS } from '@/hooks/queries/queryClient';
+import {
+  INBOX_ACCOUNT_QUERIES,
+  INBOX_MUTATION_KEYS,
+  queryClient,
+} from '@/hooks/queries/queryClient';
 import { aiKeys, emailKeys } from '@/hooks/queries/queryKeys';
 
 /** Every root string a key factory entry can produce. */
@@ -47,6 +51,25 @@ describe('Inbox private-data isolation', () => {
 
   it('replays every queued message mutation for the same account only', () => {
     expect(INBOX_ACCOUNT_QUERIES.mutationKeys).toEqual(Object.values(INBOX_MUTATION_KEYS));
+  });
+
+  // Unkeyed, a mutation waiting offline was not the SDK's to drop on an account
+  // switch: pin, labels, snooze and the bulk actions resumed under the new
+  // account's credentials. Each key also needs its replay function.
+  it('keys every mutation that can wait offline, with a function to replay it', () => {
+    for (const key of [
+      'togglePin',
+      'updateLabels',
+      'snooze',
+      'unsnooze',
+      'bulkFlags',
+      'bulkMove',
+    ]) {
+      expect(INBOX_MUTATION_KEYS).toHaveProperty(key);
+    }
+    for (const key of Object.values(INBOX_MUTATION_KEYS)) {
+      expect(queryClient.getMutationDefaults(key).mutationFn).toEqual(expect.any(Function));
+    }
   });
 });
 

@@ -52,6 +52,17 @@ export function editorContentToText(content: string, web: boolean): string {
   return web ? stripHtml(content) : content;
 }
 
+/**
+ * What the web editor reports for its DOM: its HTML, or `''` when it holds
+ * nothing at all — an empty element, or the lone `<br>` a browser leaves once
+ * everything is deleted. Blank lines and leading spaces are content: treating
+ * every DOM without text as empty reported `''` for them, and the editor was
+ * then rewritten to nothing under the caret.
+ */
+export function editorDomValue(html: string, text: string): string {
+  return text === '' && (html === '' || /^<br\s*\/?>$/i.test(html)) ? '' : html;
+}
+
 /** Append plain text on a new line after whatever the body already holds. */
 export function appendTextToBody(body: string, text: string, web: boolean): string {
   const addition = textToEditorContent(text, web);
@@ -75,29 +86,52 @@ export function isBodyBlank(body: string, signature: string | null, web: boolean
   return signature !== null && text === editorContentToText(signature, web).trim();
 }
 
+/**
+ * A message's body as plain text: its text part, or — for mail sent as HTML
+ * alone — that HTML converted to text. Quoting the text part only left the
+ * quote and the forward of an HTML-only message empty.
+ */
+export function messageBodyText(message: Pick<Message, 'text' | 'html'>): string {
+  return message.text || (message.html ? stripHtml(message.html) : '');
+}
+
 /** Text quoted under a reply: `> ` on every line, after an attribution line. */
 export function quotedReply(
-  message: Pick<Message, 'text'>,
+  message: Pick<Message, 'text' | 'html'>,
   attribution: string,
   web: boolean,
 ): string {
-  const quoted = (message.text ?? '')
+  const text = messageBodyText(message);
+  const quoted = text
     .split(/\r?\n/)
     .map((line) => `> ${line}`)
     .join('\n');
   if (!web) return `\n\n${attribution}\n${quoted}`;
   // A cite blockquote after an attribution is what `splitHtmlQuote` folds, here
   // and in other clients.
-  return `<br><br><div>${escapeTextNode(attribution)}</div><blockquote type="cite">${textToEditorContent(message.text ?? '', true)}</blockquote>`;
+  return `<br><br><div>${escapeTextNode(attribution)}</div><blockquote type="cite">${textToEditorContent(text, true)}</blockquote>`;
 }
 
 /** The body of a forward: the header block, then the original's text. */
 export function forwardedBody(
-  message: Pick<Message, 'text'>,
+  message: Pick<Message, 'text' | 'html'>,
   header: string,
   web: boolean,
 ): string {
-  return textToEditorContent(`${header}${message.text ?? ''}`, web);
+  return textToEditorContent(`${header}${messageBodyText(message)}`, web);
+}
+
+/**
+ * The files a forward carries: what the reader lists as the message's
+ * attachments. An inline image of an HTML body is part of that body, not a
+ * file the sender attached, and the forward quotes the body as text.
+ */
+export function forwardedAttachments(
+  message: Pick<Message, 'html' | 'attachments'>,
+): { fileId: string; name: string; contentType: string; size: number }[] {
+  return message.attachments
+    .filter((attachment) => !(message.html && attachment.isInline && attachment.contentId))
+    .map(({ fileId, name, contentType, size }) => ({ fileId, name, contentType, size }));
 }
 
 /**

@@ -863,6 +863,7 @@ const zh: LocaleDict = {
         useTheme: '使用{{theme}}主题',
         systemHint: '“跟随系统”会根据设备的外观设置切换。',
         accentColor: '强调色',
+        accentColorFailed: '无法保存强调色。',
       },
       notifications: {
         deviceNotice: '系统通知权限在设备设置中管理。',

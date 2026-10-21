@@ -1,29 +1,19 @@
-/** Persisted light/dark mode and Bloom color preset. */
+/** Persisted light/dark mode. The colour is the Oxy account colour (`useAccountColor`), not state here. */
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { Platform } from 'react-native';
-import { APP_COLOR_NAMES } from '@oxy.so/bloom/theme';
-import type { AppColorName } from '@oxy.so/bloom/theme';
 
 type ThemePreference = 'light' | 'dark' | 'system';
 
 interface ThemeContextType {
   themePreference: ThemePreference;
   setThemePreference: (pref: ThemePreference) => void;
-  colorPreset: AppColorName;
-  setColorPreset: (preset: AppColorName) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const THEME_STORAGE_KEY = 'inbox_theme_preference';
-const COLOR_PRESET_STORAGE_KEY = 'inbox_color_preset';
-const DEFAULT_COLOR_PRESET: AppColorName = 'blue';
-
-function isAppColorName(value: string): value is AppColorName {
-  return (APP_COLOR_NAMES as readonly string[]).includes(value);
-}
 
 function loadThemeSync(): ThemePreference {
   if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
@@ -41,26 +31,11 @@ function loadThemeSync(): ThemePreference {
   return 'system';
 }
 
-function loadColorPresetSync(): AppColorName {
-  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
-    try {
-      const stored = window.localStorage.getItem(COLOR_PRESET_STORAGE_KEY);
-      if (stored && isAppColorName(stored)) {
-        return stored;
-      }
-    } catch (err) {
-      console.warn('[theme-context] failed to read color preset', err);
-    }
-  }
-  return DEFAULT_COLOR_PRESET;
-}
-
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [themePreference, setThemePreference] = useState<ThemePreference>(loadThemeSync);
-  const [colorPreset, setColorPresetState] = useState<AppColorName>(loadColorPresetSync);
   const [isLoaded, setIsLoaded] = useState(Platform.OS === 'web');
 
-  // Native: load persisted preferences from AsyncStorage
+  // Native: load the persisted mode from AsyncStorage
   useEffect(() => {
     if (Platform.OS === 'web') return;
     (async () => {
@@ -68,18 +43,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         const AsyncStorage = await import('@react-native-async-storage/async-storage').then(
           (m) => m.default,
         );
-        const [storedMode, storedPreset] = await Promise.all([
-          AsyncStorage.getItem(THEME_STORAGE_KEY),
-          AsyncStorage.getItem(COLOR_PRESET_STORAGE_KEY),
-        ]);
+        const storedMode = await AsyncStorage.getItem(THEME_STORAGE_KEY);
         if (storedMode === 'light' || storedMode === 'dark' || storedMode === 'system') {
           setThemePreference(storedMode);
         }
-        if (storedPreset && isAppColorName(storedPreset)) {
-          setColorPresetState(storedPreset);
-        }
       } catch (err) {
-        console.warn('[theme-context] failed to load preferences', err);
+        console.warn('[theme-context] failed to load theme preference', err);
       } finally {
         setIsLoaded(true);
       }
@@ -105,31 +74,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     })();
   }, [themePreference, isLoaded]);
 
-  // Persist color preset changes
-  useEffect(() => {
-    if (!isLoaded) return;
-    (async () => {
-      try {
-        if (Platform.OS === 'web') {
-          window.localStorage?.setItem(COLOR_PRESET_STORAGE_KEY, colorPreset);
-        } else {
-          const AsyncStorage = await import('@react-native-async-storage/async-storage').then(
-            (m) => m.default,
-          );
-          await AsyncStorage.setItem(COLOR_PRESET_STORAGE_KEY, colorPreset);
-        }
-      } catch (err) {
-        console.warn('[theme-context] failed to persist color preset', err);
-      }
-    })();
-  }, [colorPreset, isLoaded]);
-
   const handleSetPreference = useCallback((pref: ThemePreference) => {
     setThemePreference(pref);
-  }, []);
-
-  const handleSetColorPreset = useCallback((preset: AppColorName) => {
-    setColorPresetState(preset);
   }, []);
 
   return (
@@ -137,8 +83,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       value={{
         themePreference,
         setThemePreference: handleSetPreference,
-        colorPreset,
-        setColorPreset: handleSetColorPreset,
       }}
     >
       {children}

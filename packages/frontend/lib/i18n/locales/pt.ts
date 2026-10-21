@@ -886,6 +886,7 @@ const pt: LocaleDict = {
         useTheme: 'Usar o tema {{theme}}',
         systemHint: 'Sistema segue a definição de aspeto do teu dispositivo.',
         accentColor: 'Cor de destaque',
+        accentColorFailed: 'Não foi possível salvar a cor de destaque.',
       },
       notifications: {
         deviceNotice:

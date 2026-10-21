@@ -1,11 +1,9 @@
-import { BREAKPOINTS } from '@oxy.so/bloom/styles';
-import { useBottomEdgeInset } from '@oxy.so/bloom/layout';
+import { Screen } from '@oxy.so/bloom/screen';
 import { EmptyState } from '@oxy.so/bloom/empty-state';
 import { Text } from '@oxy.so/bloom/typography';
 import { useMailboxScrollRestoration } from '@/hooks/useMailboxScrollRestoration';
 import { useAppShell } from '@oxy.so/bloom/app-shell';
 import { ButtonGroup, ButtonGroupItem } from '@oxy.so/bloom/button-group';
-import { Button } from '@oxy.so/bloom/button';
 import { RiAddLine, RiMenuLine, RiSearchLine } from '@oxy.so/bloom/icons';
 import { PageHeader } from '@oxy.so/bloom/page-header';
 /**
@@ -17,17 +15,17 @@ import { toast } from '@oxy.so/bloom';
 import { Loading } from '@oxy.so/bloom/loading';
 import { OxySignInButton, useOxy } from '@oxy.so/services/ui/client';
 import { FlashList, type FlashListProps, type FlashListRef } from '@shopify/flash-list';
-import { useRouter } from 'expo-router';
+import { useIsFocused, useRouter } from 'expo-router';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useWindowDimensions, RefreshControl, StyleSheet, View } from 'react-native';
+import { RefreshControl, StyleSheet, View } from 'react-native';
 import Animated, { type AnimatedProps } from 'react-native-reanimated';
 
 import { BundleRow } from '@/components/BundleRow';
 import { CreateReminderSheet } from '@/components/CreateReminderSheet';
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
 import { DailyBrief } from '@/components/DailyBrief';
-import { MessageRow, MessageRowExtras } from '@/components/MessageRow';
+import { MessageRow } from '@/components/MessageRow';
 import { UndeliveredBanner } from '@/components/UndeliveredBanner';
 import { ReminderRow } from '@/components/ReminderRow';
 import { SelectionToolbar } from '@/components/SelectionToolbar';
@@ -39,16 +37,10 @@ import { SPECIAL_USE } from '@/constants/mailbox';
 import { useColors } from '@/constants/theme';
 import { useInboxPrefs, type SwipeAction } from '@/contexts/inbox-prefs-context';
 import { useBulkUpdateFlags, useTogglePin } from '@/hooks/mutations/useMessageMutations';
-import {
-  useCreateReminder,
-  useDeleteReminder,
-  useUpdateReminder,
-} from '@/hooks/mutations/useReminderMutations';
-import { useBundles } from '@/hooks/queries/useBundles';
+import { useDeleteReminder, useUpdateReminder } from '@/hooks/mutations/useReminderMutations';
 import { useDailyBrief } from '@/hooks/queries/useDailyBrief';
-import { useFollowUp } from '@/hooks/queries/useFollowUp';
+import { useBundles } from '@/hooks/queries/useBundles';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
-import { useNeedsResponse, type NeedsResponseReason } from '@/hooks/queries/useNeedsResponse';
 import { useReminders } from '@/hooks/queries/useReminders';
 import { useBatchSentimentAnalysis } from '@/hooks/queries/useSentimentAnalysis';
 import { useEmailStore } from '@/hooks/useEmail';
@@ -57,6 +49,7 @@ import { useMessageActions } from '@/hooks/useMessageActions';
 import { useLeaveRemovedRows } from '@/hooks/useLeaveRemovedRows';
 import { calendarDaysBetween } from '@oxy.so/utils/date';
 import { useTranslation, type TranslateFn } from '@/lib/i18n';
+import type { InboxDailyBriefAction } from '@/services/inboxInferenceApi';
 import type { Bundle, Message, Reminder, UnreadableMessage } from '@/services/emailApi';
 import { messageRoute } from '@/utils/messageRoute';
 import { useCurrentList } from '@/hooks/useCurrentList';
@@ -65,26 +58,10 @@ import { AliaAvatarIcon } from '@alia.onl/sdk/avatar';
 
 type ListItem =
   | { type: 'header'; title: string; key: string; count?: number }
-  | {
-      type: 'triage-header';
-      title: string;
-      description: string;
-      key: string;
-      count: number;
-    }
-  | {
-      type: 'triage-message';
-      data: Message;
-      category: TriageCategory;
-      reason: TriageReason;
-    }
   | { type: 'message'; data: Message }
   | { type: 'bundle'; bundle: Bundle; messages: Message[]; unreadCount: number }
   | { type: 'reminder'; data: Reminder }
   | { type: 'unreadable'; data: UnreadableMessage; key: string };
-
-type TriageCategory = 'needs-response' | 'follow-up';
-type TriageReason = NeedsResponseReason | 'awaiting-reply';
 
 /** FlashList wrapped once so Bloom's scroll worklet stays on the UI thread. */
 const AnimatedInboxList = Animated.createAnimatedComponent(
@@ -149,18 +126,22 @@ interface InboxListProps {
   replaceNavigation?: boolean;
 }
 
-const TRIAGE_LIMIT = 3;
-
 export function InboxList({ replaceNavigation }: InboxListProps) {
   const router = useRouter();
   const shell = useAppShell();
-  const occupiedBottom = useBottomEdgeInset();
-  const { width: viewportWidth } = useWindowDimensions();
-  const bottomClearance = viewportWidth < BREAKPOINTS.md ? occupiedBottom : 0;
+  const focused = useIsFocused();
   const drawerAvailable = shell.drawerAvailable;
   const colors = useColors();
   const { t } = useTranslation();
   const aliaChatRef = useRef<AliaChatSheetRef>(null);
+  const [briefAction, setBriefAction] = useState<InboxDailyBriefAction | null>(null);
+  const handleBriefAction = useCallback((action: InboxDailyBriefAction) => {
+    setBriefAction({ ...action });
+  }, []);
+  // Wait for the sheet to receive the referenced message IDs before sending the turn.
+  useEffect(() => {
+    if (briefAction) aliaChatRef.current?.present({ text: briefAction.prompt });
+  }, [briefAction]);
   const aliaWelcomeSuggestions = useMemo(
     () => [
       {
@@ -205,7 +186,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     messages,
     unreadable,
     rows: displayMessages,
-    conversationOf: listConversationOf,
+    conversationOf,
   } = useCurrentList();
   const bundleView = useEmailStore((s) => s.bundleView);
   const expandedBundles = useEmailStore((s) => s.expandedBundles);
@@ -216,12 +197,10 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const { data: bundles = [] } = useBundles();
 
   const [snoozeTargetId, setSnoozeTargetId] = useState<string | null>(null);
-  const [createReminderVisible, setCreateReminderVisible] = useState(false);
   const [editReminderTarget, setEditReminderTarget] = useState<Reminder | null>(null);
 
   const { data: remindersResult } = useReminders();
   const reminders = useMemo(() => remindersResult?.data ?? [], [remindersResult]);
-  const createReminderMutation = useCreateReminder();
   const updateReminderMutation = useUpdateReminder();
   const deleteReminderMutation = useDeleteReminder();
 
@@ -236,131 +215,20 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       : !viewMode && currentMailbox?.specialUse === SPECIAL_USE.SNOOZED;
   const showBundles = bundleView && isInboxView && bundles.length > 0;
 
-  const {
-    messages: needsResponseMessages,
-    count: needsResponseCount,
-    reasons: needsResponseReasons,
-  } = useNeedsResponse(isInboxView ? displayMessages : undefined, TRIAGE_LIMIT);
-  const {
-    messages: followUpMessages,
-    count: followUpCount,
-    isLoading: isFollowUpLoading,
-  } = useFollowUp(isInboxView ? displayMessages : undefined, TRIAGE_LIMIT, {
-    enabled: isInboxView,
-  });
-
-  /**
-   * A row and everything it stands for. The triage sections show messages the
-   * list does not hold — a follow-up is a message in Sent — and acting on one
-   * found nothing to act on: every button and swipe on it did nothing.
-   */
-  const triageRow = useCallback(
-    (rowId: string) =>
-      followUpMessages.find((m) => m._id === rowId) ??
-      needsResponseMessages.find((m) => m._id === rowId),
-    [followUpMessages, needsResponseMessages],
-  );
-  const conversationOf = useCallback(
-    (rowId: string): Message[] => {
-      const members = listConversationOf(rowId);
-      if (members.length > 0) return members;
-      const row = triageRow(rowId);
-      return row ? [row] : [];
-    },
-    [listConversationOf, triageRow],
-  );
-
   // Sentiment is an inexpensive local heuristic, and is additionally gated by
   // the existing user-facing categorization preference. It is not an AI call.
   const sentimentMap = useBatchSentimentAnalysis(displayMessages, prefs.aiCategorization);
 
-  const [showTriage, setShowTriage] = useState(false);
-  const [showBrief, setShowBrief] = useState(false);
-  const triageItems = useMemo<ListItem[]>(() => {
-    if (!isInboxView || !showTriage) return [];
-
-    const items: ListItem[] = [];
-    if (needsResponseMessages.length > 0) {
-      items.push({
-        type: 'triage-header',
-        title: t('home.needsResponse'),
-        description: t('home.needsResponse'),
-        key: 'triage-needs-response-header',
-        count: needsResponseCount,
-      });
-      for (const message of needsResponseMessages) {
-        const reason = needsResponseReasons.get(message._id);
-        if (reason) {
-          items.push({
-            type: 'triage-message',
-            data: message,
-            category: 'needs-response',
-            reason,
-          });
-        }
-      }
-    }
-
-    if (!isSelectionMode && !isFollowUpLoading && followUpMessages.length > 0) {
-      items.push({
-        type: 'triage-header',
-        title: t('home.followUp'),
-        description: t('home.followUp'),
-        key: 'triage-follow-up-header',
-        count: followUpCount,
-      });
-      for (const message of followUpMessages) {
-        items.push({
-          type: 'triage-message',
-          data: message,
-          category: 'follow-up',
-          reason: 'awaiting-reply',
-        });
-      }
-    }
-
-    return items;
-  }, [
-    showTriage,
-    followUpCount,
-    followUpMessages,
-    isFollowUpLoading,
-    isInboxView,
-    isSelectionMode,
-    needsResponseCount,
-    needsResponseMessages,
-    needsResponseReasons,
-    t,
-  ]);
-
-  const triageMessageIds = useMemo(
-    () =>
-      new Set(
-        triageItems
-          .filter(
-            (item): item is Extract<ListItem, { type: 'triage-message' }> =>
-              item.type === 'triage-message',
-          )
-          .map((item) => item.data._id),
-      ),
-    [triageItems],
+  const briefVisible = isAuthenticated && isInboxView && prefs.aiBrief;
+  const { brief, error: briefError } = useDailyBrief({ enabled: briefVisible });
+  // Messages in the brief card appear once, instead of repeating below it.
+  const shownAboveIds = useMemo(
+    () => new Set(briefVisible && !briefError ? brief?.items.map((item) => item.messageId) : []),
+    [brief, briefError, briefVisible],
   );
 
-  // The open brief lists its messages as rows; the sections below leave them
-  // out, as they do the triage rows.
-  const { brief } = useDailyBrief({ enabled: showBrief && prefs.aiBrief });
-  const shownAboveIds = useMemo(() => {
-    if (!showBrief || !brief) return triageMessageIds;
-    return new Set([...triageMessageIds, ...brief.items.map((item) => item.messageId)]);
-  }, [brief, showBrief, triageMessageIds]);
-
   const listItems = useMemo<ListItem[]>(() => {
-    if (
-      displayMessages.length === 0 &&
-      reminders.length === 0 &&
-      triageItems.length === 0 &&
-      unreadable.length === 0
-    ) {
+    if (displayMessages.length === 0 && reminders.length === 0 && unreadable.length === 0) {
       return [];
     }
     const items: ListItem[] = [];
@@ -416,17 +284,12 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       }
     }
 
-    // Action candidates are shown once at the top with an explanation. Remove
-    // those same rows, and the open brief's, from the date/pinned sections
-    // below to avoid duplication.
-    items.push(...triageItems);
-
     // Partition pinned messages to top (only in mailbox views, not snoozed)
-    const triagedMessages = displayMessages.filter((message) => !shownAboveIds.has(message._id));
-    const pinned = !isSnoozedView ? triagedMessages.filter((m) => m.flags.pinned) : [];
+    const remainingMessages = displayMessages.filter((message) => !shownAboveIds.has(message._id));
+    const pinned = !isSnoozedView ? remainingMessages.filter((m) => m.flags.pinned) : [];
     const unpinned = !isSnoozedView
-      ? triagedMessages.filter((m) => !m.flags.pinned)
-      : triagedMessages;
+      ? remainingMessages.filter((m) => !m.flags.pinned)
+      : remainingMessages;
 
     pushGroup(items, t('inbox.sections.pinned'), 'header-Pinned', pinned);
 
@@ -486,10 +349,9 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     isInboxView,
     isSnoozedView,
     reminders,
-    shownAboveIds,
     showBundles,
+    shownAboveIds,
     t,
-    triageItems,
     unreadable,
   ]);
 
@@ -526,7 +388,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const handlePin = useCallback(
     (rowId: string) => {
       if (togglePin.isPending) return;
-      const row = displayMessages.find((m) => m._id === rowId) ?? triageRow(rowId);
+      const row = displayMessages.find((m) => m._id === rowId);
       if (!row) return;
       if (row.flags.pinned) {
         for (const m of conversationOf(rowId)) {
@@ -536,7 +398,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
         togglePin.mutate({ messageId: rowId, pinned: true });
       }
     },
-    [displayMessages, conversationOf, togglePin, triageRow],
+    [displayMessages, conversationOf, togglePin],
   );
 
   const handleToggleRead = useCallback(
@@ -572,14 +434,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       setSnoozeTargetId(null);
     },
     [snoozeTargetId, conversationOf, messageActions, removing],
-  );
-
-  const handleCreateReminder = useCallback(
-    (text: string, remindAt: Date) => {
-      createReminderMutation.mutate({ text, remindAt: remindAt.toISOString() });
-      setCreateReminderVisible(false);
-    },
-    [createReminderMutation],
   );
 
   const handleToggleReminderComplete = useCallback(
@@ -663,6 +517,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const handleOpenDrawer = shell.openDrawer;
 
   const handleAskAlia = useCallback(() => {
+    setBriefAction(null);
     aliaChatRef.current?.present();
   }, []);
 
@@ -787,13 +642,13 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       colors.surface,
       colors.surfaceVariant,
       colors.secondaryText,
-      colors.primary,
       colors.border,
+      colors.primary,
     ],
   );
 
   const renderMessageRow = useCallback(
-    (msg: Message) => (
+    (msg: Message, note?: string, onOpen?: () => void) => (
       <SwipeableRow
         key={msg._id}
         messageId={msg._id}
@@ -805,7 +660,8 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
         <MessageRow
           message={msg}
           onPin={handlePin}
-          onSelect={handleMessagePress}
+          onSelect={onOpen ?? handleMessagePress}
+          snippetOverride={note}
           onArchive={handleArchiveRow}
           archived={messageActions.isArchived(conversationOf(msg._id))}
           onDelete={handleDeleteRow}
@@ -819,8 +675,8 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
           showSnoozeTime={isSnoozedView}
           density={density}
           showPreviews={showPreviews}
+          sentiment={sentimentMap.get(msg._id)}
         />
-        <MessageRowExtras message={msg} sentiment={sentimentMap.get(msg._id)} />
       </SwipeableRow>
     ),
     [
@@ -847,27 +703,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     ],
   );
 
-  const renderTriageMessage = useCallback(
-    (item: Extract<ListItem, { type: 'triage-message' }>) => {
-      const reasonLabel =
-        item.category === 'follow-up'
-          ? t('home.followUp')
-          : item.reason === 'question'
-            ? t('home.needsResponse')
-            : item.reason === 'waiting'
-              ? t('home.needsResponse')
-              : t('home.needsResponse');
-
-      return (
-        <View style={styles.triageMessageItem}>
-          <Text style={[styles.triageReason, { color: colors.secondaryText }]}>{reasonLabel}</Text>
-          {renderMessageRow(item.data)}
-        </View>
-      );
-    },
-    [colors.secondaryText, renderMessageRow, t],
-  );
-
   const renderItem = useCallback(
     ({ item }: { item: ListItem }) => {
       if (item.type === 'header') {
@@ -884,24 +719,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
           </View>
         );
       }
-      if (item.type === 'triage-header') {
-        return (
-          <View style={styles.triageHeader} accessibilityRole="header">
-            <View style={styles.triageHeaderText}>
-              <Text style={[styles.sectionHeaderText, { color: colors.primary }]}>
-                {item.title}
-              </Text>
-              <Text style={[styles.triageDescription, { color: colors.secondaryText }]}>
-                {item.description}
-              </Text>
-            </View>
-            <Text style={[styles.sectionHeaderCount, { color: colors.secondaryText }]}>
-              {item.count}
-            </Text>
-          </View>
-        );
-      }
-      if (item.type === 'triage-message') return renderTriageMessage(item);
       if (item.type === 'unreadable') {
         return (
           <View style={styles.messageItem}>
@@ -938,7 +755,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     // every row kept whichever callbacks it closed over when the copy last
     // happened to change.
     [
-      colors.primary,
       colors.secondaryText,
       expandedBundles,
       handleDeleteReminder,
@@ -946,7 +762,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       handleReminderPress,
       handleToggleReminderComplete,
       renderMessageRow,
-      renderTriageMessage,
       toggleBundle,
     ],
   );
@@ -955,8 +770,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
 
   const keyExtractor = useCallback((item: ListItem) => {
     if (item.type === 'header') return item.key;
-    if (item.type === 'triage-header') return item.key;
-    if (item.type === 'triage-message') return `triage-${item.category}-${item.data._id}`;
     if (item.type === 'bundle') return `bundle-${item.bundle._id}`;
     if (item.type === 'reminder') return `reminder-${item.data._id}`;
     if (item.type === 'unreadable') return item.key;
@@ -967,7 +780,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const onListScroll = useMailboxScrollRestoration(
     listRef,
     JSON.stringify(['mailbox', user?.id, messagesOptions]),
-    listItems.length > 0,
+    focused && listItems.length > 0,
   );
 
   const renderEmpty = useCallback(() => {
@@ -1024,82 +837,70 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   }, [isFetchingNextPage]);
 
   return (
-    <View style={styles.container}>
-      {isSelectionMode ? (
-        <SelectionToolbar
-          count={selectedMessageIds.size}
-          onClose={clearSelection}
-          onArchive={handleBulkArchive}
-          archived={messageActions.isArchived(selectedConversations())}
-          onDelete={handleBulkDelete}
-          onStar={handleBulkStar}
-          onMarkRead={handleBulkMarkRead}
-        />
-      ) : (
-        // The shared header stays in flow above the virtualized message list.
-        <View>
-          <PageHeader
-            title={mailboxTitle}
-            sticky={false}
-            scrim="none"
-            safeArea={false}
-            leading={
-              drawerAvailable ? (
-                <ButtonGroup accessibilityLabel={t('search.openMenu')}>
-                  <ButtonGroupItem
-                    iconOnly
-                    leadingIcon={RiMenuLine}
-                    accessibilityLabel={t('search.openMenu')}
-                    onPress={handleOpenDrawer}
-                  />
-                </ButtonGroup>
-              ) : undefined
-            }
-            actions={
-              <ButtonGroup>
-                {isAuthenticated && (
-                  <>
+    <Screen
+      active={focused}
+      scroll="none"
+      testID="inbox-screen"
+      header={
+        isSelectionMode ? (
+          <SelectionToolbar
+            count={selectedMessageIds.size}
+            onClose={clearSelection}
+            onArchive={handleBulkArchive}
+            archived={messageActions.isArchived(selectedConversations())}
+            onDelete={handleBulkDelete}
+            onStar={handleBulkStar}
+            onMarkRead={handleBulkMarkRead}
+          />
+        ) : (
+          <View>
+            <PageHeader
+              title={briefVisible ? t('home.todaysBrief') : mailboxTitle}
+              sticky={false}
+              scrim="none"
+              safeArea={false}
+              leading={
+                drawerAvailable ? (
+                  <ButtonGroup accessibilityLabel={t('search.openMenu')}>
                     <ButtonGroupItem
                       iconOnly
-                      leadingIcon={RiAddLine}
-                      accessibilityLabel={t('reminder.create.title')}
-                      onPress={() => setCreateReminderVisible(true)}
+                      leadingIcon={RiMenuLine}
+                      accessibilityLabel={t('search.openMenu')}
+                      onPress={handleOpenDrawer}
                     />
-                    <ButtonGroupItem leadingIcon={AliaAvatarIcon} onPress={handleAskAlia}>
-                      {t('inbox.askAlia')}
-                    </ButtonGroupItem>
-                  </>
-                )}
-                <ButtonGroupItem
-                  iconOnly
-                  leadingIcon={RiSearchLine}
-                  accessibilityLabel={t('inbox.searchInMailbox', {
-                    mailbox: mailboxTitle.toLowerCase(),
-                  })}
-                  onPress={handleSearch}
-                />
-              </ButtonGroup>
-            }
-          />
-          {isAuthenticated &&
-            (prefs.aiBrief || (isInboxView && needsResponseCount + followUpCount > 0)) && (
-              <View className="flex-row flex-wrap gap-1 px-3 pb-2">
-                {isInboxView && needsResponseCount + followUpCount > 0 && (
-                  <Button
-                    appearance={showTriage ? 'solid' : 'subtle'}
-                    onPress={() => setShowTriage((value) => !value)}
-                  >{`${t('home.needsResponse')} · ${needsResponseCount + followUpCount}`}</Button>
-                )}
-                {prefs.aiBrief && (
-                  <Button appearance="subtle" onPress={() => setShowBrief((value) => !value)}>
-                    {t('home.todaysBrief')}
-                  </Button>
-                )}
-              </View>
-            )}
-        </View>
-      )}
-
+                  </ButtonGroup>
+                ) : undefined
+              }
+              actions={
+                <ButtonGroup>
+                  {isAuthenticated && (
+                    <>
+                      <ButtonGroupItem
+                        iconOnly
+                        leadingIcon={RiAddLine}
+                        accessibilityLabel={t('inbox.composeFabLabel')}
+                        onPress={() => router.push('/compose')}
+                      />
+                      <ButtonGroupItem leadingIcon={AliaAvatarIcon} onPress={handleAskAlia}>
+                        {t('inbox.askAlia')}
+                      </ButtonGroupItem>
+                    </>
+                  )}
+                  <ButtonGroupItem
+                    iconOnly
+                    leadingIcon={RiSearchLine}
+                    accessibilityLabel={t('inbox.searchInMailbox', {
+                      mailbox: mailboxTitle.toLowerCase(),
+                    })}
+                    onPress={handleSearch}
+                  />
+                </ButtonGroup>
+              }
+            />
+          </View>
+        )
+      }
+    >
       {isLoading && messages.length === 0 ? (
         <View style={styles.loadingContainer}>
           <Loading />
@@ -1115,10 +916,17 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
             ListHeaderComponent={
               <>
                 <UndeliveredBanner />
-                {showBrief && <DailyBrief onOpenMessage={openMessageById} />}
+                {briefVisible && (
+                  <DailyBrief
+                    onOpenMessage={openMessageById}
+                    onAction={handleBriefAction}
+                    messages={messages}
+                    renderMessage={renderMessageRow}
+                  />
+                )}
               </>
             }
-            ListEmptyComponent={renderEmpty}
+            ListEmptyComponent={shownAboveIds.size > 0 ? null : renderEmpty}
             ListFooterComponent={renderFooter}
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.3}
@@ -1137,7 +945,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
               ...(listItems.length === 0 ? styles.emptyListContent : null),
               ...styles.listContent,
               paddingTop: 0,
-              paddingBottom: bottomClearance,
+              paddingBottom: 0,
             }}
             showsVerticalScrollIndicator={false}
           />
@@ -1148,7 +956,12 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       {isAuthenticated && (
         <AliaChatSheet
           ref={aliaChatRef}
-          clientContext={t('inbox.aliaClientContext')}
+          app="inbox"
+          clientContext={
+            briefAction
+              ? `${t('inbox.aliaClientContext')}\nThe selected daily brief action refers to these Inbox message IDs: ${JSON.stringify(briefAction.messageIds)}. Read their current contents with Inbox tools before acting.`
+              : t('inbox.aliaClientContext')
+          }
           welcomeSuggestions={aliaWelcomeSuggestions}
         />
       )}
@@ -1160,22 +973,15 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
         onSnooze={handleSnooze}
       />
 
-      {/* Create reminder sheet */}
-      <CreateReminderSheet
-        visible={createReminderVisible}
-        onClose={() => setCreateReminderVisible(false)}
-        onCreate={handleCreateReminder}
-      />
-
       {/* Edit reminder sheet (opened by tapping a standalone reminder) */}
       <CreateReminderSheet
         visible={editReminderTarget !== null}
         editReminder={editReminderTarget}
         onClose={() => setEditReminderTarget(null)}
-        onCreate={handleCreateReminder}
+        onCreate={handleUpdateReminder}
         onUpdate={handleUpdateReminder}
       />
-    </View>
+    </Screen>
   );
 }
 
@@ -1233,33 +1039,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-  },
-  triageHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: SPACING.sm,
-    marginHorizontal: SPACING.md,
-    paddingHorizontal: SPACING.xs,
-    paddingTop: SPACING.lg,
-    paddingBottom: SPACING.sm,
-  },
-  triageHeaderText: {
-    flex: 1,
-    gap: SPACING.xs,
-  },
-  triageDescription: {
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  triageMessageItem: {
-    marginHorizontal: SPACING.md,
-    marginBottom: SPACING.xs,
-  },
-  triageReason: {
-    fontSize: 11,
-    lineHeight: 16,
-    marginHorizontal: SPACING.sm,
-    marginBottom: SPACING.xs,
   },
 });

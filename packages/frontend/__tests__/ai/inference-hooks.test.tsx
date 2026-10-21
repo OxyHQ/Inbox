@@ -131,7 +131,7 @@ describe('Inbox inference hooks', () => {
     queryClient.clear();
   });
 
-  it('fetches the Daily Brief only while open, in the UI language, and marks opened rows read', async () => {
+  it('fetches the Daily Brief only while enabled, in the UI language, and marks opened rows read', async () => {
     const oxyServices = makeMockOxyServices();
     __setOxyState({
       user: { id: 'user-1', username: 'nate' },
@@ -178,7 +178,7 @@ describe('Inbox inference hooks', () => {
     act(() => rendered.result.current.markOpened('msg_ana'));
     await waitFor(() => expect(rendered.result.current.brief?.items[0]?.unread).toBe(false));
 
-    // Closing and reopening the brief within the half hour reuses it.
+    // Leaving and returning to the Inbox within the half hour reuses the brief.
     rendered.rerender({ enabled: false });
     rendered.rerender({ enabled: true });
     expect(mockFetchInboxDailyBrief).toHaveBeenCalledTimes(1);

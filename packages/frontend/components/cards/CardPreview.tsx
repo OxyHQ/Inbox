@@ -1,11 +1,14 @@
 import { formatMoney, formatCardDate } from '@/utils/cardFormat';
 /**
- * Compact single-line card preview for the inbox list.
- * Shows an icon + short summary text below the message snippet.
+ * Compact rich preview for the inbox attachment rail.
+ * Shows the extracted details without inventing unavailable artwork.
  */
 
 import type { MessageCard } from '@/services/emailApi';
-import { Chip } from '@oxy.so/bloom/chip';
+import { Card } from '@oxy.so/bloom/card';
+import { Text } from '@oxy.so/bloom/typography';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { View } from 'react-native';
 import {
   RiSendPlaneLine,
   RiShoppingBag3Line,
@@ -79,15 +82,31 @@ function getSummary(card: MessageCard, t: TranslateFn, locale: string): string {
 
 export function CardPreview({ card }: CardPreviewProps) {
   const { t, locale } = useTranslation();
+  const { colors } = useTheme();
   const config = CARD_CONFIG[card.type] ?? {
     icon: RiFileTextLine,
     tone: 'neutral' as const,
   };
   const summary = getSummary(card, t, locale);
   if (!summary) return null;
+  const Icon = config.icon;
   return (
-    <Chip appearance="subtle" tone={config.tone} leadingIcon={config.icon}>
-      {summary}
-    </Chip>
+    <Card
+      appearance="subtle"
+      tone={config.tone}
+      radius="radius-8"
+      border="hairline"
+      elevation="none"
+      clipContent
+      style={{ width: 256, height: 88, flexShrink: 0 }}
+      contentStyle={{ flexDirection: 'row', alignItems: 'center' }}
+    >
+      <View style={{ width: 64, alignItems: 'center', justifyContent: 'center' }}>
+        <Icon width={32} height={32} fill={colors.textSecondary} />
+      </View>
+      <Text variant="body-2-regular" numberOfLines={3} style={{ flex: 1, padding: 12 }}>
+        {summary}
+      </Text>
+    </Card>
   );
 }

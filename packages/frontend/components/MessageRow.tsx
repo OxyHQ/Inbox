@@ -240,7 +240,7 @@ function MessageRowExtras({
             <RiPriceTag3Line
               width={12}
               height={12}
-              color={labels.find((label) => label.name === name)?.color || colors.textSecondary}
+              fill={labels.find((label) => label.name === name)?.color || colors.textSecondary}
             />
           }
         >

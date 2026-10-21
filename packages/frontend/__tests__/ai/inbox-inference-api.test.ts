@@ -279,7 +279,7 @@ describe('Inbox point-inference API client', () => {
       fetchInboxDailyBrief(client as never, { ...dayWindow, locale: 'es' }, signal),
     ).resolves.toEqual(brief);
     expect(client.post).toHaveBeenCalledWith(
-      '/email/ai/daily-brief',
+      '/email/ai/daily-brief?includeActions=true',
       { ...dayWindow, locale: 'es' },
       { timeout: INFERENCE_TIMEOUT_MS, signal },
     );

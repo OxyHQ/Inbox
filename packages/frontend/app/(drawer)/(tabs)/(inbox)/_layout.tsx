@@ -183,7 +183,10 @@ export default function InboxLayout() {
     // under every other screen — Search, Settings, Subscriptions, the
     // composer — where `j` used to navigate away and `e` archived a message
     // that was not on screen.
-    enabled: isDesktop && segments.includes('(inbox)') && !segments.includes('compose'),
+    enabled:
+      isDesktop &&
+      segments.some((segment) => segment === '(inbox)') &&
+      !segments.some((segment) => segment === 'compose'),
   });
 
   return (

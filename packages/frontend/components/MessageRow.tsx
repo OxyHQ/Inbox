@@ -1,4 +1,3 @@
-import { Card, CardBody } from '@oxy.so/bloom/card';
 import {
   RiArchiveLine,
   RiInbox2Line,
@@ -6,35 +5,22 @@ import {
   RiDeleteBinLine,
   RiMailOpenLine,
   RiPushpinLine,
+  RiPriceTag3Line,
 } from '@oxy.so/bloom/icons';
 import { MailRow, type MailAction } from '@oxy.so/bloom/mail-list';
 import { useTheme } from '@oxy.so/bloom/theme';
 /** Bloom owns row layout, selection, hover actions and density on every platform. */
 
 import { SPACING } from '@/constants/layout';
-import { useColors } from '@/constants/theme';
 import type { MessageDensity } from '@/contexts/inbox-prefs-context';
 import type { SentimentResult } from '@/hooks/queries/useSentimentAnalysis';
 import { useTranslation, type TranslateFn } from '@/lib/i18n';
-import type { Attachment, Message } from '@/services/emailApi';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import {
-  Doc01Icon,
-  File01Icon,
-  FileZipIcon,
-  Image01Icon,
-  MusicNote01Icon,
-  Pdf01Icon,
-  PlayCircle02Icon,
-  Ppt01Icon,
-  Xls01Icon,
-} from '@hugeicons/core-free-icons';
-import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
+import type { Message } from '@/services/emailApi';
 import { Chip } from '@oxy.so/bloom/chip';
-import { Text } from '@oxy.so/bloom/typography';
 import React from 'react';
-import { Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { AttachmentThumbnail } from './AttachmentThumbnail';
+import { StyleSheet, View } from 'react-native';
+import { useLabels } from '@/hooks/queries/useLabels';
+import { AttachmentPreview } from './AttachmentPreview';
 import { CardPreview } from './cards/CardPreview';
 import { ImportanceBadge } from './ImportanceBadge';
 import { SentimentIndicator } from './SentimentIndicator';
@@ -74,82 +60,6 @@ function getPreview(message: Message): string {
   return text.replace(/\s+/g, ' ').trim().substring(0, 120);
 }
 
-type AttachmentInfo = {
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
-  hugeIcon: IconSvgElement;
-  label: string;
-  color: string;
-};
-
-function getAttachmentInfo(
-  att: Attachment,
-  tokens: ReturnType<typeof useTheme>['colors'],
-): AttachmentInfo {
-  const ct = att.contentType.toLowerCase();
-  if (ct.startsWith('image/'))
-    return {
-      icon: 'image-outline',
-      hugeIcon: Image01Icon as unknown as IconSvgElement,
-      label: att.name,
-      color: tokens.successSubtleForeground,
-    };
-  if (ct.startsWith('video/'))
-    return {
-      icon: 'play-circle-outline',
-      hugeIcon: PlayCircle02Icon as unknown as IconSvgElement,
-      label: att.name,
-      color: tokens.errorSubtleForeground,
-    };
-  if (ct.startsWith('audio/'))
-    return {
-      icon: 'music-note-outline',
-      hugeIcon: MusicNote01Icon as unknown as IconSvgElement,
-      label: att.name,
-      color: tokens.tertiarySubtleForeground,
-    };
-  if (ct.includes('pdf'))
-    return {
-      icon: 'file-pdf-box',
-      hugeIcon: Pdf01Icon as unknown as IconSvgElement,
-      label: att.name,
-      color: tokens.errorSubtleForeground,
-    };
-  if (ct.includes('spreadsheet') || ct.includes('excel') || ct.includes('csv'))
-    return {
-      icon: 'file-excel-outline',
-      hugeIcon: Xls01Icon as unknown as IconSvgElement,
-      label: att.name,
-      color: tokens.successSubtleForeground,
-    };
-  if (ct.includes('presentation') || ct.includes('powerpoint'))
-    return {
-      icon: 'file-powerpoint-outline',
-      hugeIcon: Ppt01Icon as unknown as IconSvgElement,
-      label: att.name,
-      color: tokens.warningSubtleForeground,
-    };
-  if (ct.includes('document') || ct.includes('word') || ct.includes('msword'))
-    return {
-      icon: 'file-word-outline',
-      hugeIcon: Doc01Icon as unknown as IconSvgElement,
-      label: att.name,
-      color: tokens.infoSubtleForeground,
-    };
-  if (ct.includes('zip') || ct.includes('rar') || ct.includes('tar') || ct.includes('gz'))
-    return {
-      icon: 'zip-box-outline',
-      hugeIcon: FileZipIcon as unknown as IconSvgElement,
-      label: att.name,
-      color: tokens.textSecondary,
-    };
-  return {
-    icon: 'file-outline',
-    hugeIcon: File01Icon as unknown as IconSvgElement,
-    label: att.name,
-    color: tokens.textSecondary,
-  };
-}
-
 function formatSnoozeTime(dateStr: string, t: TranslateFn, locale: string): string {
   const date = new Date(dateStr);
   const diffDays = calendarDaysBetween(new Date(), date);
@@ -179,6 +89,8 @@ interface MessageRowProps {
   showSnoozeTime?: boolean;
   density?: MessageDensity;
   showPreviews?: boolean;
+  sentiment?: SentimentResult | null;
+  snippetOverride?: string;
 }
 
 function MessageRowInner({
@@ -198,6 +110,8 @@ function MessageRowInner({
   density = 'comfortable',
   showPreviews = true,
   archived = false,
+  sentiment,
+  snippetOverride,
 }: MessageRowProps) {
   const { t, locale } = useTranslation();
   const deliveryLabel = useDeliveryLabel();
@@ -245,7 +159,7 @@ function MessageRowInner({
         avatar: message.senderAvatarPath ? `${API_URL}${message.senderAvatarPath}` : undefined,
       }}
       subject={message.subject || t('message.detail.noSubject')}
-      snippet={showPreviews ? getPreview(message) : undefined}
+      snippet={showPreviews ? (snippetOverride ?? getPreview(message)) : undefined}
       time={
         showSnoozeTime && message.snoozedUntil
           ? formatSnoozeTime(message.snoozedUntil, t, locale)
@@ -281,6 +195,16 @@ function MessageRowInner({
       density={density}
       actions={isSelectionMode ? [] : actions}
       swipeEnabled={false}
+      footer={
+        message.labels.length > 0 || sentiment ? (
+          <MessageRowExtras message={message} sentiment={sentiment} />
+        ) : undefined
+      }
+      attachments={
+        message.card || fileAttachments(message).length > 0 ? (
+          <MessageAttachments message={message} disabled={isSelectionMode} />
+        ) : undefined
+      }
       strings={{
         star: t('selection.star'),
         select: t('selection.select'),
@@ -293,134 +217,67 @@ function MessageRowInner({
   );
 }
 
-/**
- * Everything a message can carry beyond the single line — labels, card
- * preview, attachment thumbnails. Rendered by the list under the row so the
- * row itself stays exactly one line tall.
- */
-function MessageRowExtrasInner({
+/** Labels stay with the text; Bloom owns the separate full-width attachment viewport. */
+function MessageRowExtras({
   message,
   sentiment,
 }: {
   message: Message;
   sentiment?: SentimentResult | null;
 }) {
-  const colors = useColors();
-  const { colors: tokens } = useTheme();
-  const attachments = fileAttachments(message);
-  const hasAttachments = attachments.length > 0;
-  const hasChips = message.labels.length > 0 || Boolean(sentiment);
-
-  if (!hasChips && !message.card && !hasAttachments) return null;
-
+  const { data: labels = [] } = useLabels();
+  const { colors } = useTheme();
   return (
-    <View style={styles.extras}>
-      {/* Chip row: importance, sentiment and labels all live on this second
-            line so the message line itself stays a single uninterrupted row. */}
-      {hasChips && (
-        <View style={styles.labelChipRow}>
-          <ImportanceBadge message={message} />
-          <SentimentIndicator sentiment={sentiment ?? null} size="small" />
-          {message.labels.slice(0, 3).map((labelName) => {
-            return (
-              <Chip key={labelName} variant="subtle">
-                {labelName}
-              </Chip>
-            );
-          })}
-          {message.labels.length > 3 && (
-            <Text style={[styles.moreLabelText, { color: colors.secondaryText }]}>
-              +{message.labels.length - 3}
-            </Text>
-          )}
-        </View>
-      )}
-
-      {/* One horizontal rail of cards, Inbox-by-Gmail style: the extracted
-            smart card (flight, order, event, bill, package) leads, then a card
-            per attachment. Scrolls sideways instead of stacking rows, so a
-            message with a flight and four files still costs one row of height. */}
-      {(message.card || hasAttachments) && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.cardRail}
+    <View style={styles.labelChipRow}>
+      <ImportanceBadge message={message} />
+      <SentimentIndicator sentiment={sentiment ?? null} size="small" />
+      {message.labels.map((name) => (
+        <Chip
+          key={name}
+          variant="subtle"
+          size="sm"
+          leading={
+            <RiPriceTag3Line
+              width={12}
+              height={12}
+              color={labels.find((label) => label.name === name)?.color || colors.textSecondary}
+            />
+          }
         >
-          {message.card && <CardPreview card={message.card} />}
-
-          {attachments.map((att, i) => {
-            const isImage = att.contentType.toLowerCase().startsWith('image/');
-            const info = getAttachmentInfo(att, tokens);
-            return (
-              <Card key={att.fileId || i} appearance="outline">
-                <CardBody>
-                  <View className="flex-row items-center gap-2">
-                    {isImage ? (
-                      <AttachmentThumbnail fileId={att.fileId} size={40} />
-                    ) : Platform.OS === 'web' ? (
-                      <HugeiconsIcon icon={info.hugeIcon} size={20} color={info.color} />
-                    ) : (
-                      <MaterialCommunityIcons name={info.icon} size={20} color={info.color} />
-                    )}
-                    <Text
-                      style={[styles.railCardLabel, { color: colors.secondaryText }]}
-                      numberOfLines={1}
-                    >
-                      {info.label}
-                    </Text>
-                  </View>
-                </CardBody>
-              </Card>
-            );
-          })}
-        </ScrollView>
-      )}
+          {name}
+        </Chip>
+      ))}
     </View>
   );
 }
 
-/**
- * The files a message carries, as the reader lists them: an inline image of
- * an HTML body is part of that body. Counted as attachments, a newsletter's
- * logo and pictures put a paperclip on its row and a thumbnail card per image
- * — one signed-URL request each, per row.
- */
-function fileAttachments(message: Message): Message['attachments'] {
-  return message.attachments.filter((attachment) => !(attachment.isInline && attachment.contentId));
+function MessageAttachments({ message, disabled }: { message: Message; disabled?: boolean }) {
+  return (
+    <>
+      {message.card && <CardPreview card={message.card} />}
+      {fileAttachments(message).map((attachment, index) => (
+        <AttachmentPreview
+          key={attachment.fileId || index}
+          attachment={attachment}
+          disabled={disabled}
+        />
+      ))}
+    </>
+  );
 }
 
 export const MessageRow = React.memo(MessageRowInner);
 
 const styles = StyleSheet.create({
-  cardRail: {
-    flexDirection: 'row',
-    gap: SPACING.sm,
-    paddingRight: SPACING.lg,
-  },
-  railCardLabel: {
-    flexShrink: 1,
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  extras: {
-    paddingHorizontal: SPACING.sm,
-    paddingBottom: SPACING.sm,
-    gap: SPACING.sm,
-  },
   labelChipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: SPACING.xs,
   },
-  moreLabelText: {
-    fontSize: 10,
-  },
 });
 
-/**
- * Memoized for the same reason `MessageRow` is: it renders beside one for every
- * row, and the list re-renders mounted items on each selection toggle
- * (`extraData`). Without this, the row's comparator only halves the work.
- */
-export const MessageRowExtras = React.memo(MessageRowExtrasInner);
+/** Inline body images are not separate file attachments. */
+function fileAttachments(message: Message): Message['attachments'] {
+  return message.attachments.filter((attachment) => !(attachment.isInline && attachment.contentId));
+}

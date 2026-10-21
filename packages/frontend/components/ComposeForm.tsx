@@ -1,5 +1,3 @@
-import { BREAKPOINTS } from '@oxy.so/bloom/styles';
-import { useBottomEdgeInset } from '@oxy.so/bloom/layout';
 import { EmptyState } from '@oxy.so/bloom/empty-state';
 import { Loading } from '@oxy.so/bloom/loading';
 /**
@@ -13,13 +11,7 @@ import { Loading } from '@oxy.so/bloom/loading';
  */
 
 import { useMemo } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
 import { MailComposer } from '@/components/MailComposer';
@@ -127,9 +119,6 @@ function ComposeSessionForm({
   forwarded?: Message;
   closeCompose: () => void;
 }) {
-  const occupiedBottom = useBottomEdgeInset();
-  const { width: viewportWidth } = useWindowDimensions();
-  const bottomClearance = viewportWidth < BREAKPOINTS.md ? occupiedBottom : 0;
   const { t, locale } = useTranslation();
 
   // A reply's parent is loaded by its row id only to read its RFC headers. A
@@ -216,7 +205,7 @@ function ComposeSessionForm({
         trailer={trailer}
         lead={!draft && <ReplyParentNotice state={replyParent} />}
         placeholder={t('compose.placeholders.body')}
-        style={{ flex: 1, paddingBottom: bottomClearance }}
+        style={{ flex: 1 }}
       />
     </KeyboardAvoidingView>
   );

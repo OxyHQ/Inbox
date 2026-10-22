@@ -26,6 +26,12 @@ after network idle cannot detect a blank interval or a replaced shell. Record
 both uncaught exceptions and console errors, including recoverable hydration
 errors. An error boundary can render content while startup has failed.
 
+Also load the export with JavaScript disabled and inspect painted pixels and
+element bounds. Text in the HTML is not proof of a visible first frame: a CSS
+breakpoint can hide the only heading when Bloom's server layout has one panel.
+Use the compositor's actual panel state for panel-dependent content, and verify
+that the shared shell's geometry and navigation paint before hydration.
+
 Check desktop and touch viewports, cold and warm cache, English and a non-English
 browser locale, and stored light/dark preferences. Verify the visible shell does
 not disappear or remount. Separately test delayed session restoration, account

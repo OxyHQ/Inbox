@@ -1,6 +1,7 @@
 import { SearchSessionProvider, useSearchSessionState } from '@/contexts/search-session-context';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { __setOxyState } from '../../__mocks__/oxyhq-services';
+import { useEffect } from 'react';
 import { defined } from '../fixtures/defined';
 
 let oldSearchCompletion: () => void;
@@ -94,6 +95,8 @@ it('clears all fields on account switch and ignores late updates from the previo
   expect(read()).toEqual(empty);
   act(() => __setOxyState({ user: { id: 'account-a' } }));
   expect(read()).toEqual(empty);
+  act(() => oldSearchCompletion());
+  expect(read()).toEqual(empty);
 });
 
 it('drops the search session on sign-out', () => {
@@ -105,4 +108,29 @@ it('drops the search session on sign-out', () => {
   fireEvent.click(screen.getByText('Search'));
   act(() => __setOxyState({ user: null, isAuthenticated: false }));
   expect(read()).toEqual(empty);
+});
+
+it('keeps the workspace mounted through anonymous boot, sign-in and account switches', () => {
+  act(() => __setOxyState({ user: null, isAuthenticated: false }));
+  const mounted = jest.fn();
+  function Workspace() {
+    useEffect(mounted, []);
+    return (
+      <main>
+        <SearchFixture />
+      </main>
+    );
+  }
+  const view = render(
+    <SearchSessionProvider>
+      <Workspace />
+    </SearchSessionProvider>,
+  );
+  const workspace = view.getByRole('main');
+  act(() => __setOxyState({ user: { id: 'account-a' }, isAuthenticated: true }));
+  fireEvent.click(screen.getByText('Search'));
+  act(() => __setOxyState({ user: { id: 'account-b' } }));
+  expect(read()).toEqual(empty);
+  expect(view.getByRole('main')).toBe(workspace);
+  expect(mounted).toHaveBeenCalledTimes(1);
 });

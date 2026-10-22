@@ -1,4 +1,6 @@
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
+import { InboxStartup } from '@/components/InboxStartup';
+import { RequireOxyAuth } from '@oxy.so/services/ui';
 import { InboxList } from '@/components/InboxList';
 import { SearchList } from '@/components/SearchList';
 import { InboxBottomBar } from '@/components/InboxBottomBar';
@@ -12,6 +14,7 @@ import { useColors } from '@/constants/theme';
 import { useCreateMailbox, useDeleteMailbox } from '@/hooks/mutations/useMailboxMutations';
 import { useLabels } from '@/hooks/queries/useLabels';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
+import { useScopedState } from '@/hooks/useScopedState';
 import { useEmailStore } from '@/hooks/useEmail';
 import { useTranslation } from '@/lib/i18n';
 import type { Mailbox } from '@/services/emailApi';
@@ -39,7 +42,7 @@ import type { SidebarNavItem, SidebarProps } from '@oxy.so/bloom/sidebar';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { ProfileButton, useOxy } from '@oxy.so/services/ui/client';
 import { usePathname, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { Fragment, useCallback, useMemo, useState, type ReactNode } from 'react';
 import { View } from 'react-native';
 
 const PRIMARY_SPECIAL_USE: Set<string> = new Set([
@@ -62,7 +65,9 @@ export function MailboxShell({ children }: { children: ReactNode }) {
   const openSettings = useInboxSettings();
   const colors = useColors();
   const { t } = useTranslation();
-  const { isAuthenticated, openAccountDialog } = useOxy();
+  const { user, canUsePrivateApi, isAccountCacheReady, openAccountDialog } = useOxy();
+  const accountReady = canUsePrivateApi && isAccountCacheReady;
+  const accountScope = accountReady ? (user?.id ?? null) : null;
   const router = useRouter();
   const [listWidth, setListWidth] = useState(380);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -87,8 +92,10 @@ export function MailboxShell({ children }: { children: ReactNode }) {
   const isSubscriptions = pathname === '/subscriptions';
   const moreExpanded = useEmailStore((s) => s.moreExpanded);
   const toggleMore = useEmailStore((s) => s.toggleMore);
-  const { data: mailboxes = [] } = useMailboxes();
-  const { data: labels = [] } = useLabels();
+  const mailboxQuery = useMailboxes({ enabled: accountReady });
+  const labelQuery = useLabels({ enabled: accountReady });
+  const mailboxes = accountReady ? (mailboxQuery.data ?? []) : [];
+  const labels = accountReady ? (labelQuery.data ?? []) : [];
 
   const mailboxLabel = useCallback(
     (mailbox: Mailbox & { specialUse?: string }) => {
@@ -145,11 +152,11 @@ export function MailboxShell({ children }: { children: ReactNode }) {
   const deleteMailbox = useDeleteMailbox();
   const createFolderControl = useDialogControl();
   const deleteFolderControl = useDialogControl();
-  const [newFolderName, setNewFolderName] = useState('');
-  const [folderPendingDelete, setFolderPendingDelete] = useState<{
+  const [newFolderName, setNewFolderName] = useScopedState(accountScope, () => '');
+  const [folderPendingDelete, setFolderPendingDelete] = useScopedState<{
     id: string;
     name: string;
-  } | null>(null);
+  } | null>(accountScope, () => null);
 
   const handleCustomFolderSelect = useCallback(
     (mailbox: Mailbox) => {
@@ -174,7 +181,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
         },
       },
     );
-  }, [newFolderName, createMailbox, createFolderControl]);
+  }, [newFolderName, createMailbox, createFolderControl, setNewFolderName]);
 
   const handleConfirmDeleteFolder = useCallback(() => {
     if (!folderPendingDelete) return;
@@ -198,7 +205,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
         onSettled: () => setFolderPendingDelete(null),
       },
     );
-  }, [folderPendingDelete, deleteMailbox, router]);
+  }, [folderPendingDelete, deleteMailbox, router, setFolderPendingDelete]);
 
   const handleSelect = useCallback(
     (mailbox: Mailbox & { specialUse: string }) => {
@@ -281,7 +288,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
     badge: mailbox.unseenMessages || undefined,
     onPress: () => handleSelect(mailbox),
   });
-  const items: SidebarNavItem[] = isAuthenticated
+  const items: SidebarNavItem[] = accountReady
     ? [
         ...primaryMailboxes.map(mailboxItem),
         {
@@ -344,7 +351,12 @@ export function MailboxShell({ children }: { children: ReactNode }) {
             ]
           : []),
       ]
-    : [];
+    : [
+        { key: 'inbox', label: t('drawer.mailboxes.Inbox'), icon: RiInbox2Line },
+        { key: 'sent', label: t('drawer.mailboxes.Sent'), icon: RiSendPlaneLine },
+        { key: 'drafts', label: t('drawer.mailboxes.Drafts'), icon: RiDraftLine },
+        { key: 'starred', label: t('drawer.starred'), icon: RiStarLine },
+      ];
   const selectedMailbox =
     viewMode?.type === 'label'
       ? `label:${viewMode.labelName.toLowerCase()}`
@@ -366,7 +378,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
 
   const sidebarProps: SidebarProps = {
     items,
-    selected,
+    selected: accountReady ? selected : 'inbox',
     collapsed,
     onCollapsedChange: (next) => {
       if (next !== useEmailStore.getState().sidebarCollapsed)
@@ -382,24 +394,28 @@ export function MailboxShell({ children }: { children: ReactNode }) {
     },
     showSearch: false,
     showThemeToggle: false,
-    primaryAction: isAuthenticated
+    primaryAction: accountReady
       ? {
           label: t('inbox.composeFabLabel'),
           icon: RiEditLine,
           onPress: handleCompose,
         }
       : undefined,
-    secondaryItems: [
-      {
-        key: 'settings',
-        label: t('tabs.settings'),
-        icon: RiSettings3Line,
-        onPress: handleNavigateManage,
-      },
-    ],
-    footer: ({ collapsed: compact }) => (
-      <ProfileButton expanded={!compact} placement="up" onAddAccount={handleAddAccount} />
-    ),
+    secondaryItems: accountReady
+      ? [
+          {
+            key: 'settings',
+            label: t('tabs.settings'),
+            icon: RiSettings3Line,
+            onPress: handleNavigateManage,
+          },
+        ]
+      : [],
+    footer: accountReady
+      ? ({ collapsed: compact }) => (
+          <ProfileButton expanded={!compact} placement="up" onAddAccount={handleAddAccount} />
+        )
+      : undefined,
   };
 
   return (
@@ -410,7 +426,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
         drawerOpen={drawerOpen}
         onDrawerOpenChange={setDrawerOpen}
         sidebar={sidebarProps}
-        bottomBar={<InboxBottomBar />}
+        bottomBar={accountReady ? <InboxBottomBar /> : undefined}
         drawerOpenLabel={t('search.openMenu')}
         drawerCloseLabel={t('common.close')}
         panelLayout={{
@@ -434,10 +450,19 @@ export function MailboxShell({ children }: { children: ReactNode }) {
                   action: { label: t('common.retry') },
                 },
               },
-              content: pathname.startsWith('/search') ? (
-                <SearchList replaceNavigation={pathname.includes('/conversation/')} />
-              ) : (
-                <InboxList replaceNavigation={pathname.includes('/conversation/')} />
+              content: (
+                <RequireOxyAuth
+                  loadingFallback={<InboxStartup />}
+                  signedOutFallback={<InboxStartup />}
+                >
+                  <Fragment key={accountScope}>
+                    {pathname.startsWith('/search') ? (
+                      <SearchList replaceNavigation={pathname.includes('/conversation/')} />
+                    ) : (
+                      <InboxList replaceNavigation={pathname.includes('/conversation/')} />
+                    )}
+                  </Fragment>
+                </RequireOxyAuth>
               ),
             },
             {
@@ -453,70 +478,82 @@ export function MailboxShell({ children }: { children: ReactNode }) {
                   action: { label: t('common.retry') },
                 },
               },
-              content: children,
+              content: (
+                <RequireOxyAuth
+                  loadingFallback={<InboxStartup detail />}
+                  title={t('auth.gate.title')}
+                  subtitle={t('auth.gate.subtitle')}
+                >
+                  <Fragment key={accountScope}>{children}</Fragment>
+                </RequireOxyAuth>
+              ),
             },
           ],
         }}
       />
-      <Dialog
-        control={createFolderControl}
-        title={t('ui.drawer.newFolder')}
-        label={t('ui.drawer.newFolder')}
-      >
-        <View style={{ gap: 12 }}>
-          <TextFieldInput
-            label={t('ui.drawer.folderName')}
-            value={newFolderName}
-            onChangeText={setNewFolderName}
-            autoFocus
-            onSubmitEditing={handleCreateFolder}
-            returnKeyType="done"
-          />
-          <Button
-            onPress={handleCreateFolder}
-            disabled={!newFolderName.trim() || createMailbox.isPending}
-            loading={createMailbox.isPending}
+      {accountReady && (
+        <Fragment key={accountScope}>
+          <Dialog
+            control={createFolderControl}
+            title={t('ui.drawer.newFolder')}
+            label={t('ui.drawer.newFolder')}
           >
-            {t('ui.drawer.createFolderButton')}
-          </Button>
-        </View>
-      </Dialog>
-      <Dialog control={manageFoldersControl} title={t('ui.drawer.folders')}>
-        <View style={{ gap: 8 }}>
-          {customFolders.map((folder) => (
-            <Button
-              key={folder._id}
-              appearance="subtle"
-              onPress={() => {
-                manageFoldersControl.close();
-                setFolderPendingDelete({ id: folder._id, name: folder.name });
-                deleteFolderControl.open();
-              }}
-            >
-              {t('common.delete')} · {folder.name}
-            </Button>
-          ))}
-        </View>
-      </Dialog>
-      <Dialog
-        control={deleteFolderControl}
-        title={t('ui.drawer.deleteFolderTitle')}
-        description={
-          folderPendingDelete
-            ? t('ui.drawer.deleteFolderDescription', {
-                name: folderPendingDelete.name,
-              })
-            : ''
-        }
-        actions={[
-          {
-            label: t('common.delete'),
-            color: 'destructive',
-            onPress: handleConfirmDeleteFolder,
-          },
-          { label: t('common.cancel'), color: 'cancel' },
-        ]}
-      />
+            <View style={{ gap: 12 }}>
+              <TextFieldInput
+                label={t('ui.drawer.folderName')}
+                value={newFolderName}
+                onChangeText={setNewFolderName}
+                autoFocus
+                onSubmitEditing={handleCreateFolder}
+                returnKeyType="done"
+              />
+              <Button
+                onPress={handleCreateFolder}
+                disabled={!newFolderName.trim() || createMailbox.isPending}
+                loading={createMailbox.isPending}
+              >
+                {t('ui.drawer.createFolderButton')}
+              </Button>
+            </View>
+          </Dialog>
+          <Dialog control={manageFoldersControl} title={t('ui.drawer.folders')}>
+            <View style={{ gap: 8 }}>
+              {customFolders.map((folder) => (
+                <Button
+                  key={folder._id}
+                  appearance="subtle"
+                  onPress={() => {
+                    manageFoldersControl.close();
+                    setFolderPendingDelete({ id: folder._id, name: folder.name });
+                    deleteFolderControl.open();
+                  }}
+                >
+                  {t('common.delete')} · {folder.name}
+                </Button>
+              ))}
+            </View>
+          </Dialog>
+          <Dialog
+            control={deleteFolderControl}
+            title={t('ui.drawer.deleteFolderTitle')}
+            description={
+              folderPendingDelete
+                ? t('ui.drawer.deleteFolderDescription', {
+                    name: folderPendingDelete.name,
+                  })
+                : ''
+            }
+            actions={[
+              {
+                label: t('common.delete'),
+                color: 'destructive',
+                onPress: handleConfirmDeleteFolder,
+              },
+              { label: t('common.cancel'), color: 'cancel' },
+            ]}
+          />
+        </Fragment>
+      )}
     </MailScrollProvider>
   );
 }

@@ -1,3 +1,4 @@
+import { useScopedState } from '@/hooks/useScopedState';
 import type { SearchFilters } from '@/utils/searchFilters';
 import type { ParsedSearchQuery } from '@/hooks/queries/useNaturalLanguageSearch';
 import { useOxy } from '@oxy.so/services/ui/client';
@@ -6,7 +7,6 @@ import {
   useCallback,
   useContext,
   useMemo,
-  useState,
   type Dispatch,
   type ReactNode,
   type SetStateAction,
@@ -31,18 +31,12 @@ const SearchSessionContext = createContext<{
   setState: Dispatch<SetStateAction<SearchSession>>;
 } | null>(null);
 
-function AccountSearchSession({ children }: { children: ReactNode }) {
-  const [state, setState] = useState(initialState);
-  const value = useMemo(() => ({ state, setState }), [state]);
-  return <SearchSessionContext.Provider value={value}>{children}</SearchSessionContext.Provider>;
-}
-
 /** Keep searches above responsive list mounts, but never carry one into another account. */
 export function SearchSessionProvider({ children }: { children: ReactNode }) {
   const { user } = useOxy();
-  // This is the same account identity used by the mail query keys. A keyed
-  // boundary also makes outstanding callbacks belong to the old session.
-  return <AccountSearchSession key={user?.id ?? 'signed-out'}>{children}</AccountSearchSession>;
+  const [state, setState] = useScopedState(user?.id ?? null, () => initialState);
+  const value = useMemo(() => ({ state, setState }), [state, setState]);
+  return <SearchSessionContext.Provider value={value}>{children}</SearchSessionContext.Provider>;
 }
 
 export function useSearchSessionState<K extends keyof SearchSession>(key: K) {

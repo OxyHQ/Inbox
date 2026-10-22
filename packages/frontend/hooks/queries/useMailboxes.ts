@@ -29,7 +29,7 @@ export function reconcileMovedFolders(
   }
 }
 
-export function useMailboxes() {
+export function useMailboxes({ enabled = true }: { enabled?: boolean } = {}) {
   const api = useEmailStore((s) => s._api);
   const { user } = useOxy();
   const userId = user?.id ?? null;
@@ -40,7 +40,7 @@ export function useMailboxes() {
       if (!api) throw new Error('Email API not initialized');
       return await api.listMailboxes({ signal });
     },
-    enabled: !!api && !!userId,
+    enabled: enabled && !!api && !!userId,
   });
 }
 

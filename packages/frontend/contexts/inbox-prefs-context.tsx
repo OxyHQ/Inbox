@@ -12,8 +12,9 @@
  * (defaults are used until the load resolves).
  */
 
+import { useScopedState } from '@/hooks/useScopedState';
 import type { MailDensity } from '@oxy.so/bloom/mail-list';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { Platform } from 'react-native';
 
@@ -186,8 +187,11 @@ interface InboxPrefsProviderProps {
 
 export function InboxPrefsProvider({ children, scope = null }: InboxPrefsProviderProps) {
   const storageKey = getInboxPrefsStorageKey(scope);
-  const [choices, setChoices] = useState<InboxPrefChoices>(() => loadSync(scope));
-  const [loaded, setLoaded] = useState(Platform.OS === 'web');
+  const [state, setState] = useScopedState(scope, (account) => ({
+    choices: loadSync(account),
+    loaded: Platform.OS === 'web',
+  }));
+  const { choices, loaded } = state;
   const prefs = useMemo(() => ({ ...DEFAULT_INBOX_PREFS, ...choices }), [choices]);
 
   // Delete the pre-scope device-wide blob. It is intentionally not migrated:
@@ -222,17 +226,17 @@ export function InboxPrefsProvider({ children, scope = null }: InboxPrefsProvide
           AsyncStorage.getItem(getV2InboxPrefsStorageKey(scope)),
         ]);
         if (cancelled) return;
-        setChoices(parseStoredChoices(v3, v2));
+        setState({ choices: parseStoredChoices(v3, v2), loaded: true });
       } catch (err) {
         console.warn('[inbox-prefs] failed to load prefs', err);
       } finally {
-        if (!cancelled) setLoaded(true);
+        if (!cancelled) setState((previous) => ({ ...previous, loaded: true }));
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [scope, storageKey]);
+  }, [scope, storageKey, setState]);
 
   // Persist the choices once loaded, so stored values are never overwritten
   // before the initial load resolves on native. The v2 blob goes once v3 holds
@@ -258,9 +262,15 @@ export function InboxPrefsProvider({ children, scope = null }: InboxPrefsProvide
     })();
   }, [choices, loaded, scope, storageKey]);
 
-  const setPref = useCallback(<K extends keyof InboxPrefs>(key: K, value: InboxPrefs[K]) => {
-    setChoices((curr) => ({ ...curr, [key]: value }));
-  }, []);
+  const setPref = useCallback(
+    <K extends keyof InboxPrefs>(key: K, value: InboxPrefs[K]) => {
+      setState((previous) => ({
+        ...previous,
+        choices: { ...previous.choices, [key]: value },
+      }));
+    },
+    [setState],
+  );
 
   return (
     <InboxPrefsContext.Provider value={{ prefs, setPref, loaded }}>

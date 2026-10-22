@@ -8,7 +8,7 @@ import { Slot } from 'expo-router';
 import { useEffect } from 'react';
 
 export default function DrawerLayout() {
-  const { isAuthenticated, oxyServices } = useOxy();
+  const { canUsePrivateApi, isAccountCacheReady, oxyServices } = useOxy();
   const _initApi = useEmailStore((s) => s._initApi);
   const hasApi = useEmailStore((s) => s._api !== null);
   // Initialize email API with httpService when authenticated.
@@ -19,9 +19,9 @@ export default function DrawerLayout() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: oxyServices changes identity every render and _initApi is a stable zustand action; both are read from the closure when the effect fires.
   useEffect(() => {
     if (hasApi) return;
-    if (!isAuthenticated) return;
+    if (!canUsePrivateApi || !isAccountCacheReady) return;
     _initApi(oxyServices.http);
-  }, [isAuthenticated, hasApi]);
+  }, [canUsePrivateApi, isAccountCacheReady, hasApi]);
 
   return (
     <SearchSessionProvider>

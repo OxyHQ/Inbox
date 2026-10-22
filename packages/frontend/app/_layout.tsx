@@ -3,12 +3,11 @@ import '../global.css';
 import { Stack, ThemeProvider } from 'expo-router';
 import Head from 'expo-router/head';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { Platform } from 'react-native';
 import 'react-native-reanimated';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
-import { RequireOxyAuth } from '@oxy.so/services/ui';
 import { OxyProvider, useAccountColor, useOxy } from '@oxy.so/services/ui/client';
 import { toast } from '@oxy.so/bloom/toast';
 import { ImageResolverProvider } from '@oxy.so/bloom/image-resolver';
@@ -27,7 +26,6 @@ import { ThemeProvider as AppThemeProvider, useThemeContext } from '@/contexts/t
 import { InboxPrefsProvider } from '@/contexts/inbox-prefs-context';
 import { LocaleProvider, useTranslation } from '@/lib/i18n';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { InboxStartup } from '@/components/InboxStartup';
 import { useInboxSocket } from '@/hooks/useInboxSocket';
 import { useMailboxPoll } from '@/hooks/queries/useMailboxes';
 import { usePushRegistration } from '@/hooks/usePushRegistration';
@@ -65,7 +63,7 @@ function ThemedRoot() {
   const { themePreference } = useThemeContext();
   const themeMode = themePreference as ThemeMode;
   return (
-    <BloomProvider mode={themeMode}>
+    <BloomProvider mode={themeMode} ssrStyles="inline">
       <BloomScope size="md">
         <RootLayoutContent />
       </BloomScope>
@@ -92,7 +90,7 @@ function RootLayoutContent() {
                 <ThemeProvider value={navTheme}>
                   <ConnectionStatusToasts />
                   <RootEffects />
-                  <GatedNavigator />
+                  <InboxNavigator />
                   <StatusBar style="auto" />
                 </ThemeProvider>
                 <PortalOutlet />
@@ -105,20 +103,13 @@ function RootLayoutContent() {
   );
 }
 
-function GatedNavigator() {
-  const { t } = useTranslation();
+/** The navigator and workspace exist once; private panel content owns its auth gate. */
+function InboxNavigator() {
   return (
-    <RequireOxyAuth
-      prompt="hard"
-      loadingFallback={<InboxStartup />}
-      title={t('auth.gate.title')}
-      subtitle={t('auth.gate.subtitle')}
-    >
-      <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
-        <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" options={{ headerShown: false }} />
-      </Stack>
-    </RequireOxyAuth>
+    <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
+      <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
+      <Stack.Screen name="+not-found" options={{ headerShown: false }} />
+    </Stack>
   );
 }
 
@@ -129,17 +120,13 @@ function ScopedInboxPrefsProvider({ children }: { children: ReactNode }) {
   // The selected mailbox and the email API belong to the account. Its cached
   // data is the SDK's to drop (`accountQueries`); this is the app's own state.
   const previousScope = useRef(scope);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (previousScope.current === scope) return;
     previousScope.current = scope;
     useEmailStore.getState().resetAccountScopedState();
   }, [scope]);
 
-  return (
-    <InboxPrefsProvider key={scope ?? 'anonymous'} scope={scope}>
-      {children}
-    </InboxPrefsProvider>
-  );
+  return <InboxPrefsProvider scope={scope}>{children}</InboxPrefsProvider>;
 }
 
 function InboxMediaProvider({ children }: { children: ReactNode }) {

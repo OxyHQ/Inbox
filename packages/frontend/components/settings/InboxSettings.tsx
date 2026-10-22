@@ -11,10 +11,10 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
   type ReactNode,
 } from 'react';
 import { noteSettingsOpen } from '@/lib/notifications/new-mail-attention';
+import { useScopedState } from '@/hooks/useScopedState';
 import { SETTINGS_SECTIONS, type SettingsSectionKey } from './sections-catalog';
 import { AboutSection } from './sections/AboutSection';
 import { AccountSection } from './sections/AccountSection';
@@ -47,33 +47,87 @@ export function useInboxSettings() {
   return open;
 }
 export function InboxSettingsProvider({ children }: { children: ReactNode }) {
-  const control = useDialogControl();
-  const { isAuthenticated, showBottomSheet } = useOxy();
-  const pendingAccount = useRef(false);
-  const { t } = useTranslation();
-  const [page, setPage] = useState<string>('appearance');
-  const [request, setRequest] = useState<{
-    sequence: number;
-    initialView: 'navigation' | 'page';
-  }>({ sequence: 0, initialView: 'navigation' });
-  useEffect(() => {
-    if (request.sequence) control.open();
-  }, [request, control]);
+  const { user, isAuthenticated, canUsePrivateApi, isAccountCacheReady, isPrivateApiPending } =
+    useOxy();
+  const accountReady = canUsePrivateApi && isAccountCacheReady && Boolean(user?.id);
+  const available = accountReady || (!isAuthenticated && !isPrivateApiPending);
+  const scope = accountReady
+    ? JSON.stringify(['account', user?.id])
+    : available
+      ? 'signed-out'
+      : 'pending';
+  const [request, setRequest] = useScopedState<SettingsRequest>(scope, () => ({
+    sequence: 0,
+    initialView: 'navigation',
+    page: 'appearance',
+  }));
   const open = useCallback(
     (next?: SettingsSectionKey) => {
+      if (!available) return;
       const allowed = SETTINGS_SECTIONS.find(
-        (section) => section.key === next && (!section.requiresAuth || isAuthenticated),
+        (section) => section.key === next && (!section.requiresAuth || accountReady),
       );
-      setPage(allowed?.key ?? 'appearance');
-      // The modal covers the mail list: new mail is announced while it is up.
-      noteSettingsOpen(true);
       setRequest((previous) => ({
         sequence: previous.sequence + 1,
         initialView: next ? 'page' : 'navigation',
+        page: allowed?.key ?? 'appearance',
       }));
     },
-    [isAuthenticated],
+    [available, accountReady, setRequest],
   );
+  const setPage = useCallback(
+    (page: string) => setRequest((previous) => ({ ...previous, page })),
+    [setRequest],
+  );
+  return (
+    <SettingsContext.Provider value={open}>
+      {children}
+      {available && (
+        <SettingsSession
+          key={scope}
+          request={request}
+          isAuthenticated={accountReady}
+          setPage={setPage}
+        />
+      )}
+    </SettingsContext.Provider>
+  );
+}
+
+interface SettingsRequest {
+  sequence: number;
+  initialView: 'navigation' | 'page';
+  page: string;
+}
+
+/** Only the overlay resets with identity; the workspace remains mounted. */
+function SettingsSession({
+  request,
+  isAuthenticated,
+  setPage,
+}: {
+  request: SettingsRequest;
+  isAuthenticated: boolean;
+  setPage: (page: string) => void;
+}) {
+  const control = useDialogControl();
+  const { showBottomSheet } = useOxy();
+  const pendingAccount = useRef(false);
+  const active = useRef(true);
+  const { t } = useTranslation();
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+      pendingAccount.current = false;
+      noteSettingsOpen(false);
+    };
+  }, []);
+  useEffect(() => {
+    if (!request.sequence) return;
+    noteSettingsOpen(true);
+    control.open();
+  }, [request.sequence, control]);
   const sections = SETTINGS_SECTIONS.filter((section) => !section.requiresAuth || isAuthenticated);
   const pages = useMemo(
     () =>
@@ -91,47 +145,45 @@ export function InboxSettingsProvider({ children }: { children: ReactNode }) {
     [t, isAuthenticated],
   );
   return (
-    <SettingsContext.Provider value={open}>
-      {children}
-      <SettingsModal
-        initialView={request.initialView}
-        control={control}
-        onClose={() => {
-          noteSettingsOpen(false);
-          if (pendingAccount.current) {
-            pendingAccount.current = false;
-            showBottomSheet?.('ManageAccount');
-          }
-        }}
-        page={page}
-        onPageChange={setPage}
-        pages={pages}
-        groups={[
-          {
-            label: t('app.name'),
-            items: sections.map((section) => ({
-              key: section.key,
-              label: t(section.labelKey),
-              icon: section.icon,
-              page: section.key,
-            })),
-          },
-          {
-            label: 'Oxy',
-            items: [
-              {
-                key: 'oxy-account',
-                label: t('ui.settings.manageOxyAccount'),
-                icon: RiAccountCircleLine,
-                onPress: () => {
-                  pendingAccount.current = true;
-                  control.close();
-                },
+    <SettingsModal
+      initialView={request.initialView}
+      control={control}
+      onClose={() => {
+        if (!active.current) return;
+        noteSettingsOpen(false);
+        if (pendingAccount.current) {
+          pendingAccount.current = false;
+          showBottomSheet?.('ManageAccount');
+        }
+      }}
+      page={request.page}
+      onPageChange={setPage}
+      pages={pages}
+      groups={[
+        {
+          label: t('app.name'),
+          items: sections.map((section) => ({
+            key: section.key,
+            label: t(section.labelKey),
+            icon: section.icon,
+            page: section.key,
+          })),
+        },
+        {
+          label: 'Oxy',
+          items: [
+            {
+              key: 'oxy-account',
+              label: t('ui.settings.manageOxyAccount'),
+              icon: RiAccountCircleLine,
+              onPress: () => {
+                pendingAccount.current = true;
+                control.close();
               },
-            ],
-          },
-        ]}
-      />
-    </SettingsContext.Provider>
+            },
+          ],
+        },
+      ]}
+    />
   );
 }

@@ -1,10 +1,11 @@
+jest.mock('@/components/InboxStartup', () => ({ InboxStartup: () => <h1>Pending inbox</h1> }));
 jest.mock('@/components/EmptyStateSticker', () => ({ EmptyStateSticker: () => null }));
 jest.mock('@/components/InboxList', () => ({
   InboxList: () => <span>Mailbox list</span>,
 }));
 jest.mock('@/components/SearchList', () => ({ SearchList: () => null }));
 jest.mock('@/components/InboxBottomBar', () => ({
-  InboxBottomBar: () => null,
+  InboxBottomBar: () => <nav aria-label="Mail navigation" />,
 }));
 import { MailboxShell } from '@/components/MailboxShell';
 import { SPECIAL_USE } from '@/constants/mailbox';
@@ -24,6 +25,12 @@ const mockToggle = jest.fn();
 let mockPath = '/';
 let mockDesktop = true;
 let mockAuthenticated = true;
+let mockTokenReady = true;
+let mockCacheReady = true;
+let mockPending = false;
+let mockUserId = 'account-a';
+const mockMailboxQuery = jest.fn();
+const mockLabelQuery = jest.fn();
 /** What the suite reads from the sidebar MailboxShell hands Bloom's AppShell. */
 interface SidebarItem {
   key: string;
@@ -35,7 +42,7 @@ interface SidebarProps {
   items: SidebarItem[];
   selected?: string;
   primaryAction?: { onPress: () => void };
-  footer: (state: { collapsed: boolean }) => ReactNode;
+  footer?: (state: { collapsed: boolean }) => ReactNode;
 }
 interface ShellState {
   sidebarCollapsed: boolean;
@@ -95,8 +102,8 @@ jest.mock('@oxy.so/bloom/app-shell', () => ({
   }) => {
     mockSidebar = sidebar;
     return (
-      <div>
-        {sidebar.footer({ collapsed: false })}
+      <div data-testid="workspace">
+        {sidebar.footer?.({ collapsed: false })}
         {panelLayout.panels.map((panel) => (
           <div key={panel.id} data-panel-appearance={panel.appearance}>
             {panel.visible !== false && (panel.id !== 'list' || mockDesktop) ? panel.content : null}
@@ -145,7 +152,26 @@ jest.mock('@oxy.so/bloom/text-field', () => ({
   ),
 }));
 jest.mock('@oxy.so/services/ui/client', () => ({
-  useOxy: () => ({ isAuthenticated: mockAuthenticated, openAccountDialog: jest.fn() }),
+  useOxy: () => ({
+    user: mockAuthenticated ? { id: mockUserId } : null,
+    isAuthenticated: mockAuthenticated,
+    canUsePrivateApi: mockAuthenticated && mockTokenReady,
+    isAccountCacheReady: mockCacheReady,
+    openAccountDialog: jest.fn(),
+  }),
+  // SDK readiness contract; the gate's own implementation is tested in services.
+  RequireOxyAuth: ({
+    children,
+    loadingFallback,
+    signedOutFallback,
+  }: Children & {
+    loadingFallback: ReactNode;
+    signedOutFallback?: ReactNode;
+  }) => {
+    if (mockAuthenticated && mockTokenReady && mockCacheReady) return children;
+    if (mockPending || (mockAuthenticated && mockTokenReady)) return loadingFallback;
+    return signedOutFallback ?? <button type="button">Sign in</button>;
+  },
   ProfileButton: () => <button type="button">{mockAuthenticated ? 'Account' : 'Sign in'}</button>,
   OxySignInButton: () => <button type="button">Sign in</button>,
 }));
@@ -164,12 +190,16 @@ jest.mock('@/lib/i18n', () => ({
   }),
 }));
 jest.mock('@/hooks/queries/useMailboxes', () => ({
-  useMailboxes: () => ({ data: mockMailboxes }),
+  useMailboxes: (options: unknown) => {
+    mockMailboxQuery(options);
+    return { data: mockMailboxes };
+  },
 }));
 jest.mock('@/hooks/queries/useLabels', () => ({
-  useLabels: () => ({
-    data: [{ _id: 'label-id', name: 'Receipts', color: '#123456' }],
-  }),
+  useLabels: (options: unknown) => {
+    mockLabelQuery(options);
+    return { data: [{ _id: 'label-id', name: 'Receipts', color: '#123456' }] };
+  },
 }));
 jest.mock('@/hooks/mutations/useMailboxMutations', () => ({
   useCreateMailbox: () => ({ mutate: mockCreate }),
@@ -184,6 +214,10 @@ jest.mock('@/hooks/useEmail', () => ({
 beforeEach(() => {
   jest.clearAllMocks();
   mockAuthenticated = true;
+  mockTokenReady = true;
+  mockCacheReady = true;
+  mockPending = false;
+  mockUserId = 'account-a';
   mockDesktop = true;
   mockPath = '/';
   mockState = {
@@ -248,7 +282,12 @@ it('selects label destinations and leaves auth-only actions absent when signed o
   expect(mockSidebarProps().selected).toBe('label:receipts');
   mockAuthenticated = false;
   view.rerender(<MailboxShell>{null}</MailboxShell>);
-  expect(mockSidebarProps().items).toEqual([]);
+  expect(mockSidebarProps().items.map((item) => item.key)).toEqual([
+    'inbox',
+    'sent',
+    'drafts',
+    'starred',
+  ]);
   expect(mockSidebarProps().primaryAction).toBeUndefined();
   expect(screen.getByRole('button', { name: 'Sign in' })).toBeTruthy();
 });
@@ -331,4 +370,119 @@ it('names the IMAP \\Junk folder with the Spam key, not a raw "Junk"', () => {
   } finally {
     mockMailboxes.pop();
   }
+});
+
+it('preserves the workspace through identity, token and cache restoration while private panels wait', () => {
+  mockAuthenticated = false;
+  mockTokenReady = false;
+  mockCacheReady = false;
+  mockPending = true;
+  const content = (
+    <MailboxShell>
+      <span>Private message</span>
+    </MailboxShell>
+  );
+  const view = render(content);
+  const workspace = screen.getByTestId('workspace');
+  const navigation = screen.getByRole('navigation', { name: 'Mail navigation' });
+  const expectPending = () => {
+    expect(screen.getByTestId('workspace')).toBe(workspace);
+    expect(screen.getByRole('navigation', { name: 'Mail navigation' })).toBe(navigation);
+    expect(screen.queryByText('Private message')).toBeNull();
+    expect(screen.queryByText('Mailbox list')).toBeNull();
+    expect(screen.queryByText('Sign in')).toBeNull();
+    expect(mockMailboxQuery).toHaveBeenLastCalledWith({ enabled: false });
+    expect(mockLabelQuery).toHaveBeenLastCalledWith({ enabled: false });
+    expect(mockSidebarProps().items.some((item) => item.label === 'Invoices')).toBe(false);
+    expect(mockSidebarProps().items.some((item) => item.label === 'Receipts')).toBe(false);
+  };
+  expectPending();
+  mockAuthenticated = true;
+  view.rerender(
+    <MailboxShell>
+      <span>Private message</span>
+    </MailboxShell>,
+  );
+  expectPending();
+  mockTokenReady = true;
+  mockPending = false;
+  view.rerender(
+    <MailboxShell>
+      <span>Private message</span>
+    </MailboxShell>,
+  );
+  expectPending();
+  mockCacheReady = true;
+  view.rerender(
+    <MailboxShell>
+      <span>Private message</span>
+    </MailboxShell>,
+  );
+  expect(screen.getByTestId('workspace')).toBe(workspace);
+  expect(screen.getByText('Private message')).toBeTruthy();
+  expect(screen.getByText('Mailbox list')).toBeTruthy();
+  expect(mockMailboxQuery).toHaveBeenLastCalledWith({ enabled: true });
+  expect(mockLabelQuery).toHaveBeenLastCalledWith({ enabled: true });
+
+  // The previous account's folder dialog and draft cannot survive a switch.
+  fireEvent.change(screen.getByLabelText('ui.drawer.folderName'), {
+    target: { value: 'Private A folder' },
+  });
+  mockCacheReady = false;
+  mockUserId = 'account-b';
+  view.rerender(
+    <MailboxShell>
+      <span>Private message</span>
+    </MailboxShell>,
+  );
+  expectPending();
+  expect(screen.queryByLabelText('ui.drawer.folderName')).toBeNull();
+  mockCacheReady = true;
+  view.rerender(
+    <MailboxShell>
+      <span>Private message</span>
+    </MailboxShell>,
+  );
+  expect(screen.getByTestId('workspace')).toBe(workspace);
+  expect((screen.getByLabelText('ui.drawer.folderName') as HTMLInputElement).value).toBe('');
+
+  mockAuthenticated = false;
+  view.rerender(
+    <MailboxShell>
+      <span>Private message</span>
+    </MailboxShell>,
+  );
+  expect(screen.getByTestId('workspace')).toBe(workspace);
+  expect(screen.queryByText('Private message')).toBeNull();
+  expect(screen.getByText('Sign in')).toBeTruthy();
+});
+
+it('resets private route state on a direct ready-account switch while retaining its shell', () => {
+  function PrivateRoute() {
+    const [draft, setDraft] = useState('');
+    return (
+      <input
+        aria-label="Account draft"
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+      />
+    );
+  }
+  const view = render(
+    <MailboxShell>
+      <PrivateRoute />
+    </MailboxShell>,
+  );
+  const workspace = screen.getByTestId('workspace');
+  const oldDraft = screen.getByLabelText('Account draft');
+  fireEvent.change(oldDraft, { target: { value: 'Private account A text' } });
+  mockUserId = 'account-b';
+  view.rerender(
+    <MailboxShell>
+      <PrivateRoute />
+    </MailboxShell>,
+  );
+  expect(screen.getByTestId('workspace')).toBe(workspace);
+  expect(screen.getByLabelText('Account draft')).not.toBe(oldDraft);
+  expect((screen.getByLabelText('Account draft') as HTMLInputElement).value).toBe('');
 });

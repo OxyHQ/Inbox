@@ -1,5 +1,7 @@
 import { InboxBottomBar } from '@/components/InboxBottomBar';
-import { render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
+import { hydrateRoot, type Root } from 'react-dom/client';
+import { renderToString } from 'react-dom/server';
 import { defined } from '../fixtures/defined';
 
 const mockNavigate = jest.fn();
@@ -8,6 +10,7 @@ const mockSettings = jest.fn();
 const mockFocus = jest.fn();
 /** What the suite reads from the props InboxBottomBar hands Bloom's BottomBar. */
 interface BarProps {
+  items: { name: string }[];
   value: string;
   onValueChange: (value: string) => void;
   action?: { props: { onPress: () => void } };
@@ -18,11 +21,14 @@ function mockBarProps(): BarProps {
   if (!mockBar) throw new Error('the bottom bar was not rendered');
   return mockBar;
 }
+let mockPathname = '/search';
 let mockKeyboard = false;
 let mockSelecting = false;
 let mockAuthenticated = true;
+let mockTokenReady = true;
+let mockCacheReady = true;
 jest.mock('expo-router', () => ({
-  usePathname: () => '/search',
+  usePathname: () => mockPathname,
   useRouter: () => ({ navigate: mockNavigate, push: mockPush }),
 }));
 jest.mock('react-native-keyboard-controller', () => ({
@@ -32,12 +38,29 @@ jest.mock('react-native-keyboard-controller', () => ({
 jest.mock('@oxy.so/bloom/bottom-bar', () => ({
   BottomBar: (props: BarProps) => {
     mockBar = props;
-    return null;
+    return (
+      <div role="tablist">
+        {props.items.map((item) => (
+          <button
+            key={item.name}
+            role="tab"
+            type="button"
+            aria-selected={props.value === item.name}
+          >
+            {item.name}
+          </button>
+        ))}
+      </div>
+    );
   },
 }));
 jest.mock('@oxy.so/bloom/fab', () => ({ Fab: () => null }));
 jest.mock('@oxy.so/services/ui/client', () => ({
-  useOxy: () => ({ isAuthenticated: mockAuthenticated }),
+  useOxy: () => ({
+    isAuthenticated: mockAuthenticated,
+    canUsePrivateApi: mockAuthenticated && mockTokenReady,
+    isAccountCacheReady: mockCacheReady,
+  }),
 }));
 jest.mock('@/components/settings/InboxSettings', () => ({
   useInboxSettings: () => mockSettings,
@@ -55,9 +78,12 @@ jest.mock('@/lib/i18n', () => ({
 beforeEach(() => {
   jest.clearAllMocks();
   mockBar = null;
+  mockPathname = '/search';
   mockKeyboard = false;
   mockSelecting = false;
   mockAuthenticated = true;
+  mockTokenReady = true;
+  mockCacheReady = true;
 });
 it('opens settings without replacing the current mailbox route', () => {
   render(<InboxBottomBar />);
@@ -89,4 +115,57 @@ it('hides navigation while the keyboard is showing', () => {
   mockKeyboard = true;
   render(<InboxBottomBar />);
   expect(mockBar).toBeNull();
+});
+
+it('keeps public navigation while the token and account cache resolve, without exposing compose', () => {
+  mockTokenReady = false;
+  mockCacheReady = false;
+  const view = render(<InboxBottomBar />);
+  expect(mockBarProps().items.map((item) => item.name)).toEqual(['inbox', 'search', 'settings']);
+  expect(mockBarProps().action).toBeUndefined();
+  mockTokenReady = true;
+  view.rerender(<InboxBottomBar />);
+  expect(mockBarProps().action).toBeUndefined();
+  mockCacheReady = true;
+  view.rerender(<InboxBottomBar />);
+  expect(mockBarProps().action).toBeDefined();
+  mockCacheReady = false;
+  view.rerender(<InboxBottomBar />);
+  expect(mockBarProps().items).toHaveLength(3);
+  expect(mockBarProps().action).toBeUndefined();
+});
+
+it('hydrates an index fallback before selecting a deep search route without stale ARIA or replacing navigation', async () => {
+  mockAuthenticated = false;
+  mockPathname = '/';
+  const container = document.createElement('div');
+  container.innerHTML = renderToString(<InboxBottomBar />);
+  document.body.appendChild(container);
+  const bar = container.querySelector('[role=tablist]');
+  const inbox = defined(container.querySelectorAll('[role=tab]')[0], 'inbox tab');
+  const search = defined(container.querySelectorAll('[role=tab]')[1], 'search tab');
+  expect(inbox.getAttribute('aria-selected')).toBe('true');
+  mockPathname = '/search/conversation/thread';
+  const onRecoverableError = jest.fn();
+  const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+  let root: Root | undefined;
+  try {
+    await act(async () => {
+      root = hydrateRoot(container, <InboxBottomBar />, { onRecoverableError });
+    });
+    expect(container.querySelector('[role=tablist]')).toBe(bar);
+    expect(inbox.getAttribute('aria-selected')).toBe('false');
+    expect(search.getAttribute('aria-selected')).toBe('true');
+    expect(onRecoverableError).not.toHaveBeenCalled();
+    expect(consoleError).not.toHaveBeenCalled();
+    mockPathname = '/';
+    await act(async () => root?.render(<InboxBottomBar />));
+    expect(container.querySelector('[role=tablist]')).toBe(bar);
+    expect(inbox.getAttribute('aria-selected')).toBe('true');
+    expect(search.getAttribute('aria-selected')).toBe('false');
+  } finally {
+    await act(async () => root?.unmount());
+    container.remove();
+    consoleError.mockRestore();
+  }
 });

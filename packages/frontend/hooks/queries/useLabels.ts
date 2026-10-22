@@ -9,7 +9,7 @@ import { httpStatus } from '@/utils/httpStatus';
 
 const LABELS_KEY = emailKeys.labels;
 
-export function useLabels() {
+export function useLabels({ enabled = true }: { enabled?: boolean } = {}) {
   const api = useEmailStore((s) => s._api);
 
   return useQuery<Label[]>({
@@ -18,7 +18,7 @@ export function useLabels() {
       if (!api) throw new Error('Email API not initialized');
       return await api.listLabels();
     },
-    enabled: !!api,
+    enabled: enabled && !!api,
   });
 }
 

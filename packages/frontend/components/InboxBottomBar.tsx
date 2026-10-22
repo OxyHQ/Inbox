@@ -19,7 +19,8 @@ export function InboxBottomBar() {
   const pathname = usePathname();
   const openSettings = useInboxSettings();
   const { focusInput } = useSearchFocus();
-  const { isAuthenticated } = useOxy();
+  const { canUsePrivateApi, isAccountCacheReady } = useOxy();
+  const accountReady = canUsePrivateApi && isAccountCacheReady;
   const selecting = useEmailStore((state) => state.isSelectionMode);
   const keyboardVisible = useKeyboardState((state) => state.isVisible);
   if (keyboardVisible) return null;
@@ -44,7 +45,7 @@ export function InboxBottomBar() {
         if (value === 'search') focusInput();
       }}
       action={
-        isAuthenticated && !selecting ? (
+        accountReady && !selecting ? (
           <Fab
             accessibilityLabel={t('inbox.composeFab')}
             icon={RiEditLine}

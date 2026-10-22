@@ -5,7 +5,7 @@ jest.mock('@/components/InboxList', () => ({
 }));
 jest.mock('@/components/SearchList', () => ({ SearchList: () => null }));
 jest.mock('@/components/InboxBottomBar', () => ({
-  InboxBottomBar: () => null,
+  InboxBottomBar: () => <nav aria-label="Mail navigation" />,
 }));
 import { MailboxShell } from '@/components/MailboxShell';
 import { SPECIAL_USE } from '@/constants/mailbox';
@@ -384,8 +384,10 @@ it('preserves the workspace through identity, token and cache restoration while 
   );
   const view = render(content);
   const workspace = screen.getByTestId('workspace');
+  const navigation = screen.getByRole('navigation', { name: 'Mail navigation' });
   const expectPending = () => {
     expect(screen.getByTestId('workspace')).toBe(workspace);
+    expect(screen.getByRole('navigation', { name: 'Mail navigation' })).toBe(navigation);
     expect(screen.queryByText('Private message')).toBeNull();
     expect(screen.queryByText('Mailbox list')).toBeNull();
     expect(screen.queryByText('Sign in')).toBeNull();

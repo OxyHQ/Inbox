@@ -8,6 +8,7 @@ const mockSettings = jest.fn();
 const mockFocus = jest.fn();
 /** What the suite reads from the props InboxBottomBar hands Bloom's BottomBar. */
 interface BarProps {
+  items: { name: string }[];
   value: string;
   onValueChange: (value: string) => void;
   action?: { props: { onPress: () => void } };
@@ -21,6 +22,8 @@ function mockBarProps(): BarProps {
 let mockKeyboard = false;
 let mockSelecting = false;
 let mockAuthenticated = true;
+let mockTokenReady = true;
+let mockCacheReady = true;
 jest.mock('expo-router', () => ({
   usePathname: () => '/search',
   useRouter: () => ({ navigate: mockNavigate, push: mockPush }),
@@ -37,7 +40,11 @@ jest.mock('@oxy.so/bloom/bottom-bar', () => ({
 }));
 jest.mock('@oxy.so/bloom/fab', () => ({ Fab: () => null }));
 jest.mock('@oxy.so/services/ui/client', () => ({
-  useOxy: () => ({ isAuthenticated: mockAuthenticated }),
+  useOxy: () => ({
+    isAuthenticated: mockAuthenticated,
+    canUsePrivateApi: mockAuthenticated && mockTokenReady,
+    isAccountCacheReady: mockCacheReady,
+  }),
 }));
 jest.mock('@/components/settings/InboxSettings', () => ({
   useInboxSettings: () => mockSettings,
@@ -58,6 +65,8 @@ beforeEach(() => {
   mockKeyboard = false;
   mockSelecting = false;
   mockAuthenticated = true;
+  mockTokenReady = true;
+  mockCacheReady = true;
 });
 it('opens settings without replacing the current mailbox route', () => {
   render(<InboxBottomBar />);
@@ -89,4 +98,22 @@ it('hides navigation while the keyboard is showing', () => {
   mockKeyboard = true;
   render(<InboxBottomBar />);
   expect(mockBar).toBeNull();
+});
+
+it('keeps public navigation while the token and account cache resolve, without exposing compose', () => {
+  mockTokenReady = false;
+  mockCacheReady = false;
+  const view = render(<InboxBottomBar />);
+  expect(mockBarProps().items.map((item) => item.name)).toEqual(['inbox', 'search', 'settings']);
+  expect(mockBarProps().action).toBeUndefined();
+  mockTokenReady = true;
+  view.rerender(<InboxBottomBar />);
+  expect(mockBarProps().action).toBeUndefined();
+  mockCacheReady = true;
+  view.rerender(<InboxBottomBar />);
+  expect(mockBarProps().action).toBeDefined();
+  mockCacheReady = false;
+  view.rerender(<InboxBottomBar />);
+  expect(mockBarProps().items).toHaveLength(3);
+  expect(mockBarProps().action).toBeUndefined();
 });

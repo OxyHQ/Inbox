@@ -426,7 +426,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
         drawerOpen={drawerOpen}
         onDrawerOpenChange={setDrawerOpen}
         sidebar={sidebarProps}
-        bottomBar={accountReady ? <InboxBottomBar /> : undefined}
+        bottomBar={<InboxBottomBar />}
         drawerOpenLabel={t('search.openMenu')}
         drawerCloseLabel={t('common.close')}
         panelLayout={{

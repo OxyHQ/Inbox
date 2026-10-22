@@ -168,6 +168,9 @@ needs its upstream compatibility review before it can declare 7.6 support.
 
 ## Validation
 
+Boot-path changes also follow the [startup continuity checks](startup.md).
+Final content and an absent spinner alone do not prove a flicker-free transition.
+
 The local validation run passed 37 Jest suites (181 tests), lint and TypeScript.
 The web export emits compiled layout CSS above the 20 KB floor, and the
 post-export TypeScript check also passed. The current-major integration export uses `--max-workers 2`.

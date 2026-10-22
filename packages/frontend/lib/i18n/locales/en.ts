@@ -893,6 +893,7 @@ const en: LocaleDict = {
         useTheme: 'Use {{theme}} theme',
         systemHint: "System follows your device's appearance setting.",
         accentColor: 'Accent color',
+        accentColorFailed: 'Could not save your accent color.',
       },
       notifications: {
         deviceNotice: 'System-level notification permissions are managed in your device settings.',

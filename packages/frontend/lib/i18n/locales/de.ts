@@ -891,6 +891,7 @@ const de: LocaleDict = {
         useTheme: 'Design „{{theme}}“ verwenden',
         systemHint: '„System“ folgt der Darstellungseinstellung deines Geräts.',
         accentColor: 'Akzentfarbe',
+        accentColorFailed: 'Akzentfarbe konnte nicht gespeichert werden.',
       },
       notifications: {
         deviceNotice:

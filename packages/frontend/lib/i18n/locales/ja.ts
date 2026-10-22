@@ -876,6 +876,7 @@ const ja: LocaleDict = {
         useTheme: '{{theme}} テーマを使用',
         systemHint: '「システム」はデバイスの外観設定に従います。',
         accentColor: 'アクセントカラー',
+        accentColorFailed: 'アクセントカラーを保存できませんでした。',
       },
       notifications: {
         deviceNotice: 'システムの通知許可はデバイスの設定で管理します。',

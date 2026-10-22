@@ -883,6 +883,7 @@ const ca: LocaleDict = {
         useTheme: 'Utilitza el tema {{theme}}',
         systemHint: "Sistema segueix la configuració d'aparença del dispositiu.",
         accentColor: "Color d'accent",
+        accentColorFailed: "No s'ha pogut desar el color d'accent.",
       },
       notifications: {
         deviceNotice:

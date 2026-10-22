@@ -871,6 +871,7 @@ const ko: LocaleDict = {
         useTheme: '{{theme}} 테마 사용',
         systemHint: '시스템은 기기의 화면 모드 설정을 따라요.',
         accentColor: '강조 색상',
+        accentColorFailed: '강조 색상을 저장할 수 없습니다.',
       },
       notifications: {
         deviceNotice: '시스템 알림 권한은 기기 설정에서 관리합니다.',

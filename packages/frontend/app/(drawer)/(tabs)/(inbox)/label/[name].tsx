@@ -1,11 +1,10 @@
-import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 /**
  * Dynamic route for label views — /label/<name>.
  *
  * Syncs the URL label name into the email store (Zustand) so `InboxList`
  * fetches messages filtered by the matching label.
  *
- * The shell owns the filtered list on wide screens; this route owns it on phones.
+ * The shell owns the filtered list at every width.
  *
  * When the URL points to a label that doesn't exist (no match on
  * lowercased name), we surface the empty-detail component with a "not
@@ -17,14 +16,12 @@ import { useIsFocused, useLocalSearchParams } from 'expo-router';
 import Head from 'expo-router/head';
 import { useEffect, useMemo } from 'react';
 
-import { InboxList } from '@/components/InboxList';
 import { MessageDetailEmpty } from '@/components/MessageDetailEmpty';
 import { useLabels } from '@/hooks/queries/useLabels';
 import { useTranslation } from '@/lib/i18n';
 import { useEmailStore } from '@/hooks/useEmail';
 
 export default function LabelViewRoute() {
-  const isDesktop = useIsDesktopLayout();
   const { name } = useLocalSearchParams<{ name: string }>();
   const { data: labels = [] } = useLabels();
 
@@ -57,7 +54,7 @@ export default function LabelViewRoute() {
       <Head>
         <title>{pageTitle}</title>
       </Head>
-      {label && !isDesktop ? <InboxList /> : <MessageDetailEmpty />}
+      <MessageDetailEmpty />
     </>
   );
 }

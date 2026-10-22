@@ -28,11 +28,9 @@ export function useCurrentList() {
   /**
    * Falls back to the Inbox when nothing has been selected yet.
    *
-   * The route→store sync lives in `MailboxView`, which renders inside the
-   * detail `<Slot/>`. On desktop that Slot is only mounted when a message is
-   * open, so without this fallback the list would sit empty on first load —
-   * `useMessages` is gated on `enabled: hasFilter`, and no mailbox id means no
-   * request at all.
+   * The route→store sync lives in `MailboxView`. The persistent list can
+   * prepare its first query as soon as the account's mailboxes are restored,
+   * without waiting for that route's selection effect.
    */
   const inboxMailboxId = useMemo(
     () => mailboxes.find((m) => m.specialUse === SPECIAL_USE.INBOX)?._id,

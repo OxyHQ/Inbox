@@ -20,7 +20,8 @@ const BRIEF_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 export function useDailyBrief({ enabled }: { enabled: boolean }) {
   const queryClient = useQueryClient();
-  const { oxyServices, user } = useOxy();
+  const { oxyServices, user, canUsePrivateApi, isAccountCacheReady } = useOxy();
+  const accountReady = canUsePrivateApi && isAccountCacheReady;
   const { locale } = useLocale();
 
   // The API receives the exact UTC instants bounding the user's local calendar
@@ -38,7 +39,7 @@ export function useDailyBrief({ enabled }: { enabled: boolean }) {
     queryKey,
     queryFn: ({ signal }) =>
       fetchInboxDailyBrief(oxyServices.http, { startAt, endAt, locale }, signal),
-    enabled: enabled && userId !== null,
+    enabled: enabled && accountReady && userId !== null,
     staleTime: BRIEF_CACHE_TTL,
     gcTime: BRIEF_CACHE_TTL,
     // A failed brief is shown with Retry rather than re-asked behind the reader.
@@ -64,7 +65,7 @@ export function useDailyBrief({ enabled }: { enabled: boolean }) {
   );
 
   return {
-    brief: query.data,
+    brief: accountReady ? query.data : undefined,
     isLoading: query.isFetching && !query.data,
     error: query.error,
     regenerate: query.refetch,

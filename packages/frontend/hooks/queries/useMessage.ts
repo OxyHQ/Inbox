@@ -1,15 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { useOxy } from '@oxy.so/services/ui/client';
-import { useEmailStore } from '@/hooks/useEmail';
+import { useEmailApi } from '@/hooks/useEmailApi';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import { type Message, UnreadableMessageError } from '@/services/emailApi';
 
 export function useMessage(messageId: string | undefined) {
-  const api = useEmailStore((s) => s._api);
+  const api = useEmailApi();
   const { user } = useOxy();
   const userId = user?.id ?? null;
 
-  return useQuery<Message | null>({
+  return useQuery<Message | null, Error, Message | null | undefined>({
+    select: (data) => (api ? data : undefined),
     queryKey: emailKeys.message.detail(messageId, userId),
     queryFn: async ({ signal }) => {
       if (!api) throw new Error('Email API not initialized');

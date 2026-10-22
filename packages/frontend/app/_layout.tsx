@@ -114,17 +114,24 @@ function InboxNavigator() {
 }
 
 function ScopedInboxPrefsProvider({ children }: { children: ReactNode }) {
-  const { user } = useOxy();
+  const { user, oxyServices, canUsePrivateApi, isAccountCacheReady } = useOxy();
   const scope = user?.id ?? null;
+  const accountReady = canUsePrivateApi && isAccountCacheReady;
+  const http = oxyServices.http;
 
   // The selected mailbox and the email API belong to the account. Its cached
   // data is the SDK's to drop (`accountQueries`); this is the app's own state.
   const previousScope = useRef(scope);
   useLayoutEffect(() => {
-    if (previousScope.current === scope) return;
-    previousScope.current = scope;
-    useEmailStore.getState().resetAccountScopedState();
-  }, [scope]);
+    if (previousScope.current !== scope) {
+      previousScope.current = scope;
+      useEmailStore.getState().resetAccountScopedState();
+    }
+    // Mutation replay uses the active client; query hooks derive theirs from
+    // SDK readiness synchronously and never wait for this store bridge.
+    if (accountReady) useEmailStore.getState()._initApi(http);
+    else useEmailStore.setState({ _api: null });
+  }, [scope, accountReady, http]);
 
   return <InboxPrefsProvider scope={scope}>{children}</InboxPrefsProvider>;
 }

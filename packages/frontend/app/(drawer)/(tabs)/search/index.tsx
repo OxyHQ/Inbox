@@ -1,9 +1,6 @@
-import { SearchList } from '@/components/SearchList';
 import { MessageDetailEmpty } from '@/components/MessageDetailEmpty';
-import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 
-/** The shell owns the persistent search list when two panes fit. */
+/** Bloom shows the shell's single search list on phones and beside this panel on desktop. */
 export default function SearchIndex() {
-  const isDesktop = useIsDesktopLayout();
-  return isDesktop ? <MessageDetailEmpty /> : <SearchList />;
+  return <MessageDetailEmpty />;
 }

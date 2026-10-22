@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@oxy.so/bloom/toast';
 import { useEmailStore } from '@/hooks/useEmail';
+import { useEmailApi } from '@/hooks/useEmailApi';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import { invalidateMailViews } from '@/hooks/queries/invalidateMailViews';
 import type { Label } from '@/services/emailApi';
@@ -10,9 +11,10 @@ import { httpStatus } from '@/utils/httpStatus';
 const LABELS_KEY = emailKeys.labels;
 
 export function useLabels({ enabled = true }: { enabled?: boolean } = {}) {
-  const api = useEmailStore((s) => s._api);
+  const api = useEmailApi();
 
-  return useQuery<Label[]>({
+  return useQuery<Label[], Error, Label[] | undefined>({
+    select: (data) => (api ? data : undefined),
     queryKey: LABELS_KEY,
     queryFn: async () => {
       if (!api) throw new Error('Email API not initialized');

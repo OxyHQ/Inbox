@@ -1,6 +1,5 @@
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
-import { InboxStartup } from '@/components/InboxStartup';
-import { RequireOxyAuth } from '@oxy.so/services/ui';
+import { PrivateInboxContent } from '@/components/PrivateInboxContent';
 import { InboxList } from '@/components/InboxList';
 import { SearchList } from '@/components/SearchList';
 import { InboxBottomBar } from '@/components/InboxBottomBar';
@@ -41,7 +40,8 @@ import { RiTimeLine } from '@oxy.so/bloom/icons/RiTimeLine';
 import type { SidebarNavItem, SidebarProps } from '@oxy.so/bloom/sidebar';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { ProfileButton, useOxy } from '@oxy.so/services/ui/client';
-import { usePathname, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
+import { useShellPathname } from '@/hooks/useShellPathname';
 import { Fragment, useCallback, useMemo, useState, type ReactNode } from 'react';
 import { View } from 'react-native';
 
@@ -88,7 +88,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
     onClose?.();
   }, [openSettings, onClose]);
 
-  const pathname = usePathname();
+  const pathname = useShellPathname();
   const isSubscriptions = pathname === '/subscriptions';
   const moreExpanded = useEmailStore((s) => s.moreExpanded);
   const toggleMore = useEmailStore((s) => s.toggleMore);
@@ -431,7 +431,10 @@ export function MailboxShell({ children }: { children: ReactNode }) {
         drawerCloseLabel={t('common.close')}
         panelLayout={{
           ...MAIL_PANELS,
-          activePanel: 'detail',
+          activePanel:
+            isSubscriptions || pathname === '/compose' || pathname.includes('/conversation/')
+              ? 'detail'
+              : 'list',
           widths: { list: listWidth },
           onWidthsChange: (widths) => setListWidth(widths.list ?? listWidth),
           panels: [
@@ -450,19 +453,12 @@ export function MailboxShell({ children }: { children: ReactNode }) {
                   action: { label: t('common.retry') },
                 },
               },
-              content: (
-                <RequireOxyAuth
-                  loadingFallback={<InboxStartup />}
-                  signedOutFallback={<InboxStartup />}
-                >
-                  <Fragment key={accountScope}>
-                    {pathname.startsWith('/search') ? (
-                      <SearchList replaceNavigation={pathname.includes('/conversation/')} />
-                    ) : (
-                      <InboxList replaceNavigation={pathname.includes('/conversation/')} />
-                    )}
-                  </Fragment>
-                </RequireOxyAuth>
+              content: pathname.startsWith('/search') ? (
+                <PrivateInboxContent>
+                  <SearchList replaceNavigation={pathname.includes('/conversation/')} />
+                </PrivateInboxContent>
+              ) : (
+                <InboxList replaceNavigation={pathname.includes('/conversation/')} />
               ),
             },
             {
@@ -478,15 +474,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
                   action: { label: t('common.retry') },
                 },
               },
-              content: (
-                <RequireOxyAuth
-                  loadingFallback={<InboxStartup detail />}
-                  title={t('auth.gate.title')}
-                  subtitle={t('auth.gate.subtitle')}
-                >
-                  <Fragment key={accountScope}>{children}</Fragment>
-                </RequireOxyAuth>
-              ),
+              content: children,
             },
           ],
         }}

@@ -19,7 +19,7 @@ import { messageRoute } from '@/utils/messageRoute';
 
 export default function InboxLayout() {
   const router = useRouter();
-  const { user } = useOxy();
+  const { user, canUsePrivateApi, isAccountCacheReady } = useOxy();
   const isDesktop = useIsDesktopLayout();
   const segments = useSegments();
   const selectedMessageId = useEmailStore((s) => s.selectedMessageId);
@@ -184,6 +184,8 @@ export default function InboxLayout() {
     // composer — where `j` used to navigate away and `e` archived a message
     // that was not on screen.
     enabled:
+      canUsePrivateApi &&
+      isAccountCacheReady &&
       isDesktop &&
       segments.some((segment) => segment === '(inbox)') &&
       !segments.some((segment) => segment === 'compose'),

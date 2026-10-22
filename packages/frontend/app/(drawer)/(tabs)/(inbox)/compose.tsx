@@ -1,10 +1,11 @@
+import { PrivateInboxContent } from '@/components/PrivateInboxContent';
 import { useLocalSearchParams } from 'expo-router';
 import Head from 'expo-router/head';
 
 import { ComposeForm } from '@/components/ComposeForm';
 import { useTranslation } from '@/lib/i18n';
 
-export default function ComposeRoute() {
+function ComposeRouteContent() {
   const { t } = useTranslation();
   const params = useLocalSearchParams<{
     draftId?: string;
@@ -37,5 +38,13 @@ export default function ComposeRoute() {
         body={params.body}
       />
     </>
+  );
+}
+
+export default function ComposeRoute() {
+  return (
+    <PrivateInboxContent>
+      <ComposeRouteContent />
+    </PrivateInboxContent>
   );
 }

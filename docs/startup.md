@@ -44,6 +44,27 @@ responsive navigation changes, Bloom registers or releases those claims before
 paint. Native, document-scrolling and explicitly unreserved slots retain their
 own layout behavior.
 
+A persistent outer shell is insufficient if its list is still a loading-only
+screen. Keep the actual mailbox header and public navigation mounted while the
+private list body waits for SDK readiness. Bloom selects that same list panel
+on compact mailbox routes and the detail panel on conversation/compose routes;
+do not mount another full list in a CSS-hidden route. The exported shell uses
+the index-route snapshot during hydration before applying the live deep link.
+
+Query clients derive synchronously from the SDK's ready HTTP client. A drawer
+mount effect must not add another render before mailbox, message and brief
+queries can start. Keep the SDK's account-cache readiness and schema/build
+buster: a disabled query can still return cached data, so hooks above the
+private boundary also mask their data until the current account is ready.
+Private dialogs and routed content reset by account epoch without replacing the
+header. Shared query keys deduplicate the shell, list and brief consumers.
+
+Persisted inbox choices also need a server snapshot now that the real header
+renders before authentication. Use defaults for SSR and the first hydration,
+then apply the stored choices in place. Keep actual choices separately from
+that render snapshot and never persist the snapshot over them. Access to the
+localStorage getter itself can throw; catch it along with getItem/setItem.
+
 ## Verify the transition, not only the final screen
 
 Use a foreground browser against the exported production build. Observe from the
@@ -75,3 +96,11 @@ final translated heading exists.
 
 A fresh browser or synthetic mailbox fixture does not verify authenticated
 account restoration. Report that distinction with the results.
+
+For authenticated startup, record the real header text and identity, first mail
+row's bounds, and brief-card arrival through identity → token → cache → messages
+→ brief. A stable outer shell can conceal an `Inbox` placeholder being replaced
+by the actual header, or an empty-state flash before messages arrive. Check both
+restored messages/brief and cold network responses; a newly generated brief may
+naturally reorganize its selected messages, while a restored brief should appear
+with the restored list. Never count anonymous shell checks as this coverage.

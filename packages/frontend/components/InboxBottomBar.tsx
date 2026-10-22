@@ -9,22 +9,15 @@ import { RiInbox2Line } from '@oxy.so/bloom/icons/RiInbox2Line';
 import { RiSearchLine } from '@oxy.so/bloom/icons/RiSearchLine';
 import { RiSettings3Line } from '@oxy.so/bloom/icons/RiSettings3Line';
 import { useOxy } from '@oxy.so/services/ui/client';
-import { usePathname, useRouter } from 'expo-router';
-import { useSyncExternalStore } from 'react';
+import { useRouter } from 'expo-router';
+import { useShellPathname } from '@/hooks/useShellPathname';
 import { useKeyboardState } from 'react-native-keyboard-controller';
-
-const subscribeHydration = () => () => {};
-const getClientSnapshot = () => true;
-const getServerSnapshot = () => false;
 
 /** Template composition: AppShell positions one BottomBar; its action owns the compose FAB. */
 export function InboxBottomBar() {
   const { t } = useTranslation();
   const router = useRouter();
-  const pathname = usePathname();
-  // Dynamic routes receive the exported index shell. Match its selected tab
-  // during hydration, then apply the live route without leaving stale ARIA.
-  const hydrated = useSyncExternalStore(subscribeHydration, getClientSnapshot, getServerSnapshot);
+  const pathname = useShellPathname();
   const openSettings = useInboxSettings();
   const { focusInput } = useSearchFocus();
   const { canUsePrivateApi, isAccountCacheReady } = useOxy();
@@ -43,7 +36,7 @@ export function InboxBottomBar() {
           icon: <RiSettings3Line />,
         },
       ]}
-      value={hydrated && pathname.startsWith('/search') ? 'search' : 'inbox'}
+      value={pathname.startsWith('/search') ? 'search' : 'inbox'}
       onValueChange={(value) => {
         if (value === 'settings') {
           openSettings();

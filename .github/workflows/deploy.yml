@@ -337,11 +337,14 @@ jobs:
             html=$(curl -sS --max-time 20 "https://inbox.oxy.so/?build=${DEPLOY_SHA}" || true)
             release=$(curl -sS --max-time 20 "https://inbox.oxy.so/release.txt?build=${DEPLOY_SHA}" | tr -d '[:space:]' || true)
             csp=$(curl -sSI --max-time 20 https://inbox.oxy.so/ | tr -d '\r' | grep -i '^content-security-policy:' || true)
+            # A complete SSR document exceeds a pipe buffer. With pipefail,
+            # grep -q can close that pipe early and make echo fail with SIGPIPE
+            # even when the expected text is present. Give grep the input itself.
             if [ "$release" = "$DEPLOY_SHA" ] \
-               && echo "$html" | grep -q 'Inbox by Oxy' \
-               && echo "$html" | grep -qF "$expected_entry" \
-               && echo "$csp" | grep -qF 'https://api.alia.onl' \
-               && echo "$csp" | grep -qF 'wss://api.alia.onl'; then
+               && grep -q 'Inbox by Oxy' <<< "$html" \
+               && grep -qF "$expected_entry" <<< "$html" \
+               && grep -qF 'https://api.alia.onl' <<< "$csp" \
+               && grep -qF 'wss://api.alia.onl' <<< "$csp"; then
               echo "::endgroup::"; echo "OK: $expected_entry · release $release"; exit 0
             fi
             echo "expected: $expected_entry · release $DEPLOY_SHA"

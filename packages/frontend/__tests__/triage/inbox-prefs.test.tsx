@@ -139,11 +139,14 @@ it('loads each account before rendering its children without remounting them, an
   const mounts = jest.fn();
   let prefs: ReturnType<typeof useInboxPrefs>;
   function Workspace() {
-    prefs = useInboxPrefs();
+    const current = useInboxPrefs();
+    useEffect(() => {
+      prefs = current;
+    }, [current]);
     useEffect(mounts, []);
     return (
       <main>
-        {prefs.prefs.density}:{String(prefs.prefs.showPreviews)}
+        {current.prefs.density}:{String(current.prefs.showPreviews)}
       </main>
     );
   }
@@ -191,8 +194,11 @@ it('drops a native hydration completed after switching accounts and waits before
   mockNativeSet.mockResolvedValue(undefined);
   let prefs: ReturnType<typeof useInboxPrefs>;
   function Workspace() {
-    prefs = useInboxPrefs();
-    return <main>{prefs.prefs.density}</main>;
+    const current = useInboxPrefs();
+    useEffect(() => {
+      prefs = current;
+    }, [current]);
+    return <main>{current.prefs.density}</main>;
   }
   try {
     const view = render(

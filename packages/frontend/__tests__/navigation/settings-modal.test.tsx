@@ -95,7 +95,9 @@ jest.mock('@/components/settings/sections/AboutSection', () => ({
 
 function Actions() {
   const open = useInboxSettings();
-  mockSettingsRequest = open;
+  React.useEffect(() => {
+    mockSettingsRequest = open;
+  }, [open]);
   React.useEffect(() => {
     mockWorkspaceMount();
     return mockWorkspaceUnmount;

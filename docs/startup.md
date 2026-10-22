@@ -18,6 +18,21 @@ stored language. Match the server locale during hydration, then update text and
 direction in place. Bloom's own locale loading must preserve already rendered
 children too. Do not insert an empty frame while loading a dictionary.
 
+The browser hydrates `#root`, so the server must render the app at that same
+React boundary. Expo 58’s document wrapper adds sibling paths to `useId` during
+export; scoped stylesheet text then mismatches even when it looks identical.
+The shared app-preset `staticHydrationBoundary` option separates the app and
+HTML document renders. Keep this correction in the preset, never rewrite IDs or
+suppress hydration errors in Inbox.
+
+Static export must also finish large Suspense boundaries without JavaScript.
+Waiting for a streaming renderer’s `allReady` is insufficient: completed content
+can still be emitted as hidden segments with recovery scripts. The preset uses
+React’s static `prerender` API with an unlimited progressive chunk size in both
+passes, and rejects unexpected content outside the app root. Test a suspended
+subtree larger than React’s default chunk threshold, then confirm the real
+export paints its workspace with JavaScript disabled.
+
 ## Verify the transition, not only the final screen
 
 Use a foreground browser against the exported production build. Observe from the

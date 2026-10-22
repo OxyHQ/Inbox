@@ -6,7 +6,9 @@ import type { ReactNode } from 'react';
 
 let mockAlone = true;
 jest.mock('@oxy.so/bloom/app-shell', () => ({
-  useAppShellPanel: () => ({ alone: mockAlone }),
+  AppShellPanelVisibility: ({ when, children }: { when: string; children: ReactNode }) => (
+    <div hidden={when === 'alone' && !mockAlone}>{children}</div>
+  ),
 }));
 jest.mock('@oxy.so/bloom/screen', () => ({
   Screen: ({ header }: { header?: ReactNode }) => <main>{header}</main>,
@@ -43,7 +45,8 @@ it('keeps the pending title in the sole server panel until the compositor adds i
     mockAlone = false;
     await act(async () => root?.render(<InboxStartup detail />));
     expect(container.querySelector('main')).toBe(originalPanel);
-    expect(container.querySelector('h1')).toBeNull();
+    expect(container.querySelector('h1')).toBe(originalHeading);
+    expect(originalHeading?.parentElement?.hidden).toBe(true);
   } finally {
     await act(async () => root?.unmount());
     container.remove();

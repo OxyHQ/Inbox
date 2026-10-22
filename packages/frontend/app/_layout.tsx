@@ -63,7 +63,7 @@ function ThemedRoot() {
   const { themePreference } = useThemeContext();
   const themeMode = themePreference as ThemeMode;
   return (
-    <BloomProvider mode={themeMode}>
+    <BloomProvider mode={themeMode} ssrStyles="inline">
       <BloomScope size="md">
         <RootLayoutContent />
       </BloomScope>

@@ -1,6 +1,14 @@
 import { LocaleProvider as BloomLocaleProvider } from '@oxy.so/bloom/locale';
 import type React from 'react';
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useSyncExternalStore,
+} from 'react';
 import { I18nManager, Platform } from 'react-native';
 import { toast } from '@oxy.so/bloom/toast';
 import { useOxy, useUpdateProfile } from '@oxy.so/services/ui/client';
@@ -15,6 +23,8 @@ import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type Locale } from './types';
  * direction; that moment must not ask for a restart.
  */
 const DIRECTION_SETTLE_MS = 1500;
+const subscribeLocale = () => () => {};
+const getServerLocale = () => DEFAULT_LOCALE;
 
 /**
  * Point React Native's layout direction at the UI language's.
@@ -69,9 +79,12 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
   // The active locale is DERIVED from the SDK's centralized `currentLanguage`
   // — the account's primary locale when signed in, else the guest/device
   // locale — coerced to a locale this app has a dictionary for. The SDK owns
-  // account-vs-device resolution and hydration, so there is nothing local to
-  // store or await here.
-  const locale = useMemo<Locale>(() => coerceLocale(currentLanguage), [currentLanguage]);
+  // account-vs-device resolution. Static HTML has the app's default locale;
+  // hydration must reuse that text before applying the SDK's browser locale.
+  // The SDK context supplies updates, so no separate subscription or copy of
+  // its locale state is needed. Client-only renders use the SDK immediately.
+  const getLocale = useCallback(() => coerceLocale(currentLanguage), [currentLanguage]);
+  const locale = useSyncExternalStore(subscribeLocale, getLocale, getServerLocale);
 
   const setLocale = useCallback(
     async (next: Locale) => {

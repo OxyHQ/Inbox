@@ -6,7 +6,7 @@ import { RiMailOpenLine } from '@oxy.so/bloom/icons/RiMailOpenLine';
 import { RiPushpinLine } from '@oxy.so/bloom/icons/RiPushpinLine';
 import { RiPriceTag3Line } from '@oxy.so/bloom/icons/RiPriceTag3Line';
 import { MailRow, type MailAction } from '@oxy.so/bloom/mail-list';
-import { useTheme } from '@oxy.so/bloom/theme';
+import { useThemePaint } from '@oxy.so/bloom/theme';
 /** Bloom owns row layout, selection, hover actions and density on every platform. */
 
 import { SPACING } from '@/constants/layout';
@@ -224,7 +224,7 @@ function MessageRowExtras({
   sentiment?: SentimentResult | null;
 }) {
   const { data: labels = [] } = useLabels();
-  const { colors } = useTheme();
+  const colors = useThemePaint();
   return (
     <View style={styles.labelChipRow}>
       <ImportanceBadge message={message} />

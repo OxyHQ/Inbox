@@ -1,4 +1,21 @@
 jest.mock('@/components/EmptyStateSticker', () => ({ EmptyStateSticker: () => null }));
+jest.mock('@oxy.so/bloom/empty-state', () => ({
+  EmptyState: ({
+    title,
+    description,
+    footer,
+  }: {
+    title: string;
+    description: string;
+    footer: ReactNode;
+  }) => (
+    <div>
+      <h2>{title}</h2>
+      <p>{description}</p>
+      {footer}
+    </div>
+  ),
+}));
 jest.mock('@/components/InboxList', () => {
   const { PrivateInboxContent } = jest.requireActual('@/components/PrivateInboxContent');
   return {
@@ -303,6 +320,8 @@ it('selects label destinations and leaves auth-only actions absent when signed o
   ]);
   expect(mockSidebarProps().primaryAction).toBeUndefined();
   expect(screen.getByRole('button', { name: 'Sign in' })).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'auth.gate.title' })).toBeTruthy();
+  expect(screen.getByText('auth.gate.subtitle')).toBeTruthy();
 });
 
 it('keeps the source mailbox selected while reading a conversation', () => {

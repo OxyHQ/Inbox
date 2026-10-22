@@ -3,7 +3,7 @@ import { useMinimizeOnScroll } from '@oxy.so/bloom/tab-bar';
 import { useAnimatedScrollMetricsBinding } from '@oxy.so/bloom/layout';
 import type { RefObject } from 'react';
 
-/** Keep the same content offset when a list moves between the route and split pane. */
+/** Keep each mailbox offset while the shared list remains mounted across routes. */
 export function useMailboxScrollRestoration<T extends ScrollableHandle>(
   ref: RefObject<T | null>,
   key: string,

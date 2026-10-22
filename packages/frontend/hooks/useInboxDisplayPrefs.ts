@@ -7,8 +7,9 @@
  *
  * Native loads persisted prefs asynchronously; until the load resolves
  * (`loaded === false`) we return the comfortable defaults rather than risk a
- * one-frame flash of a persisted-but-not-yet-applied density. On web the
- * values load synchronously so `loaded` is always true.
+ * one-frame flash of a persisted-but-not-yet-applied density. Web choices load
+ * synchronously; the provider still publishes the default SSR snapshot until
+ * hydration completes.
  */
 
 import { useMemo } from 'react';

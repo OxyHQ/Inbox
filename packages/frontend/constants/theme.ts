@@ -10,13 +10,13 @@
  * the inbox automatically follows the user's selected accent.
  */
 
-import { useTheme } from '@oxy.so/bloom/theme';
+import { useThemePaint } from '@oxy.so/bloom/theme';
 import { useMemo } from 'react';
 import { Platform } from 'react-native';
 
-/** Inbox names for semantic Bloom roles. No independent light/dark palette. */
+/** Inbox names for final paint roles, including Bloom’s pre-hydration web palette. */
 export function useColors() {
-  const { colors: bloom } = useTheme();
+  const bloom = useThemePaint();
   return useMemo(
     () => ({
       text: bloom.text,

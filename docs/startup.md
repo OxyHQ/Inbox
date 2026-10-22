@@ -65,6 +65,14 @@ then apply the stored choices in place. Keep actual choices separately from
 that render snapshot and never persist the snapshot over them. Access to the
 localStorage getter itself can throw; catch it along with getItem/setItem.
 
+Bloom also owns the pre-hydration palette. The document's `BloomThemeHead` and
+root provider share `INBOX_THEME_BOOTSTRAP`, including the existing device mode
+storage key. Use `useThemePaint` for final app styles, retaining raw theme colors
+only for calculations. This lets the first HTML paint honor system/stored mode
+without a light inline shell surviving a dark hydration. The preset hashes the
+completed document's bootstrap script for CSP; do not copy its script or palette
+into Inbox.
+
 ## Verify the transition, not only the final screen
 
 Use a foreground browser against the exported production build. Observe from the

@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { Platform } from 'react-native';
+import { INBOX_THEME_STORAGE_KEY } from '@/constants/theme-bootstrap';
 
 type ThemePreference = 'light' | 'dark' | 'system';
 
@@ -13,12 +14,10 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const THEME_STORAGE_KEY = 'inbox_theme_preference';
-
 function loadThemeSync(): ThemePreference {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     try {
-      const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+      const stored = window.localStorage.getItem(INBOX_THEME_STORAGE_KEY);
       if (stored === 'light' || stored === 'dark' || stored === 'system') {
         return stored;
       }
@@ -43,7 +42,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         const AsyncStorage = await import('@react-native-async-storage/async-storage').then(
           (m) => m.default,
         );
-        const storedMode = await AsyncStorage.getItem(THEME_STORAGE_KEY);
+        const storedMode = await AsyncStorage.getItem(INBOX_THEME_STORAGE_KEY);
         if (storedMode === 'light' || storedMode === 'dark' || storedMode === 'system') {
           setThemePreference(storedMode);
         }
@@ -61,12 +60,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     (async () => {
       try {
         if (Platform.OS === 'web') {
-          window.localStorage?.setItem(THEME_STORAGE_KEY, themePreference);
+          window.localStorage?.setItem(INBOX_THEME_STORAGE_KEY, themePreference);
         } else {
           const AsyncStorage = await import('@react-native-async-storage/async-storage').then(
             (m) => m.default,
           );
-          await AsyncStorage.setItem(THEME_STORAGE_KEY, themePreference);
+          await AsyncStorage.setItem(INBOX_THEME_STORAGE_KEY, themePreference);
         }
       } catch (err) {
         console.warn('[theme-context] failed to persist theme preference', err);

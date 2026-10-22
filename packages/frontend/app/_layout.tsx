@@ -13,6 +13,7 @@ import { toast } from '@oxy.so/bloom/toast';
 import { ImageResolverProvider } from '@oxy.so/bloom/image-resolver';
 import type { ImageResolver } from '@oxy.so/bloom/image-resolver';
 import { BloomProvider } from '@oxy.so/bloom/provider';
+import { INBOX_THEME_BOOTSTRAP } from '@/constants/theme-bootstrap';
 import { BloomScope } from '@oxy.so/bloom/appearance';
 import { useNavigationTheme } from '@oxy.so/bloom/theme';
 import type { ThemeMode } from '@oxy.so/bloom/theme';
@@ -63,7 +64,7 @@ function ThemedRoot() {
   const { themePreference } = useThemeContext();
   const themeMode = themePreference as ThemeMode;
   return (
-    <BloomProvider mode={themeMode} ssrStyles="inline">
+    <BloomProvider mode={themeMode} ssrStyles="inline" prepaintTheme={INBOX_THEME_BOOTSTRAP}>
       <BloomScope size="md">
         <RootLayoutContent />
       </BloomScope>

@@ -8,8 +8,9 @@
  *
  * Persistence: localStorage on web, AsyncStorage on native. Only what the user
  * chose is stored; everything else follows the defaults below. The values are
- * loaded synchronously on web (no flash) and asynchronously on native
- * (defaults are used until the load resolves).
+ * read synchronously on web; SSR and the first hydration render expose the
+ * default snapshot, then apply the saved choices in place. Native loads them
+ * asynchronously and uses defaults until the load resolves.
  */
 
 import { useScopedState } from '@/hooks/useScopedState';
@@ -69,7 +70,7 @@ export const DEFAULT_INBOX_PREFS: InboxPrefs = {
   leftSwipeAction: 'archive',
   rightSwipeAction: 'delete',
   pushNotifications: true,
-  // Only offers a button: nothing is sent until the brief is opened.
+  // Prepared automatically once the Inbox account and its cache are ready.
   aiBrief: true,
   aiSmartReply: true,
   // Only offers a button: nothing is summarized until the user asks.

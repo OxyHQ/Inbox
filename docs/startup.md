@@ -33,6 +33,17 @@ passes, and rejects unexpected content outside the app root. Test a suspended
 subtree larger than React’s default chunk threshold, then confirm the real
 export paints its workspace with JavaScript disabled.
 
+Visible navigation must also reserve its space before hydration. A bottom bar
+can paint correctly while covering a full-height panel, then shrink that panel
+when its first `onLayout` measurement arrives. Bloom owns this geometry: its
+bounded web shell keeps the reserved bottom bar in flex flow, so the browser
+allocates the bar's actual height from the server HTML. Do not duplicate a fixed
+bar height or compensate with padding in Inbox. Measurements still inform
+overlays and bottom-edge claims without reserving the same space twice. When
+responsive navigation changes, Bloom registers or releases those claims before
+paint. Native, document-scrolling and explicitly unreserved slots retain their
+own layout behavior.
+
 ## Verify the transition, not only the final screen
 
 Use a foreground browser against the exported production build. Observe from the
@@ -46,6 +57,14 @@ element bounds. Text in the HTML is not proof of a visible first frame: a CSS
 breakpoint can hide the only heading when Bloom's server layout has one panel.
 Use the compositor's actual panel state for panel-dependent content, and verify
 that the shared shell's geometry and navigation paint before hydration.
+
+Record each visible panel's width, height and top/bottom bounds together with
+the bottom bar's bounds, both without JavaScript and on animation frames through
+hydration. A stable DOM node and width do not catch a panel shrinking under a
+newly measured bar. At a fixed viewport, the panel and bar must already occupy
+their final space in the server paint; also verify overlays do not consume the
+bar's height a second time. Keep the browser foregrounded and confirm that the
+probe collected multiple frames.
 
 Check desktop and touch viewports, cold and warm cache, English and a non-English
 browser locale, and stored light/dark preferences. Verify the visible shell does

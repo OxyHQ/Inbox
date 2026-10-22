@@ -2,8 +2,8 @@
  * The daily AI brief: a short summary of today's Inbox and the messages
  * it names, written in the UI language.
  *
- * Fetched only while the caller enables it (the brief is open and the `aiBrief`
- * pref is on) and kept per user, day and language for half an hour.
+ * Fetched while the Inbox is visible and the `aiBrief` preference is on,
+ * and kept per user, day and language for half an hour.
  */
 
 import { useCallback, useMemo } from 'react';
@@ -30,7 +30,7 @@ export function useDailyBrief({ enabled }: { enabled: boolean }) {
   // Briefs hold private account content, so a same-day account switch must
   // never reuse another account's entry; a language switch is another brief.
   const queryKey = useMemo(
-    () => ['daily-brief', userId, day, locale] as const,
+    () => ['daily-brief', userId, day, locale, 'content-actions-v1'] as const,
     [day, locale, userId],
   );
 

@@ -1,12 +1,10 @@
 import type { SwipeAction } from '@/contexts/inbox-prefs-context';
 import { useTranslation } from '@/lib/i18n';
-import {
-  RiArchiveLine,
-  RiDeleteBinLine,
-  RiInbox2Line,
-  RiMailOpenLine,
-  RiTimeLine,
-} from '@oxy.so/bloom/icons';
+import { RiArchiveLine } from '@oxy.so/bloom/icons/RiArchiveLine';
+import { RiDeleteBinLine } from '@oxy.so/bloom/icons/RiDeleteBinLine';
+import { RiInbox2Line } from '@oxy.so/bloom/icons/RiInbox2Line';
+import { RiMailOpenLine } from '@oxy.so/bloom/icons/RiMailOpenLine';
+import { RiTimeLine } from '@oxy.so/bloom/icons/RiTimeLine';
 import { SwipeRow, useSwipeAvailable, type SwipeRowAction } from '@oxy.so/bloom/swipe-row';
 import { useState, type ReactNode } from 'react';
 interface SwipeableRowProps {

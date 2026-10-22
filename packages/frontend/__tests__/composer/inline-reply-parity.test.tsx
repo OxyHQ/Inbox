@@ -63,7 +63,8 @@ jest.mock('@oxy.so/services/ui/client', () => ({
   useOxy: () => ({ user: { username: 'nate' }, showBottomSheet: mockShowBottomSheet }),
 }));
 jest.mock('@/hooks/useComposeSession', () => ({ useComposeSession: () => mockSession }));
-jest.mock('@oxy.so/bloom', () => ({
+jest.mock('@oxy.so/bloom/toast', () => ({ toast: jest.fn() }));
+jest.mock('@oxy.so/bloom/dialog', () => ({
   Dialog: ({
     title,
     label,
@@ -80,7 +81,6 @@ jest.mock('@oxy.so/bloom', () => ({
     </div>
   ),
   useDialogControl: () => ({ open: mockDialogOpen, close: jest.fn() }),
-  toast: jest.fn(),
 }));
 jest.mock('@oxy.so/bloom/card', () => ({
   Card: ({ children }: Children) => <div>{children}</div>,
@@ -106,7 +106,6 @@ jest.mock('@oxy.so/bloom/button', () => ({
     <button type="button" aria-label={accessibilityLabel} onClick={onPress} />
   ),
 }));
-jest.mock('@oxy.so/bloom/icons', () => new Proxy({}, { get: () => () => null }));
 jest.mock('@oxy.so/bloom/mail-thread', () => ({
   MailQuoteToggle: ({ children }: Children) => <div>{children}</div>,
 }));

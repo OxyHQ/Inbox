@@ -1,17 +1,15 @@
 /** Navigation metadata shared by the Bloom settings modal and bookmarked routes. */
-import {
-  RiAccountCircleLine,
-  RiContactsBookLine,
-  RiEqualizerLine,
-  RiInformationLine,
-  RiLockLine,
-  RiMailLine,
-  RiNotification3Line,
-  RiPaletteLine,
-  RiPushpinLine,
-  RiSaveLine,
-  RiSparklingLine,
-} from '@oxy.so/bloom/icons';
+import { RiAccountCircleLine } from '@oxy.so/bloom/icons/RiAccountCircleLine';
+import { RiContactsBookLine } from '@oxy.so/bloom/icons/RiContactsBookLine';
+import { RiEqualizerLine } from '@oxy.so/bloom/icons/RiEqualizerLine';
+import { RiInformationLine } from '@oxy.so/bloom/icons/RiInformationLine';
+import { RiLockLine } from '@oxy.so/bloom/icons/RiLockLine';
+import { RiMailLine } from '@oxy.so/bloom/icons/RiMailLine';
+import { RiNotification3Line } from '@oxy.so/bloom/icons/RiNotification3Line';
+import { RiPaletteLine } from '@oxy.so/bloom/icons/RiPaletteLine';
+import { RiPushpinLine } from '@oxy.so/bloom/icons/RiPushpinLine';
+import { RiSaveLine } from '@oxy.so/bloom/icons/RiSaveLine';
+import { RiSparklingLine } from '@oxy.so/bloom/icons/RiSparklingLine';
 import type { SettingsIcon } from '@oxy.so/bloom/settings-modal';
 
 /** A canonical settings section slug used in URLs and as a key. */

@@ -36,7 +36,6 @@ jest.mock('@oxy.so/bloom/bottom-bar', () => ({
   },
 }));
 jest.mock('@oxy.so/bloom/fab', () => ({ Fab: () => null }));
-jest.mock('@oxy.so/bloom/icons', () => new Proxy({}, { get: () => () => null }));
 jest.mock('@oxy.so/services/ui/client', () => ({
   useOxy: () => ({ isAuthenticated: mockAuthenticated }),
 }));

@@ -19,7 +19,7 @@ const toast = Object.assign(jest.fn(), {
   dismiss: jest.fn(),
 });
 
-jest.mock('@oxy.so/bloom', () => ({ toast }));
+jest.mock('@oxy.so/bloom/toast', () => ({ toast }));
 
 const invalidateQueries = jest.fn();
 jest.mock('@tanstack/react-query', () => ({

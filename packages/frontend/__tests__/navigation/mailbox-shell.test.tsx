@@ -9,7 +9,7 @@ jest.mock('@/components/InboxBottomBar', () => ({
 import { MailboxShell } from '@/components/MailboxShell';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { Children as ReactChildren, isValidElement, type ReactNode, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { defined } from '../fixtures/defined';
 import type { Children, DialogAction, Pressable } from '../fixtures/mockProps';
 
@@ -79,37 +79,34 @@ jest.mock('@oxy.so/bloom/content-panel', () => ({
     <div data-panel-appearance={appearance}>{children}</div>
   ),
 }));
-jest.mock('@oxy.so/bloom/styles', () => ({ BREAKPOINTS: { md: 768 } }));
+jest.mock('@oxy.so/bloom/styles', () => ({ BREAKPOINTS: { md: 768, lg: 1024 } }));
 jest.mock('@oxy.so/bloom/app-shell', () => ({
   APP_SHELL_DEFAULTS: { dashboardGutter: 12 },
   AppShell: ({
-    children,
     sidebar,
     bottomBar,
-  }: Children & { sidebar: SidebarProps; bottomBar?: ReactNode }) => {
+    panelLayout,
+  }: {
+    sidebar: SidebarProps;
+    bottomBar?: ReactNode;
+    panelLayout: {
+      panels: { id: string; content: ReactNode; visible?: boolean; appearance?: string }[];
+    };
+  }) => {
     mockSidebar = sidebar;
     return (
       <div>
         {sidebar.footer({ collapsed: false })}
-        {children}
+        {panelLayout.panels.map((panel) => (
+          <div key={panel.id} data-panel-appearance={panel.appearance}>
+            {panel.visible !== false && (panel.id !== 'list' || mockDesktop) ? panel.content : null}
+          </div>
+        ))}
         {bottomBar}
       </div>
     );
   },
-  AppShellPanels: ({ children }: Children) => (
-    <div>
-      {ReactChildren.toArray(children)
-        .filter(isValidElement)
-        .map((panel, index) => (
-          <div key={panel.key ?? index}>{panel}</div>
-        ))}
-    </div>
-  ),
-  AppShellPanel: ({ children, appearance }: Children & { appearance?: string }) => (
-    <div data-panel-appearance={appearance}>{children}</div>
-  ),
 }));
-jest.mock('@oxy.so/bloom/icons', () => new Proxy({}, { get: () => () => null }));
 jest.mock('@oxy.so/bloom/dialog', () => ({
   useDialogControl: () => ({ open: jest.fn(), close: jest.fn() }),
   Dialog: ({ children, actions }: Children & { actions?: DialogAction[] }) => (

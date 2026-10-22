@@ -7,7 +7,6 @@ let mockTouch = true;
 jest.mock('@/lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
-jest.mock('@oxy.so/bloom/icons', () => new Proxy({}, { get: () => () => null }));
 jest.mock('@oxy.so/bloom/swipe-row', () => ({
   useSwipeAvailable: () => mockTouch,
   SwipeRow: ({

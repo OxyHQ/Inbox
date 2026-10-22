@@ -7,7 +7,7 @@
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import { toast } from '@oxy.so/bloom';
+import { toast } from '@oxy.so/bloom/toast';
 
 import type { TranslateFn } from '@/lib/i18n';
 import { safeDownloadFilename } from '@/utils/downloadFilename';

@@ -25,7 +25,6 @@ jest.mock('@oxy.so/services/ui/client', () => ({
     showBottomSheet: mockShowAccount,
   }),
 }));
-jest.mock('@oxy.so/bloom/icons', () => new Proxy({}, { get: () => () => null }));
 jest.mock('@/lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));

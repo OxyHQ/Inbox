@@ -12,7 +12,8 @@ import { Text } from '@oxy.so/bloom/typography';
 import { useMemo, type ComponentProps } from 'react';
 import { View } from 'react-native';
 import { Card, CardHeader, CardTitle, CardDescription } from '@oxy.so/bloom/card';
-import { RiArrowUpSLine, RiArrowDownSLine } from '@oxy.so/bloom/icons';
+import { RiArrowUpSLine } from '@oxy.so/bloom/icons/RiArrowUpSLine';
+import { RiArrowDownSLine } from '@oxy.so/bloom/icons/RiArrowDownSLine';
 import { useTranslation } from '@/lib/i18n';
 
 type MaterialCommunityIconName = ComponentProps<typeof MaterialCommunityIcons>['name'];

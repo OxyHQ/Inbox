@@ -170,8 +170,9 @@ describe('Inbox point-inference API client', () => {
     ]) {
       expect(source).toContain(path);
     }
-    expect(inboxList).toContain('<AliaChatSheet');
-    expect(inboxList).not.toMatch(
+    const inboxAlia = readFileSync(resolve(frontendRoot, 'components/InboxAlia.tsx'), 'utf8');
+    expect(inboxAlia).toContain('<AliaChatSheet');
+    expect(inboxList + inboxAlia).not.toMatch(
       /ALIA_PROXY_API_URL|apiUrl=\{ALIA_PROXY_API_URL\}|model="alia-lite"/,
     );
     expect(dailyBriefHook).not.toMatch(/messages\.length|Message\[\]/);
@@ -279,7 +280,7 @@ describe('Inbox point-inference API client', () => {
       fetchInboxDailyBrief(client as never, { ...dayWindow, locale: 'es' }, signal),
     ).resolves.toEqual(brief);
     expect(client.post).toHaveBeenCalledWith(
-      '/email/ai/daily-brief',
+      '/email/ai/daily-brief?includeActions=true',
       { ...dayWindow, locale: 'es' },
       { timeout: INFERENCE_TIMEOUT_MS, signal },
     );

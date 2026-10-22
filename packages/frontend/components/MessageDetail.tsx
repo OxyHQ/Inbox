@@ -1,7 +1,7 @@
-import { BREAKPOINTS, tokens } from '@oxy.so/bloom/styles';
-import { TopEdgeProvider, useBottomEdgeInset, useTopEdgeInset } from '@oxy.so/bloom/layout';
+import { tokens } from '@oxy.so/bloom/styles';
+import { Screen, ScreenScrollView } from '@oxy.so/bloom/screen';
 import { useTheme } from '@oxy.so/bloom/theme';
-import { PageFooter, PageFooterProvider, usePageFooterInset } from '@oxy.so/bloom/page-footer';
+import { PageFooter } from '@oxy.so/bloom/page-footer';
 import { Card, CardBody } from '@oxy.so/bloom/card';
 import { EmptyState } from '@oxy.so/bloom/empty-state';
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
@@ -10,23 +10,22 @@ import { useAppShell } from '@oxy.so/bloom/app-shell';
 import { ButtonGroup, ButtonGroupItem } from '@oxy.so/bloom/button-group';
 import { Button, IconButton } from '@oxy.so/bloom/button';
 import { Checkbox } from '@oxy.so/bloom/checkbox';
-import {
-  RiArchiveLine,
-  RiInbox2Line,
-  RiArrowGoBackLine,
-  RiCornerUpLeftLine,
-  RiDeleteBinLine,
-  RiDraftLine,
-  RiMailLine,
-  RiMenuLine,
-  RiMoreLine,
-  RiPrinterLine,
-  RiPushpinLine,
-  RiShareForwardLine,
-  RiStarFill,
-  RiStarLine,
-  RiTimeLine,
-} from '@oxy.so/bloom/icons';
+import { RiArchiveLine } from '@oxy.so/bloom/icons/RiArchiveLine';
+import { RiCalendarLine } from '@oxy.so/bloom/icons/RiCalendarLine';
+import { RiInbox2Line } from '@oxy.so/bloom/icons/RiInbox2Line';
+import { RiArrowGoBackLine } from '@oxy.so/bloom/icons/RiArrowGoBackLine';
+import { RiCornerUpLeftLine } from '@oxy.so/bloom/icons/RiCornerUpLeftLine';
+import { RiDeleteBinLine } from '@oxy.so/bloom/icons/RiDeleteBinLine';
+import { RiDraftLine } from '@oxy.so/bloom/icons/RiDraftLine';
+import { RiMailLine } from '@oxy.so/bloom/icons/RiMailLine';
+import { RiMenuLine } from '@oxy.so/bloom/icons/RiMenuLine';
+import { RiMoreLine } from '@oxy.so/bloom/icons/RiMoreLine';
+import { RiPrinterLine } from '@oxy.so/bloom/icons/RiPrinterLine';
+import { RiPushpinLine } from '@oxy.so/bloom/icons/RiPushpinLine';
+import { RiShareForwardLine } from '@oxy.so/bloom/icons/RiShareForwardLine';
+import { RiStarFill } from '@oxy.so/bloom/icons/RiStarFill';
+import { RiStarLine } from '@oxy.so/bloom/icons/RiStarLine';
+import { RiTimeLine } from '@oxy.so/bloom/icons/RiTimeLine';
 import { MailMessage, MailThread, type MailThreadMessage } from '@oxy.so/bloom/mail-thread';
 import { PageHeader } from '@oxy.so/bloom/page-header';
 /**
@@ -37,16 +36,17 @@ import { PageHeader } from '@oxy.so/bloom/page-header';
  * - embedded: inline panel without back button (desktop split-view)
  */
 
-import { Dialog, ScrollArea, ScrollMetricsProvider, toast, useDialogControl } from '@oxy.so/bloom';
+import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
+import { toast } from '@oxy.so/bloom/toast';
 import { Loading } from '@oxy.so/bloom/loading';
 import { useOxy } from '@oxy.so/services/ui/client';
-import * as FileSystem from 'expo-file-system/legacy';
 import * as Print from 'expo-print';
-import { usePathname, useRouter } from 'expo-router';
-import * as Sharing from 'expo-sharing';
+import { useIsFocused, usePathname, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useWindowDimensions, Linking, Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
+import { CreateReminderSheet } from '@/components/CreateReminderSheet';
+import { useCreateReminder } from '@/hooks/mutations/useReminderMutations';
 import { HtmlBody } from '@/components/HtmlBody';
 import { InlineReply } from '@/components/InlineReply';
 import { SnoozeSheet } from '@/components/SnoozeSheet';
@@ -80,7 +80,7 @@ import { type Message, UnreadableMessageError } from '@/services/emailApi';
 import { messageRoute } from '@/utils/messageRoute';
 import { toRfcMessageId } from '@/utils/replyHeaders';
 import { buildPrintHtml, printHtmlOnWeb } from '@/utils/printMessage';
-import { safeDownloadFilename } from '@/utils/downloadFilename';
+import { useOpenAttachment } from '@/hooks/useOpenAttachment';
 import { emlFilename, saveEmlFile } from '@/utils/saveEml';
 import { buildThreadEntries } from '@/utils/threadEntries';
 import { splitHtmlQuote, splitTextQuote } from '@/utils/messageQuotes';
@@ -146,25 +146,13 @@ interface MessageDetailProps {
  * (no manual reset effect required).
  */
 export function MessageDetail(props: MessageDetailProps) {
-  return (
-    <PageFooterProvider key={props.messageId}>
-      <TopEdgeProvider>
-        <ScrollMetricsProvider>
-          <MessageDetailInner {...props} />
-        </ScrollMetricsProvider>
-      </TopEdgeProvider>
-    </PageFooterProvider>
-  );
+  return <MessageDetailInner key={props.messageId} {...props} />;
 }
 
 function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const shell = useAppShell();
-  const occupiedBottom = useBottomEdgeInset();
-  const footerClearance = usePageFooterInset();
-  const headerClearance = useTopEdgeInset();
+  const focused = useIsFocused();
   const { colors: bloomColors } = useTheme();
-  const { width: viewportWidth } = useWindowDimensions();
-  const bottomClearance = viewportWidth < BREAKPOINTS.md ? occupiedBottom : 0;
   const pathname = usePathname();
   const colors = useColors();
   const { t, locale } = useTranslation();
@@ -207,6 +195,19 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const { prefs } = useInboxPrefs();
   const updateLabels = useUpdateMessageLabels();
   const togglePin = useTogglePin();
+
+  const createReminder = useCreateReminder();
+  const [reminderTargetId, setReminderTargetId] = useState<string | null>(null);
+  const handleCreateReminder = useCallback(
+    (text: string, remindAt: Date) => {
+      if (!reminderTargetId || createReminder.isPending) return;
+      createReminder.mutate(
+        { text, remindAt: remindAt.toISOString(), relatedMessageId: reminderTargetId },
+        { onSuccess: () => setReminderTargetId(null) },
+      );
+    },
+    [createReminder, reminderTargetId],
+  );
 
   const [snoozeVisible, setSnoozeVisible] = useState(false);
   const [replyMode, setReplyMode] = useState<'reply' | 'reply-all' | 'forward' | null>(null);
@@ -457,55 +458,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
     [sortedThread, resolvedHtmlMap],
   );
 
-  const handleAttachment = useCallback(
-    async (fileId: string, filename: string) => {
-      if (Platform.OS === 'web') {
-        // The window is opened IN the tap, then pointed at the file once its
-        // signed URL arrives: opened after the await, it is a popup that
-        // Safari and strict blockers refuse — and nothing said so.
-        const tab = window.open('', '_blank');
-        try {
-          const url = await oxyServices.assets.url(fileId);
-          if (tab) {
-            tab.opener = null;
-            tab.location.href = url;
-          } else {
-            window.location.assign(url);
-          }
-        } catch (error: unknown) {
-          tab?.close();
-          toast.error(error instanceof Error ? error.message : t('message.toast.attachmentFailed'));
-        }
-        return;
-      }
-      try {
-        const url = await oxyServices.assets.url(fileId);
-        // A cache file: the OS may reclaim it, nothing piles up in Documents.
-        const cacheDirectory = FileSystem.cacheDirectory;
-        if (!cacheDirectory) {
-          await Linking.openURL(url);
-          return;
-        }
-        const download = await FileSystem.downloadAsync(
-          url,
-          cacheDirectory + safeDownloadFilename(filename),
-        );
-        // An expired link or a refusal downloads an error page; never hand
-        // that to the share sheet as the user's file.
-        if (download.status < 200 || download.status >= 300) {
-          throw new Error(t('message.toast.attachmentFailed'));
-        }
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(download.uri);
-        } else {
-          await Linking.openURL(url);
-        }
-      } catch (error: unknown) {
-        toast.error(error instanceof Error ? error.message : t('message.toast.attachmentFailed'));
-      }
-    },
-    [oxyServices, t],
-  );
+  const handleAttachment = useOpenAttachment();
 
   const handleToggleLabel = useCallback(
     (labelName: string) => {
@@ -581,12 +534,11 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   // read has not even started: that is loading, not "message not found".
   if (isLoading || (!emailApi && !currentMessage)) {
     return (
-      <View style={styles.container}>
-        {standaloneToolbar}
+      <Screen active={focused} scroll="none" header={standaloneToolbar}>
         <View style={styles.loadingContainer}>
           <Loading />
         </View>
-      </View>
+      </Screen>
     );
   }
 
@@ -611,8 +563,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
   if (isError || !currentMessage) {
     return (
-      <View className="flex-1">
-        {standaloneToolbar}
+      <Screen active={focused} scroll="none" header={standaloneToolbar}>
         <EmptyState
           illustration={<EmptyStateSticker name={isError ? 'loadError' : 'notFound'} />}
           title={t(isError ? 'ui.message.loadError' : 'ui.message.notFound')}
@@ -621,7 +572,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           )}
           action={isError ? { label: t('common.retry'), onPress: () => void refetch() } : undefined}
         />
-      </View>
+      </Screen>
     );
   }
 
@@ -725,63 +676,111 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   };
 
   return (
-    <View style={styles.container}>
-      <PageHeader
-        onBack={handleBack}
-        backLabel={t('common.back')}
-        leading={
-          shell.drawerAvailable ? (
-            <ButtonGroup accessibilityLabel={t('search.openMenu')}>
+    <Screen
+      active={focused}
+      scroll="auto"
+      testID="message-screen"
+      header={
+        <PageHeader
+          onBack={handleBack}
+          backLabel={t('common.back')}
+          leading={
+            shell.drawerAvailable ? (
+              <ButtonGroup accessibilityLabel={t('search.openMenu')}>
+                <ButtonGroupItem
+                  iconOnly
+                  leadingIcon={RiMenuLine}
+                  accessibilityLabel={t('search.openMenu')}
+                  onPress={shell.openDrawer}
+                />
+              </ButtonGroup>
+            ) : undefined
+          }
+          sticky={false}
+          scrim="auto"
+          scrimColor={bloomColors.card}
+          testID="message-header"
+          safeArea={false}
+          actions={
+            <ButtonGroup>
               <ButtonGroupItem
                 iconOnly
-                leadingIcon={RiMenuLine}
-                accessibilityLabel={t('search.openMenu')}
-                onPress={shell.openDrawer}
+                accessibilityLabel={t(
+                  archived ? 'message.actions.moveToInbox' : 'message.actions.archive',
+                )}
+                leadingIcon={archived ? RiInbox2Line : RiArchiveLine}
+                onPress={handleArchive}
+              />
+              <ButtonGroupItem
+                iconOnly
+                accessibilityLabel={t('message.actions.delete')}
+                leadingIcon={RiDeleteBinLine}
+                onPress={handleDelete}
+              />
+              <ButtonGroupItem
+                iconOnly
+                accessibilityLabel={t(
+                  currentMessage.flags.starred ? 'message.actions.unstar' : 'message.actions.star',
+                )}
+                leadingIcon={currentMessage.flags.starred ? RiStarFill : RiStarLine}
+                onPress={handleStar}
+                disabled={toggleStar.isPending}
+              />
+              <ButtonGroupItem
+                iconOnly
+                accessibilityLabel={t('message.actions.more')}
+                leadingIcon={RiMoreLine}
+                onPress={() => moreMenuControl.open()}
               />
             </ButtonGroup>
-          ) : undefined
-        }
-        sticky={false}
-        placement="overlay"
-        scrim="auto"
-        scrimColor={bloomColors.card}
-        testID="message-header"
-        safeArea={false}
-        actions={
-          <ButtonGroup>
-            <ButtonGroupItem
-              iconOnly
-              accessibilityLabel={t(
-                archived ? 'message.actions.moveToInbox' : 'message.actions.archive',
-              )}
-              leadingIcon={archived ? RiInbox2Line : RiArchiveLine}
-              onPress={handleArchive}
-            />
-            <ButtonGroupItem
-              iconOnly
-              accessibilityLabel={t('message.actions.delete')}
-              leadingIcon={RiDeleteBinLine}
-              onPress={handleDelete}
-            />
-            <ButtonGroupItem
-              iconOnly
-              accessibilityLabel={t(
-                currentMessage.flags.starred ? 'message.actions.unstar' : 'message.actions.star',
-              )}
-              leadingIcon={currentMessage.flags.starred ? RiStarFill : RiStarLine}
-              onPress={handleStar}
-              disabled={toggleStar.isPending}
-            />
-            <ButtonGroupItem
-              iconOnly
-              accessibilityLabel={t('message.actions.more')}
-              leadingIcon={RiMoreLine}
-              onPress={() => moreMenuControl.open()}
-            />
-          </ButtonGroup>
-        }
-      />
-
+          }
+        />
+      }
+      bottomBar={
+        !replyMode && (
+          <PageFooter
+            scrim="auto"
+            scrimColor={bloomColors.card}
+            safeArea={false}
+            testID="message-reply-footer"
+            actions={
+              <>
+                {threadDraft && (
+                  <Button leadingIcon={RiDraftLine} onPress={() => handleEditDraft(threadDraft)}>
+                    {t('message.actions.editDraft')}
+                  </Button>
+                )}
+                {replyableMessage && (
+                  <>
+                    <Button
+                      appearance={threadDraft ? 'subtle' : undefined}
+                      leadingIcon={RiCornerUpLeftLine}
+                      onPress={() => handleReply(replyableMessage._id)}
+                    >
+                      {t('message.actions.reply')}
+                    </Button>
+                    <Button
+                      appearance="subtle"
+                      leadingIcon={RiArrowGoBackLine}
+                      onPress={() => handleReplyAll(replyableMessage._id)}
+                    >
+                      {t('message.actions.replyAll')}
+                    </Button>
+                    <Button
+                      appearance="subtle"
+                      leadingIcon={RiShareForwardLine}
+                      onPress={() => handleForward(replyableMessage._id)}
+                    >
+                      {t('message.actions.forward')}
+                    </Button>
+                  </>
+                )}
+              </>
+            }
+          />
+        )
+      }
+    >
       <Dialog control={moreMenuControl} label={t('message.actions.more')}>
         <View className="gap-2">
           <Button appearance="subtle" leading={<RiMailLine />} onPress={handleMarkUnread}>
@@ -810,6 +809,16 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           </Button>
           <Button
             appearance="subtle"
+            leading={<RiCalendarLine />}
+            onPress={() => {
+              moreMenuControl.close();
+              setReminderTargetId(currentMessage._id);
+            }}
+          >
+            {t('reminder.create.title')}
+          </Button>
+          <Button
+            appearance="subtle"
             leading={<RiPrinterLine />}
             onPress={() => {
               moreMenuControl.close();
@@ -835,7 +844,6 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           </Button>
         </View>
       </Dialog>
-
       {/* Label picker dialog */}
       <Dialog
         control={labelPickerControl}
@@ -863,14 +871,12 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         ))}
       </Dialog>
 
-      <ScrollArea
+      <ScreenScrollView
         testID="message-scroll"
         style={styles.body}
         contentContainerStyle={{
-          paddingTop: headerClearance + tokens.space.md,
-          paddingBottom: Math.max(bottomClearance, footerClearance),
+          paddingTop: tokens.space.md,
         }}
-        showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
         <ThreadOverview
@@ -958,7 +964,15 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
             />
           </View>
         )}
-      </ScrollArea>
+      </ScreenScrollView>
+
+      <CreateReminderSheet
+        key={reminderTargetId ?? 'closed-reminder'}
+        visible={reminderTargetId === currentMessage._id}
+        onClose={() => setReminderTargetId(null)}
+        onCreate={handleCreateReminder}
+        relatedMessageId={reminderTargetId ?? undefined}
+      />
 
       {/* Snooze sheet */}
       <SnoozeSheet
@@ -1005,51 +1019,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           </Button>
         </View>
       </Dialog>
-
-      {!replyMode && (
-        <PageFooter
-          scrim="auto"
-          scrimColor={bloomColors.card}
-          bottomInset={bottomClearance}
-          safeArea={false}
-          testID="message-reply-footer"
-          actions={
-            <>
-              {threadDraft && (
-                <Button leadingIcon={RiDraftLine} onPress={() => handleEditDraft(threadDraft)}>
-                  {t('message.actions.editDraft')}
-                </Button>
-              )}
-              {replyableMessage && (
-                <>
-                  <Button
-                    appearance={threadDraft ? 'subtle' : undefined}
-                    leadingIcon={RiCornerUpLeftLine}
-                    onPress={() => handleReply(replyableMessage._id)}
-                  >
-                    {t('message.actions.reply')}
-                  </Button>
-                  <Button
-                    appearance="subtle"
-                    leadingIcon={RiArrowGoBackLine}
-                    onPress={() => handleReplyAll(replyableMessage._id)}
-                  >
-                    {t('message.actions.replyAll')}
-                  </Button>
-                  <Button
-                    appearance="subtle"
-                    leadingIcon={RiShareForwardLine}
-                    onPress={() => handleForward(replyableMessage._id)}
-                  >
-                    {t('message.actions.forward')}
-                  </Button>
-                </>
-              )}
-            </>
-          }
-        />
-      )}
-    </View>
+    </Screen>
   );
 }
 

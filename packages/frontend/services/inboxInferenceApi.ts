@@ -351,6 +351,19 @@ export const inboxDailyBriefSchema = z
     requestId: z.string().min(1).max(128),
     generationId: z.string().min(1).max(128).optional(),
     summary: z.string().max(400),
+    actions: z
+      .array(
+        z
+          .object({
+            label: z.string().trim().min(1).max(40),
+            prompt: z.string().trim().min(1).max(600),
+            messageIds: z.array(z.string().min(1).max(128)).min(1).max(10),
+          })
+          .strict(),
+      )
+      .min(2)
+      .max(5)
+      .optional(),
     counts: z
       .object({
         received: z.number().int().nonnegative(),
@@ -381,6 +394,7 @@ export const inboxDailyBriefSchema = z
   .strict();
 export type InboxDailyBrief = z.infer<typeof inboxDailyBriefSchema>;
 export type InboxDailyBriefItem = InboxDailyBrief['items'][number];
+export type InboxDailyBriefAction = NonNullable<InboxDailyBrief['actions']>[number];
 
 /** Today's brief: a short summary and the messages it names, in `locale`. */
 export async function fetchInboxDailyBrief(
@@ -393,6 +407,9 @@ export async function fetchInboxDailyBrief(
 ): Promise<InboxDailyBrief> {
   return parseResponse(
     inboxDailyBriefSchema,
-    await http.post<unknown>(DAILY_BRIEF_PATH, request, { timeout: INFERENCE_TIMEOUT_MS, signal }),
+    await http.post<unknown>(`${DAILY_BRIEF_PATH}?includeActions=true`, request, {
+      timeout: INFERENCE_TIMEOUT_MS,
+      signal,
+    }),
   );
 }

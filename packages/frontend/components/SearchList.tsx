@@ -1,3 +1,4 @@
+import { Screen } from '@oxy.so/bloom/screen';
 import { SearchFiltersBar } from '@/components/SearchFiltersBar';
 import {
   hasSearchCriteria,
@@ -5,8 +6,6 @@ import {
   searchDateBound,
   type SearchFilters,
 } from '@/utils/searchFilters';
-import { BREAKPOINTS } from '@oxy.so/bloom/styles';
-import { useBottomEdgeInset } from '@oxy.so/bloom/layout';
 import { Divider } from '@oxy.so/bloom/divider';
 import { useMailboxScrollRestoration } from '@/hooks/useMailboxScrollRestoration';
 /**
@@ -20,18 +19,12 @@ import { useLabels } from '@/hooks/queries/useLabels';
 import { useTranslation } from '@/lib/i18n';
 import { Button, IconButton } from '@oxy.so/bloom/button';
 import { EmptyState } from '@oxy.so/bloom/empty-state';
-import { RiCloseLine } from '@oxy.so/bloom/icons';
+import { RiCloseLine } from '@oxy.so/bloom/icons/RiCloseLine';
 import { Loading } from '@oxy.so/bloom/loading';
 import { Text } from '@oxy.so/bloom/typography';
-import { useRouter } from 'expo-router';
+import { useIsFocused, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import {
-  useWindowDimensions,
-  type FlatList,
-  StyleSheet,
-  type TextInputInstance,
-  View,
-} from 'react-native';
+import { type FlatList, StyleSheet, type TextInputInstance, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
@@ -597,19 +590,19 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   }, [handleRetry, isFetchingNextPage, items.length, searchFailed, t]);
 
   const listRef = useRef<FlatList<SearchItem>>(null);
-  const occupiedBottom = useBottomEdgeInset();
-  const { width: viewportWidth } = useWindowDimensions();
-  const bottomClearance = viewportWidth < BREAKPOINTS.md ? occupiedBottom : 0;
+  const focused = useIsFocused();
   const onListScroll = useMailboxScrollRestoration(
     listRef,
     JSON.stringify(['search', user?.id, submittedQuery, filters, nlParsedOptions]),
-    !searching && items.length > 0,
+    focused && !searching && items.length > 0,
   );
 
   return (
-    <View style={styles.container}>
-      {/* Keep the search field visible while filters and results scroll. */}
-      <View>
+    <Screen
+      active={focused}
+      scroll="none"
+      testID="search-screen"
+      header={
         <SearchHeader
           ref={setInputRef}
           onLeftIcon={handleBack}
@@ -621,8 +614,8 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           onClear={handleClear}
           autoFocus
         />
-      </View>
-
+      }
+    >
       <Animated.FlatList
         ref={listRef}
         ListHeaderComponent={
@@ -702,12 +695,12 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           ...(items.length === 0 ? styles.emptyListContent : null),
           ...styles.listContent,
           paddingTop: 0,
-          paddingBottom: bottomClearance,
+          paddingBottom: 0,
         }}
         showsVerticalScrollIndicator={false}
         ItemSeparatorComponent={SearchItemSeparator}
       />
-    </View>
+    </Screen>
   );
 }
 

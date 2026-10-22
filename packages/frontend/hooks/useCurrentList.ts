@@ -9,6 +9,7 @@
  */
 
 import { useCallback, useMemo } from 'react';
+import type { Href } from 'expo-router';
 
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
@@ -92,13 +93,18 @@ export function useCurrentList() {
   const listReady = Boolean(options.mailboxId || options.starred || options.label);
 
   /** The route of this list, for leaving a conversation back to it. */
-  const viewHref = useMemo(() => {
-    if (viewMode?.type === 'starred') return '/starred';
-    if (viewMode?.type === 'label') return `/label/${encodeURIComponent(viewMode.labelName)}`;
+  const viewHref = useMemo<Href>(() => {
+    if (viewMode?.type === 'starred')
+      return { pathname: '/(drawer)/(tabs)/(inbox)/[view]', params: { view: 'starred' } };
+    if (viewMode?.type === 'label')
+      return {
+        pathname: '/(drawer)/(tabs)/(inbox)/label/[name]',
+        params: { name: viewMode.labelName },
+      };
     const mailbox = viewMode?.type === 'mailbox' ? viewMode.mailbox : currentMailbox;
     if (!mailbox || mailbox.specialUse === SPECIAL_USE.INBOX) return '/';
     const view = SPECIAL_USE_TO_VIEW[mailbox.specialUse ?? ''];
-    return `/${view ?? mailbox._id}`;
+    return { pathname: '/(drawer)/(tabs)/(inbox)/[view]', params: { view: view ?? mailbox._id } };
   }, [viewMode, currentMailbox]);
 
   return { query, options, listReady, messages, unreadable, rows, conversationOf, viewHref };

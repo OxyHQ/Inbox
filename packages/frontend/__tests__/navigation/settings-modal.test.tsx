@@ -5,6 +5,12 @@ import React from 'react';
 const mockOpen = jest.fn();
 const mockShowAccount = jest.fn();
 let mockAuthenticated = true;
+let mockAccountId = 'account-a';
+let mockPending = false;
+let mockCacheReady = true;
+const mockWorkspaceMount = jest.fn();
+const mockWorkspaceUnmount = jest.fn();
+let mockSettingsRequest: ReturnType<typeof useInboxSettings>;
 /** What the suite reads from the props InboxSettings hands Bloom's SettingsModal. */
 interface ModalProps {
   initialView?: string;
@@ -22,6 +28,10 @@ function mockModalProps(): ModalProps {
 jest.mock('@oxy.so/services/ui/client', () => ({
   useOxy: () => ({
     isAuthenticated: mockAuthenticated,
+    user: mockAuthenticated ? { id: mockAccountId } : null,
+    canUsePrivateApi: mockAuthenticated && !mockPending,
+    isPrivateApiPending: mockPending,
+    isAccountCacheReady: mockCacheReady,
     showBottomSheet: mockShowAccount,
   }),
 }));
@@ -46,7 +56,7 @@ jest.mock('@oxy.so/bloom/dialog', () => ({
 jest.mock('@oxy.so/bloom/settings-modal', () => ({
   SettingsModal: (props: ModalProps) => {
     mockModal = props;
-    return null;
+    return <div data-testid="settings-overlay" />;
   },
 }));
 jest.mock('@/components/settings/sections/AccountSection', () => ({
@@ -85,6 +95,11 @@ jest.mock('@/components/settings/sections/AboutSection', () => ({
 
 function Actions() {
   const open = useInboxSettings();
+  mockSettingsRequest = open;
+  React.useEffect(() => {
+    mockWorkspaceMount();
+    return mockWorkspaceUnmount;
+  }, []);
   return (
     <>
       <button type="button" onClick={() => open()}>
@@ -100,6 +115,11 @@ beforeEach(() => {
   mockOpen.mockClear();
   mockShowAccount.mockClear();
   mockAuthenticated = true;
+  mockAccountId = 'account-a';
+  mockPending = false;
+  mockCacheReady = true;
+  mockWorkspaceMount.mockClear();
+  mockWorkspaceUnmount.mockClear();
 });
 it('commits initialView and page before opening deep links, including after ordinary navigation', () => {
   render(
@@ -152,4 +172,85 @@ it('opens the SDK account surface only after the settings exit finishes', () => 
   expect(mockShowAccount).toHaveBeenCalledWith('ManageAccount');
   act(() => mockModalProps().onClose());
   expect(mockShowAccount).toHaveBeenCalledTimes(1);
+});
+
+it('drops account overlays and late callbacks during switching without remounting the workspace', () => {
+  const app = (
+    <InboxSettingsProvider>
+      <Actions />
+    </InboxSettingsProvider>
+  );
+  const view = render(app);
+  fireEvent.click(screen.getByText('Account link'));
+  const oldRequest = mockSettingsRequest;
+  const oldModal = mockModalProps();
+  act(() => oldModal.groups[1].items[0].onPress());
+  expect(mockOpen).toHaveBeenCalledTimes(1);
+
+  mockPending = true;
+  view.rerender(
+    <InboxSettingsProvider>
+      <Actions />
+    </InboxSettingsProvider>,
+  );
+  expect(screen.queryByTestId('settings-overlay')).toBeNull();
+  act(() => {
+    oldModal.onClose();
+    oldRequest('account');
+    mockSettingsRequest('account');
+  });
+  expect(mockShowAccount).not.toHaveBeenCalled();
+  expect(mockOpen).toHaveBeenCalledTimes(1);
+
+  mockAccountId = 'account-b';
+  mockPending = false;
+  view.rerender(
+    <InboxSettingsProvider>
+      <Actions />
+    </InboxSettingsProvider>,
+  );
+  expect(mockModalProps().page).toBe('appearance');
+  expect(mockOpen).toHaveBeenCalledTimes(1);
+  fireEvent.click(screen.getByText('Account link'));
+  expect(mockOpen).toHaveBeenCalledTimes(2);
+
+  mockAccountId = 'account-a';
+  view.rerender(
+    <InboxSettingsProvider>
+      <Actions />
+    </InboxSettingsProvider>,
+  );
+  act(() => oldRequest('account'));
+  expect(mockOpen).toHaveBeenCalledTimes(2);
+  expect(mockWorkspaceMount).toHaveBeenCalledTimes(1);
+  expect(mockWorkspaceUnmount).not.toHaveBeenCalled();
+});
+
+it('withholds settings until the account cache is ready and clears private pages on sign-out', () => {
+  const view = render(
+    <InboxSettingsProvider>
+      <Actions />
+    </InboxSettingsProvider>,
+  );
+  fireEvent.click(screen.getByText('Account link'));
+  mockCacheReady = false;
+  view.rerender(
+    <InboxSettingsProvider>
+      <Actions />
+    </InboxSettingsProvider>,
+  );
+  expect(screen.queryByTestId('settings-overlay')).toBeNull();
+  fireEvent.click(screen.getByText('Settings'));
+  expect(mockOpen).toHaveBeenCalledTimes(1);
+
+  mockAuthenticated = false;
+  view.rerender(
+    <InboxSettingsProvider>
+      <Actions />
+    </InboxSettingsProvider>,
+  );
+  expect(mockModalProps().pages.account).toBeUndefined();
+  expect(mockModalProps().page).toBe('appearance');
+  expect(mockOpen).toHaveBeenCalledTimes(1);
+  expect(mockWorkspaceUnmount).not.toHaveBeenCalled();
 });

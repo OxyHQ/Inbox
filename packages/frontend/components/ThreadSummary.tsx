@@ -6,7 +6,7 @@ import {
 } from '@oxy.so/bloom/accordion';
 import { Button } from '@oxy.so/bloom/button';
 import { Divider } from '@oxy.so/bloom/divider';
-import { RiSparklingLine } from '@oxy.so/bloom/icons';
+import { RiSparklingLine } from '@oxy.so/bloom/icons/RiSparklingLine';
 import { Loading } from '@oxy.so/bloom/loading';
 import { Text } from '@oxy.so/bloom/typography';
 import { useState } from 'react';

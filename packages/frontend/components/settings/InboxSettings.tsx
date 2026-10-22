@@ -1,7 +1,7 @@
 /** App settings are pages of Bloom's modal; Bloom owns navigation, scrolling and responsive chrome. */
 import { useTranslation } from '@/lib/i18n';
 import { useDialogControl } from '@oxy.so/bloom/dialog';
-import { RiAccountCircleLine } from '@oxy.so/bloom/icons';
+import { RiAccountCircleLine } from '@oxy.so/bloom/icons/RiAccountCircleLine';
 import { SettingsModal } from '@oxy.so/bloom/settings-modal';
 import { useOxy } from '@oxy.so/services/ui/client';
 import {

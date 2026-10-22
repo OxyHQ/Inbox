@@ -7,7 +7,7 @@
 
 import { Button } from '@oxy.so/bloom/button';
 import { Chip } from '@oxy.so/bloom/chip';
-import { RiSparklingLine } from '@oxy.so/bloom/icons';
+import { RiSparklingLine } from '@oxy.so/bloom/icons/RiSparklingLine';
 import { Loading } from '@oxy.so/bloom/loading';
 import { Text } from '@oxy.so/bloom/typography';
 import { useCallback, useState } from 'react';

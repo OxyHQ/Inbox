@@ -1,5 +1,5 @@
 import { Avatar } from '@oxy.so/bloom/avatar';
-import { RiFileImageLine } from '@oxy.so/bloom/icons';
+import { RiFileImageLine } from '@oxy.so/bloom/icons/RiFileImageLine';
 import { Loading } from '@oxy.so/bloom/loading';
 import { useAttachmentUrl } from '@/hooks/queries/useAttachmentUrl';
 import { useTranslation } from '@/lib/i18n';

@@ -2,7 +2,7 @@ import { useTranslation } from '@/lib/i18n';
 import { presetsThatMakeSense } from '@/utils/timePresets';
 import { BottomSheet, type BottomSheetRef } from '@oxy.so/bloom/bottom-sheet';
 import { Button, IconButton } from '@oxy.so/bloom/button';
-import { RiCloseLine } from '@oxy.so/bloom/icons';
+import { RiCloseLine } from '@oxy.so/bloom/icons/RiCloseLine';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { Text } from '@oxy.so/bloom/typography';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';

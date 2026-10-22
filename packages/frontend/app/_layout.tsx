@@ -10,7 +10,7 @@ import 'react-native-reanimated';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { RequireOxyAuth } from '@oxy.so/services/ui';
 import { OxyProvider, useOxy } from '@oxy.so/services/ui/client';
-import { toast } from '@oxy.so/bloom';
+import { toast } from '@oxy.so/bloom/toast';
 import { ImageResolverProvider } from '@oxy.so/bloom/image-resolver';
 import type { ImageResolver } from '@oxy.so/bloom/image-resolver';
 import { BloomProvider } from '@oxy.so/bloom/provider';
@@ -27,6 +27,7 @@ import { ThemeProvider as AppThemeProvider, useThemeContext } from '@/contexts/t
 import { InboxPrefsProvider } from '@/contexts/inbox-prefs-context';
 import { LocaleProvider, useTranslation } from '@/lib/i18n';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { InboxStartup } from '@/components/InboxStartup';
 import { useInboxSocket } from '@/hooks/useInboxSocket';
 import { useMailboxPoll } from '@/hooks/queries/useMailboxes';
 import { usePushRegistration } from '@/hooks/usePushRegistration';
@@ -107,7 +108,12 @@ function RootLayoutContent() {
 function GatedNavigator() {
   const { t } = useTranslation();
   return (
-    <RequireOxyAuth prompt="hard" title={t('auth.gate.title')} subtitle={t('auth.gate.subtitle')}>
+    <RequireOxyAuth
+      prompt="hard"
+      loadingFallback={<InboxStartup />}
+      title={t('auth.gate.title')}
+      subtitle={t('auth.gate.subtitle')}
+    >
       <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
         <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" options={{ headerShown: false }} />

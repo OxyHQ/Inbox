@@ -33,7 +33,7 @@ jest.mock('@/hooks/queries/useMailboxes', () => ({
 }));
 const t = (key: string) => key;
 jest.mock('@/lib/i18n', () => ({ useTranslation: () => ({ t }) }));
-jest.mock('@oxy.so/bloom', () => ({ toast: { error: jest.fn() } }));
+jest.mock('@oxy.so/bloom/toast', () => ({ toast: { error: jest.fn() } }));
 
 import { renderHook } from '@testing-library/react';
 import { useMessageActions } from '@/hooks/useMessageActions';

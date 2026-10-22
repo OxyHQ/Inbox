@@ -7,7 +7,7 @@
 
 import { View } from 'react-native';
 import { Kbd } from '@oxy.so/bloom/kbd';
-import { Dialog, type DialogControlProps } from '@oxy.so/bloom';
+import { Dialog, type DialogControlProps } from '@oxy.so/bloom/dialog';
 import { Text } from '@oxy.so/bloom/typography';
 import { useTranslation } from '@/lib/i18n';
 

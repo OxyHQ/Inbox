@@ -5,7 +5,7 @@
 
 jest.mock('@/hooks/useEmail', () => ({ useEmailStore: jest.fn() }));
 jest.mock('@/lib/i18n', () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
-jest.mock('@oxy.so/bloom', () => ({ toast: { error: jest.fn() } }));
+jest.mock('@oxy.so/bloom/toast', () => ({ toast: { error: jest.fn() } }));
 
 import { planBundleSwap } from '@/hooks/mutations/useBundleMutations';
 import type { Bundle } from '@/services/emailApi';

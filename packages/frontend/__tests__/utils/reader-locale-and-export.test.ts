@@ -12,7 +12,6 @@ jest.mock('@/lib/i18n', () => ({
 jest.mock('@oxy.so/bloom/theme', () => ({ useTheme: () => ({}) }));
 jest.mock('@oxy.so/bloom/button', () => ({ Button: () => null, IconButton: () => null }));
 jest.mock('@oxy.so/bloom/checkbox', () => ({ Checkbox: () => null }));
-jest.mock('@oxy.so/bloom/icons', () => ({ RiDeleteBinLine: () => null, RiCloseLine: () => null }));
 jest.mock('@oxy.so/bloom/item', () => ({ Item: () => null }));
 jest.mock('@oxy.so/bloom/bottom-sheet', () => ({ BottomSheet: () => null }));
 jest.mock('@oxy.so/bloom/text-field', () => ({ TextFieldInput: () => null }));

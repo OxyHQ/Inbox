@@ -6,7 +6,10 @@ import { Button } from '@oxy.so/bloom/button';
 import { Chip } from '@oxy.so/bloom/chip';
 import { DateRangePicker } from '@oxy.so/bloom/date-picker';
 import { Dialog } from '@oxy.so/bloom/dialog';
-import { RiAttachmentLine, RiFilterLine, RiMailLine, RiStarLine } from '@oxy.so/bloom/icons';
+import { RiAttachmentLine } from '@oxy.so/bloom/icons/RiAttachmentLine';
+import { RiFilterLine } from '@oxy.so/bloom/icons/RiFilterLine';
+import { RiMailLine } from '@oxy.so/bloom/icons/RiMailLine';
+import { RiStarLine } from '@oxy.so/bloom/icons/RiStarLine';
 import {
   Select,
   SelectContent,

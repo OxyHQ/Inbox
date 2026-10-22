@@ -12,7 +12,7 @@
  * that, a sent message stayed in Drafts and a draft could not be sent at all.
  */
 
-import { toast } from '@oxy.so/bloom';
+import { toast } from '@oxy.so/bloom/toast';
 import { useQueryClient } from '@tanstack/react-query';
 import type { FileMetadata } from '@oxy.so/core';
 import { useOxy } from '@oxy.so/services/ui/client';

@@ -1,11 +1,9 @@
 import { useTranslation } from '@/lib/i18n';
-import {
-  RiArchiveLine,
-  RiDeleteBinLine,
-  RiInbox2Line,
-  RiMailOpenLine,
-  RiStarLine,
-} from '@oxy.so/bloom/icons';
+import { RiArchiveLine } from '@oxy.so/bloom/icons/RiArchiveLine';
+import { RiDeleteBinLine } from '@oxy.so/bloom/icons/RiDeleteBinLine';
+import { RiInbox2Line } from '@oxy.so/bloom/icons/RiInbox2Line';
+import { RiMailOpenLine } from '@oxy.so/bloom/icons/RiMailOpenLine';
+import { RiStarLine } from '@oxy.so/bloom/icons/RiStarLine';
 import { MailSelectionBar } from '@oxy.so/bloom/mail-list';
 interface SelectionToolbarProps {
   count: number;

@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import { toast } from '@oxy.so/bloom';
+import { toast } from '@oxy.so/bloom/toast';
 import { useEmailStore } from '@/hooks/useEmail';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
 import { SPECIAL_USE } from '@/constants/mailbox';

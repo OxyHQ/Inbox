@@ -1,7 +1,7 @@
 import { useTranslation } from '@/lib/i18n';
 import { Button } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
-import { toast } from '@oxy.so/bloom';
+import { toast } from '@oxy.so/bloom/toast';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 /**
  * AI Compose Toolbar component.

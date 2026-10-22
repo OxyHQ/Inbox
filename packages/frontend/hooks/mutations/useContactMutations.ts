@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from '@oxy.so/bloom';
+import { toast } from '@oxy.so/bloom/toast';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import type { Contact } from '@/services/emailApi';

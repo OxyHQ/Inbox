@@ -31,7 +31,7 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
-import { toast } from '@oxy.so/bloom';
+import { toast } from '@oxy.so/bloom/toast';
 import { useOxy, useOxyEvent } from '@oxy.so/services/ui/client';
 import { usePathname, useRouter } from 'expo-router';
 

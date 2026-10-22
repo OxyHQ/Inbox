@@ -78,6 +78,7 @@ module.exports = {
     // `jest.mock('@oxy.so/services/ui/client', ...)` — keyed by the resolved
     // path — still replaces whichever entry the code used.
     '^@oxy.so/services/ui(/client)?$': '<rootDir>/__mocks__/oxyhq-services.ts',
+    '^@oxy.so/bloom/icons/[^/]+$': '<rootDir>/__mocks__/bloom-icon.cjs',
     '^@oxy.so/bloom/tab-bar$': '<rootDir>/__mocks__/bloom-tab-bar.tsx',
     '^@expo/vector-icons(/.*)?$': '<rootDir>/__mocks__/expo-vector-icons.tsx',
   },

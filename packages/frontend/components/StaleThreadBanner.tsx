@@ -1,6 +1,7 @@
 import { Button, IconButton } from '@oxy.so/bloom/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from '@oxy.so/bloom/card';
-import { RiCloseLine, RiCornerUpLeftLine } from '@oxy.so/bloom/icons';
+import { RiCloseLine } from '@oxy.so/bloom/icons/RiCloseLine';
+import { RiCornerUpLeftLine } from '@oxy.so/bloom/icons/RiCornerUpLeftLine';
 import { useState } from 'react';
 import type { StaleThreadInfo } from '@/hooks/queries/useStaleThread';
 import { useTranslation } from '@/lib/i18n';

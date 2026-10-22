@@ -19,7 +19,7 @@ jest.mock('@/hooks/useEmail', () => ({
 }));
 
 const toast = { error: jest.fn(), success: jest.fn(), info: jest.fn() };
-jest.mock('@oxy.so/bloom', () => ({ toast }));
+jest.mock('@oxy.so/bloom/toast', () => ({ toast }));
 
 jest.mock('@/lib/i18n', () => ({
   useTranslation: () => ({

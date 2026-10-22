@@ -12,16 +12,14 @@ import { Button } from '@oxy.so/bloom/button';
 import { NoteEditorToolbar } from '@oxy.so/bloom/note-editor';
 import { Textarea } from '@oxy.so/bloom/textarea';
 import { Text } from '@oxy.so/bloom/typography';
-import {
-  RiBold,
-  RiItalic,
-  RiUnderline,
-  RiStrikethrough,
-  RiListOrdered,
-  RiListUnordered,
-  RiLink,
-  RiFormatClear,
-} from '@oxy.so/bloom/icons';
+import { RiBold } from '@oxy.so/bloom/icons/RiBold';
+import { RiItalic } from '@oxy.so/bloom/icons/RiItalic';
+import { RiUnderline } from '@oxy.so/bloom/icons/RiUnderline';
+import { RiStrikethrough } from '@oxy.so/bloom/icons/RiStrikethrough';
+import { RiListOrdered } from '@oxy.so/bloom/icons/RiListOrdered';
+import { RiListUnordered } from '@oxy.so/bloom/icons/RiListUnordered';
+import { RiLink } from '@oxy.so/bloom/icons/RiLink';
+import { RiFormatClear } from '@oxy.so/bloom/icons/RiFormatClear';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, type TextInputInstance, View } from 'react-native';
 

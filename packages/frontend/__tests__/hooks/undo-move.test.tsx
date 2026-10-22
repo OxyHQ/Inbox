@@ -4,7 +4,7 @@
  */
 
 const toast = Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() });
-jest.mock('@oxy.so/bloom', () => ({ toast }));
+jest.mock('@oxy.so/bloom/toast', () => ({ toast }));
 const t = (key: string) => key;
 jest.mock('@/lib/i18n', () => ({ useTranslation: () => ({ t }) }));
 

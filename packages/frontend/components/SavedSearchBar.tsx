@@ -8,7 +8,7 @@ import type { SavedEmailSearchFilters } from '@/services/emailApi';
 import { Button } from '@oxy.so/bloom/button';
 import { Chip } from '@oxy.so/bloom/chip';
 import { Dialog } from '@oxy.so/bloom/dialog';
-import { RiBookmarkLine } from '@oxy.so/bloom/icons';
+import { RiBookmarkLine } from '@oxy.so/bloom/icons/RiBookmarkLine';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { Text } from '@oxy.so/bloom/typography';
 import { useCallback, useState } from 'react';

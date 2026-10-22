@@ -34,7 +34,7 @@ jest.mock('@oxy.so/services/ui/client', () => ({
 }));
 
 const toast = { info: jest.fn(), success: jest.fn(), warning: jest.fn(), error: jest.fn() };
-jest.mock('@oxy.so/bloom', () => ({ toast }));
+jest.mock('@oxy.so/bloom/toast', () => ({ toast }));
 
 const setQueriesData = jest.fn();
 const setQueryData = jest.fn();

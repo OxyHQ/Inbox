@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query';
-import { toast } from '@oxy.so/bloom';
+import { toast } from '@oxy.so/bloom/toast';
 import { useEmailStore } from '@/hooks/useEmail';
 import { invalidateMailViews } from '@/hooks/queries/invalidateMailViews';
 import { emailKeys } from '@/hooks/queries/queryKeys';

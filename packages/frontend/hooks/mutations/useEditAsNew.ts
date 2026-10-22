@@ -1,4 +1,4 @@
-import { toast } from '@oxy.so/bloom';
+import { toast } from '@oxy.so/bloom/toast';
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 

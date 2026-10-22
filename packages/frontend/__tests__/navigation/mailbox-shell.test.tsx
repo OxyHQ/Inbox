@@ -30,9 +30,17 @@ jest.mock('@/components/InboxList', () => {
   };
 });
 jest.mock('@/components/SearchList', () => ({ SearchList: () => null }));
-jest.mock('@/components/InboxBottomBar', () => ({
-  InboxBottomBar: () => <nav aria-label="Mail navigation" />,
-}));
+jest.mock('@/components/InboxBottomBar', () => {
+  const { useShellPathname } = jest.requireActual('@/hooks/useShellPathname');
+  return {
+    InboxBottomBar: () => (
+      <nav
+        aria-label="Mail navigation"
+        data-selected={useShellPathname().startsWith('/search') ? 'search' : 'inbox'}
+      />
+    ),
+  };
+});
 import { MailboxShell } from '@/components/MailboxShell';
 import { PrivateInboxContent } from '@/components/PrivateInboxContent';
 import { SPECIAL_USE } from '@/constants/mailbox';
@@ -559,31 +567,68 @@ it.each([
   );
 });
 
-it('hydrates a deep link from the exported index shell before selecting its detail panel', async () => {
-  mockAuthenticated = false;
-  mockTokenReady = false;
-  mockCacheReady = false;
-  mockPending = true;
-  const container = document.createElement('div');
-  const shell = <MailboxShell>{null}</MailboxShell>;
-  container.innerHTML = renderToString(shell);
-  document.body.appendChild(container);
-  const original = container.querySelector('[data-testid="workspace"]');
-  const header = container.querySelector('h1');
-  expect(original?.getAttribute('data-active-panel')).toBe('list');
-  mockPath = '/conversation/mail-a';
-  const onRecoverableError = jest.fn();
-  let root: Root | undefined;
-  try {
-    await act(async () => {
-      root = hydrateRoot(container, shell, { onRecoverableError });
-    });
-    expect(container.querySelector('[data-testid="workspace"]')).toBe(original);
-    expect(container.querySelector('h1')).toBe(header);
-    expect(original?.getAttribute('data-active-panel')).toBe('detail');
-    expect(onRecoverableError).not.toHaveBeenCalled();
-  } finally {
-    await act(async () => root?.unmount());
-    container.remove();
-  }
-});
+it.each([
+  ['/', '/', 'list'],
+  ['/', '/sent', 'list'],
+  ['/', '/label/important', 'list'],
+  ['/', '/compose', 'detail'],
+  ['/', '/conversation/mail-a', 'detail'],
+  ['/', '/search/conversation/mail-a', 'detail'],
+  ['/compose', '/compose', 'detail'],
+  ['/search', '/search', 'list'],
+  ['/sent', '/sent', 'list'],
+])(
+  'hydrates static %s HTML at %s before mounting its route children',
+  async (serverPath, path, panel) => {
+    mockAuthenticated = false;
+    mockTokenReady = false;
+    mockCacheReady = false;
+    mockPending = true;
+    const routeRendered = jest.fn();
+    function RoutedContent() {
+      routeRendered(mockPath);
+      return mockPath === '/' ? <article>Index route</article> : <section>{mockPath}</section>;
+    }
+    mockPath = serverPath;
+    const container = document.createElement('div');
+    const shell = (
+      <MailboxShell>
+        <RoutedContent />
+      </MailboxShell>
+    );
+    container.innerHTML = renderToString(shell);
+    document.body.appendChild(container);
+    const original = container.querySelector('[data-testid="workspace"]');
+    const header = container.querySelector('h1');
+    const navigation = container.querySelector('nav');
+    expect(original?.getAttribute('data-active-panel')).toBe('list');
+    expect(container.textContent).toContain('empty.selectConversation');
+    expect(routeRendered).not.toHaveBeenCalled();
+    mockPath = path;
+    const onRecoverableError = jest.fn();
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    let root: Root | undefined;
+    try {
+      await act(async () => {
+        root = hydrateRoot(container, shell, { onRecoverableError });
+      });
+      expect(container.querySelector('[data-testid="workspace"]')).toBe(original);
+      if (!path.startsWith('/search')) expect(container.querySelector('h1')).toBe(header);
+      expect(container.querySelector('nav')).toBe(navigation);
+      expect(navigation?.getAttribute('data-selected')).toBe(
+        path.startsWith('/search') ? 'search' : 'inbox',
+      );
+      expect(original?.getAttribute('data-active-panel')).toBe(panel);
+      expect(container.querySelector(path === '/' ? 'article' : 'section')?.textContent).toBe(
+        path === '/' ? 'Index route' : path,
+      );
+      expect(routeRendered).toHaveBeenCalledWith(path);
+      expect(onRecoverableError).not.toHaveBeenCalled();
+      expect(consoleError).not.toHaveBeenCalled();
+    } finally {
+      await act(async () => root?.unmount());
+      container.remove();
+      consoleError.mockRestore();
+    }
+  },
+);

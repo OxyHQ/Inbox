@@ -51,6 +51,15 @@ on compact mailbox routes and the detail panel on conversation/compose routes;
 do not mount another full list in a CSS-hidden route. The exported shell uses
 the index-route snapshot during hydration before applying the live deep link.
 
+Dynamic links without a matching exported HTML file receive the index fallback;
+other routes can have their own static documents. Every document uses the same
+public empty-detail outlet for SSR and first hydration, then mounts the live Slot
+afterward. Matching the shell pathname alone cannot reconcile different route
+children. Keep the root navigator and real mailbox chrome mounted, and retain
+private guards inside each route. Client-only/native renders use the live outlet
+immediately. Test index HTML hydrated at different direct URLs, including the
+selected navigation tab, with no recoverable errors or replaced workspace.
+
 Query clients derive synchronously from the SDK's ready HTTP client. A drawer
 mount effect must not add another render before mailbox, message and brief
 queries can start. Keep the SDK's account-cache readiness and schema/build

@@ -3,6 +3,7 @@ import { PrivateInboxContent } from '@/components/PrivateInboxContent';
 import { InboxList } from '@/components/InboxList';
 import { SearchList } from '@/components/SearchList';
 import { InboxBottomBar } from '@/components/InboxBottomBar';
+import { MailboxRouteOutlet } from '@/components/MailboxRouteOutlet';
 
 import { MailScrollProvider } from './MailScrollProvider';
 /** Mail navigation is data for Bloom's Sidebar; account/mail mutations remain owned by the SDK/app. */
@@ -474,7 +475,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
                   action: { label: t('common.retry') },
                 },
               },
-              content: children,
+              content: <MailboxRouteOutlet>{children}</MailboxRouteOutlet>,
             },
           ],
         }}

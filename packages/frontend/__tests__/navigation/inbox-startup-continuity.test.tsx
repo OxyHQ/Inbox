@@ -19,6 +19,7 @@ let mockLoading = false;
 let mockBrief: { summary: string; items: { messageId: string }[] } | undefined;
 let mockPrivateFolder: { name: string; _id: string } | null = null;
 let mockSelection = false;
+let mockAiBrief = true;
 const mockNoop = jest.fn();
 const mockRefetch = jest.fn(async () => undefined);
 const mockPush = jest.fn();
@@ -136,7 +137,8 @@ jest.mock('@alia.onl/sdk/avatar', () => ({ AliaAvatarIcon: () => null }));
 jest.mock('@/constants/theme', () => ({ useColors: () => ({}) }));
 jest.mock('@/lib/i18n', () => ({ useTranslation: () => ({ t: mockTranslate, locale: 'en' }) }));
 jest.mock('@/contexts/inbox-prefs-context', () => ({
-  useInboxPrefs: () => ({ prefs: { aiBrief: true, aiCategorization: false } }),
+  DEFAULT_INBOX_PREFS: { aiBrief: true },
+  useInboxPrefs: () => ({ prefs: { aiBrief: mockAiBrief, aiCategorization: false } }),
 }));
 jest.mock('@/hooks/useInboxDisplayPrefs', () => ({
   useInboxDisplayPrefs: () => ({ density: 'comfortable', showPreviews: true }),
@@ -339,4 +341,16 @@ it('discards an opened private Alia panel on A→B→A', async () => {
   ready('a');
   view.rerender(<InboxList />);
   expect(screen.queryByText('Private Alia')).toBeNull();
+});
+
+it('does not apply the previous account brief preference while another account restores', () => {
+  ready('a');
+  mockAiBrief = false;
+  const view = render(<InboxList />);
+  const heading = view.container.querySelector('h1');
+  mockAuth = { ...mockAuth, user: { id: 'b' }, isAccountCacheReady: false };
+  view.rerender(<InboxList />);
+  expect(view.container.querySelector('h1')).toBe(heading);
+  expect(heading?.textContent).toBe('home.todaysBrief');
+  expect(view.container.querySelector('[data-message]')).toBeNull();
 });

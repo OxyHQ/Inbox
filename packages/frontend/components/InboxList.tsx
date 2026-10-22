@@ -38,7 +38,11 @@ import { UnreadableMessageRow } from '@/components/UnreadableMessageRow';
 import { SPACING } from '@/constants/layout';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { useColors } from '@/constants/theme';
-import { useInboxPrefs, type SwipeAction } from '@/contexts/inbox-prefs-context';
+import {
+  DEFAULT_INBOX_PREFS,
+  useInboxPrefs,
+  type SwipeAction,
+} from '@/contexts/inbox-prefs-context';
 import { useBulkUpdateFlags, useTogglePin } from '@/hooks/mutations/useMessageMutations';
 import { useDeleteReminder, useUpdateReminder } from '@/hooks/mutations/useReminderMutations';
 import { emailKeys } from '@/hooks/queries/queryKeys';
@@ -256,7 +260,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   // the existing user-facing categorization preference. It is not an AI call.
   const sentimentMap = useBatchSentimentAnalysis(displayMessages, prefs.aiCategorization);
 
-  const briefHeading = (!accountReady || isInboxView) && prefs.aiBrief;
+  const briefHeading = accountReady ? isInboxView && prefs.aiBrief : DEFAULT_INBOX_PREFS.aiBrief;
   const briefVisible = accountReady && isInboxView && prefs.aiBrief;
   const { brief, error: briefError } = useDailyBrief({ enabled: briefVisible });
   // Messages in the brief card appear once, instead of repeating below it.

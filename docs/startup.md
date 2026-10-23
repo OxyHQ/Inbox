@@ -94,7 +94,31 @@ without a light inline shell surviving a dark hydration. The preset hashes the
 completed document's bootstrap script for CSP; do not copy its script or palette
 into Inbox.
 
+The last account palette must also survive a reload. `useAccountColor` applies
+the account's preset after identity resolves; without Bloom persistence every
+reload starts in `oxy` and then repaints the entire workspace in the account's
+color. The shared bootstrap config's `persistKey` selects Bloom's own JSON theme
+storage, with synchronous web storage and AsyncStorage on native. The existing
+`inbox_theme_preference` mode key takes priority over the JSON mode so this does
+not change an established light/dark choice. Keep `awaitHydration={false}` on
+the root: theme restoration must not replace the public workspace with a blank
+loading state. The SDK remains authoritative when the account resolves.
+
+This stores a cosmetic device preference, not account content or credentials.
+A device with no saved palette cannot know its account's color before identity
+arrives; once that color is applied, subsequent reloads can paint it immediately.
+Verify a saved non-default palette from the first HTML frame through restoration
+of that same account, including the gradients and scoped surfaces. Testing only
+anonymous visitors in the default `oxy` palette misses this transition.
+
 ## Verify the transition, not only the final screen
+
+Fonts are part of that first frame. Bloom's server font rules and
+`BloomFontHead` in the document head declare and preload the same canonical font
+assets before the app bundle arrives. Keep this in Bloom; do not copy asset URLs
+or inject preloads from a client component. A stable `font-family` string and
+element rectangle do not prove the font is painted: record actual glyphs and
+font readiness through a cold reload as well as a reload with cached fonts.
 
 Use a foreground browser against the exported production build. Observe from the
 first visible workspace through hydration and session resolution; a screenshot

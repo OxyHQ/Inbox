@@ -1,3 +1,4 @@
+import { PrivateInboxContent } from '@/components/PrivateInboxContent';
 import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 /**
  * Conversation (message detail) route — /conversation/:id
@@ -14,7 +15,7 @@ import { useThread } from '@/hooks/queries/useThread';
 import { useEmailStore } from '@/hooks/useEmail';
 import { useTranslation } from '@/lib/i18n';
 
-export default function ConversationScreen() {
+function ConversationScreenContent() {
   const isDesktop = useIsDesktopLayout();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
@@ -44,5 +45,13 @@ export default function ConversationScreen() {
       </Head>
       <MessageDetail mode={isDesktop ? 'embedded' : 'standalone'} messageId={id} />
     </>
+  );
+}
+
+export default function ConversationScreen() {
+  return (
+    <PrivateInboxContent>
+      <ConversationScreenContent />
+    </PrivateInboxContent>
   );
 }

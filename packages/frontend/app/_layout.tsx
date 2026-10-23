@@ -13,6 +13,7 @@ import { toast } from '@oxy.so/bloom/toast';
 import { ImageResolverProvider } from '@oxy.so/bloom/image-resolver';
 import type { ImageResolver } from '@oxy.so/bloom/image-resolver';
 import { BloomProvider } from '@oxy.so/bloom/provider';
+import { INBOX_THEME_BOOTSTRAP } from '@/constants/theme-bootstrap';
 import { BloomScope } from '@oxy.so/bloom/appearance';
 import { useNavigationTheme } from '@oxy.so/bloom/theme';
 import type { ThemeMode } from '@oxy.so/bloom/theme';
@@ -63,7 +64,7 @@ function ThemedRoot() {
   const { themePreference } = useThemeContext();
   const themeMode = themePreference as ThemeMode;
   return (
-    <BloomProvider mode={themeMode} ssrStyles="inline">
+    <BloomProvider mode={themeMode} ssrStyles="inline" prepaintTheme={INBOX_THEME_BOOTSTRAP}>
       <BloomScope size="md">
         <RootLayoutContent />
       </BloomScope>
@@ -114,17 +115,24 @@ function InboxNavigator() {
 }
 
 function ScopedInboxPrefsProvider({ children }: { children: ReactNode }) {
-  const { user } = useOxy();
+  const { user, oxyServices, canUsePrivateApi, isAccountCacheReady } = useOxy();
   const scope = user?.id ?? null;
+  const accountReady = canUsePrivateApi && isAccountCacheReady;
+  const http = oxyServices.http;
 
   // The selected mailbox and the email API belong to the account. Its cached
   // data is the SDK's to drop (`accountQueries`); this is the app's own state.
   const previousScope = useRef(scope);
   useLayoutEffect(() => {
-    if (previousScope.current === scope) return;
-    previousScope.current = scope;
-    useEmailStore.getState().resetAccountScopedState();
-  }, [scope]);
+    if (previousScope.current !== scope) {
+      previousScope.current = scope;
+      useEmailStore.getState().resetAccountScopedState();
+    }
+    // Mutation replay uses the active client; query hooks derive theirs from
+    // SDK readiness synchronously and never wait for this store bridge.
+    if (accountReady) useEmailStore.getState()._initApi(http);
+    else useEmailStore.setState({ _api: null });
+  }, [scope, accountReady, http]);
 
   return <InboxPrefsProvider scope={scope}>{children}</InboxPrefsProvider>;
 }

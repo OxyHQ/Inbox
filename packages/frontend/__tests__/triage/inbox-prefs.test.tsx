@@ -9,7 +9,10 @@ import {
 } from '@/contexts/inbox-prefs-context';
 
 import { defined } from '../fixtures/defined';
+import { ThemeProvider, useThemeContext } from '@/contexts/theme-context';
 import { useEffect } from 'react';
+import { hydrateRoot, type Root } from 'react-dom/client';
+import { renderToString } from 'react-dom/server';
 
 let mockPlatform = 'web';
 const mockNativeGet = jest.fn();
@@ -234,5 +237,80 @@ it('drops a native hydration completed after switching accounts and waits before
     );
   } finally {
     mockPlatform = 'web';
+  }
+});
+
+it('hydrates the default heading before applying stored choices without replacing it or overwriting them', async () => {
+  const key = getInboxPrefsStorageKey('hydration-account');
+  localStorage.removeItem(key);
+  function Header() {
+    const { prefs } = useInboxPrefs();
+    return <h1>{prefs.aiBrief ? "Today's brief" : 'Inbox'}</h1>;
+  }
+  const app = (
+    <InboxPrefsProvider scope="hydration-account">
+      <Header />
+    </InboxPrefsProvider>
+  );
+  const container = document.createElement('div');
+  container.innerHTML = renderToString(app);
+  document.body.appendChild(container);
+  const heading = container.querySelector('h1');
+  expect(heading?.textContent).toBe("Today's brief");
+  localStorage.setItem(key, JSON.stringify({ aiBrief: false, density: 'compact' }));
+  const onRecoverableError = jest.fn();
+  const writes = jest.spyOn(Storage.prototype, 'setItem');
+  let root: Root | undefined;
+  try {
+    await act(async () => {
+      root = hydrateRoot(container, app, { onRecoverableError });
+    });
+    expect(container.querySelector('h1')).toBe(heading);
+    expect(heading?.textContent).toBe('Inbox');
+    expect(onRecoverableError).not.toHaveBeenCalled();
+    expect(JSON.parse(defined(localStorage.getItem(key)))).toEqual({
+      aiBrief: false,
+      density: 'compact',
+    });
+    expect(
+      writes.mock.calls
+        .filter(([writtenKey]) => writtenKey === key)
+        .every(([, value]) => JSON.parse(value).aiBrief === false),
+    ).toBe(true);
+  } finally {
+    writes.mockRestore();
+    await act(async () => root?.unmount());
+    container.remove();
+  }
+});
+
+it('keeps preferences usable when the localStorage getter itself is blocked', () => {
+  const storage = Object.getOwnPropertyDescriptor(window, 'localStorage');
+  const warning = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  Object.defineProperty(window, 'localStorage', {
+    configurable: true,
+    get: () => {
+      throw new Error('Storage blocked');
+    },
+  });
+  try {
+    const { result } = renderHook(() => ({ inbox: useInboxPrefs(), theme: useThemeContext() }), {
+      wrapper: ({ children }) => (
+        <ThemeProvider>
+          <InboxPrefsProvider>{children}</InboxPrefsProvider>
+        </ThemeProvider>
+      ),
+    });
+    expect(result.current.inbox.prefs).toEqual(DEFAULT_INBOX_PREFS);
+    expect(result.current.theme.themePreference).toBe('system');
+    act(() => {
+      result.current.inbox.setPref('aiBrief', false);
+      result.current.theme.setThemePreference('dark');
+    });
+    expect(result.current.inbox.prefs.aiBrief).toBe(false);
+    expect(result.current.theme.themePreference).toBe('dark');
+  } finally {
+    if (storage) Object.defineProperty(window, 'localStorage', storage);
+    warning.mockRestore();
   }
 });

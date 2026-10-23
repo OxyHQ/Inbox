@@ -38,7 +38,11 @@ import { UnreadableMessageRow } from '@/components/UnreadableMessageRow';
 import { SPACING } from '@/constants/layout';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { useColors } from '@/constants/theme';
-import { useInboxPrefs, type SwipeAction } from '@/contexts/inbox-prefs-context';
+import {
+  DEFAULT_INBOX_PREFS,
+  useInboxPrefs,
+  type SwipeAction,
+} from '@/contexts/inbox-prefs-context';
 import { useBulkUpdateFlags, useTogglePin } from '@/hooks/mutations/useMessageMutations';
 import { useDeleteReminder, useUpdateReminder } from '@/hooks/mutations/useReminderMutations';
 import { emailKeys } from '@/hooks/queries/queryKeys';
@@ -59,6 +63,8 @@ import type { Bundle, Message, Reminder, UnreadableMessage } from '@/services/em
 import { messageRoute } from '@/utils/messageRoute';
 import { followSelectedRows } from '@/utils/threadGrouping';
 import { useCurrentList } from '@/hooks/useCurrentList';
+import { useScopedState } from '@/hooks/useScopedState';
+import { PrivateInboxContent } from '@/components/PrivateInboxContent';
 import type { InboxAliaRequest } from './InboxAlia';
 
 import { AliaAvatarIcon } from '@alia.onl/sdk/avatar';
@@ -142,11 +148,19 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const drawerAvailable = shell.drawerAvailable;
   const colors = useColors();
   const { t } = useTranslation();
-  const [aliaRequest, setAliaRequest] = useState<InboxAliaRequest | null>(null);
-  const handleBriefAction = useCallback((action: InboxDailyBriefAction) => {
-    setAliaRequest({ action });
-  }, []);
-  const { isAuthenticated, user } = useOxy();
+  const { isAuthenticated, user, canUsePrivateApi, isAccountCacheReady } = useOxy();
+  const accountReady = canUsePrivateApi && isAccountCacheReady;
+  const accountScope = accountReady ? (user?.id ?? null) : null;
+  const [aliaRequest, setAliaRequest] = useScopedState<InboxAliaRequest | null>(
+    accountScope,
+    () => null,
+  );
+  const handleBriefAction = useCallback(
+    (action: InboxDailyBriefAction) => {
+      setAliaRequest({ action });
+    },
+    [setAliaRequest],
+  );
   const { prefs } = useInboxPrefs();
   const { density, showPreviews } = useInboxDisplayPrefs();
   const messageActions = useMessageActions();
@@ -198,8 +212,14 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   );
   const { data: bundles = [] } = useBundles();
 
-  const [snoozeTargetId, setSnoozeTargetId] = useState<string | null>(null);
-  const [editReminderTarget, setEditReminderTarget] = useState<Reminder | null>(null);
+  const [snoozeTargetId, setSnoozeTargetId] = useScopedState<string | null>(
+    accountScope,
+    () => null,
+  );
+  const [editReminderTarget, setEditReminderTarget] = useScopedState<Reminder | null>(
+    accountScope,
+    () => null,
+  );
 
   const { data: remindersResult } = useReminders();
   const reminders = useMemo(() => remindersResult?.data ?? [], [remindersResult]);
@@ -240,7 +260,8 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   // the existing user-facing categorization preference. It is not an AI call.
   const sentimentMap = useBatchSentimentAnalysis(displayMessages, prefs.aiCategorization);
 
-  const briefVisible = isAuthenticated && isInboxView && prefs.aiBrief;
+  const briefHeading = accountReady ? isInboxView && prefs.aiBrief : DEFAULT_INBOX_PREFS.aiBrief;
+  const briefVisible = accountReady && isInboxView && prefs.aiBrief;
   const { brief, error: briefError } = useDailyBrief({ enabled: briefVisible });
   // Messages in the brief card appear once, instead of repeating below it.
   const shownAboveIds = useMemo(
@@ -407,11 +428,11 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
 
   // The spinner is the pull's, not every refetch's: background polls, socket
   // events and mutations refetch too, and the spinner popped up for each.
-  const [pulling, setPulling] = useState(false);
+  const [pulling, setPulling] = useScopedState(accountScope, () => false);
   const handleRefresh = useCallback(() => {
     setPulling(true);
     void refetch().finally(() => setPulling(false));
-  }, [refetch]);
+  }, [refetch, setPulling]);
 
   const handleLoadMore = useCallback(() => {
     if (isFetchingNextPage || !hasNextPage) return;
@@ -480,7 +501,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       messageActions.snooze(removing(conversationOf(snoozeTargetId)), until.toISOString());
       setSnoozeTargetId(null);
     },
-    [snoozeTargetId, conversationOf, messageActions, removing],
+    [snoozeTargetId, conversationOf, messageActions, removing, setSnoozeTargetId],
   );
 
   const handleToggleReminderComplete = useCallback(
@@ -513,7 +534,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       }
       setEditReminderTarget(reminder);
     },
-    [reminders, router, replaceNavigation],
+    [reminders, router, replaceNavigation, setEditReminderTarget],
   );
 
   const handleUpdateReminder = useCallback(
@@ -526,7 +547,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       });
       setEditReminderTarget(null);
     },
-    [editReminderTarget, updateReminderMutation],
+    [editReminderTarget, updateReminderMutation, setEditReminderTarget],
   );
 
   const handleMessagePress = useCallback(
@@ -565,7 +586,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
 
   const handleAskAlia = useCallback(() => {
     setAliaRequest({});
-  }, []);
+  }, [setAliaRequest]);
 
   const handleSearch = useCallback(() => {
     router.push('/search');
@@ -656,7 +677,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
           break;
       }
     },
-    [handleArchiveRow, handleDeleteRow, handleToggleRead],
+    [handleArchiveRow, handleDeleteRow, handleToggleRead, setSnoozeTargetId],
   );
 
   /** One message row, shared by the flat items and the grouped panels. */
@@ -879,7 +900,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       scroll="none"
       testID="inbox-screen"
       header={
-        isSelectionMode ? (
+        accountReady && isSelectionMode ? (
           <SelectionToolbar
             count={selectedMessageIds.size}
             onClose={clearSelection}
@@ -892,7 +913,13 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
         ) : (
           <View>
             <PageHeader
-              title={briefVisible ? t('home.todaysBrief') : mailboxTitle}
+              title={
+                briefHeading
+                  ? t('home.todaysBrief')
+                  : accountReady
+                    ? mailboxTitle
+                    : t('drawer.mailboxes.Inbox')
+              }
               sticky={false}
               scrim="none"
               safeArea={false}
@@ -910,7 +937,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
               }
               actions={
                 <ButtonGroup>
-                  {isAuthenticated && (
+                  {accountReady && (
                     <>
                       <ButtonGroupItem
                         iconOnly
@@ -927,7 +954,10 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
                     iconOnly
                     leadingIcon={RiSearchLine}
                     accessibilityLabel={t('inbox.searchInMailbox', {
-                      mailbox: mailboxTitle.toLowerCase(),
+                      mailbox: (accountReady
+                        ? mailboxTitle
+                        : t('drawer.mailboxes.Inbox')
+                      ).toLowerCase(),
                     })}
                     onPress={handleSearch}
                   />
@@ -938,72 +968,74 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
         )
       }
     >
-      <View style={styles.listContainer}>
-        <AnimatedInboxList
-          ref={listRef}
-          data={listItems}
-          renderItem={renderItem}
-          keyExtractor={keyExtractor}
-          getItemType={getItemType}
-          ListHeaderComponent={
-            <>
-              <UndeliveredBanner />
-              {briefVisible && (
-                <DailyBrief
-                  onOpenMessage={openMessageById}
-                  onAction={handleBriefAction}
-                  messages={messages}
-                  renderMessage={renderMessageRow}
-                />
-              )}
-            </>
-          }
-          ListEmptyComponent={shownAboveIds.size > 0 ? null : renderEmpty}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.3}
-          onScroll={onListScroll}
-          scrollEventThrottle={16}
-          extraData={listExtraData}
-          refreshControl={
-            <RefreshControl
-              refreshing={pulling}
-              onRefresh={handleRefresh}
-              tintColor={colors.primary}
-              colors={[colors.primary]}
-            />
-          }
-          contentContainerStyle={{
-            ...(listItems.length === 0 ? styles.emptyListContent : null),
-            ...styles.listContent,
-            paddingTop: 0,
-            paddingBottom: 0,
-          }}
-          showsVerticalScrollIndicator={false}
+      <PrivateInboxContent>
+        <View style={styles.listContainer}>
+          <AnimatedInboxList
+            ref={listRef}
+            data={listItems}
+            renderItem={renderItem}
+            keyExtractor={keyExtractor}
+            getItemType={getItemType}
+            ListHeaderComponent={
+              <>
+                <UndeliveredBanner />
+                {briefVisible && (
+                  <DailyBrief
+                    onOpenMessage={openMessageById}
+                    onAction={handleBriefAction}
+                    messages={messages}
+                    renderMessage={renderMessageRow}
+                  />
+                )}
+              </>
+            }
+            ListEmptyComponent={shownAboveIds.size > 0 ? null : renderEmpty}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.3}
+            onScroll={onListScroll}
+            scrollEventThrottle={16}
+            extraData={listExtraData}
+            refreshControl={
+              <RefreshControl
+                refreshing={pulling}
+                onRefresh={handleRefresh}
+                tintColor={colors.primary}
+                colors={[colors.primary]}
+              />
+            }
+            contentContainerStyle={{
+              ...(listItems.length === 0 ? styles.emptyListContent : null),
+              ...styles.listContent,
+              paddingTop: 0,
+              paddingBottom: 0,
+            }}
+            showsVerticalScrollIndicator={false}
+          />
+        </View>
+
+        {/* Alia remains available from the inline header action. */}
+        {isAuthenticated && aliaRequest && (
+          <Suspense fallback={null}>
+            <InboxAlia request={aliaRequest} />
+          </Suspense>
+        )}
+
+        {/* Snooze sheet */}
+        <SnoozeSheet
+          visible={snoozeTargetId !== null}
+          onClose={() => setSnoozeTargetId(null)}
+          onSnooze={handleSnooze}
         />
-      </View>
 
-      {/* Alia remains available from the inline header action. */}
-      {isAuthenticated && aliaRequest && (
-        <Suspense fallback={null}>
-          <InboxAlia request={aliaRequest} />
-        </Suspense>
-      )}
-
-      {/* Snooze sheet */}
-      <SnoozeSheet
-        visible={snoozeTargetId !== null}
-        onClose={() => setSnoozeTargetId(null)}
-        onSnooze={handleSnooze}
-      />
-
-      {/* Edit reminder sheet (opened by tapping a standalone reminder) */}
-      <CreateReminderSheet
-        visible={editReminderTarget !== null}
-        editReminder={editReminderTarget}
-        onClose={() => setEditReminderTarget(null)}
-        onCreate={handleUpdateReminder}
-        onUpdate={handleUpdateReminder}
-      />
+        {/* Edit reminder sheet (opened by tapping a standalone reminder) */}
+        <CreateReminderSheet
+          visible={editReminderTarget !== null}
+          editReminder={editReminderTarget}
+          onClose={() => setEditReminderTarget(null)}
+          onCreate={handleUpdateReminder}
+          onUpdate={handleUpdateReminder}
+        />
+      </PrivateInboxContent>
     </Screen>
   );
 }

@@ -8,13 +8,21 @@
  *
  * Persistence: localStorage on web, AsyncStorage on native. Only what the user
  * chose is stored; everything else follows the defaults below. The values are
- * loaded synchronously on web (no flash) and asynchronously on native
- * (defaults are used until the load resolves).
+ * read synchronously on web; SSR and the first hydration render expose the
+ * default snapshot, then apply the saved choices in place. Native loads them
+ * asynchronously and uses defaults until the load resolves.
  */
 
 import { useScopedState } from '@/hooks/useScopedState';
 import type { MailDensity } from '@oxy.so/bloom/mail-list';
-import { createContext, useCallback, useContext, useEffect, useMemo } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useSyncExternalStore,
+} from 'react';
 import type { ReactNode } from 'react';
 import { Platform } from 'react-native';
 
@@ -62,7 +70,7 @@ export const DEFAULT_INBOX_PREFS: InboxPrefs = {
   leftSwipeAction: 'archive',
   rightSwipeAction: 'delete',
   pushNotifications: true,
-  // Only offers a button: nothing is sent until the brief is opened.
+  // Prepared automatically once the Inbox account and its cache are ready.
   aiBrief: true,
   aiSmartReply: true,
   // Only offers a button: nothing is summarized until the user asks.
@@ -164,7 +172,7 @@ function parseStoredChoices(v3: string | null, v2: string | null): InboxPrefChoi
 }
 
 function loadSync(scope: string | null): InboxPrefChoices {
-  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
     try {
       return parseStoredChoices(
         window.localStorage.getItem(getInboxPrefsStorageKey(scope)),
@@ -185,14 +193,24 @@ interface InboxPrefsProviderProps {
   scope?: string | null;
 }
 
+const subscribeHydration = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
+
 export function InboxPrefsProvider({ children, scope = null }: InboxPrefsProviderProps) {
+  const hydrated = useSyncExternalStore(subscribeHydration, getClientSnapshot, getServerSnapshot);
   const storageKey = getInboxPrefsStorageKey(scope);
   const [state, setState] = useScopedState(scope, (account) => ({
     choices: loadSync(account),
     loaded: Platform.OS === 'web',
   }));
   const { choices, loaded } = state;
-  const prefs = useMemo(() => ({ ...DEFAULT_INBOX_PREFS, ...choices }), [choices]);
+  // Keep the server header and first hydration render identical. The real
+  // choices remain in state, so applying defaults here never overwrites them.
+  const prefs = useMemo(
+    () => (hydrated ? { ...DEFAULT_INBOX_PREFS, ...choices } : DEFAULT_INBOX_PREFS),
+    [choices, hydrated],
+  );
 
   // Delete the pre-scope device-wide blob. It is intentionally not migrated:
   // its owner is unknowable, so copying it into the first account would make
@@ -242,7 +260,7 @@ export function InboxPrefsProvider({ children, scope = null }: InboxPrefsProvide
   // before the initial load resolves on native. The v2 blob goes once v3 holds
   // what was migrated from it.
   useEffect(() => {
-    if (!loaded) return;
+    if (!loaded || !hydrated) return;
     const v2Key = getV2InboxPrefsStorageKey(scope);
     (async () => {
       try {
@@ -260,7 +278,7 @@ export function InboxPrefsProvider({ children, scope = null }: InboxPrefsProvide
         console.warn('[inbox-prefs] failed to persist prefs', err);
       }
     })();
-  }, [choices, loaded, scope, storageKey]);
+  }, [choices, loaded, hydrated, scope, storageKey]);
 
   const setPref = useCallback(
     <K extends keyof InboxPrefs>(key: K, value: InboxPrefs[K]) => {

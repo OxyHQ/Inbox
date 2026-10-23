@@ -1,39 +1,37 @@
-import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 /**
  * Dynamic route for label views — /label/<name>.
  *
  * Syncs the URL label name into the email store (Zustand) so `InboxList`
  * fetches messages filtered by the matching label.
  *
- * The shell owns the filtered list on wide screens; this route owns it on phones.
+ * The shell owns the filtered list at every width.
  *
- * When the URL points to a label that doesn't exist (no match on
- * lowercased name), we surface the empty-detail component with a "not
- * found" page title rather than 404'ing — the user can pick another
- * label from the drawer.
+ * Once the account's labels resolve, an unknown label returns to Inbox.
+ * Never keep showing the previous mailbox under an invalid label URL.
  */
 
-import { useIsFocused, useLocalSearchParams } from 'expo-router';
+import { Redirect, useIsFocused, useLocalSearchParams } from 'expo-router';
+import { useOxy } from '@oxy.so/services/ui/client';
 import Head from 'expo-router/head';
 import { useEffect, useMemo } from 'react';
 
-import { InboxList } from '@/components/InboxList';
 import { MessageDetailEmpty } from '@/components/MessageDetailEmpty';
 import { useLabels } from '@/hooks/queries/useLabels';
 import { useTranslation } from '@/lib/i18n';
 import { useEmailStore } from '@/hooks/useEmail';
 
 export default function LabelViewRoute() {
-  const isDesktop = useIsDesktopLayout();
   const { name } = useLocalSearchParams<{ name: string }>();
-  const { data: labels = [] } = useLabels();
+  const { data: labels, isSuccess } = useLabels();
+  const { canUsePrivateApi, isAccountCacheReady } = useOxy();
+  const accountReady = canUsePrivateApi && isAccountCacheReady;
 
   const selectLabel = useEmailStore((s) => s.selectLabel);
 
   const label = useMemo(() => {
     if (!name) return null;
     const target = name.toLowerCase();
-    return labels.find((l) => l.name.toLowerCase() === target) ?? null;
+    return labels?.find((l) => l.name.toLowerCase() === target) ?? null;
   }, [name, labels]);
 
   const { t } = useTranslation();
@@ -52,12 +50,14 @@ export default function LabelViewRoute() {
     selectLabel(label._id, label.name);
   }, [isFocused, label, selectLabel]);
 
+  if (isFocused && accountReady && isSuccess && labels && !label) return <Redirect href="/" />;
+
   return (
     <>
       <Head>
         <title>{pageTitle}</title>
       </Head>
-      {label && !isDesktop ? <InboxList /> : <MessageDetailEmpty />}
+      <MessageDetailEmpty />
     </>
   );
 }

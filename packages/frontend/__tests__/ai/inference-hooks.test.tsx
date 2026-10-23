@@ -76,6 +76,7 @@ describe('Inbox inference hooks', () => {
       user: { id: 'user-1', username: 'nate' },
       isAuthenticated: true,
       canUsePrivateApi: true,
+      isAccountCacheReady: true,
       oxyServices: { ...makeMockOxyServices(), httpService: {} },
     });
     mockRunInboxCompose.mockRejectedValue(new Error('service_unavailable'));
@@ -100,6 +101,7 @@ describe('Inbox inference hooks', () => {
       user: { id: 'user-1', username: 'nate' },
       isAuthenticated: true,
       canUsePrivateApi: true,
+      isAccountCacheReady: true,
       oxyServices,
     });
 
@@ -137,6 +139,7 @@ describe('Inbox inference hooks', () => {
       user: { id: 'user-1', username: 'nate' },
       isAuthenticated: true,
       canUsePrivateApi: true,
+      isAccountCacheReady: true,
       oxyServices,
     });
     mockFetchInboxDailyBrief.mockResolvedValue({

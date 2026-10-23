@@ -1,12 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEmailStore } from '@/hooks/useEmail';
+import { useEmailApi } from '@/hooks/useEmailApi';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import type { Reminder, Pagination } from '@/services/emailApi';
 
 export function useReminders(options?: { includeCompleted?: boolean }) {
-  const api = useEmailStore((s) => s._api);
+  const api = useEmailApi();
 
-  return useQuery<{ data: Reminder[]; pagination: Pagination }>({
+  return useQuery<
+    { data: Reminder[]; pagination: Pagination },
+    Error,
+    { data: Reminder[]; pagination: Pagination } | undefined
+  >({
+    select: (data) => (api ? data : undefined),
     queryKey: emailKeys.reminders.list(options),
     queryFn: async () => {
       if (!api) throw new Error('Email API not initialized');

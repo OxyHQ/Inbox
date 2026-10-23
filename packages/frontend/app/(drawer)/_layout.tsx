@@ -2,27 +2,9 @@ import { MailboxShell } from '@/components/MailboxShell';
 import { InboxSettingsProvider } from '@/components/settings/InboxSettings';
 import { SearchFocusProvider } from '@/contexts/search-focus-context';
 import { SearchSessionProvider } from '@/contexts/search-session-context';
-import { useEmailStore } from '@/hooks/useEmail';
-import { useOxy } from '@oxy.so/services/ui/client';
 import { Slot } from 'expo-router';
-import { useEffect } from 'react';
 
 export default function DrawerLayout() {
-  const { canUsePrivateApi, isAccountCacheReady, oxyServices } = useOxy();
-  const _initApi = useEmailStore((s) => s._initApi);
-  const hasApi = useEmailStore((s) => s._api !== null);
-  // Initialize email API with httpService when authenticated.
-  // Also re-initializes after an account switch resets the store (_api becomes null).
-  // Deps deliberately exclude `oxyServices` (object identity changes on every
-  // render) and `_initApi` (stable zustand action); the effect reads them
-  // imperatively from the closure when triggered.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: oxyServices changes identity every render and _initApi is a stable zustand action; both are read from the closure when the effect fires.
-  useEffect(() => {
-    if (hasApi) return;
-    if (!canUsePrivateApi || !isAccountCacheReady) return;
-    _initApi(oxyServices.http);
-  }, [canUsePrivateApi, isAccountCacheReady, hasApi]);
-
   return (
     <SearchSessionProvider>
       <SearchFocusProvider>

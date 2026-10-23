@@ -1,7 +1,7 @@
 import { focusManager, type QueryClient, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useOxy } from '@oxy.so/services/ui/client';
-import { useEmailStore } from '@/hooks/useEmail';
+import { useEmailApi } from '@/hooks/useEmailApi';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import type { Mailbox } from '@/services/emailApi';
 
@@ -30,11 +30,12 @@ export function reconcileMovedFolders(
 }
 
 export function useMailboxes({ enabled = true }: { enabled?: boolean } = {}) {
-  const api = useEmailStore((s) => s._api);
+  const api = useEmailApi();
   const { user } = useOxy();
   const userId = user?.id ?? null;
 
-  return useQuery<Mailbox[]>({
+  return useQuery<Mailbox[], Error, Mailbox[] | undefined>({
+    select: (data) => (api ? data : undefined),
     queryKey: emailKeys.mailboxes.list(userId),
     queryFn: async ({ signal }) => {
       if (!api) throw new Error('Email API not initialized');

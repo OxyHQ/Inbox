@@ -1,3 +1,4 @@
+import { PrivateInboxContent } from '@/components/PrivateInboxContent';
 import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 /**
  * Conversation detail within search context — /search/conversation/:id
@@ -11,7 +12,7 @@ import { useEffect } from 'react';
 import { MessageDetail } from '@/components/MessageDetail';
 import { useEmailStore } from '@/hooks/useEmail';
 
-export default function SearchConversationScreen() {
+function SearchConversationScreenContent() {
   const isDesktop = useIsDesktopLayout();
   const { id } = useLocalSearchParams<{ id: string }>();
 
@@ -27,4 +28,12 @@ export default function SearchConversationScreen() {
   if (!id) return null;
 
   return <MessageDetail mode={isDesktop ? 'embedded' : 'standalone'} messageId={id} />;
+}
+
+export default function SearchConversationScreen() {
+  return (
+    <PrivateInboxContent>
+      <SearchConversationScreenContent />
+    </PrivateInboxContent>
+  );
 }

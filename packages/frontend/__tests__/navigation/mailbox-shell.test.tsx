@@ -1,16 +1,53 @@
-jest.mock('@/components/InboxStartup', () => ({ InboxStartup: () => <h1>Pending inbox</h1> }));
 jest.mock('@/components/EmptyStateSticker', () => ({ EmptyStateSticker: () => null }));
-jest.mock('@/components/InboxList', () => ({
-  InboxList: () => <span>Mailbox list</span>,
+jest.mock('@oxy.so/bloom/empty-state', () => ({
+  EmptyState: ({
+    title,
+    description,
+    footer,
+  }: {
+    title: string;
+    description: string;
+    footer: ReactNode;
+  }) => (
+    <div>
+      <h2>{title}</h2>
+      <p>{description}</p>
+      {footer}
+    </div>
+  ),
 }));
+jest.mock('@/components/InboxList', () => {
+  const { PrivateInboxContent } = jest.requireActual('@/components/PrivateInboxContent');
+  return {
+    InboxList: () => (
+      <>
+        <h1>Mailbox chrome</h1>
+        <PrivateInboxContent>
+          <span>Mailbox list</span>
+        </PrivateInboxContent>
+      </>
+    ),
+  };
+});
 jest.mock('@/components/SearchList', () => ({ SearchList: () => null }));
-jest.mock('@/components/InboxBottomBar', () => ({
-  InboxBottomBar: () => <nav aria-label="Mail navigation" />,
-}));
+jest.mock('@/components/InboxBottomBar', () => {
+  const { useShellPathname } = jest.requireActual('@/hooks/useShellPathname');
+  return {
+    InboxBottomBar: () => (
+      <nav
+        aria-label="Mail navigation"
+        data-selected={useShellPathname().startsWith('/search') ? 'search' : 'inbox'}
+      />
+    ),
+  };
+});
 import { MailboxShell } from '@/components/MailboxShell';
+import { PrivateInboxContent } from '@/components/PrivateInboxContent';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { type ReactNode, useState } from 'react';
+import { hydrateRoot, type Root } from 'react-dom/client';
+import { renderToString } from 'react-dom/server';
 import { defined } from '../fixtures/defined';
 import type { Children, DialogAction, Pressable } from '../fixtures/mockProps';
 
@@ -97,12 +134,13 @@ jest.mock('@oxy.so/bloom/app-shell', () => ({
     sidebar: SidebarProps;
     bottomBar?: ReactNode;
     panelLayout: {
+      activePanel: string;
       panels: { id: string; content: ReactNode; visible?: boolean; appearance?: string }[];
     };
   }) => {
     mockSidebar = sidebar;
     return (
-      <div data-testid="workspace">
+      <div data-testid="workspace" data-active-panel={panelLayout.activePanel}>
         {sidebar.footer?.({ collapsed: false })}
         {panelLayout.panels.map((panel) => (
           <div key={panel.id} data-panel-appearance={panel.appearance}>
@@ -290,6 +328,8 @@ it('selects label destinations and leaves auth-only actions absent when signed o
   ]);
   expect(mockSidebarProps().primaryAction).toBeUndefined();
   expect(screen.getByRole('button', { name: 'Sign in' })).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'auth.gate.title' })).toBeTruthy();
+  expect(screen.getByText('auth.gate.subtitle')).toBeTruthy();
 });
 
 it('keeps the source mailbox selected while reading a conversation', () => {
@@ -379,7 +419,9 @@ it('preserves the workspace through identity, token and cache restoration while 
   mockPending = true;
   const content = (
     <MailboxShell>
-      <span>Private message</span>
+      <PrivateInboxContent>
+        <span>Private message</span>
+      </PrivateInboxContent>
     </MailboxShell>
   );
   const view = render(content);
@@ -400,7 +442,9 @@ it('preserves the workspace through identity, token and cache restoration while 
   mockAuthenticated = true;
   view.rerender(
     <MailboxShell>
-      <span>Private message</span>
+      <PrivateInboxContent>
+        <span>Private message</span>
+      </PrivateInboxContent>
     </MailboxShell>,
   );
   expectPending();
@@ -408,14 +452,18 @@ it('preserves the workspace through identity, token and cache restoration while 
   mockPending = false;
   view.rerender(
     <MailboxShell>
-      <span>Private message</span>
+      <PrivateInboxContent>
+        <span>Private message</span>
+      </PrivateInboxContent>
     </MailboxShell>,
   );
   expectPending();
   mockCacheReady = true;
   view.rerender(
     <MailboxShell>
-      <span>Private message</span>
+      <PrivateInboxContent>
+        <span>Private message</span>
+      </PrivateInboxContent>
     </MailboxShell>,
   );
   expect(screen.getByTestId('workspace')).toBe(workspace);
@@ -432,7 +480,9 @@ it('preserves the workspace through identity, token and cache restoration while 
   mockUserId = 'account-b';
   view.rerender(
     <MailboxShell>
-      <span>Private message</span>
+      <PrivateInboxContent>
+        <span>Private message</span>
+      </PrivateInboxContent>
     </MailboxShell>,
   );
   expectPending();
@@ -440,7 +490,9 @@ it('preserves the workspace through identity, token and cache restoration while 
   mockCacheReady = true;
   view.rerender(
     <MailboxShell>
-      <span>Private message</span>
+      <PrivateInboxContent>
+        <span>Private message</span>
+      </PrivateInboxContent>
     </MailboxShell>,
   );
   expect(screen.getByTestId('workspace')).toBe(workspace);
@@ -449,12 +501,14 @@ it('preserves the workspace through identity, token and cache restoration while 
   mockAuthenticated = false;
   view.rerender(
     <MailboxShell>
-      <span>Private message</span>
+      <PrivateInboxContent>
+        <span>Private message</span>
+      </PrivateInboxContent>
     </MailboxShell>,
   );
   expect(screen.getByTestId('workspace')).toBe(workspace);
   expect(screen.queryByText('Private message')).toBeNull();
-  expect(screen.getByText('Sign in')).toBeTruthy();
+  expect(screen.getAllByText('Sign in').length).toBeGreaterThan(0);
 });
 
 it('resets private route state on a direct ready-account switch while retaining its shell', () => {
@@ -470,7 +524,9 @@ it('resets private route state on a direct ready-account switch while retaining 
   }
   const view = render(
     <MailboxShell>
-      <PrivateRoute />
+      <PrivateInboxContent>
+        <PrivateRoute />
+      </PrivateInboxContent>
     </MailboxShell>,
   );
   const workspace = screen.getByTestId('workspace');
@@ -479,10 +535,100 @@ it('resets private route state on a direct ready-account switch while retaining 
   mockUserId = 'account-b';
   view.rerender(
     <MailboxShell>
-      <PrivateRoute />
+      <PrivateInboxContent>
+        <PrivateRoute />
+      </PrivateInboxContent>
     </MailboxShell>,
   );
   expect(screen.getByTestId('workspace')).toBe(workspace);
   expect(screen.getByLabelText('Account draft')).not.toBe(oldDraft);
   expect((screen.getByLabelText('Account draft') as HTMLInputElement).value).toBe('');
 });
+
+it.each([
+  ['/', 'list'],
+  ['/sent', 'list'],
+  ['/label/important', 'list'],
+  ['/search', 'list'],
+  ['/conversation/mail-a', 'detail'],
+  ['/search/conversation/mail-a', 'detail'],
+  ['/compose', 'detail'],
+  ['/subscriptions', 'detail'],
+])('selects the compositor panel for %s without mounting a second mailbox list', (path, panel) => {
+  mockPath = path;
+  render(
+    <MailboxShell>
+      <span>Routed detail</span>
+    </MailboxShell>,
+  );
+  expect(screen.getByTestId('workspace').getAttribute('data-active-panel')).toBe(panel);
+  expect(screen.queryAllByRole('heading', { name: 'Mailbox chrome' }).length).toBeLessThanOrEqual(
+    1,
+  );
+});
+
+it.each([
+  ['/', '/', 'list'],
+  ['/', '/sent', 'list'],
+  ['/', '/label/important', 'list'],
+  ['/', '/compose', 'detail'],
+  ['/', '/conversation/mail-a', 'detail'],
+  ['/', '/search/conversation/mail-a', 'detail'],
+  ['/compose', '/compose', 'detail'],
+  ['/search', '/search', 'list'],
+  ['/sent', '/sent', 'list'],
+])(
+  'hydrates static %s HTML at %s before mounting its route children',
+  async (serverPath, path, panel) => {
+    mockAuthenticated = false;
+    mockTokenReady = false;
+    mockCacheReady = false;
+    mockPending = true;
+    const routeRendered = jest.fn();
+    function RoutedContent() {
+      routeRendered(mockPath);
+      return mockPath === '/' ? <article>Index route</article> : <section>{mockPath}</section>;
+    }
+    mockPath = serverPath;
+    const container = document.createElement('div');
+    const shell = (
+      <MailboxShell>
+        <RoutedContent />
+      </MailboxShell>
+    );
+    container.innerHTML = renderToString(shell);
+    document.body.appendChild(container);
+    const original = container.querySelector('[data-testid="workspace"]');
+    const header = container.querySelector('h1');
+    const navigation = container.querySelector('nav');
+    expect(original?.getAttribute('data-active-panel')).toBe('list');
+    expect(container.textContent).toContain('empty.selectConversation');
+    expect(routeRendered).not.toHaveBeenCalled();
+    mockPath = path;
+    const onRecoverableError = jest.fn();
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    let root: Root | undefined;
+    try {
+      await act(async () => {
+        root = hydrateRoot(container, shell, { onRecoverableError });
+      });
+      expect(container.querySelector('[data-testid="workspace"]')).toBe(original);
+      if (!path.startsWith('/search')) expect(container.querySelector('h1')).toBe(header);
+      expect(container.querySelector('nav')).toBe(navigation);
+      expect(navigation?.getAttribute('data-selected')).toBe(
+        path.startsWith('/search') ? 'search' : 'inbox',
+      );
+      expect(original?.getAttribute('data-active-panel')).toBe(panel);
+      expect(container.querySelector(path === '/' ? 'article' : 'section')?.textContent).toBe(
+        path === '/' ? 'Index route' : path,
+      );
+      expect(routeRendered).toHaveBeenCalledWith(path);
+      expect(onRecoverableError).not.toHaveBeenCalled();
+      expect(consoleError).not.toHaveBeenCalled();
+    } finally {
+      await act(async () => root?.unmount());
+      container.remove();
+      consoleError.mockRestore();
+    }
+  },
+);

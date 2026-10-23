@@ -7,7 +7,6 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import type { ReactNode } from 'react';
 import { Platform } from 'react-native';
 import 'react-native-reanimated';
-import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { OxyProvider, useAccountColor, useOxy } from '@oxy.so/services/ui/client';
 import { toast } from '@oxy.so/bloom/toast';
 import { ImageResolverProvider } from '@oxy.so/bloom/image-resolver';
@@ -75,32 +74,33 @@ function ThemedRoot() {
 function RootLayoutContent() {
   const navTheme = useNavigationTheme();
 
+  // No KeyboardProvider here: OxyProvider mounts the one. A second one above it
+  // took the native keyboard events, so every keyboard hook under OxyProvider read
+  // a closed keyboard.
   return (
-    <KeyboardProvider>
-      <OxyProvider
-        baseURL={API_URL}
-        clientId={OXY_CLIENT_ID}
-        authRedirectUri={OXY_AUTH_REDIRECT_URI}
-        queryClient={queryClient}
-        accountQueries={INBOX_ACCOUNT_QUERIES}
-      >
-        <ScopedInboxPrefsProvider>
-          <InboxMediaProvider>
-            <LocaleProvider>
-              <PortalProvider>
-                <ThemeProvider value={navTheme}>
-                  <ConnectionStatusToasts />
-                  <RootEffects />
-                  <InboxNavigator />
-                  <StatusBar style="auto" />
-                </ThemeProvider>
-                <PortalOutlet />
-              </PortalProvider>
-            </LocaleProvider>
-          </InboxMediaProvider>
-        </ScopedInboxPrefsProvider>
-      </OxyProvider>
-    </KeyboardProvider>
+    <OxyProvider
+      baseURL={API_URL}
+      clientId={OXY_CLIENT_ID}
+      authRedirectUri={OXY_AUTH_REDIRECT_URI}
+      queryClient={queryClient}
+      accountQueries={INBOX_ACCOUNT_QUERIES}
+    >
+      <ScopedInboxPrefsProvider>
+        <InboxMediaProvider>
+          <LocaleProvider>
+            <PortalProvider>
+              <ThemeProvider value={navTheme}>
+                <ConnectionStatusToasts />
+                <RootEffects />
+                <InboxNavigator />
+                <StatusBar style="auto" />
+              </ThemeProvider>
+              <PortalOutlet />
+            </PortalProvider>
+          </LocaleProvider>
+        </InboxMediaProvider>
+      </ScopedInboxPrefsProvider>
+    </OxyProvider>
   );
 }
 

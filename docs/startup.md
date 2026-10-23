@@ -25,6 +25,18 @@ The shared app-preset `staticHydrationBoundary` option separates the app and
 HTML document renders. Keep this correction in the preset, never rewrite IDs or
 suppress hydration errors in Inbox.
 
+Local web development must hydrate too. Expo defaults `EXPO_WEB_DEV_HYDRATE`
+to false: it serves the static workspace but then calls `createRoot`, replacing
+that entire DOM when the development bundle arrives. The `start` and `web`
+commands enable this supported flag so local reloads exercise hydration instead.
+The preset's static app/document boundary applies in development as well as
+export; do not substitute a local DOM replacement for production hydration QA.
+Development also needs Expo's `withDevTools` wrapper on both sides. Its app and
+refresh-indicator siblings change React's `useId` paths even while the indicator
+renders nothing. The app-preset 3.6.1 correction reuses Expo's actual web wrapper
+around the server app in development, matching the client without rewriting IDs
+or disabling Fast Refresh. Production retains its existing wrapper-free tree.
+
 Static export must also finish large Suspense boundaries without JavaScript.
 Waiting for a streaming renderer’s `allReady` is insufficient: completed content
 can still be emitted as hidden segments with recovery scripts. The preset uses

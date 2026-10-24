@@ -15,10 +15,12 @@ not), so the direct dependency went with it.
 
 **A zero-import census cannot justify pruning a dependency here.** Measured:
 48 of this package's deps have zero source references, including `nativewind`,
-`tailwindcss`, `typescript`, `react-dom`, `react-native-web`, `expo-font` and
-`babel-plugin-module-resolver` (which `babel.config.js` names `module-resolver`,
-and which makes the `@/*` alias work at runtime). Build tooling, `app.json`
-plugins and peers are all invisible to it.
+`tailwindcss`, `typescript`, `react-dom`, `react-native-web` and `expo-font`.
+Build tooling, `app.json` plugins and peers are all invisible to it.
+
+`babel-plugin-module-resolver` is gone. `@oxy.so/app-preset` 4 dropped it from
+the Babel factory, and `@/*` now resolves from `tsconfig.json`'s `paths`, which
+Metro reads by default (jest has its own `moduleNameMapper` entry).
 
 There is no `expo.install.exclude` any more. Through SDK 57 it pinned
 `react-native-keyboard-controller`, `react-native-safe-area-context` and
@@ -70,9 +72,11 @@ runtime.
 
 ## Compiler and schema major-version compatibility
 
-Inbox remains on Zod 3 while `@oxy.so/contracts` publishes Zod 3 schemas.
-Mixing those schemas with Zod 4's inference and composition APIs produces
-unknown mail types and incompatible schema objects. Move them together.
+Inbox's own `zod` follows the major `@oxy.so/contracts` publishes its schemas
+with: `schemas/emailSchemas.ts` and the AI client extend and compose the
+contract's schemas. Contracts 6 is on Zod 4 (`^4.6.7`), so Inbox is too. Mixing
+majors produces unknown mail types and incompatible schema objects. Move them
+together. The one Zod 3 left in the lock is `@expo/cli`'s own.
 
 The Jest transformer is `ts-jest`, whose TypeScript peer range is `<7`.
 TypeScript 7 has no JavaScript compiler API for this transformer; keep

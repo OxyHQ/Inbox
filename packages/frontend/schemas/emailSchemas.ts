@@ -46,7 +46,7 @@ export const CardTypeSchema = z.enum(MESSAGE_CARD_TYPES);
 /**
  * Typed view of a card's payload. The contract carries it as an open record;
  * this names the keys the UI reads. Fields are the superset of every card
- * variant, all optional because extraction is best-effort, and `.passthrough()`
+ * variant, all optional because extraction is best-effort, and `.loose()`
  * keeps any key the extractor adds.
  */
 export const CardDataSchema = z
@@ -85,7 +85,7 @@ export const CardDataSchema = z
     status: z.string().optional(),
     trackingNumber: z.string().optional(),
   })
-  .passthrough();
+  .loose();
 
 /**
  * A card the UI can render: the contract's card with its payload present and

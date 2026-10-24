@@ -383,7 +383,7 @@ export const inboxDailyBriefSchema = z
               .object({ name: z.string().max(998).nullable(), address: z.string().max(320) })
               .strict(),
             subject: z.string().max(998),
-            receivedAt: z.string().datetime(),
+            receivedAt: z.iso.datetime(),
             unread: z.boolean(),
             hasAttachments: z.boolean(),
           })

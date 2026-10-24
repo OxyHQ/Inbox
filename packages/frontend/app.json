@@ -66,8 +66,7 @@
         }
       ],
       "expo-status-bar",
-      "@oxy.so/services/plugins/withOxySharedPermissions",
-      "@oxy.so/app-preset/plugin/withOxyAndroidRelease"
+      "@oxy.so/services/plugins/withOxySharedPermissions"
     ],
     "experiments": {
       "typedRoutes": true,

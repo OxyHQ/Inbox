@@ -10,6 +10,7 @@
 
 import { ScrollViewStyleReset, useServerDocumentContext } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
+import { BloomFontHead } from '@oxy.so/bloom/fonts';
 import { BloomThemeHead } from '@oxy.so/bloom/theme';
 import { INBOX_THEME_BOOTSTRAP } from '@/constants/theme-bootstrap';
 
@@ -65,6 +66,7 @@ export default function Root({ children }: PropsWithChildren) {
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
+        <BloomFontHead />
         <BloomThemeHead config={INBOX_THEME_BOOTSTRAP} />
         <ScrollViewStyleReset />
         {headNodes}

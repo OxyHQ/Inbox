@@ -15,7 +15,7 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "@alia.onl/sdk": "22.0.0",
+    "@alia.onl/sdk": "22.1.1",
     "@clarity.surf/sdk": "^0.4.0",
     "@expo/app-integrity": "~58.0.2",
     "@expo/metro-runtime": "~58.0.14",

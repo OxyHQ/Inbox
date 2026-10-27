@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@alia.onl/sdk": "22.1.1",
-    "@clarity.surf/sdk": "^0.4.0",
+    "@clarity.surf/sdk": "^0.10.0",
     "@expo/app-integrity": "~58.0.2",
     "@expo/metro-runtime": "~58.0.14",
     "@expo/vector-icons": "^15.1.1",
@@ -26,7 +26,7 @@
     "@lottiefiles/dotlottie-react-native": "^0.12.1",
     "@lottiefiles/dotlottie-web": "0.81.0",
     "@oxy.so/app-preset": "^5.0.0",
-    "@oxy.so/bloom": "15.16.0",
+    "@oxy.so/bloom": "15.26.0",
     "@oxy.so/contracts": "6.0.0",
     "@oxy.so/core": "7.2.0",
     "@oxy.so/services": "^13.4.0",

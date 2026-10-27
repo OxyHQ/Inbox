@@ -14,7 +14,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@alia.onl/sdk": "22.1.1",
-        "@clarity.surf/sdk": "^0.4.0",
+        "@clarity.surf/sdk": "^0.10.0",
         "@expo/app-integrity": "~58.0.2",
         "@expo/metro-runtime": "~58.0.14",
         "@expo/vector-icons": "^15.1.1",
@@ -24,7 +24,7 @@
         "@lottiefiles/dotlottie-react-native": "^0.12.1",
         "@lottiefiles/dotlottie-web": "0.81.0",
         "@oxy.so/app-preset": "^5.0.0",
-        "@oxy.so/bloom": "15.16.0",
+        "@oxy.so/bloom": "15.26.0",
         "@oxy.so/contracts": "6.0.0",
         "@oxy.so/core": "7.2.0",
         "@oxy.so/services": "^13.4.0",
@@ -339,7 +339,7 @@
 
     "@cacheable/utils": ["@cacheable/utils@2.5.0", "", { "dependencies": { "hashery": "^1.5.1", "keyv": "^5.6.0" } }, "sha512-buipgOVDkkPXNR5+xBpDw7Zk2n1EvU7qBJCNUcL7rhQ//kfpOXPAvQ511Os0vpLYJ1pZnvudNytkQt2hst3wqA=="],
 
-    "@clarity.surf/sdk": ["@clarity.surf/sdk@0.4.0", "", {}, "sha512-OB/WdyM5El6JwGFsi54CFaBQhATdA2uV7eacCcYs+CQ7FjwbeFXWUqrCA+wOASmJlSCOqTfsyO4+DC6e8Pw9Cg=="],
+    "@clarity.surf/sdk": ["@clarity.surf/sdk@0.10.0", "", {}, "sha512-WVhTWob5QatPKPfX5YXmOh1sd0EhYIny7SCJJWTUI9eNdvXEVF0CiluYz1mzcP0Ys465JdVrVihn/APlmDCo6w=="],
 
     "@csstools/color-helpers": ["@csstools/color-helpers@5.1.0", "", {}, "sha512-S11EXWJyy0Mz5SYvRmY8nJYTFFd1LCNV+7cXyAgQtOOuzb4EsgfqDufL+9esx72/eLhsRdGZwaldu/h+E4t4BA=="],
 

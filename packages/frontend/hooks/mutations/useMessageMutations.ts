@@ -13,7 +13,11 @@ import { useEmailStore } from '@/hooks/useEmail';
 import { useTranslation } from '@/lib/i18n';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import { invalidateMailViews } from '@/hooks/queries/invalidateMailViews';
-import { INBOX_MUTATION_KEYS, RETRY_IDEMPOTENT } from '@/hooks/queries/queryClient';
+import {
+  INBOX_MEMORY_ONLY_MUTATION_KEYS,
+  INBOX_MUTATION_KEYS,
+  RETRY_IDEMPOTENT,
+} from '@/hooks/queries/queryClient';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import type { EmailApiInstance, Mailbox, Message } from '@/services/emailApi';
 import {
@@ -320,6 +324,7 @@ export function useSendMessage() {
   type Input = Parameters<EmailApiInstance['sendMessage']>[0];
   type Result = Awaited<ReturnType<EmailApiInstance['sendMessage']>>;
   const mutation = useMutation<Result, Error, OwnedVariables<Input>, EmailMutationContext>({
+    mutationKey: INBOX_MEMORY_ONLY_MUTATION_KEYS.sendMessage,
     mutationFn: async (variables) => {
       // The key travels in the mutation VARIABLES, so react-query's retry
       // re-sends the same key rather than minting a second message.
@@ -936,6 +941,7 @@ export function useSaveDraft() {
   const userId = user?.id ?? null;
   type Input = Parameters<EmailApiInstance['saveDraft']>[0];
   const mutation = useMutation<Message, Error, OwnedVariables<Input>, EmailMutationContext>({
+    mutationKey: INBOX_MEMORY_ONLY_MUTATION_KEYS.saveDraft,
     mutationFn: async (variables) => emailMutationApi(variables).saveDraft(variables.input),
     // No toast here: this runs for every autosave. The composer shows the save
     // state beside the subject, and says "saved" itself when the user asked.

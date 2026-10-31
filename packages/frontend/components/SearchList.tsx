@@ -1,3 +1,4 @@
+import { ScrollBar } from '@oxy.so/bloom/layout';
 import { Screen } from '@oxy.so/bloom/screen';
 import { SearchFiltersBar } from '@/components/SearchFiltersBar';
 import {
@@ -616,90 +617,92 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         />
       }
     >
-      <Animated.FlatList
-        ref={listRef}
-        ListHeaderComponent={
-          <View>
-            {/* Filters scroll so short mobile screens always have room for results. */}
-            <SearchFiltersBar
-              filters={pickSearchFilters(searchOptions)}
-              mailboxes={mailboxes}
-              onChange={handleFiltersChange}
-            />
+      <View style={styles.listViewport}>
+        <Animated.FlatList
+          ref={listRef}
+          ListHeaderComponent={
+            <View>
+              {/* Filters scroll so short mobile screens always have room for results. */}
+              <SearchFiltersBar
+                filters={pickSearchFilters(searchOptions)}
+                mailboxes={mailboxes}
+                onChange={handleFiltersChange}
+              />
 
-            <SavedSearchBar
-              query={query}
-              filters={searchOptions}
-              enabled={
-                hasSearched &&
-                !searching &&
-                !nlParsing &&
-                (query.trim() === submittedQuery.trim() || Boolean(nlParsedOptions))
-              }
-              onApply={handleApplySavedSearch}
-            />
+              <SavedSearchBar
+                query={query}
+                filters={searchOptions}
+                enabled={
+                  hasSearched &&
+                  !searching &&
+                  !nlParsing &&
+                  (query.trim() === submittedQuery.trim() || Boolean(nlParsedOptions))
+                }
+                onApply={handleApplySavedSearch}
+              />
 
-            {/* Explain AI interpretation after explicit submit; filters are already chips. */}
-            {(nlInterpretation || nlParsing) && (
-              <View className="px-4 pb-3">
-                <View className="flex-row items-center gap-2">
-                  {nlParsing ? (
-                    <Loading
-                      variant="inline"
-                      size="sm"
-                      text={t('search.nl.understanding')}
-                      accessibilityLabel={t('search.nl.understanding')}
-                      style={styles.nlParsingRow}
-                    />
-                  ) : (
-                    <Text variant="body-2-regular" style={styles.nlText}>
-                      {nlInterpretation}
-                    </Text>
-                  )}
-                  {nlInterpretation && !nlParsing && (
-                    <IconButton
-                      icon={<RiCloseLine />}
-                      accessibilityLabel={t('common.close')}
-                      onPress={() => {
-                        setNlInterpretation('');
-                        setNlParsedOptions(null);
-                        setSubmittedQuery(query.trim());
-                      }}
-                    />
-                  )}
+              {/* Explain AI interpretation after explicit submit; filters are already chips. */}
+              {(nlInterpretation || nlParsing) && (
+                <View className="px-4 pb-3">
+                  <View className="flex-row items-center gap-2">
+                    {nlParsing ? (
+                      <Loading
+                        variant="inline"
+                        size="sm"
+                        text={t('search.nl.understanding')}
+                        accessibilityLabel={t('search.nl.understanding')}
+                        style={styles.nlParsingRow}
+                      />
+                    ) : (
+                      <Text variant="body-2-regular" style={styles.nlText}>
+                        {nlInterpretation}
+                      </Text>
+                    )}
+                    {nlInterpretation && !nlParsing && (
+                      <IconButton
+                        icon={<RiCloseLine />}
+                        accessibilityLabel={t('common.close')}
+                        onPress={() => {
+                          setNlInterpretation('');
+                          setNlParsedOptions(null);
+                          setSubmittedQuery(query.trim());
+                        }}
+                      />
+                    )}
+                  </View>
                 </View>
-              </View>
-            )}
+              )}
 
-            {/* Result count */}
-            {hasSearched && !searching && items.length > 0 && (
-              <View style={styles.resultCount}>
-                <Text variant="caption-1-medium" style={{ color: colors.secondaryText }}>
-                  {t('search.results', { count: total })}
-                </Text>
-              </View>
-            )}
-          </View>
-        }
-        data={searching ? [] : items}
-        renderItem={renderItem}
-        keyExtractor={searchItemKey}
-        extraData={listExtraData}
-        ListEmptyComponent={renderEmpty}
-        ListFooterComponent={renderFooter}
-        onEndReached={handleEndReached}
-        onEndReachedThreshold={0.4}
-        onScroll={onListScroll}
-        scrollEventThrottle={16}
-        contentContainerStyle={{
-          ...(items.length === 0 ? styles.emptyListContent : null),
-          ...styles.listContent,
-          paddingTop: 0,
-          paddingBottom: 0,
-        }}
-        showsVerticalScrollIndicator={false}
-        ItemSeparatorComponent={SearchItemSeparator}
-      />
+              {/* Result count */}
+              {hasSearched && !searching && items.length > 0 && (
+                <View style={styles.resultCount}>
+                  <Text variant="caption-1-medium" style={{ color: colors.secondaryText }}>
+                    {t('search.results', { count: total })}
+                  </Text>
+                </View>
+              )}
+            </View>
+          }
+          data={searching ? [] : items}
+          renderItem={renderItem}
+          keyExtractor={searchItemKey}
+          extraData={listExtraData}
+          ListEmptyComponent={renderEmpty}
+          ListFooterComponent={renderFooter}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.4}
+          onScroll={onListScroll}
+          scrollEventThrottle={16}
+          contentContainerStyle={{
+            ...(items.length === 0 ? styles.emptyListContent : null),
+            ...styles.listContent,
+            paddingTop: 0,
+            paddingBottom: 0,
+          }}
+          ItemSeparatorComponent={SearchItemSeparator}
+        />
+        <ScrollBar target={listRef} />
+      </View>
     </Screen>
   );
 }
@@ -710,6 +713,7 @@ const searchItemKey = (item: SearchItem) => item.key;
 const SearchItemSeparator = () => <Divider spacing={0} />;
 
 const styles = StyleSheet.create({
+  listViewport: { flex: 1, minHeight: 0 },
   container: {
     flex: 1,
   },

@@ -86,6 +86,7 @@ jest.mock('@tanstack/react-query', () => ({ useQueryClient: () => mockQueryClien
 jest.mock('@oxy.so/bloom/app-shell', () => ({
   useAppShell: () => ({ drawerAvailable: true, openDrawer: mockNoop }),
 }));
+jest.mock('@oxy.so/bloom/layout', () => ({ ScrollBar: () => null }));
 jest.mock('@oxy.so/bloom/screen', () => ({
   Screen: ({ header, children }: Children & { header?: ReactNode }) => (
     <main>

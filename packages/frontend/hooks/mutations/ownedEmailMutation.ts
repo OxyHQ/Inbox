@@ -1,6 +1,6 @@
 import type { MutateOptions, UseMutationResult } from '@tanstack/react-query';
 import { useOxy } from '@oxy.so/services/ui/client';
-import { useCallback, useSyncExternalStore } from 'react';
+import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import type { OxyServices } from '@oxy.so/core';
 import { useEmailStore } from '@/hooks/useEmail';
 import type { EmailApiInstance } from '@/services/emailApi';
@@ -18,15 +18,22 @@ export type OwnedVariables<T> = { input: T };
 type EmailMutationOwner = {
   api: EmailApiInstance | null;
   http: OxyServices['http'];
+  session: OxyServices['session'];
+  subjectId: string | null;
+  checkKnownSubject: boolean;
   epoch: number;
 };
 export type EmailMutationContext = undefined;
 const mutationOwners = new WeakMap<object, EmailMutationOwner>();
 
-/** Capture the SDK's session epoch as a React snapshot for callbacks from this render. */
-export function useEmailMutationOwner(): EmailMutationOwner {
+/**
+ * Capture the SDK session epoch for callbacks from this render. When requested,
+ * reject a known bearer subject that differs from the visible user; an opaque
+ * bearer has no subject to compare and retains the existing epoch guard.
+ */
+export function useEmailMutationOwner(checkKnownSubject = false): EmailMutationOwner {
   const api = useEmailStore((s) => s._api);
-  const { oxyServices } = useOxy();
+  const { oxyServices, user } = useOxy();
   const http = oxyServices.http;
   const subscribe = useCallback(
     (notify: () => void) => http.addTokenChangeListener(notify),
@@ -34,13 +41,26 @@ export function useEmailMutationOwner(): EmailMutationOwner {
   );
   const snapshot = useCallback(() => http.getSessionEpoch(), [http]);
   const epoch = useSyncExternalStore(subscribe, snapshot, snapshot);
-  return { api, http, epoch };
+  return {
+    api,
+    http,
+    session: oxyServices.session,
+    subjectId: user?.id ?? null,
+    checkKnownSubject,
+    epoch,
+  };
 }
 
 export function ownsEmailMutation<T>(variables: OwnedVariables<T>): boolean {
   const owner = mutationOwners.get(variables);
   return (
-    owner?.api != null && isCurrentApi(owner.api) && owner.http.getSessionEpoch() === owner.epoch
+    owner?.api != null &&
+    isCurrentApi(owner.api) &&
+    owner.http.getSessionEpoch() === owner.epoch &&
+    (!owner.checkKnownSubject ||
+      (owner.subjectId !== null &&
+        Boolean(owner.http.getAccessToken()) &&
+        (owner.session.userId === null || owner.session.userId === owner.subjectId)))
   );
 }
 
@@ -51,6 +71,9 @@ function matchesRenderOwner<T>(variables: OwnedVariables<T>, current: EmailMutat
     initial?.api != null &&
     initial.api === current.api &&
     initial.http === current.http &&
+    initial.checkKnownSubject === current.checkKnownSubject &&
+    (!initial.checkKnownSubject ||
+      (initial.session === current.session && initial.subjectId === current.subjectId)) &&
     initial.epoch === current.epoch
   );
 }
@@ -63,10 +86,20 @@ export function emailMutationApi<T>(variables: OwnedVariables<T>): EmailApiInsta
   return owner.api;
 }
 
-/** Bind each invocation to the API from its originating render, including per-call callbacks. */
-export function exposeOwnedEmailMutation<TData, TVariables>(
+function ownedEmailMutationActions<TData, TVariables>(
   owner: EmailMutationOwner,
-  mutation: UseMutationResult<TData, Error, OwnedVariables<TVariables>, EmailMutationContext>,
+  mutate: UseMutationResult<
+    TData,
+    Error,
+    OwnedVariables<TVariables>,
+    EmailMutationContext
+  >['mutate'],
+  mutateAsync: UseMutationResult<
+    TData,
+    Error,
+    OwnedVariables<TVariables>,
+    EmailMutationContext
+  >['mutateAsync'],
 ) {
   type PublicOptions = MutateOptions<TData, Error, TVariables, EmailMutationContext>;
   const prepare = (input: TVariables, options?: PublicOptions) => {
@@ -90,6 +123,32 @@ export function exposeOwnedEmailMutation<TData, TVariables>(
     };
     return { variables, options: adapted };
   };
+  return {
+    mutate: (input: TVariables, options?: PublicOptions) => {
+      const prepared = prepare(input, options);
+      mutate(prepared.variables, prepared.options);
+    },
+    mutateAsync: (input: TVariables, options?: PublicOptions) => {
+      const prepared = prepare(input, options);
+      return mutateAsync(prepared.variables, prepared.options).then(
+        (data) => {
+          if (!ownsEmailMutation(prepared.variables)) throw new Error('Email account changed');
+          return data;
+        },
+        (error: unknown) => {
+          if (!ownsEmailMutation(prepared.variables)) throw new Error('Email account changed');
+          throw error;
+        },
+      );
+    },
+  };
+}
+
+/** Bind each invocation to the API from its originating render, including per-call callbacks. */
+export function exposeOwnedEmailMutation<TData, TVariables>(
+  owner: EmailMutationOwner,
+  mutation: UseMutationResult<TData, Error, OwnedVariables<TVariables>, EmailMutationContext>,
+) {
   const visible = !mutation.variables || matchesRenderOwner(mutation.variables, owner);
   return {
     ...mutation,
@@ -110,22 +169,25 @@ export function exposeOwnedEmailMutation<TData, TVariables>(
         }
       : {}),
     variables: visible ? mutation.variables?.input : undefined,
-    mutate: (input: TVariables, options?: PublicOptions) => {
-      const prepared = prepare(input, options);
-      mutation.mutate(prepared.variables, prepared.options);
-    },
-    mutateAsync: (input: TVariables, options?: PublicOptions) => {
-      const prepared = prepare(input, options);
-      return mutation.mutateAsync(prepared.variables, prepared.options).then(
-        (data) => {
-          if (!ownsEmailMutation(prepared.variables)) throw new Error('Email account changed');
-          return data;
-        },
-        (error: unknown) => {
-          if (!ownsEmailMutation(prepared.variables)) throw new Error('Email account changed');
-          throw error;
-        },
-      );
-    },
+    ...ownedEmailMutationActions(owner, mutation.mutate, mutation.mutateAsync),
   };
+}
+
+/** Stable actions avoid restarting effects while keeping their original session owner. */
+export function useStableOwnedEmailMutation<TData, TVariables>(
+  owner: EmailMutationOwner,
+  mutation: UseMutationResult<TData, Error, OwnedVariables<TVariables>, EmailMutationContext>,
+) {
+  const { api, http, session, subjectId, checkKnownSubject, epoch } = owner;
+  const { mutate, mutateAsync } = mutation;
+  const actions = useMemo(
+    () =>
+      ownedEmailMutationActions(
+        { api, http, session, subjectId, checkKnownSubject, epoch },
+        mutate,
+        mutateAsync,
+      ),
+    [api, http, session, subjectId, checkKnownSubject, epoch, mutate, mutateAsync],
+  );
+  return { ...exposeOwnedEmailMutation(owner, mutation), ...actions };
 }

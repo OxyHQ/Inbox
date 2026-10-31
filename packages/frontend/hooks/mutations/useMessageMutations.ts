@@ -8,7 +8,15 @@ import { emailKeys } from '@/hooks/queries/queryKeys';
 import { invalidateMailViews } from '@/hooks/queries/invalidateMailViews';
 import { INBOX_MUTATION_KEYS, RETRY_IDEMPOTENT } from '@/hooks/queries/queryClient';
 import { SPECIAL_USE } from '@/constants/mailbox';
-import type { Mailbox, Message } from '@/services/emailApi';
+import type { EmailApiInstance, Mailbox, Message } from '@/services/emailApi';
+import {
+  emailMutationApi,
+  ownsEmailMutation,
+  type EmailMutationContext,
+  type OwnedVariables,
+  useEmailMutationOwner,
+  useStableOwnedEmailMutation,
+} from '@/hooks/mutations/ownedEmailMutation';
 import { eachWithConcurrency, PER_MESSAGE_CONCURRENCY } from '@/utils/concurrency';
 import { recordInboxMetric } from '@/utils/inboxTelemetry';
 import { type AlreadySent, alreadySentUnderKey } from '@/utils/sendIdempotency';
@@ -300,20 +308,21 @@ export function useDeleteMessage() {
 }
 
 export function useSendMessage() {
-  const api = useEmailStore((s) => s._api);
+  const owner = useEmailMutationOwner(true);
   const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (params: Parameters<NonNullable<typeof api>['sendMessage']>[0]) => {
-      if (!api) throw new Error('Email API not initialized');
+  type Input = Parameters<EmailApiInstance['sendMessage']>[0];
+  type Result = Awaited<ReturnType<EmailApiInstance['sendMessage']>>;
+  const mutation = useMutation<Result, Error, OwnedVariables<Input>, EmailMutationContext>({
+    mutationFn: async (variables) => {
       // The key travels in the mutation VARIABLES, so react-query's retry
       // re-sends the same key rather than minting a second message.
-      return api.sendMessage(params);
+      return emailMutationApi(variables).sendMessage(variables.input);
     },
-    onSettled: () => {
-      invalidateAfterSend(queryClient);
+    onSettled: (_data, _error, variables) => {
+      if (ownsEmailMutation(variables)) invalidateAfterSend(queryClient);
     },
   });
+  return useStableOwnedEmailMutation(owner, mutation);
 }
 
 /**
@@ -827,16 +836,13 @@ function removeMessagesFromLists(
 }
 
 export function useSaveDraft() {
-  const api = useEmailStore((s) => s._api);
+  const owner = useEmailMutationOwner(true);
   const queryClient = useQueryClient();
   const { user } = useOxy();
   const userId = user?.id ?? null;
-
-  return useMutation({
-    mutationFn: async (params: Parameters<NonNullable<typeof api>['saveDraft']>[0]) => {
-      if (!api) throw new Error('Email API not initialized');
-      return api.saveDraft(params);
-    },
+  type Input = Parameters<EmailApiInstance['saveDraft']>[0];
+  const mutation = useMutation<Message, Error, OwnedVariables<Input>, EmailMutationContext>({
+    mutationFn: async (variables) => emailMutationApi(variables).saveDraft(variables.input),
     // No toast here: this runs for every autosave. The composer shows the save
     // state beside the subject, and says "saved" itself when the user asked.
     //
@@ -844,7 +850,9 @@ export function useSaveDraft() {
     // counts, the draft's own cached copy, and — for a reply — the
     // conversation it is shown in. It used to re-read every view that shows
     // mail, every 8 seconds of typing.
-    onSettled: (saved, _error, params) => {
+    onSettled: (saved, _error, variables) => {
+      if (!ownsEmailMutation(variables)) return;
+      const params = variables.input;
       const drafts = queryClient
         .getQueryData<Mailbox[]>(emailKeys.mailboxes.list(userId))
         ?.find((mailbox) => mailbox.specialUse === SPECIAL_USE.DRAFTS);
@@ -862,6 +870,7 @@ export function useSaveDraft() {
       if (params.inReplyTo) void queryClient.invalidateQueries({ queryKey: emailKeys.thread.root });
     },
   });
+  return useStableOwnedEmailMutation(owner, mutation);
 }
 
 /**

@@ -2,6 +2,7 @@ import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query';
 import { useOxy } from '@oxy.so/services/ui/client';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
+import { nextMessagePage } from '@/hooks/queries/messagePagination';
 import type { Message, Pagination, UnreadableMessage } from '@/services/emailApi';
 
 const SEARCH_PAGE_SIZE = 50;
@@ -27,13 +28,13 @@ export interface SearchPage {
   pagination: Pagination;
 }
 
-export function getNextSearchPageParam(lastPage: SearchPage): string | number | undefined {
-  if (!lastPage.pagination.hasMore || lastPage.pagination.limit <= 0) return undefined;
-
-  if (lastPage.pagination.nextCursor) return lastPage.pagination.nextCursor;
-
-  const nextOffset = lastPage.pagination.offset + lastPage.pagination.limit;
-  return nextOffset < lastPage.pagination.total ? nextOffset : undefined;
+export function getNextSearchPageParam(
+  lastPage: SearchPage,
+  _allPages?: SearchPage[],
+  _lastPageParam?: string | number,
+  pageParams: (string | number)[] = [],
+): string | number | undefined {
+  return nextMessagePage(lastPage.pagination, pageParams);
 }
 
 export function useSearchMessages(

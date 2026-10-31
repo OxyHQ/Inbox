@@ -58,6 +58,38 @@ describe('search pagination', () => {
     expect(getNextMessagesPageParam(page)).toBe('opaque-next-page');
   });
 
+  it.each([
+    ['search', getNextSearchPageParam],
+    ['messages', getNextMessagesPageParam],
+  ])(
+    'stops %s pagination on repeated or empty cursors without falling back to offset',
+    (_name, next) => {
+      const page = {
+        data: [],
+        pagination: { total: 200, limit: 50, offset: 0, hasMore: true, nextCursor: 'a' },
+      };
+      expect(next(page, [], 'a', ['', 'a'])).toBeUndefined();
+      expect(next(page, [], 'b', ['', 'a', 50, 'b'])).toBeUndefined();
+      expect(next({ ...page, pagination: { ...page.pagination, nextCursor: '' } })).toBeUndefined();
+      expect(next(page, [], 50, ['', 50])).toBe('a');
+    },
+  );
+
+  it.each([
+    ['search', getNextSearchPageParam],
+    ['messages', getNextMessagesPageParam],
+  ])('uses %s offset only when the cursor is absent and the server has more', (_name, next) => {
+    const page = { data: [], pagination: { total: 200, limit: 50, offset: 0, hasMore: true } };
+    expect(next(page)).toBe(50);
+    expect(next(page, [], 50, ['', 50])).toBeUndefined();
+    expect(next(page, [], 100, ['', 50, 100])).toBeUndefined();
+    expect(next(page, [], 100, ['', 100])).toBe(50);
+    expect(next({ ...page, pagination: { ...page.pagination, nextCursor: null } })).toBe(50);
+    expect(next({ ...page, pagination: { ...page.pagination, hasMore: false } })).toBeUndefined();
+    expect(next({ ...page, pagination: { ...page.pagination, limit: 0 } })).toBeUndefined();
+    expect(next({ ...page, pagination: { ...page.pagination, offset: 150 } })).toBeUndefined();
+  });
+
   it('uses the server page parameter and keeps an explicit read filter in the client contract', async () => {
     const search = jest.fn().mockResolvedValue({
       data: [],

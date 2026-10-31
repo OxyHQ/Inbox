@@ -15,7 +15,9 @@ const api = {
   deleteContact: jest.fn(),
 };
 jest.mock('@/hooks/useEmail', () => ({
-  useEmailStore: (selector: (s: unknown) => unknown) => selector({ _api: api }),
+  useEmailStore: Object.assign((selector: (s: unknown) => unknown) => selector({ _api: api }), {
+    getState: () => ({ _api: api }),
+  }),
 }));
 
 const toast = { error: jest.fn(), success: jest.fn(), info: jest.fn() };
@@ -26,6 +28,11 @@ jest.mock('@/lib/i18n', () => ({
     t: (key: string, vars?: Record<string, unknown>) =>
       vars ? `${key}:${JSON.stringify(vars)}` : key,
   }),
+}));
+
+const mockHttp = { getSessionEpoch: () => 0, addTokenChangeListener: () => () => {} };
+jest.mock('@oxy.so/services/ui/client', () => ({
+  useOxy: () => ({ oxyServices: { http: mockHttp } }),
 }));
 
 import type { ReactNode } from 'react';

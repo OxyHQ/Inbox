@@ -1,33 +1,51 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@oxy.so/bloom/toast';
-import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import type { EmailTemplate } from '@/services/emailApi';
 import { useTranslation } from '@/lib/i18n';
+import {
+  type OwnedVariables,
+  type EmailMutationContext,
+  useEmailMutationOwner,
+  ownsEmailMutation,
+  emailMutationApi,
+  exposeOwnedEmailMutation,
+} from '@/hooks/mutations/ownedEmailMutation';
 
 const TEMPLATES_KEY = emailKeys.templates;
+const rollbackSnapshots = new WeakMap<object, EmailTemplate[] | undefined>();
 
-async function optimisticTemplates(
+async function optimisticTemplates<T>(
   queryClient: ReturnType<typeof useQueryClient>,
+  variables: OwnedVariables<T>,
   updater: (prev: EmailTemplate[]) => EmailTemplate[],
-): Promise<{ prev: EmailTemplate[] | undefined }> {
+): Promise<undefined> {
+  if (!ownsEmailMutation(variables)) return undefined;
   await queryClient.cancelQueries({ queryKey: TEMPLATES_KEY });
+  if (!ownsEmailMutation(variables)) return undefined;
   const prev = queryClient.getQueryData<EmailTemplate[]>(TEMPLATES_KEY);
+  rollbackSnapshots.set(variables, prev);
   queryClient.setQueryData<EmailTemplate[]>(TEMPLATES_KEY, (old) => updater(old ?? []));
-  return { prev };
+  return undefined;
+}
+
+function rollbackTemplates<T>(
+  queryClient: ReturnType<typeof useQueryClient>,
+  variables: OwnedVariables<T>,
+) {
+  const prev = rollbackSnapshots.get(variables);
+  if (prev) queryClient.setQueryData(TEMPLATES_KEY, prev);
 }
 
 export function useCreateTemplate() {
-  const api = useEmailStore((s) => s._api);
+  const owner = useEmailMutationOwner();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-
-  return useMutation({
-    mutationFn: async (data: { name: string; subject?: string; body: string }) => {
-      if (!api) throw new Error('Email API not initialized');
-      return api.createTemplate(data);
-    },
-    onMutate: async (data) => {
+  type Input = { name: string; subject?: string; body: string };
+  const mutation = useMutation<EmailTemplate, Error, OwnedVariables<Input>, EmailMutationContext>({
+    mutationFn: async (variables) => emailMutationApi(variables).createTemplate(variables.input),
+    onMutate: async (variables) => {
+      const data = variables.input;
       const now = new Date().toISOString();
       const optimistic: EmailTemplate = {
         _id: `optimistic:${Date.now()}`,
@@ -39,78 +57,71 @@ export function useCreateTemplate() {
         createdAt: now,
         updatedAt: now,
       };
-      const { prev } = await optimisticTemplates(queryClient, (templates) => [
-        ...templates,
-        optimistic,
-      ]);
-      return { prev };
+      return optimisticTemplates(queryClient, variables, (templates) => [...templates, optimistic]);
     },
-    onError: (_err, _vars, context) => {
-      if (context?.prev) queryClient.setQueryData(TEMPLATES_KEY, context.prev);
+    onError: (_err, variables) => {
+      if (!ownsEmailMutation(variables)) return;
+      rollbackTemplates(queryClient, variables);
       toast.error(t('ui.mutations.templateCreateFailed'));
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: TEMPLATES_KEY });
+    onSettled: (_data, _error, variables) => {
+      if (ownsEmailMutation(variables))
+        void queryClient.invalidateQueries({ queryKey: TEMPLATES_KEY });
     },
   });
+  return exposeOwnedEmailMutation(owner, mutation);
 }
 
 export function useUpdateTemplate() {
-  const api = useEmailStore((s) => s._api);
+  const owner = useEmailMutationOwner();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-
-  return useMutation({
-    mutationFn: async ({
-      templateId,
-      ...updates
-    }: {
-      templateId: string;
-      name?: string;
-      subject?: string;
-      body?: string;
-    }) => {
-      if (!api) throw new Error('Email API not initialized');
-      return api.updateTemplate(templateId, updates);
+  type Input = { templateId: string; name?: string; subject?: string; body?: string };
+  const mutation = useMutation<EmailTemplate, Error, OwnedVariables<Input>, EmailMutationContext>({
+    mutationFn: async (variables) => {
+      const { templateId, ...updates } = variables.input;
+      return emailMutationApi(variables).updateTemplate(templateId, updates);
     },
-    onMutate: async ({ templateId, ...updates }) => {
-      const { prev } = await optimisticTemplates(queryClient, (templates) =>
-        templates.map((t) => (t._id === templateId ? { ...t, ...updates } : t)),
+    onMutate: async (variables) => {
+      const { templateId, ...updates } = variables.input;
+      return optimisticTemplates(queryClient, variables, (templates) =>
+        templates.map((template) =>
+          template._id === templateId ? { ...template, ...updates } : template,
+        ),
       );
-      return { prev };
     },
-    onError: (_err, _vars, context) => {
-      if (context?.prev) queryClient.setQueryData(TEMPLATES_KEY, context.prev);
+    onError: (_err, variables) => {
+      if (!ownsEmailMutation(variables)) return;
+      rollbackTemplates(queryClient, variables);
       toast.error(t('ui.mutations.templateUpdateFailed'));
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: TEMPLATES_KEY });
+    onSettled: (_data, _error, variables) => {
+      if (ownsEmailMutation(variables))
+        void queryClient.invalidateQueries({ queryKey: TEMPLATES_KEY });
     },
   });
+  return exposeOwnedEmailMutation(owner, mutation);
 }
 
 export function useDeleteTemplate() {
-  const api = useEmailStore((s) => s._api);
+  const owner = useEmailMutationOwner();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-
-  return useMutation({
-    mutationFn: async (templateId: string) => {
-      if (!api) throw new Error('Email API not initialized');
-      return api.deleteTemplate(templateId);
-    },
-    onMutate: async (templateId) => {
-      const { prev } = await optimisticTemplates(queryClient, (templates) =>
-        templates.filter((t) => t._id !== templateId),
-      );
-      return { prev };
-    },
-    onError: (_err, _vars, context) => {
-      if (context?.prev) queryClient.setQueryData(TEMPLATES_KEY, context.prev);
+  const mutation = useMutation<void, Error, OwnedVariables<string>, EmailMutationContext>({
+    mutationFn: async (variables) => emailMutationApi(variables).deleteTemplate(variables.input),
+    onMutate: async (variables) =>
+      optimisticTemplates(queryClient, variables, (templates) =>
+        templates.filter((template) => template._id !== variables.input),
+      ),
+    onError: (_err, variables) => {
+      if (!ownsEmailMutation(variables)) return;
+      rollbackTemplates(queryClient, variables);
       toast.error(t('ui.mutations.templateDeleteFailed'));
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: TEMPLATES_KEY });
+    onSettled: (_data, _error, variables) => {
+      if (ownsEmailMutation(variables))
+        void queryClient.invalidateQueries({ queryKey: TEMPLATES_KEY });
     },
   });
+  return exposeOwnedEmailMutation(owner, mutation);
 }

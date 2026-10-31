@@ -10,6 +10,8 @@ import { createEmailApi, type EmailApiInstance, type Mailbox } from '@/services/
 import type { OxyServices } from '@oxy.so/core';
 
 type HttpService = OxyServices['http'];
+/** A cached API may only be reused with the HTTP client it captures. */
+const apiOwners = new WeakMap<EmailApiInstance, HttpService>();
 
 type ViewMode =
   | { type: 'mailbox'; mailbox: Mailbox }
@@ -56,10 +58,11 @@ export const useEmailStore = create<EmailState>((set, get) => ({
 
   _initApi: (http: HttpService) => {
     const existing = get()._api;
-    if (existing) {
+    if (existing && apiOwners.get(existing) === http) {
       return existing;
     }
     const api = createEmailApi(http);
+    apiOwners.set(api, http);
     set({ _api: api });
     void import('@/hooks/queries/queryClient').then(({ resumeInboxMutations }) => {
       resumeInboxMutations();

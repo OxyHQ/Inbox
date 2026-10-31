@@ -6,6 +6,7 @@ const mockSave = jest.fn();
 const mockApi = { getSettings: jest.fn(), saveDraft: mockSave };
 const mockHttp = {
   getSessionEpoch: () => 0,
+  hasSessionEnded: () => false,
   getAccessToken: () => 'fixture',
   addTokenChangeListener: () => () => undefined,
 };

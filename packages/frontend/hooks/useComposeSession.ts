@@ -17,7 +17,15 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { FileMetadata } from '@oxy.so/core';
 import { useOxy } from '@oxy.so/services/ui/client';
 import { type Href, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { Platform } from 'react-native';
 
 import {
@@ -251,7 +259,7 @@ export function useComposeSession({
   reopen,
 }: ComposeSessionOptions) {
   const { t, locale } = useTranslation();
-  const { user } = useOxy();
+  const { user, oxyServices } = useOxy();
   const router = useRouter();
   const queryClient = useQueryClient();
   const api = useEmailStore((s) => s._api);
@@ -301,6 +309,7 @@ export function useComposeSession({
   const [attachments, setAttachments] = useState<ComposerAttachment[]>(seed.attachments);
   const [recoveryLoaded, setRecoveryLoaded] = useState(false);
   const [draftSaveState, setDraftSaveState] = useState<ComposeDraftSaveState>('idle');
+  const [abandonedSendVersion, setAbandonedSendVersion] = useState(0);
   const [draftSaveQueue] = useState(createDraftSaveQueue);
 
   const bodyValueRef = useRef(seed.body);
@@ -338,6 +347,55 @@ export function useComposeSession({
     () => composeRecoveryStorageKey(user?.id, recoveryIdentity),
     [recoveryIdentity, user?.id],
   );
+  const subscribeRecoveryEpoch = useCallback(
+    (notify: () => void) => oxyServices.http.addTokenChangeListener(notify),
+    [oxyServices],
+  );
+  const recoveryEpochSnapshot = useCallback(
+    () => oxyServices.http.getSessionEpoch(),
+    [oxyServices],
+  );
+  const recoveryEpoch = useSyncExternalStore(
+    subscribeRecoveryEpoch,
+    recoveryEpochSnapshot,
+    recoveryEpochSnapshot,
+  );
+  const recoverySubject = user?.id ?? null;
+  const originalRecoverySubject = useRef(recoverySubject);
+  const retiredRecovery = useRef(false);
+  const committedRecoverySubject = useRef(recoverySubject);
+  useLayoutEffect(() => {
+    committedRecoverySubject.current = recoverySubject;
+    return () => {
+      committedRecoverySubject.current = null;
+    };
+  }, [recoverySubject]);
+  useLayoutEffect(() => {
+    const checkOwner = () => {
+      const subject = oxyServices.session.userId ?? null;
+      if (
+        oxyServices.http.hasSessionEnded() ||
+        recoverySubject !== originalRecoverySubject.current ||
+        (subject !== null && subject !== originalRecoverySubject.current)
+      ) {
+        retiredRecovery.current = true;
+      }
+    };
+    const unsubscribe = oxyServices.http.addTokenChangeListener(checkOwner);
+    checkOwner();
+    return unsubscribe;
+  }, [oxyServices, recoverySubject]);
+  const canWriteRecovery = useCallback(() => {
+    const subject = oxyServices.session.userId ?? null;
+    return (
+      !oxyServices.http.hasSessionEnded() &&
+      !retiredRecovery.current &&
+      recoverySubject !== null &&
+      committedRecoverySubject.current === recoverySubject &&
+      oxyServices.http.getSessionEpoch() === recoveryEpoch &&
+      (subject === null || subject === recoverySubject)
+    );
+  }, [oxyServices, recoveryEpoch, recoverySubject]);
 
   const snapshot = useMemo<ComposeDraftSnapshot>(
     () => ({
@@ -576,6 +634,7 @@ export function useComposeSession({
 
   /** The autosave waiting out its delay; a send runs it at once (`saveBeforeSend`). */
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: An abandoned send must restart the timer after sentRef is cleared.
   useEffect(() => {
     if (!api || !recoveryLoaded || !hasUnsavedWork || sending || sentRef.current) return;
     const timer = setTimeout(() => {
@@ -587,15 +646,34 @@ export function useComposeSession({
       clearTimeout(timer);
       if (autosaveTimerRef.current === timer) autosaveTimerRef.current = null;
     };
-  }, [api, recoveryLoaded, hasUnsavedWork, sending, snapshot, contentKey, saveToServer]);
+  }, [
+    api,
+    recoveryLoaded,
+    hasUnsavedWork,
+    sending,
+    snapshot,
+    contentKey,
+    saveToServer,
+    abandonedSendVersion,
+  ]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: An abandoned send must restart recovery after sentRef is cleared.
   useEffect(() => {
-    if (!recoveryLoaded || !hasUnsavedWork || sending || sentRef.current) return;
+    if (!recoveryLoaded || !hasUnsavedWork || sending || sentRef.current || !canWriteRecovery())
+      return;
     const timer = setTimeout(() => {
-      void saveComposeRecovery(recoveryKey, snapshot);
+      if (canWriteRecovery()) void saveComposeRecovery(recoveryKey, snapshot);
     }, RECOVERY_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [snapshot, hasUnsavedWork, recoveryKey, recoveryLoaded, sending]);
+  }, [
+    snapshot,
+    hasUnsavedWork,
+    recoveryKey,
+    recoveryLoaded,
+    sending,
+    abandonedSendVersion,
+    canWriteRecovery,
+  ]);
 
   // Leaving without Send, Save or Discard — a back gesture, a route change, a
   // thread closed under an inline reply — keeps what was written as a draft.
@@ -604,6 +682,7 @@ export function useComposeSession({
   const deleteServerDraftRef = useRef<() => Promise<void>>(async () => undefined);
   useEffect(
     () => () => {
+      pendingSendRef.current?.detach?.();
       if (sentRef.current || discardedRef.current) return;
       const {
         snapshot: last,
@@ -854,7 +933,7 @@ export function useComposeSession({
         attempted: restoredKeyContentRef.current ?? attemptedContentKeyRef.current,
         sent: latest.current.contentKey,
       };
-      pendingSendRef.current = sendWithUndo(messagePayload(recipients, key), {
+      const pending = sendWithUndo(messagePayload(recipients, key), {
         // Accepted: filed in Sent, its delivery shown on it from now on. The
         // server holds the message, so the local snapshot has done its job.
         onSuccess: () => {
@@ -871,6 +950,14 @@ export function useComposeSession({
           pendingSendRef.current = null;
           sentRef.current = false;
         },
+      });
+      pendingSendRef.current = pending;
+      void pending?.abandoned?.then(() => {
+        // Only retire the invocation that lost its session, never a newer send.
+        if (pendingSendRef.current !== pending) return;
+        pendingSendRef.current = null;
+        sentRef.current = false;
+        if (mountedRef.current) setAbandonedSendVersion((version) => version + 1);
       });
     },
     [

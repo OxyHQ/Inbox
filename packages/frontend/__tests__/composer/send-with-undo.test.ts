@@ -36,7 +36,14 @@ jest.mock('@/hooks/useEmail', () => {
   return { useEmailStore };
 });
 
-jest.mock('@oxy.so/services/ui/client', () => ({ useOxy: () => ({ user: { id: 'u1' } }) }));
+const { OxyServices } = require('@oxy.so/core');
+const mockOxy = new OxyServices({ baseURL: 'https://identity.example', enableCache: false });
+let mockUserId = 'u1';
+const token = (userId: string, version = 1) =>
+  `e30.${Buffer.from(JSON.stringify({ userId, sessionId: userId, version, exp: 2000000000 })).toString('base64url')}.test`;
+jest.mock('@oxy.so/services/ui/client', () => ({
+  useOxy: () => ({ user: { id: mockUserId }, oxyServices: mockOxy }),
+}));
 
 // Toasts are translated; the keys are what these tests read.
 const t = (key: string) => key;
@@ -60,6 +67,8 @@ beforeEach(() => {
   jest.useFakeTimers();
   jest.clearAllMocks();
   mockStore._api = { sendMessage };
+  mockUserId = 'u1';
+  mockOxy.session.setAccessToken(token('u1'));
 });
 
 afterEach(() => {
@@ -166,8 +175,8 @@ describe('an account switch inside the window', () => {
     await elapseUndoWindow();
 
     expect(sendMessage).not.toHaveBeenCalled();
-    expect(onCancel).toHaveBeenCalledTimes(1);
-    expect(toast).toHaveBeenCalledWith('ui.mutations.sendCancelled');
+    expect(onCancel).not.toHaveBeenCalled();
+    expect(toast).not.toHaveBeenCalledWith('ui.mutations.sendCancelled');
   });
 });
 
@@ -305,4 +314,184 @@ describe('idempotency', () => {
       'inbox-send-session-1',
     ]);
   });
+});
+
+it('does not deliver A success effects after the account changes during the request', async () => {
+  let finish!: (value: unknown) => void;
+  sendMessage.mockReturnValueOnce(
+    new Promise((resolve) => {
+      finish = resolve;
+    }),
+  );
+  const onSuccess = jest.fn();
+  const { result } = renderHook(() => useSendMessageWithUndo());
+  act(() => {
+    result.current.sendWithUndo(recipients, { onSuccess });
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(UNDO_MS);
+    await Promise.resolve();
+  });
+  expect(sendMessage).toHaveBeenCalledTimes(1);
+  mockStore._api = { sendMessage: jest.fn() };
+  invalidateQueries.mockClear();
+  await act(async () => {
+    finish({ message: 'accepted' });
+    await Promise.resolve();
+  });
+  expect(onSuccess).not.toHaveBeenCalled();
+  expect(toast.success).not.toHaveBeenCalled();
+  expect(invalidateQueries).not.toHaveBeenCalled();
+});
+
+it('does not send queued A work after A to B to A', async () => {
+  const onCancel = jest.fn();
+  const { result } = renderHook(() => useSendMessageWithUndo());
+  act(() => {
+    result.current.sendWithUndo(recipients, { onCancel });
+  });
+  act(() => {
+    mockOxy.session.setAccessToken(token('other'));
+    mockOxy.session.setAccessToken(token('u1', 2));
+  });
+  expect(result.current.isPending).toBe(false);
+  await elapseUndoWindow();
+  expect(sendMessage).not.toHaveBeenCalled();
+  expect(onCancel).not.toHaveBeenCalled();
+});
+
+it('keeps an undo-window send valid when its same session rotates the token', async () => {
+  sendMessage.mockResolvedValue({ message: 'accepted' });
+  const onSuccess = jest.fn();
+  const { result } = renderHook(() => useSendMessageWithUndo());
+  act(() => {
+    result.current.sendWithUndo(recipients, { onSuccess });
+  });
+  act(() => {
+    mockOxy.session.setAccessToken(token('u1', 2));
+  });
+  await elapseUndoWindow();
+  expect(sendMessage).toHaveBeenCalledTimes(1);
+  expect(onSuccess).toHaveBeenCalledTimes(1);
+});
+
+it('calls off a waiting send after the SDK clears its bearer on a 401', async () => {
+  const oldFetch = globalThis.fetch;
+  globalThis.fetch = jest.fn(async () => ({
+    ok: false,
+    status: 401,
+    statusText: 'Unauthorized',
+    headers: { get: () => 'application/json' },
+    json: async () => ({ error: 'expired' }),
+    text: async () => '{"error":"expired"}',
+  })) as typeof fetch;
+  try {
+    const onCancel = jest.fn();
+    const { result } = renderHook(() => useSendMessageWithUndo());
+    act(() => {
+      result.current.sendWithUndo(recipients, { onCancel });
+    });
+    await act(async () => {
+      await mockOxy.http
+        .get('/expired', { retry: false, deduplicate: false })
+        .catch(() => undefined);
+    });
+    expect(mockOxy.http.getAccessToken()).toBeNull();
+    await elapseUndoWindow();
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
+  } finally {
+    globalThis.fetch = oldFetch;
+  }
+});
+
+it('rejects an old handler when projected user B arrives before bearer A changes', async () => {
+  const { result, rerender } = renderHook(() => useSendMessageWithUndo());
+  const oldSend = result.current.sendWithUndo;
+  mockUserId = 'other';
+  rerender();
+  act(() => {
+    oldSend(recipients);
+  });
+  await elapseUndoWindow();
+  expect(sendMessage).not.toHaveBeenCalled();
+});
+
+it('suppresses A completion when projected user B arrives before bearer A changes', async () => {
+  let finish!: (value: unknown) => void;
+  sendMessage.mockReturnValueOnce(
+    new Promise((resolve) => {
+      finish = resolve;
+    }),
+  );
+  const onSuccess = jest.fn();
+  const { result, rerender } = renderHook(() => useSendMessageWithUndo());
+  act(() => {
+    result.current.sendWithUndo(recipients, { onSuccess });
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(UNDO_MS);
+    await Promise.resolve();
+  });
+  expect(sendMessage).toHaveBeenCalledTimes(1);
+  mockUserId = 'other';
+  rerender();
+  await act(async () => {
+    finish({ message: 'accepted' });
+    await Promise.resolve();
+  });
+  expect(onSuccess).not.toHaveBeenCalled();
+});
+
+it('rejects an old handler after projected A to B to A without token changes', async () => {
+  const { result, rerender } = renderHook(() => useSendMessageWithUndo());
+  const oldSend = result.current.sendWithUndo;
+  mockUserId = 'other';
+  rerender();
+  mockUserId = 'u1';
+  rerender();
+  act(() => {
+    oldSend(recipients);
+  });
+  await elapseUndoWindow();
+  expect(sendMessage).not.toHaveBeenCalled();
+});
+
+it('cleans up if the session subscriber notifies synchronously', async () => {
+  const { result } = renderHook(() => useSendMessageWithUndo());
+  const release = jest.fn();
+  const spy = jest
+    .spyOn(mockOxy.http, 'addTokenChangeListener')
+    .mockImplementation((listener: () => void) => {
+      mockOxy.session.setAccessToken(token('other'));
+      listener();
+      return release;
+    });
+  try {
+    let pending!: ReturnType<typeof result.current.sendWithUndo>;
+    act(() => {
+      pending = result.current.sendWithUndo(recipients);
+    });
+    await act(async () => {
+      await pending.abandoned;
+    });
+    expect(release).toHaveBeenCalledTimes(1);
+    await elapseUndoWindow();
+    expect(sendMessage).not.toHaveBeenCalled();
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+it('does not call an old error callback when the projected account changes without an API', () => {
+  mockStore._api = null;
+  const { result, rerender } = renderHook(() => useSendMessageWithUndo());
+  const oldSend = result.current.sendWithUndo;
+  const onError = jest.fn();
+  mockUserId = 'other';
+  rerender();
+  act(() => {
+    oldSend(recipients, { onError });
+  });
+  expect(onError).not.toHaveBeenCalled();
 });

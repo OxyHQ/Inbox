@@ -1392,3 +1392,38 @@ describe('leaving without Send, Save or Discard', () => {
     expect(saveDraft).not.toHaveBeenCalled();
   });
 });
+
+it('resubscribes recovery to the current epoch when a bearer disappears temporarily', async () => {
+  let epoch = 0;
+  const listeners = new Set<() => void>();
+  const session: { accessToken: string | null; userId: string | null } = {
+    accessToken: 'initial',
+    userId: 'user-1',
+  };
+  const oxyServices = {
+    notifications: { registerPushToken: jest.fn(), unregisterPushToken: jest.fn() },
+    session,
+    http: {
+      getSessionEpoch: () => epoch,
+      hasSessionEnded: () => false,
+      addTokenChangeListener: (listener: () => void) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+    },
+  };
+  __setOxyState({ oxyServices });
+  const { result, unmount } = renderHook(() => useComposeSession(options()));
+  await settle();
+  act(() => result.current.setSubject('offline epoch draft'));
+  act(() => {
+    epoch++;
+    session.accessToken = null;
+    session.userId = null;
+    for (const listener of listeners) listener();
+  });
+  await advance(800);
+  const record = await loadComposeRecovery(composeRecoveryStorageKey('user-1', 'new'));
+  expect(record?.snapshot.subject).toBe('offline epoch draft');
+  unmount();
+});

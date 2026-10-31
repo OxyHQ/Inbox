@@ -1,45 +1,65 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@oxy.so/bloom/toast';
-import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import type { EmailFilter, EmailFilterCondition, EmailFilterAction } from '@/services/emailApi';
 import { useTranslation } from '@/lib/i18n';
+import {
+  type OwnedVariables,
+  type EmailMutationContext,
+  useEmailMutationOwner,
+  ownsEmailMutation,
+  emailMutationApi,
+  exposeOwnedEmailMutation,
+} from '@/hooks/mutations/ownedEmailMutation';
 
 const FILTERS_KEY = emailKeys.filters;
+const rollbackSnapshots = new WeakMap<object, EmailFilter[] | undefined>();
 
-/**
- * Snapshot the filters cache, apply an optimistic updater, and return the
- * previous value for rollback — same pattern as message/label mutations so
- * the Filters list reacts instantly.
- */
-async function optimisticFilters(
+type CreateFilterInput = {
+  name: string;
+  enabled?: boolean;
+  conditions: EmailFilterCondition[];
+  matchAll?: boolean;
+  actions: EmailFilterAction[];
+  order?: number;
+};
+type UpdateFilterInput = Partial<CreateFilterInput> & { filterId: string };
+
+async function optimisticFilters<T>(
   queryClient: ReturnType<typeof useQueryClient>,
+  variables: OwnedVariables<T>,
   updater: (prev: EmailFilter[]) => EmailFilter[],
-): Promise<{ prev: EmailFilter[] | undefined }> {
+): Promise<undefined> {
+  if (!ownsEmailMutation(variables)) return undefined;
   await queryClient.cancelQueries({ queryKey: FILTERS_KEY });
+  if (!ownsEmailMutation(variables)) return undefined;
   const prev = queryClient.getQueryData<EmailFilter[]>(FILTERS_KEY);
+  rollbackSnapshots.set(variables, prev);
   queryClient.setQueryData<EmailFilter[]>(FILTERS_KEY, (old) => updater(old ?? []));
-  return { prev };
+  return undefined;
+}
+
+function rollbackFilters<T>(
+  queryClient: ReturnType<typeof useQueryClient>,
+  variables: OwnedVariables<T>,
+) {
+  const prev = rollbackSnapshots.get(variables);
+  if (prev) queryClient.setQueryData(FILTERS_KEY, prev);
 }
 
 export function useCreateFilter() {
-  const api = useEmailStore((s) => s._api);
+  const owner = useEmailMutationOwner();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-
-  return useMutation({
-    mutationFn: async (data: {
-      name: string;
-      enabled?: boolean;
-      conditions: EmailFilterCondition[];
-      matchAll?: boolean;
-      actions: EmailFilterAction[];
-      order?: number;
-    }) => {
-      if (!api) throw new Error('Email API not initialized');
-      return api.createFilter(data);
-    },
-    onMutate: async (data) => {
+  const mutation = useMutation<
+    EmailFilter,
+    Error,
+    OwnedVariables<CreateFilterInput>,
+    EmailMutationContext
+  >({
+    mutationFn: async (variables) => emailMutationApi(variables).createFilter(variables.input),
+    onMutate: async (variables) => {
+      const data = variables.input;
       const now = new Date().toISOString();
       const tempId = `optimistic:${Date.now()}`;
       const optimistic: EmailFilter = {
@@ -55,78 +75,73 @@ export function useCreateFilter() {
         createdAt: now,
         updatedAt: now,
       };
-      const { prev } = await optimisticFilters(queryClient, (filters) => [...filters, optimistic]);
-      return { prev };
+      return optimisticFilters(queryClient, variables, (filters) => [...filters, optimistic]);
     },
-    onError: (_err, _vars, context) => {
-      if (context?.prev) queryClient.setQueryData(FILTERS_KEY, context.prev);
+    onError: (_err, variables) => {
+      if (!ownsEmailMutation(variables)) return;
+      rollbackFilters(queryClient, variables);
       toast.error(t('ui.mutations.filterCreateFailed'));
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: FILTERS_KEY });
+    onSettled: (_data, _error, variables) => {
+      if (ownsEmailMutation(variables))
+        void queryClient.invalidateQueries({ queryKey: FILTERS_KEY });
     },
   });
+  return exposeOwnedEmailMutation(owner, mutation);
 }
 
 export function useUpdateFilter() {
-  const api = useEmailStore((s) => s._api);
+  const owner = useEmailMutationOwner();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-
-  return useMutation({
-    mutationFn: async ({
-      filterId,
-      ...updates
-    }: {
-      filterId: string;
-      name?: string;
-      enabled?: boolean;
-      conditions?: EmailFilterCondition[];
-      matchAll?: boolean;
-      actions?: EmailFilterAction[];
-      order?: number;
-    }) => {
-      if (!api) throw new Error('Email API not initialized');
-      return api.updateFilter(filterId, updates);
+  const mutation = useMutation<
+    EmailFilter,
+    Error,
+    OwnedVariables<UpdateFilterInput>,
+    EmailMutationContext
+  >({
+    mutationFn: async (variables) => {
+      const { filterId, ...updates } = variables.input;
+      return emailMutationApi(variables).updateFilter(filterId, updates);
     },
-    onMutate: async ({ filterId, ...updates }) => {
-      const { prev } = await optimisticFilters(queryClient, (filters) =>
-        filters.map((f) => (f._id === filterId ? { ...f, ...updates } : f)),
+    onMutate: async (variables) => {
+      const { filterId, ...updates } = variables.input;
+      return optimisticFilters(queryClient, variables, (filters) =>
+        filters.map((filter) => (filter._id === filterId ? { ...filter, ...updates } : filter)),
       );
-      return { prev };
     },
-    onError: (_err, _vars, context) => {
-      if (context?.prev) queryClient.setQueryData(FILTERS_KEY, context.prev);
+    onError: (_err, variables) => {
+      if (!ownsEmailMutation(variables)) return;
+      rollbackFilters(queryClient, variables);
       toast.error(t('ui.mutations.filterUpdateFailed'));
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: FILTERS_KEY });
+    onSettled: (_data, _error, variables) => {
+      if (ownsEmailMutation(variables))
+        void queryClient.invalidateQueries({ queryKey: FILTERS_KEY });
     },
   });
+  return exposeOwnedEmailMutation(owner, mutation);
 }
 
 export function useDeleteFilter() {
-  const api = useEmailStore((s) => s._api);
+  const owner = useEmailMutationOwner();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-
-  return useMutation({
-    mutationFn: async (filterId: string) => {
-      if (!api) throw new Error('Email API not initialized');
-      return api.deleteFilter(filterId);
-    },
-    onMutate: async (filterId) => {
-      const { prev } = await optimisticFilters(queryClient, (filters) =>
-        filters.filter((f) => f._id !== filterId),
-      );
-      return { prev };
-    },
-    onError: (_err, _vars, context) => {
-      if (context?.prev) queryClient.setQueryData(FILTERS_KEY, context.prev);
+  const mutation = useMutation<void, Error, OwnedVariables<string>, EmailMutationContext>({
+    mutationFn: async (variables) => emailMutationApi(variables).deleteFilter(variables.input),
+    onMutate: async (variables) =>
+      optimisticFilters(queryClient, variables, (filters) =>
+        filters.filter((filter) => filter._id !== variables.input),
+      ),
+    onError: (_err, variables) => {
+      if (!ownsEmailMutation(variables)) return;
+      rollbackFilters(queryClient, variables);
       toast.error(t('ui.mutations.filterDeleteFailed'));
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: FILTERS_KEY });
+    onSettled: (_data, _error, variables) => {
+      if (ownsEmailMutation(variables))
+        void queryClient.invalidateQueries({ queryKey: FILTERS_KEY });
     },
   });
+  return exposeOwnedEmailMutation(owner, mutation);
 }

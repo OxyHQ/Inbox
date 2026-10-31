@@ -36,12 +36,7 @@ export async function planLegacyMutationQuarantine(
   }
   const state = record(parsed) && record(parsed.clientState) ? parsed.clientState : undefined;
   const mutations = state?.mutations;
-  if (
-    state &&
-    (mutations === undefined ||
-      mutations === null ||
-      (Array.isArray(mutations) && mutations.length === 0))
-  ) {
+  if (state && Array.isArray(mutations) && mutations.length === 0) {
     return { kind: 'nothing-to-copy' };
   }
 

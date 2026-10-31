@@ -79,16 +79,18 @@ it.each(['write', 'verification'] as const)(
   },
 );
 
-it.each(['not-json', '{"clientState":{"mutations":"malformed"}}'])(
-  'preserves an unreadable blob without proposing a rewrite',
-  async (raw) => {
-    const sink = fakeQuarantine();
-    const plan = await planLegacyMutationQuarantine(raw, sink);
-    expect(plan.kind).toBe('opaque');
-    if (plan.kind !== 'opaque') throw new Error('missing receipt');
-    expect(sink.copies.get(plan.receipt)).toBe(raw);
-  },
-);
+it.each([
+  'not-json',
+  '{"clientState":{"mutations":"malformed"}}',
+  '{"clientState":{"mutations":null}}',
+  '{"clientState":{"queries":[]}}',
+])('preserves an unreadable blob without proposing a rewrite', async (raw) => {
+  const sink = fakeQuarantine();
+  const plan = await planLegacyMutationQuarantine(raw, sink);
+  expect(plan.kind).toBe('opaque');
+  if (plan.kind !== 'opaque') throw new Error('missing receipt');
+  expect(sink.copies.get(plan.receipt)).toBe(raw);
+});
 
 it.each([null, JSON.stringify({ clientState: { queries: ['keep'], mutations: [] } })])(
   'does nothing when there are no mutations',

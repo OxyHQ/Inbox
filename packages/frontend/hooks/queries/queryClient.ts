@@ -49,6 +49,12 @@ export const INBOX_MUTATION_KEYS = {
   bulkMove: ['inbox', 'messages', 'move'] as const,
 };
 
+/** Drafts and sends carry message content and must not persist as mutation records. */
+export const INBOX_MEMORY_ONLY_MUTATION_KEYS = {
+  saveDraft: ['inbox', 'draft', 'save'] as const,
+  sendMessage: ['inbox', 'message', 'send'] as const,
+};
+
 interface ToggleStarVariables {
   messageId: string;
   starred: boolean;
@@ -226,4 +232,5 @@ export const INBOX_ACCOUNT_QUERIES: AccountQueriesConfig = {
   roots: [...PERSISTED_QUERY_ROOTS],
   memoryOnlyRoots: [...MEMORY_ONLY_QUERY_ROOTS],
   mutationKeys: Object.values(INBOX_MUTATION_KEYS),
+  memoryOnlyMutationKeys: Object.values(INBOX_MEMORY_ONLY_MUTATION_KEYS),
 };

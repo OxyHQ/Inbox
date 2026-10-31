@@ -52,3 +52,18 @@ between each storage step, write/remove failures, and duplicate replay. A test
 must show that no B session reads or runs A's data and that proven A operations
 survive a restart. Unowned operations cannot be safely replayed automatically
 without additional evidence of ownership.
+
+## Session-owned optimistic mutations
+
+Labels and templates bind each invocation to the API and SDK session epoch from
+its originating React render. They verify ownership before and after cancelling
+queries, before sending, and in completion callbacks. Rollback snapshots remain
+in an in-memory WeakMap rather than mutation context. Consequently, the
+internal template hooks now expose an undefined mutation context instead of the
+previous `{ prev }`; their existing consumers do not read it. They continue to
+accept the same mutation arguments and per-call callbacks, which are suppressed
+when the originating session is no longer current.
+
+This guards those two feature families only. It does not sanitize legacy
+persisted mutation variables or results, fence other mutation hooks, cancel
+requests already running, or change the persistence policy described above.

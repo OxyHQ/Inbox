@@ -1,4 +1,11 @@
-import { useCallback, useState } from 'react';
+import {
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@oxy.so/bloom/toast';
 import { useOxy } from '@oxy.so/services/ui/client';
@@ -343,13 +350,50 @@ export interface PendingSend {
    * to the server, when nothing can stop it any more.
    */
   cancel: () => boolean;
+  /** The invocation lost its session; this does not mean an in-flight request was cancelled. */
+  abandoned: Promise<void>;
+  /** Stop observing the session when the composer unmounts; the request may still complete. */
+  detach: () => void;
 }
 
 export function useSendMessageWithUndo() {
   const { t } = useTranslation();
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
-  const [isPending, setIsPending] = useState(false);
+  const { oxyServices, user } = useOxy();
+  const http = oxyServices.http;
+  const subjectId = user?.id ?? null;
+  const subscribe = useCallback(
+    (notify: () => void) => http.addTokenChangeListener(notify),
+    [http],
+  );
+  const snapshot = useCallback(() => http.getSessionEpoch(), [http]);
+  const epoch = useSyncExternalStore(subscribe, snapshot, snapshot);
+  const renderedOwner = useMemo(() => ({ api, epoch, subjectId }), [api, epoch, subjectId]);
+  const committedOwner = useRef(renderedOwner);
+  const ownerListeners = useRef(new Set<() => void>());
+  useLayoutEffect(() => {
+    committedOwner.current = renderedOwner;
+    for (const listener of ownerListeners.current) listener();
+  }, [renderedOwner]);
+  const [pendingOwner, setPendingOwner] = useState<{
+    api: typeof api;
+    epoch: number;
+    subjectId: string | null;
+  } | null>(null);
+
+  const ownsSession = useCallback(() => {
+    const tokenSubject = oxyServices.session.userId;
+    return (
+      api !== null &&
+      committedOwner.current === renderedOwner &&
+      useEmailStore.getState()._api === api &&
+      http.getSessionEpoch() === epoch &&
+      subjectId !== null &&
+      Boolean(http.getAccessToken()) &&
+      (tokenSubject === null || tokenSubject === subjectId)
+    );
+  }, [api, epoch, http, oxyServices, renderedOwner, subjectId]);
 
   const sendWithUndo = useCallback(
     (
@@ -374,24 +418,44 @@ export function useSendMessageWithUndo() {
       },
     ): PendingSend => {
       if (!api) {
-        options?.onError?.(new Error('Email API not initialized'));
-        return { cancel: () => false };
+        if (committedOwner.current === renderedOwner && http.getSessionEpoch() === epoch)
+          options?.onError?.(new Error('Email API not initialized'));
+        return { cancel: () => false, abandoned: Promise.resolve(), detach: () => undefined };
       }
+      if (!ownsSession())
+        return { cancel: () => false, abandoned: Promise.resolve(), detach: () => undefined };
 
       // Each send owns its window. The window is the timer's, not the toast's:
       // a toast pauses while hovered or while the page is hidden, so it can
       // still offer Undo after the timer has sent the message. Once the send
       // has fired the toast is dismissed and Undo does nothing.
-      let state: 'waiting' | 'cancelled' | 'fired' = 'waiting';
-      setIsPending(true);
+      let state: 'waiting' | 'cancelled' | 'fired' | 'abandoned' | 'completed' = 'waiting';
+      let resolveAbandoned: () => void = () => undefined;
+      let unsubscribe: () => void = () => undefined;
+      const abandoned = new Promise<void>((resolve) => {
+        resolveAbandoned = resolve;
+      });
+      const owner = { api, epoch, subjectId };
+      setPendingOwner(owner);
+
+      const abandon = () => {
+        if (state !== 'waiting' && state !== 'fired') return;
+        state = 'abandoned';
+        clearTimeout(timer);
+        toast.dismiss(toastId);
+        unsubscribe();
+        setPendingOwner((pending) => (pending === owner ? null : pending));
+        resolveAbandoned();
+      };
 
       const cancel = (): boolean => {
         if (state !== 'waiting') return false;
         state = 'cancelled';
         clearTimeout(timer);
         toast.dismiss(toastId);
-        setIsPending(false);
-        options?.onCancel?.();
+        unsubscribe();
+        setPendingOwner((pending) => (pending === owner ? null : pending));
+        if (ownsSession()) options?.onCancel?.();
         return true;
       };
 
@@ -400,7 +464,7 @@ export function useSendMessageWithUndo() {
         action: {
           label: t('common.undo'),
           onClick: () => {
-            if (cancel()) toast(t('ui.mutations.sendCancelled'));
+            if (cancel() && ownsSession()) toast(t('ui.mutations.sendCancelled'));
           },
         },
       } as Record<string, unknown>);
@@ -410,9 +474,8 @@ export function useSendMessageWithUndo() {
         // The account changed in the undo window. The SDK's HTTP client now
         // carries the other account's credentials, so sending would send this
         // message FROM that account. Called off, as Undo would.
-        if (useEmailStore.getState()._api !== api) {
-          cancel();
-          toast(t('ui.mutations.sendCancelled'));
+        if (!ownsSession()) {
+          abandon();
           return;
         }
         state = 'fired';
@@ -420,12 +483,22 @@ export function useSendMessageWithUndo() {
 
         try {
           const result = await api.sendMessage(params);
+          if (!ownsSession()) {
+            abandon();
+            return;
+          }
+          state = 'completed';
           invalidateAfterSend(queryClient);
 
           toast.success(result.message);
           recordInboxMetric('composer_send_succeeded');
           options?.onSuccess?.();
         } catch (err: unknown) {
+          if (!ownsSession()) {
+            abandon();
+            return;
+          }
+          state = 'completed';
           const alreadySent = alreadySentUnderKey(err);
           if (alreadySent) {
             invalidateAfterSend(queryClient);
@@ -438,18 +511,39 @@ export function useSendMessageWithUndo() {
           recordInboxMetric('composer_send_failed');
           options?.onError?.(err);
         } finally {
-          setIsPending(false);
+          unsubscribe();
+          setPendingOwner((pending) => (pending === owner ? null : pending));
         }
       }, UNDO_SEND_DELAY_MS);
+      const checkOwner = () => {
+        if (!ownsSession()) abandon();
+      };
+      ownerListeners.current.add(checkOwner);
+      const release = http.addTokenChangeListener(checkOwner);
+      let detached = false;
+      unsubscribe = () => {
+        if (detached) return;
+        detached = true;
+        ownerListeners.current.delete(checkOwner);
+        release();
+      };
+      if (!ownsSession()) {
+        abandon();
+        unsubscribe();
+      }
 
-      return { cancel };
+      return { cancel, abandoned, detach: () => unsubscribe() };
     },
-    [api, queryClient, t],
+    [api, queryClient, t, http, epoch, subjectId, renderedOwner, ownsSession],
   );
 
   return {
     sendWithUndo,
-    isPending,
+    isPending:
+      pendingOwner !== null &&
+      pendingOwner.api === api &&
+      pendingOwner.epoch === epoch &&
+      pendingOwner.subjectId === subjectId,
   };
 }
 

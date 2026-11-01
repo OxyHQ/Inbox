@@ -346,6 +346,8 @@ const ar: LocaleDict = {
     },
     toast: {
       spamUnavailable: 'لا يوجد مجلد للرسائل غير المرغوب فيها لنقلها إليه.',
+      attachmentSessionUnavailable:
+        'حسابك غير جاهز بعد لفتح المرفقات. يُرجى المحاولة مرة أخرى بعد قليل.',
       attachmentFailed: 'تعذّر تنزيل المرفق.',
       fileSystemUnavailable: 'نظام الملفات غير متاح على هذا الجهاز.',
       sharingUnavailable: 'المشاركة غير متاحة على هذا الجهاز.',

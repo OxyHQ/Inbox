@@ -316,6 +316,8 @@ const de: LocaleDict = {
     },
     toast: {
       spamUnavailable: 'Es gibt keinen Spam-Ordner, in den dies verschoben werden kann.',
+      attachmentSessionUnavailable:
+        'Dein Konto ist noch nicht bereit, Anhänge zu öffnen. Bitte versuche es gleich erneut.',
       attachmentFailed: 'Anhang konnte nicht heruntergeladen werden.',
       fileSystemUnavailable: 'Dateisystem auf diesem Gerät nicht verfügbar.',
       sharingUnavailable: 'Teilen auf diesem Gerät nicht verfügbar.',

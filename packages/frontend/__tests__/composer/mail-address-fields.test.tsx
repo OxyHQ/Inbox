@@ -19,6 +19,7 @@ jest.mock('@/lib/i18n', () => ({
 jest.mock('@/hooks/queries/useContactSuggestions', () => ({
   useContactSuggestions: () => ({
     data: [{ address: 'suggested@example.com' }],
+    canSelect: () => true,
   }),
 }));
 jest.mock('@oxy.so/bloom/mail-compose', () => ({

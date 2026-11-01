@@ -4,7 +4,7 @@ import { isValidRecipientEmail } from '@/schemas/emailSchemas';
 import { Button } from '@oxy.so/bloom/button';
 import { MailRecipientField, type MailRecipient } from '@oxy.so/bloom/mail-compose';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { type TextInput, View } from 'react-native';
 
 /** Retain the unfinished address in the draft on every keystroke, including send/blur. */
@@ -33,7 +33,18 @@ function RecipientField({
   trailing?: React.ReactNode;
 }) {
   const { recipients, query } = splitRecipientInput(value);
-  const { data: fetched = [] } = useContactSuggestions(query.trim());
+  const { data: fetched = [], canSelect } = useContactSuggestions(query.trim());
+  const mounted = useRef(false);
+  const currentValue = useRef(value);
+  useLayoutEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  useLayoutEffect(() => {
+    currentValue.current = value;
+  }, [value]);
   // Only for the query being typed: the last list is kept while the next one
   // loads, and without this it stayed on screen after a pick — offering the
   // address just added, which a second tap added twice.
@@ -42,8 +53,11 @@ function RecipientField({
     query.trim().length >= 2
       ? fetched.filter((item) => !added.has(item.address.toLowerCase()))
       : [];
-  const join = (items: readonly MailRecipient[], next: string) =>
-    onChange([...items.map((item) => item.address), next.trimStart()].join(', '));
+  const join = (items: readonly MailRecipient[], next: string) => {
+    const nextValue = [...items.map((item) => item.address), next.trimStart()].join(', ');
+    currentValue.current = nextValue;
+    onChange(nextValue);
+  };
   return (
     <MailRecipientField
       label={label}
@@ -57,9 +71,11 @@ function RecipientField({
         address: item.address,
         name: item.name ?? undefined,
       }))}
-      onSuggestionPress={(item) =>
-        join([...recipients, { id: item.id, address: item.address }], '')
-      }
+      onSuggestionPress={(item) => {
+        if (mounted.current && currentValue.current === value && canSelect()) {
+          join([...recipients, { id: item.id, address: item.address }], '');
+        }
+      }}
       trailing={trailing}
     />
   );

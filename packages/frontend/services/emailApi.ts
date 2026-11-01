@@ -704,9 +704,10 @@ export function createEmailApi(http: HttpService) {
 
     // ─── Contacts ────────────────────────────────────────────────────
 
-    async suggestContacts(query: string): Promise<ContactSuggestion[]> {
+    async suggestContacts(query: string, signal?: AbortSignal): Promise<ContactSuggestion[]> {
       const res = await http.get('/email/contacts/suggest', {
         params: { q: query },
+        signal,
       });
       const parsed = z.object({ data: z.array(ContactSuggestionSchema) }).parse(res);
       return parsed.data;

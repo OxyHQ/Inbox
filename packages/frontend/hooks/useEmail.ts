@@ -13,6 +13,11 @@ type HttpService = OxyServices['http'];
 /** A cached API may only be reused with the HTTP client it captures. */
 const apiOwners = new WeakMap<EmailApiInstance, HttpService>();
 
+/** An API captures the HTTP transport used to create it. */
+export function isEmailApiOwnedBy(api: EmailApiInstance, http: HttpService): boolean {
+  return apiOwners.get(api) === http;
+}
+
 type ViewMode =
   | { type: 'mailbox'; mailbox: Mailbox }
   | { type: 'starred' }

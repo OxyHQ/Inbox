@@ -368,6 +368,13 @@ const es: LocaleDict = {
       filterDraftUnavailable:
         'El contexto de la cuenta o la sesión ha cambiado. Cierra este borrador de filtros para empezar de nuevo.',
       invalidDate: 'Esta fecha no es válida. Corrígela o elimina el filtro de fecha para buscar.',
+      mailboxesLoading: 'Cargando carpetas…',
+      mailboxesOffline: 'Esperando conexión para cargar las carpetas.',
+      mailboxesFailed:
+        'No se pudieron cargar las carpetas. Comprueba la conexión o elimina el filtro de carpeta.',
+      mailboxesNotReady: 'Las carpetas aún no están listas. Espera o elimina el filtro de carpeta.',
+      mailboxUnavailable:
+        'La carpeta no aparece en la lista disponible. Comprueba su nombre o elimina el filtro de carpeta para buscar.',
       filtersTitle: 'Filtros de búsqueda',
       filtersDescription: 'Acota la búsqueda por personas, fechas o detalles del mensaje.',
       clearFilters: 'Limpiar filtros',

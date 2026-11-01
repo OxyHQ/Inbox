@@ -380,6 +380,14 @@ const fr: LocaleDict = {
         'Le contexte du compte ou de la session a changé. Fermez ce brouillon de filtres pour recommencer.',
       invalidDate:
         'Cette date est invalide. Corrigez-la ou supprimez le filtre de date pour rechercher.',
+      mailboxesLoading: 'Chargement des dossiers…',
+      mailboxesOffline: 'En attente d’une connexion pour charger les dossiers.',
+      mailboxesFailed:
+        'Impossible de charger les dossiers. Vérifiez la connexion ou supprimez le filtre de dossier.',
+      mailboxesNotReady:
+        'Les dossiers ne sont pas encore prêts. Patientez ou supprimez le filtre de dossier.',
+      mailboxUnavailable:
+        'Le dossier ne figure pas dans la liste disponible. Vérifiez son nom ou supprimez le filtre de dossier.',
       filtersTitle: 'Filtres de recherche',
       filtersDescription: 'Affine la recherche par personne, date ou détails du message.',
       clearFilters: 'Effacer les filtres',

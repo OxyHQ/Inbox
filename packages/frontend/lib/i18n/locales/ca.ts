@@ -376,6 +376,14 @@ const ca: LocaleDict = {
         'El context del compte o de la sessió ha canviat. Tanca aquest esborrany de filtres per començar de nou.',
       invalidDate:
         'Aquesta data no és vàlida. Corregeix-la o elimina el filtre de data per cercar.',
+      mailboxesLoading: 'S’estan carregant les carpetes…',
+      mailboxesOffline: 'S’està esperant connexió per carregar les carpetes.',
+      mailboxesFailed:
+        'No s’han pogut carregar les carpetes. Comprova la connexió o elimina el filtre de carpeta.',
+      mailboxesNotReady:
+        'Les carpetes encara no estan preparades. Espera o elimina el filtre de carpeta.',
+      mailboxUnavailable:
+        'La carpeta no apareix a la llista disponible. Comprova’n el nom o elimina el filtre de carpeta per cercar.',
       filtersTitle: 'Filtres de cerca',
       filtersDescription: 'Acota la cerca per persones, dates o detalls del missatge.',
       clearFilters: 'Neteja els filtres',

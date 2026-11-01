@@ -380,6 +380,13 @@ const de: LocaleDict = {
         'Der Konto- oder Sitzungskontext hat sich geändert. Schließe diesen Filterentwurf, um neu zu beginnen.',
       invalidDate:
         'Dieses Datum ist ungültig. Korrigiere es oder entferne den Datumsfilter, um zu suchen.',
+      mailboxesLoading: 'Ordner werden geladen…',
+      mailboxesOffline: 'Warten auf eine Verbindung zum Laden der Ordner.',
+      mailboxesFailed:
+        'Ordner konnten nicht geladen werden. Prüfe die Verbindung oder entferne den Ordnerfilter.',
+      mailboxesNotReady: 'Ordner sind noch nicht bereit. Warte oder entferne den Ordnerfilter.',
+      mailboxUnavailable:
+        'Der Ordner ist in der verfügbaren Liste nicht enthalten. Prüfe den Namen oder entferne den Ordnerfilter.',
       filtersTitle: 'Suchfilter',
       filtersDescription: 'Grenze die Suche nach Personen, Datum oder Nachrichtendetails ein.',
       clearFilters: 'Filter löschen',

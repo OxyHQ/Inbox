@@ -377,6 +377,14 @@ const it: LocaleDict = {
         'Il contesto dell’account o della sessione è cambiato. Chiudi questa bozza di filtri per ricominciare.',
       invalidDate:
         'Questa data non è valida. Correggila o rimuovi il filtro della data per cercare.',
+      mailboxesLoading: 'Caricamento delle cartelle…',
+      mailboxesOffline: 'In attesa di una connessione per caricare le cartelle.',
+      mailboxesFailed:
+        'Impossibile caricare le cartelle. Controlla la connessione o rimuovi il filtro della cartella.',
+      mailboxesNotReady:
+        'Le cartelle non sono ancora pronte. Attendi o rimuovi il filtro della cartella.',
+      mailboxUnavailable:
+        'La cartella non è presente nell’elenco disponibile. Controlla il nome o rimuovi il filtro della cartella.',
       filtersTitle: 'Filtri di ricerca',
       filtersDescription: 'Restringi la ricerca per persone, date o dettagli del messaggio.',
       clearFilters: 'Cancella filtri',

@@ -371,6 +371,12 @@ const en: LocaleDict = {
       filterDraftUnavailable:
         'The account or session context changed. Close this filter draft to start again.',
       invalidDate: 'This date is not valid. Correct it or remove the date filter to search.',
+      mailboxesLoading: 'Loading folders…',
+      mailboxesOffline: 'Waiting for a connection to load folders.',
+      mailboxesFailed: 'Could not load folders. Check your connection or remove the folder filter.',
+      mailboxesNotReady: 'Folders are not ready. Wait or remove the folder filter.',
+      mailboxUnavailable:
+        'Folder not found in the available list. Check its name or remove the folder filter to search.',
       filtersTitle: 'Search filters',
       filtersDescription: 'Narrow your search by people, dates, or message details.',
       clearFilters: 'Clear filters',

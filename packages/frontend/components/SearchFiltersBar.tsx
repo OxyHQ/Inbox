@@ -22,7 +22,7 @@ import {
 } from '@oxy.so/bloom/select';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { Text } from '@oxy.so/bloom/typography';
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 
 function FilterSelect({
@@ -66,16 +66,50 @@ export function SearchFiltersBar({
   filters,
   mailboxes,
   onChange,
+  scope,
+  isScopeCurrent,
 }: {
   filters: SearchFilters;
   mailboxes: Mailbox[];
   onChange: (filters: SearchFilters) => void;
+  scope: object;
+  isScopeCurrent: () => boolean;
 }) {
   const { t, locale } = useTranslation();
-  const [draft, setDraft] = useState<SearchFilters | null>(null);
-  const open = () => setDraft({ ...filters });
-  const updateDraft = (patch: Partial<SearchFilters>) =>
-    setDraft((current) => ({ ...current, ...patch }));
+  const [pending, setPending] = useState<{
+    id: object;
+    scope: object;
+    isCurrent: () => boolean;
+    value: SearchFilters;
+  } | null>(null);
+  const pendingRef = useRef(pending);
+  const latestFilters = useRef(filters);
+  useLayoutEffect(() => {
+    pendingRef.current = pending;
+  }, [pending]);
+  useLayoutEffect(() => {
+    latestFilters.current = filters;
+  }, [filters]);
+  const draft = pending?.scope === scope ? pending.value : null;
+  const open = () => {
+    if (!isScopeCurrent() || pendingRef.current) return;
+    const next = { id: {}, scope, isCurrent: isScopeCurrent, value: { ...latestFilters.current } };
+    pendingRef.current = next;
+    setPending(next);
+  };
+  const updateDraft = (patch: Partial<SearchFilters>) => {
+    if (!isScopeCurrent()) return;
+    const current = pendingRef.current;
+    if (!current || current.scope !== scope || current.id !== pending?.id) return;
+    const next = { ...current, value: { ...current.value, ...patch } };
+    pendingRef.current = next;
+    setPending(next);
+  };
+  const closeDraft = () => {
+    const id = pending?.id;
+    if (pendingRef.current?.id === id) pendingRef.current = null;
+    setPending((current) => (current?.id === id ? null : current));
+  };
   const active = Object.entries(filters).filter(([key, value]) =>
     key === 'unread' ? typeof value === 'boolean' : Boolean(value),
   );
@@ -217,22 +251,36 @@ export function SearchFiltersBar({
         )}
       </View>
       <Dialog
-        open={draft !== null}
-        onClose={() => setDraft(null)}
+        open={pending !== null}
+        onClose={closeDraft}
         placement={{ base: 'bottom', md: 'center' }}
         header={{
           title: t('search.ui.filtersTitle'),
           subtitle: t('search.ui.filtersDescription'),
           primaryAction: {
             label: t('common.search'),
+            disabled: draft === null,
             onPress: () => {
-              if (draft) onChange(draft);
-              setDraft(null);
+              const current = pendingRef.current;
+              if (
+                !draft ||
+                !pending ||
+                current?.id !== pending.id ||
+                current.scope !== scope ||
+                !current.isCurrent() ||
+                !isScopeCurrent()
+              )
+                return;
+              onChange(current.value);
+              closeDraft();
             },
           },
         }}
         testID="search-filters-dialog"
       >
+        {pending && !draft && (
+          <Text accessibilityLiveRegion="polite">{t('search.ui.filterDraftUnavailable')}</Text>
+        )}
         {draft && (
           <View className="gap-4 px-5">
             <Field label={t('search.filters.from')}>
@@ -327,7 +375,17 @@ export function SearchFiltersBar({
                 {t('drawer.starred')}
               </Chip>
             </View>
-            <Button appearance="plain" onPress={() => setDraft({})}>
+            <Button
+              appearance="plain"
+              onPress={() => {
+                if (!isScopeCurrent()) return;
+                const current = pendingRef.current;
+                if (!current || current.scope !== scope || current.id !== pending?.id) return;
+                const next = { ...current, value: {} };
+                pendingRef.current = next;
+                setPending(next);
+              }}
+            >
               {t('search.ui.clearFilters')}
             </Button>
           </View>

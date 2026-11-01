@@ -362,6 +362,8 @@ const ko: LocaleDict = {
       deleteFailed: '저장된 검색을 삭제하지 못했어요.',
     },
     ui: {
+      filterDraftUnavailable:
+        '계정 또는 세션 상태가 변경되었습니다. 이 필터 초안을 닫고 다시 시작하세요.',
       filtersTitle: '검색 필터',
       filtersDescription: '사람, 날짜 또는 메시지 정보로 검색 범위를 좁혀보세요.',
       clearFilters: '필터 지우기',

@@ -364,6 +364,8 @@ const ja: LocaleDict = {
       deleteFailed: '保存した検索を削除できませんでした。',
     },
     ui: {
+      filterDraftUnavailable:
+        'アカウントまたはセッションの状態が変わりました。このフィルターの下書きを閉じて、やり直してください。',
       filtersTitle: '検索フィルター',
       filtersDescription: '相手、日付、メッセージの詳細で検索を絞り込めます。',
       clearFilters: 'フィルターをクリア',

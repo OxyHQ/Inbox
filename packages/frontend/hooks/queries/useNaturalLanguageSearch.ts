@@ -149,6 +149,7 @@ export function useNaturalLanguageSearch() {
     parseQuery,
     isCurrent,
     isBindingCurrent,
+    binding,
     isReady: owner.ready,
     lastResult: visible ? (mutation.data ?? null) : null,
     isLoading: visible && mutation.isPending,

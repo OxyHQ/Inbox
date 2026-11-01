@@ -370,6 +370,8 @@ const ca: LocaleDict = {
       deleteFailed: "No s'ha pogut eliminar la cerca desada.",
     },
     ui: {
+      filterDraftUnavailable:
+        'El context del compte o de la sessió ha canviat. Tanca aquest esborrany de filtres per començar de nou.',
       filtersTitle: 'Filtres de cerca',
       filtersDescription: 'Acota la cerca per persones, dates o detalls del missatge.',
       clearFilters: 'Neteja els filtres',

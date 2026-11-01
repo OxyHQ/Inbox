@@ -1120,6 +1120,8 @@ const ko: LocaleDict = {
       snoozeFailed: '메시지를 다시 알림으로 설정하지 못했습니다.',
       unsnoozed: '다시 알림을 해제했습니다.',
       unsnoozeFailed: '다시 알림을 해제하지 못했습니다.',
+      partialMessagesFailed:
+        '일부 메시지가 변경되었을 수 있습니다. 다시 시도하기 전에 새로고침하여 확인하세요.',
       bulkFailed: '메시지를 업데이트하지 못했습니다.',
       bulkUpdated: '메시지를 업데이트했습니다.',
       moveFailed: '메시지를 이동하지 못했습니다.',

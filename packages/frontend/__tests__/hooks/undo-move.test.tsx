@@ -123,8 +123,8 @@ it('returns each message of a bulk move to the folder it came from', async () =>
 
   act(() => undoAction()());
   await waitFor(() => expect(bulkMoveMessages).toHaveBeenCalledTimes(3));
-  expect(bulkMoveMessages).toHaveBeenCalledWith(['a'], 'inbox');
-  expect(bulkMoveMessages).toHaveBeenCalledWith(['b'], 'work');
+  expect(bulkMoveMessages).toHaveBeenCalledWith(['a'], 'inbox', expect.any(Function));
+  expect(bulkMoveMessages).toHaveBeenCalledWith(['b'], 'work', expect.any(Function));
 });
 
 it('says Archived only for an archive: a single move to Spam says so', async () => {

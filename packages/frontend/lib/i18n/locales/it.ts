@@ -1139,6 +1139,8 @@ const it: LocaleDict = {
       snoozeFailed: 'Impossibile posticipare il messaggio.',
       unsnoozed: 'Posticipo rimosso.',
       unsnoozeFailed: 'Impossibile rimuovere il posticipo.',
+      partialMessagesFailed:
+        'Alcuni messaggi potrebbero essere cambiati. Aggiorna e controlla prima di riprovare.',
       bulkFailed: 'Impossibile aggiornare i messaggi.',
       bulkUpdated: 'Messaggi aggiornati.',
       moveFailed: 'Impossibile spostare i messaggi.',

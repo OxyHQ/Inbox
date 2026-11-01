@@ -28,7 +28,7 @@ export function assertMessageOwner(variables: object): void {
 /** Guards live operations; persisted mutations still use the registered replay defaults. */
 export function useGuardedMessageMutation<TData, TVariables extends object, TContext>(
   options: UseMutationOptions<TData, Error, TVariables, TContext>,
-  onUnavailable?: (options: { quiet?: boolean } | undefined) => void,
+  onUnavailable?: (options: { quiet?: boolean } | undefined, variables: TVariables) => void,
 ) {
   const owner = useEmailMutationOwner(true);
   const runtime = useOxyRuntime();
@@ -105,7 +105,7 @@ export function useGuardedMessageMutation<TData, TVariables extends object, TCon
         captured.http.getSessionEpoch() === captured.epoch &&
         runtime.getAccountSessionRevision() === projection.revision
       ) {
-        onUnavailable?.(feedback);
+        onUnavailable?.(feedback, copy);
       }
       const wrapped: MutateOptions<TData, Error, TVariables, TContext> | undefined = callbacks && {
         onSuccess: (data, value, result, context) => {

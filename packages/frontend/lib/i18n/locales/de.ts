@@ -1150,6 +1150,8 @@ const de: LocaleDict = {
       snoozeFailed: 'Nachricht konnte nicht zurückgestellt werden.',
       unsnoozed: 'Zurückstellung aufgehoben.',
       unsnoozeFailed: 'Zurückstellung konnte nicht aufgehoben werden.',
+      partialMessagesFailed:
+        'Einige Nachrichten wurden möglicherweise geändert. Aktualisiere und prüfe sie, bevor du es erneut versuchst.',
       bulkFailed: 'Nachrichten konnten nicht aktualisiert werden.',
       bulkUpdated: 'Nachrichten aktualisiert.',
       moveFailed: 'Nachrichten konnten nicht verschoben werden.',

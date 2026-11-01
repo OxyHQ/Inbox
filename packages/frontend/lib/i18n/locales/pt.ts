@@ -1140,6 +1140,8 @@ const pt: LocaleDict = {
       snoozeFailed: 'Não foi possível adiar a mensagem.',
       unsnoozed: 'Adiamento removido.',
       unsnoozeFailed: 'Não foi possível remover o adiamento.',
+      partialMessagesFailed:
+        'Algumas mensagens podem ter sido alteradas. Atualize e confira antes de tentar novamente.',
       bulkFailed: 'Não foi possível atualizar as mensagens.',
       bulkUpdated: 'Mensagens atualizadas.',
       moveFailed: 'Não foi possível mover as mensagens.',

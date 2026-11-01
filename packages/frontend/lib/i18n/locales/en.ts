@@ -1141,6 +1141,8 @@ const en: LocaleDict = {
       snoozeFailed: 'Failed to snooze message.',
       unsnoozed: 'Snooze removed.',
       unsnoozeFailed: 'Failed to unsnooze message.',
+      partialMessagesFailed:
+        'Some messages may have changed. Refresh to check before trying again.',
       bulkFailed: 'Failed to update messages.',
       bulkUpdated: 'Messages updated.',
       moveFailed: 'Failed to move messages.',

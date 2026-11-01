@@ -371,6 +371,8 @@ const it: LocaleDict = {
       deleteFailed: 'Impossibile eliminare la ricerca salvata.',
     },
     ui: {
+      savedDraftUnavailable:
+        'L’account o la sessione sono cambiati. Chiudi questa bozza di ricerca per ricominciare.',
       filterDraftUnavailable:
         'Il contesto dell’account o della sessione è cambiato. Chiudi questa bozza di filtri per ricominciare.',
       filtersTitle: 'Filtri di ricerca',

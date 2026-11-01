@@ -666,6 +666,8 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
             />
 
             <SavedSearchBar
+              scope={naturalSearchBinding}
+              isScopeCurrent={isNaturalSearchBindingCurrent}
               query={query}
               filters={searchOptions}
               enabled={

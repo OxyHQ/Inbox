@@ -24,13 +24,15 @@ import {
   useIsMutating,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
+import { useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { View } from 'react-native';
 
 interface SavedSearchBarProps {
   query: string;
   filters: SavedEmailSearchFilters;
   enabled: boolean;
+  scope: object;
+  isScopeCurrent: () => boolean;
   onApply: (search: { query: string; filters: SavedEmailSearchFilters }) => void;
 }
 
@@ -54,7 +56,14 @@ function hasPendingMutation(
     });
 }
 
-export function SavedSearchBar({ query, filters, enabled, onApply }: SavedSearchBarProps) {
+export function SavedSearchBar({
+  query,
+  filters,
+  enabled,
+  scope,
+  isScopeCurrent,
+  onApply,
+}: SavedSearchBarProps) {
   const { t } = useTranslation();
   const online = useSyncExternalStore(
     onlineManager.subscribe,
@@ -83,12 +92,38 @@ export function SavedSearchBar({ query, filters, enabled, onApply }: SavedSearch
   useIsMutating({ mutationKey: SAVED_SEARCH_MUTATION_KEYS.delete, exact: true });
   const saving = hasPendingMutation(queryClient, SAVED_SEARCH_MUTATION_KEYS.create, owner);
   const deleting = hasPendingMutation(queryClient, SAVED_SEARCH_MUTATION_KEYS.delete, owner);
-  const [name, setName] = useState('');
-  const [open, setOpen] = useState(false);
-  const dialogRevision = useRef(0);
-  const handleSave = useCallback(() => {
-    const trimmedName = name.trim();
+  const [pending, setPending] = useState<{
+    id: object;
+    scope: object;
+    isCurrent: () => boolean;
+    name: string;
+  } | null>(null);
+  const pendingRef = useRef(pending);
+  const closedDraftRef = useRef<{ scope: object; name: string } | null>(null);
+  useLayoutEffect(() => {
+    pendingRef.current = pending;
+  }, [pending]);
+  const draft = pending?.scope === scope ? pending : null;
+  const closeDraft = () => {
+    if (!isScopeCurrent()) return;
+    const id = pending?.id;
+    const current = pendingRef.current;
+    if (current && current.id === id) {
+      closedDraftRef.current = { scope: current.scope, name: current.name };
+      pendingRef.current = null;
+    }
+    setPending((current) => (current?.id === id ? null : current));
+  };
+  const handleSave = () => {
+    const current = pendingRef.current;
+    const trimmedName = current?.name.trim();
     if (
+      !draft ||
+      !current ||
+      current.id !== draft.id ||
+      current.scope !== scope ||
+      !current.isCurrent() ||
+      !isScopeCurrent() ||
       !enabled ||
       !trimmedName ||
       saving ||
@@ -96,21 +131,22 @@ export function SavedSearchBar({ query, filters, enabled, onApply }: SavedSearch
       hasPendingMutation(queryClient, SAVED_SEARCH_MUTATION_KEYS.create, owner)
     )
       return;
-    const revision = dialogRevision.current;
     createSavedSearch.mutate(
       { name: trimmedName, query: query.trim(), filters },
       {
         onSuccess: () => {
-          if (revision !== dialogRevision.current) return;
-          setName('');
-          setOpen(false);
+          if (!current.isCurrent() || pendingRef.current !== current) return;
+          pendingRef.current = null;
+          if (closedDraftRef.current?.scope === scope) closedDraftRef.current = null;
+          setPending((value) => (value?.id === current.id ? null : value));
         },
       },
     );
-  }, [createSavedSearch, enabled, filters, name, owner, query, queryClient, saving]);
+  };
 
   const handleDelete = (id: string) => {
     if (
+      !isScopeCurrent() ||
       !isCurrentEmailOwner(owner) ||
       hasPendingMutation(queryClient, SAVED_SEARCH_MUTATION_KEYS.delete, owner)
     )
@@ -131,8 +167,12 @@ export function SavedSearchBar({ query, filters, enabled, onApply }: SavedSearch
                 appearance="plain"
                 leading={<RiBookmarkLine />}
                 onPress={() => {
-                  dialogRevision.current += 1;
-                  setOpen(true);
+                  if (!isScopeCurrent() || pendingRef.current) return;
+                  const name =
+                    closedDraftRef.current?.scope === scope ? closedDraftRef.current.name : '';
+                  const next = { id: {}, scope, isCurrent: isScopeCurrent, name };
+                  pendingRef.current = next;
+                  setPending(next);
                 }}
               >
                 {t('search.ui.saveSearch')}
@@ -146,7 +186,9 @@ export function SavedSearchBar({ query, filters, enabled, onApply }: SavedSearch
                   tone="neutral"
                   appearance="outline"
                   key={saved.id}
-                  onPress={() => onApply(saved)}
+                  onPress={() => {
+                    if (isScopeCurrent()) onApply(saved);
+                  }}
                   accessibilityLabel={t('search.ui.runSaved', {
                     name: saved.name,
                   })}
@@ -172,11 +214,8 @@ export function SavedSearchBar({ query, filters, enabled, onApply }: SavedSearch
         </View>
       )}
       <Dialog
-        open={open}
-        onClose={() => {
-          dialogRevision.current += 1;
-          setOpen(false);
-        }}
+        open={pending !== null}
+        onClose={closeDraft}
         placement={{ base: 'bottom', md: 'center' }}
         title={t('search.ui.saveSearch')}
         description={t('search.ui.saveSearchDescription')}
@@ -188,21 +227,38 @@ export function SavedSearchBar({ query, filters, enabled, onApply }: SavedSearch
           {
             label: t('common.save'),
             onPress: handleSave,
-            disabled: !enabled || !name.trim() || saving,
+            disabled: !draft || !enabled || !draft.name.trim() || saving,
             shouldCloseOnPress: false,
           },
         ]}
         testID="save-search-dialog"
       >
-        <TextFieldInput
-          value={name}
-          onChangeText={setName}
-          label={t('search.ui.searchName')}
-          maxLength={100}
-          returnKeyType="done"
-          onSubmitEditing={handleSave}
-          autoFocus
-        />
+        {pending && !draft && (
+          <Text accessibilityLiveRegion="polite">{t('search.ui.savedDraftUnavailable')}</Text>
+        )}
+        {draft && (
+          <TextFieldInput
+            value={draft.name}
+            onChangeText={(name) => {
+              const current = pendingRef.current;
+              if (
+                !isScopeCurrent() ||
+                !current ||
+                current.scope !== scope ||
+                current.id !== draft.id
+              )
+                return;
+              const next = { ...current, name };
+              pendingRef.current = next;
+              setPending(next);
+            }}
+            label={t('search.ui.searchName')}
+            maxLength={100}
+            returnKeyType="done"
+            onSubmitEditing={handleSave}
+            autoFocus
+          />
+        )}
       </Dialog>
     </>
   );

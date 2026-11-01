@@ -134,6 +134,8 @@ jest.mock('@oxy.so/bloom/typography', () => ({
 }));
 
 import { SavedSearchBar } from '@/components/SavedSearchBar';
+const mockScope = {};
+const isMockScopeCurrent = () => true;
 const row = (id: string) => ({
   id,
   name: `name-${id}`,
@@ -146,7 +148,14 @@ const row = (id: string) => ({
 let client: QueryClient;
 const wrap = () => (
   <QueryClientProvider client={client}>
-    <SavedSearchBar query="query" filters={{}} enabled onApply={() => {}} />
+    <SavedSearchBar
+      scope={mockScope}
+      isScopeCurrent={isMockScopeCurrent}
+      query="query"
+      filters={{}}
+      enabled
+      onApply={() => {}}
+    />
   </QueryClientProvider>
 );
 beforeEach(() => {
@@ -179,6 +188,8 @@ it('keeps a pending create visible when the search is cleared and no saved rows 
   const renderBar = (enabled: boolean) => (
     <QueryClientProvider client={client}>
       <SavedSearchBar
+        scope={mockScope}
+        isScopeCurrent={isMockScopeCurrent}
         query={enabled ? 'query' : ''}
         filters={{}}
         enabled={enabled}
@@ -210,7 +221,14 @@ it('allows closing a paused create and preserves a later dialog when it settles'
   const onApply = jest.fn();
   render(
     <QueryClientProvider client={client}>
-      <SavedSearchBar query="query" filters={{}} enabled onApply={onApply} />
+      <SavedSearchBar
+        scope={mockScope}
+        isScopeCurrent={isMockScopeCurrent}
+        query="query"
+        filters={{}}
+        enabled
+        onApply={onApply}
+      />
     </QueryClientProvider>,
   );
   await screen.findAllByRole('button', { name: 'search.ui.runSaved' });

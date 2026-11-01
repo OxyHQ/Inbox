@@ -64,6 +64,8 @@ jest.mock('@oxy.so/bloom/typography', () => ({
 }));
 
 import { SavedSearchBar } from '@/components/SavedSearchBar';
+const mockScope = {};
+const isMockScopeCurrent = () => true;
 
 it('shows an error without adding a retry action when no list is available', async () => {
   mockHttp.get.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce([
@@ -81,7 +83,14 @@ it('shows an error without adding a retry action when no list is available', asy
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
-      <SavedSearchBar query="" filters={{}} enabled={false} onApply={() => {}} />
+      <SavedSearchBar
+        scope={mockScope}
+        isScopeCurrent={isMockScopeCurrent}
+        query=""
+        filters={{}}
+        enabled={false}
+        onApply={() => {}}
+      />
     </QueryClientProvider>,
   );
   expect((await screen.findByText('search.saved.loadFailed')).getAttribute('aria-live')).toBe(
@@ -130,7 +139,14 @@ it('keeps a cached list visible and distinguishes a failed refresh', async () =>
   client.setQueryData(emailKeys.savedSearches, [row]);
   render(
     <QueryClientProvider client={client}>
-      <SavedSearchBar query="" filters={{}} enabled={false} onApply={() => {}} />
+      <SavedSearchBar
+        scope={mockScope}
+        isScopeCurrent={isMockScopeCurrent}
+        query=""
+        filters={{}}
+        enabled={false}
+        onApply={() => {}}
+      />
     </QueryClientProvider>,
   );
   expect((await screen.findByText('search.saved.refreshFailed')).getAttribute('aria-live')).toBe(
@@ -167,7 +183,14 @@ it.each([false, true])('announces a paused offline query with cached data=%s', a
     onlineManager.setOnline(false);
     render(
       <QueryClientProvider client={client}>
-        <SavedSearchBar query="" filters={{}} enabled={false} onApply={() => {}} />
+        <SavedSearchBar
+          scope={mockScope}
+          isScopeCurrent={isMockScopeCurrent}
+          query=""
+          filters={{}}
+          enabled={false}
+          onApply={() => {}}
+        />
       </QueryClientProvider>,
     );
     const status = await screen.findByText(
@@ -201,7 +224,14 @@ it('does not describe a focus-paused retry as offline', async () => {
     focusManager.setFocused(false);
     render(
       <QueryClientProvider client={client}>
-        <SavedSearchBar query="" filters={{}} enabled={false} onApply={() => {}} />
+        <SavedSearchBar
+          scope={mockScope}
+          isScopeCurrent={isMockScopeCurrent}
+          query=""
+          filters={{}}
+          enabled={false}
+          onApply={() => {}}
+        />
       </QueryClientProvider>,
     );
     expect(await screen.findByText('search.saved.retryPaused')).toBeTruthy();

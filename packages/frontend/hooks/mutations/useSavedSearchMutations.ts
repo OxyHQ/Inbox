@@ -1,67 +1,99 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@oxy.so/bloom/toast';
-import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import type { SavedEmailSearch, SavedEmailSearchFilters } from '@/services/emailApi';
 import { useTranslation } from '@/lib/i18n';
+import {
+  type OwnedVariables,
+  type EmailMutationContext,
+  useEmailMutationOwner,
+  ownsEmailMutation,
+  emailMutationApi,
+  exposeOwnedEmailMutation,
+} from '@/hooks/mutations/ownedEmailMutation';
 
 const key = emailKeys.savedSearches;
+const rollbackSnapshots = new WeakMap<object, SavedEmailSearch[] | undefined>();
+
+type CreateSavedSearchInput = { name: string; query: string; filters: SavedEmailSearchFilters };
+
+async function optimisticSavedSearches<T>(
+  queryClient: ReturnType<typeof useQueryClient>,
+  variables: OwnedVariables<T>,
+  update: (previous: SavedEmailSearch[]) => SavedEmailSearch[],
+): Promise<undefined> {
+  if (!ownsEmailMutation(variables)) return undefined;
+  await queryClient.cancelQueries({ queryKey: key });
+  if (!ownsEmailMutation(variables)) return undefined;
+  const previous = queryClient.getQueryData<SavedEmailSearch[]>(key);
+  rollbackSnapshots.set(variables, previous);
+  queryClient.setQueryData<SavedEmailSearch[]>(key, update(previous ?? []));
+  return undefined;
+}
+
+function rollbackSavedSearches<T>(
+  queryClient: ReturnType<typeof useQueryClient>,
+  variables: OwnedVariables<T>,
+) {
+  const previous = rollbackSnapshots.get(variables);
+  if (previous) queryClient.setQueryData(key, previous);
+}
 
 export function useCreateSavedSearch() {
+  const owner = useEmailMutationOwner();
   const { t } = useTranslation();
-  const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (data: { name: string; query: string; filters: SavedEmailSearchFilters }) => {
-      if (!api) throw new Error('Email API not initialized');
-      return api.createSavedSearch(data);
-    },
-    onMutate: async (data) => {
-      await queryClient.cancelQueries({ queryKey: key });
-      const previous = queryClient.getQueryData<SavedEmailSearch[]>(key);
-      const now = new Date().toISOString();
-      queryClient.setQueryData<SavedEmailSearch[]>(key, [
-        ...(previous ?? []),
-        {
-          id: `optimistic:${Date.now()}`,
-          ...data,
-          order: previous?.length ?? 0,
-          createdAt: now,
-          updatedAt: now,
-        },
-      ]);
-      return { previous };
-    },
-    onError: (error: unknown, _data, context) => {
-      if (context?.previous) queryClient.setQueryData(key, context.previous);
+  const mutation = useMutation<
+    SavedEmailSearch,
+    Error,
+    OwnedVariables<CreateSavedSearchInput>,
+    EmailMutationContext
+  >({
+    mutationFn: async (variables) => emailMutationApi(variables).createSavedSearch(variables.input),
+    onMutate: async (variables) =>
+      optimisticSavedSearches(queryClient, variables, (previous) => {
+        const now = new Date().toISOString();
+        return [
+          ...previous,
+          {
+            id: `optimistic:${Date.now()}`,
+            ...variables.input,
+            order: previous.length,
+            createdAt: now,
+            updatedAt: now,
+          },
+        ];
+      }),
+    onError: (error, variables) => {
+      if (!ownsEmailMutation(variables)) return;
+      rollbackSavedSearches(queryClient, variables);
       toast.error(error instanceof Error ? error.message : t('search.saved.saveFailed'));
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSettled: (_data, _error, variables) => {
+      if (ownsEmailMutation(variables)) void queryClient.invalidateQueries({ queryKey: key });
+    },
   });
+  return exposeOwnedEmailMutation(owner, mutation);
 }
 
 export function useDeleteSavedSearch() {
+  const owner = useEmailMutationOwner();
   const { t } = useTranslation();
-  const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      if (!api) throw new Error('Email API not initialized');
-      return api.deleteSavedSearch(id);
-    },
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: key });
-      const previous = queryClient.getQueryData<SavedEmailSearch[]>(key);
-      queryClient.setQueryData<SavedEmailSearch[]>(
-        key,
-        (old) => old?.filter((item) => item.id !== id) ?? [],
-      );
-      return { previous };
-    },
-    onError: (error: unknown, _id, context) => {
-      if (context?.previous) queryClient.setQueryData(key, context.previous);
+  const mutation = useMutation<void, Error, OwnedVariables<string>, EmailMutationContext>({
+    mutationFn: async (variables) => emailMutationApi(variables).deleteSavedSearch(variables.input),
+    onMutate: async (variables) =>
+      optimisticSavedSearches(queryClient, variables, (previous) =>
+        previous.filter((item) => item.id !== variables.input),
+      ),
+    onError: (error, variables) => {
+      if (!ownsEmailMutation(variables)) return;
+      rollbackSavedSearches(queryClient, variables);
       toast.error(error instanceof Error ? error.message : t('search.saved.deleteFailed'));
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
+    onSettled: (_data, _error, variables) => {
+      if (ownsEmailMutation(variables)) void queryClient.invalidateQueries({ queryKey: key });
+    },
   });
+  return exposeOwnedEmailMutation(owner, mutation);
 }

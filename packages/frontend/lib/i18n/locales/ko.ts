@@ -715,12 +715,17 @@ const ko: LocaleDict = {
       none: '아직 연락처가 없어요.',
     },
     toast: {
+      sessionUnavailable: '아직 계정에서 연락처를 수정할 수 없습니다. 잠시 후 다시 시도해 주세요.',
+      selectionExpired: '세션이 변경되었습니다. 연락처를 다시 선택해 주세요.',
       nameEmailRequired: '이름과 이메일이 필요해요.',
       created: '연락처를 만들었어요.',
       updated: '연락처를 업데이트했어요.',
       deleted: '연락처를 삭제했어요.',
     },
     form: {
+      sessionChanged:
+        '세션이 변경되었거나 준비되지 않았습니다. 양식을 버리기 전에 텍스트를 복사하세요.',
+      discard: '폐기',
       name: '이름 *',
       email: '이메일 *',
       company: '회사',

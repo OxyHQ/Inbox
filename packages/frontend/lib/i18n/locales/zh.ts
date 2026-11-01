@@ -706,12 +706,16 @@ const zh: LocaleDict = {
       none: '还没有联系人。',
     },
     toast: {
+      sessionUnavailable: '你的账号尚未准备好修改联系人，请稍后重试。',
+      selectionExpired: '会话已更改，请重新选择联系人。',
       nameEmailRequired: '姓名和邮箱为必填项。',
       created: '联系人已创建。',
       updated: '联系人已更新。',
       deleted: '联系人已删除。',
     },
     form: {
+      sessionChanged: '会话已更改或尚未就绪，请在放弃表单前复制文本。',
+      discard: '舍弃',
       name: '姓名 *',
       email: '邮箱 *',
       company: '公司',

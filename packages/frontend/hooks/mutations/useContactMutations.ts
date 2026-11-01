@@ -1,4 +1,10 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  assertMessageOwner,
+  ownsMessageOperation,
+  useGuardedMessageMutation,
+} from '@/hooks/mutations/guardedMessageMutation';
 import { toast } from '@oxy.so/bloom/toast';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
@@ -33,126 +39,153 @@ function applyToContacts(
  */
 async function optimisticContacts(
   queryClient: ReturnType<typeof useQueryClient>,
+  variables: object,
   updater: (prev: Contact[], pageIndex: number) => Contact[],
 ): Promise<{ prev: ContactsSnapshot }> {
   await queryClient.cancelQueries({ queryKey: emailKeys.contacts.root });
+  assertMessageOwner(variables);
   const prev = queryClient.getQueriesData<unknown>({ queryKey: emailKeys.contacts.root });
-  queryClient.setQueriesData<unknown>({ queryKey: emailKeys.contacts.root }, (old: unknown) =>
-    applyToContacts(old, updater),
-  );
+  for (const [key] of prev) {
+    assertMessageOwner(variables);
+    queryClient.setQueryData<unknown>(key, (old: unknown) => applyToContacts(old, updater));
+  }
   return { prev };
 }
 
-function restoreContacts(queryClient: ReturnType<typeof useQueryClient>, prev: ContactsSnapshot) {
-  for (const [key, data] of prev) queryClient.setQueryData(key, data);
+function restoreContacts(
+  queryClient: ReturnType<typeof useQueryClient>,
+  prev: ContactsSnapshot,
+  variables: object,
+) {
+  for (const [key, data] of prev) {
+    if (!ownsMessageOperation(variables)) return;
+    queryClient.setQueryData(key, data);
+  }
 }
 
 export function useCreateContact() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const onUnavailable = useCallback(() => toast.error(t('contacts.toast.sessionUnavailable')), [t]);
 
-  return useMutation({
-    mutationFn: async (data: {
-      name: string;
-      email: string;
-      company?: string;
-      notes?: string;
-      starred?: boolean;
-    }) => {
-      if (!api) throw new Error('Email API not initialized');
-      return api.createContact(data);
+  return useGuardedMessageMutation(
+    {
+      mutationFn: async (data: {
+        name: string;
+        email: string;
+        company?: string;
+        notes?: string;
+        starred?: boolean;
+      }) => {
+        if (!api) throw new Error('Email API not initialized');
+        return api.createContact(data);
+      },
+      onMutate: async (data) => {
+        const now = new Date().toISOString();
+        const tempId = `optimistic:${Date.now()}`;
+        const optimistic: Contact = {
+          _id: tempId,
+          id: tempId,
+          userId: '',
+          name: data.name,
+          email: data.email,
+          company: data.company ?? null,
+          notes: data.notes ?? null,
+          lastContactedAt: null,
+          starred: data.starred ?? false,
+          autoCollected: false,
+          createdAt: now,
+          updatedAt: now,
+        };
+        const { prev } = await optimisticContacts(queryClient, data, (contacts, page) =>
+          page === 0 ? [optimistic, ...contacts] : contacts,
+        );
+        return { prev };
+      },
+      onError: (err: Error, variables, context) => {
+        if (context?.prev) restoreContacts(queryClient, context.prev, variables);
+        if (!ownsMessageOperation(variables)) return;
+        toast.error(err.message || t('ui.mutations.contactCreateFailed'));
+      },
+      onSettled: () => {
+        queryClient.invalidateQueries({ queryKey: emailKeys.contacts.root });
+      },
     },
-    onMutate: async (data) => {
-      const now = new Date().toISOString();
-      const tempId = `optimistic:${Date.now()}`;
-      const optimistic: Contact = {
-        _id: tempId,
-        id: tempId,
-        userId: '',
-        name: data.name,
-        email: data.email,
-        company: data.company ?? null,
-        notes: data.notes ?? null,
-        lastContactedAt: null,
-        starred: data.starred ?? false,
-        autoCollected: false,
-        createdAt: now,
-        updatedAt: now,
-      };
-      const { prev } = await optimisticContacts(queryClient, (contacts, page) =>
-        page === 0 ? [optimistic, ...contacts] : contacts,
-      );
-      return { prev };
-    },
-    onError: (err: Error, _vars, context) => {
-      if (context?.prev) restoreContacts(queryClient, context.prev);
-      toast.error(err.message || t('ui.mutations.contactCreateFailed'));
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: emailKeys.contacts.root });
-    },
-  });
+    onUnavailable,
+  );
 }
 
 export function useUpdateContact() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const onUnavailable = useCallback(() => toast.error(t('contacts.toast.sessionUnavailable')), [t]);
 
-  return useMutation({
-    mutationFn: async ({
-      contactId,
-      ...updates
-    }: {
-      contactId: string;
-      name?: string;
-      email?: string;
-      company?: string;
-      notes?: string;
-      starred?: boolean;
-    }) => {
-      if (!api) throw new Error('Email API not initialized');
-      return api.updateContact(contactId, updates);
+  return useGuardedMessageMutation(
+    {
+      mutationFn: async ({
+        contactId,
+        ...updates
+      }: {
+        contactId: string;
+        name?: string;
+        email?: string;
+        company?: string;
+        notes?: string;
+        starred?: boolean;
+      }) => {
+        if (!api) throw new Error('Email API not initialized');
+        return api.updateContact(contactId, updates);
+      },
+      onMutate: async (variables) => {
+        const { contactId, ...updates } = variables;
+        const { prev } = await optimisticContacts(queryClient, variables, (contacts) =>
+          contacts.map((c) => (c._id === contactId ? { ...c, ...updates } : c)),
+        );
+        return { prev };
+      },
+      onError: (err: Error, variables, context) => {
+        if (context?.prev) restoreContacts(queryClient, context.prev, variables);
+        if (!ownsMessageOperation(variables)) return;
+        toast.error(err.message || t('ui.mutations.contactUpdateFailed'));
+      },
+      onSettled: () => {
+        queryClient.invalidateQueries({ queryKey: emailKeys.contacts.root });
+      },
     },
-    onMutate: async ({ contactId, ...updates }) => {
-      const { prev } = await optimisticContacts(queryClient, (contacts) =>
-        contacts.map((c) => (c._id === contactId ? { ...c, ...updates } : c)),
-      );
-      return { prev };
-    },
-    onError: (err: Error, _vars, context) => {
-      if (context?.prev) restoreContacts(queryClient, context.prev);
-      toast.error(err.message || t('ui.mutations.contactUpdateFailed'));
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: emailKeys.contacts.root });
-    },
-  });
+    onUnavailable,
+  );
 }
 
 export function useDeleteContact() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const onUnavailable = useCallback(() => toast.error(t('contacts.toast.sessionUnavailable')), [t]);
 
-  return useMutation({
-    mutationFn: async (contactId: string) => {
-      if (!api) throw new Error('Email API not initialized');
-      return api.deleteContact(contactId);
+  return useGuardedMessageMutation(
+    {
+      mutationFn: async ({ contactId }: { contactId: string }) => {
+        if (!api) throw new Error('Email API not initialized');
+        return api.deleteContact(contactId);
+      },
+      onMutate: async (variables) => {
+        const { contactId } = variables;
+        const { prev } = await optimisticContacts(queryClient, variables, (contacts) =>
+          contacts.filter((c) => c._id !== contactId),
+        );
+        return { prev };
+      },
+      onError: (_err, variables, context) => {
+        if (context?.prev) restoreContacts(queryClient, context.prev, variables);
+        if (!ownsMessageOperation(variables)) return;
+        toast.error(t('ui.mutations.contactDeleteFailed'));
+      },
+      onSettled: () => {
+        queryClient.invalidateQueries({ queryKey: emailKeys.contacts.root });
+      },
     },
-    onMutate: async (contactId) => {
-      const { prev } = await optimisticContacts(queryClient, (contacts) =>
-        contacts.filter((c) => c._id !== contactId),
-      );
-      return { prev };
-    },
-    onError: (_err, _vars, context) => {
-      if (context?.prev) restoreContacts(queryClient, context.prev);
-      toast.error(t('ui.mutations.contactDeleteFailed'));
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: emailKeys.contacts.root });
-    },
-  });
+    onUnavailable,
+  );
 }

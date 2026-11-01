@@ -728,12 +728,18 @@ const ca: LocaleDict = {
       none: 'Encara no tens contactes.',
     },
     toast: {
+      sessionUnavailable:
+        'El teu compte encara no està preparat per modificar contactes. Torna-ho a provar d’aquí a un moment.',
+      selectionExpired: 'La sessió ha canviat. Torna a seleccionar el contacte.',
       nameEmailRequired: 'El nom i el correu són obligatoris.',
       created: 'Contacte creat.',
       updated: 'Contacte actualitzat.',
       deleted: 'Contacte eliminat.',
     },
     form: {
+      sessionChanged:
+        'La sessió ha canviat o no està preparada. Copia el text abans de descartar el formulari.',
+      discard: 'Descarta',
       name: 'Nom *',
       email: 'Correu *',
       company: 'Empresa',

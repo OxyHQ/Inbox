@@ -720,12 +720,18 @@ const ja: LocaleDict = {
       none: 'まだ連絡先がありません。',
     },
     toast: {
+      sessionUnavailable:
+        'アカウントで連絡先を変更する準備ができていません。しばらくしてからもう一度お試しください。',
+      selectionExpired: 'セッションが変更されました。連絡先をもう一度選択してください。',
       nameEmailRequired: '名前とメールアドレスは必須です。',
       created: '連絡先を作成しました。',
       updated: '連絡先を更新しました。',
       deleted: '連絡先を削除しました。',
     },
     form: {
+      sessionChanged:
+        'セッションが変更されたか、準備ができていません。フォームを破棄する前にテキストをコピーしてください。',
+      discard: '破棄',
       name: '名前 *',
       email: 'メール *',
       company: '会社',

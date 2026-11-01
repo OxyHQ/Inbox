@@ -6,6 +6,7 @@ import {
   useUpdateContact,
 } from '@/hooks/mutations/useContactMutations';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { isCurrentEmailOwner, useEmailMutationOwner } from '@/hooks/mutations/ownedEmailMutation';
 import { useContacts } from '@/hooks/queries/useContacts';
 import { useTranslation } from '@/lib/i18n';
 import type { Contact } from '@/schemas/emailSchemas';
@@ -17,9 +18,32 @@ import { SettingsProfilePage } from '@oxy.so/bloom/settings-modal';
 import { Switch } from '@oxy.so/bloom/switch';
 import { Textarea } from '@oxy.so/bloom/textarea';
 import { toast } from '@oxy.so/bloom/toast';
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+type ContactFormBinding = {
+  owner: ReturnType<typeof useEmailMutationOwner>;
+  create: ReturnType<typeof useCreateContact>['mutate'];
+  update: ReturnType<typeof useUpdateContact>['mutate'];
+};
+type ContactForm = {
+  editingId: string | null;
+  name: string;
+  email: string;
+  company: string;
+  notes: string;
+  starred: boolean;
+  binding: ContactFormBinding | null;
+};
+const emptyContactForm = (): ContactForm => ({
+  editingId: null,
+  name: '',
+  email: '',
+  company: '',
+  notes: '',
+  starred: false,
+  binding: null,
+});
 
 export function ContactsSection() {
   const { t } = useTranslation();
@@ -46,102 +70,86 @@ export function ContactsSection() {
   const createContact = useCreateContact();
   const updateContact = useUpdateContact();
   const deleteContact = useDeleteContact();
+  const contactOwner = useEmailMutationOwner(true);
 
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [company, setCompany] = useState('');
-  const [notes, setNotes] = useState('');
-  const [starred, setStarred] = useState(false);
-
+  const [form, setForm] = useState(emptyContactForm);
+  const { editingId, name, email, company, notes, starred, binding } = form;
+  const formUnavailable = Boolean(binding && !isCurrentEmailOwner(binding.owner));
   const deleteConfirm = useDialogControl();
   const [pendingDelete, setPendingDelete] = useState<{
     id: string;
     name: string;
+    owner: typeof contactOwner;
+    mutate: typeof deleteContact.mutate;
+    form: ContactForm;
   } | null>(null);
 
-  const resetForm = useCallback(() => {
-    setEditingId(null);
-    setName('');
-    setEmail('');
-    setCompany('');
-    setNotes('');
-    setStarred(false);
-  }, []);
-
-  const startEdit = useCallback(
-    (contact: Pick<Contact, '_id' | 'name' | 'email' | 'company' | 'notes' | 'starred'>) => {
-      setEditingId(contact._id);
-      setName(contact.name);
-      setEmail(contact.email);
-      setCompany(contact.company ?? '');
-      setNotes(contact.notes ?? '');
-      setStarred(contact.starred);
-    },
-    [],
-  );
+  const resetForm = () => setForm(emptyContactForm());
+  const startEdit = (
+    contact: Pick<Contact, '_id' | 'name' | 'email' | 'company' | 'notes' | 'starred'>,
+  ) => {
+    setForm({
+      editingId: contact._id,
+      name: contact.name,
+      email: contact.email,
+      company: contact.company ?? '',
+      notes: contact.notes ?? '',
+      starred: contact.starred,
+      binding: { owner: contactOwner, create: createContact.mutate, update: updateContact.mutate },
+    });
+  };
 
   const formValid = name.trim().length > 0 && isValidEmail(email.trim());
   const submitting = editingId ? updateContact.isPending : createContact.isPending;
-
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = () => {
+    const snapshot = form;
+    const captured = snapshot.binding;
     if (!formValid) {
       toast.error(t('contacts.toast.nameEmailRequired'));
       return;
     }
-    // On an edit, an emptied field is sent as '' — which the server stores as
-    // "none" — not left out: left out, it kept its old value, so a company or
-    // a note could never be removed.
-    const optional = (value: string) => (editingId ? value.trim() : value.trim() || undefined);
+    if (!captured || !isCurrentEmailOwner(captured.owner)) return;
+    // On edit an empty optional field explicitly clears its server value.
+    const optional = (value: string) =>
+      snapshot.editingId ? value.trim() : value.trim() || undefined;
     const payload = {
-      name: name.trim(),
-      email: email.trim(),
-      company: optional(company),
-      notes: optional(notes),
-      starred,
+      name: snapshot.name.trim(),
+      email: snapshot.email.trim(),
+      company: optional(snapshot.company),
+      notes: optional(snapshot.notes),
+      starred: snapshot.starred,
     };
-    if (editingId) {
-      updateContact.mutate(
-        { contactId: editingId, ...payload },
-        {
-          onSuccess: () => {
-            resetForm();
-            toast.success(t('contacts.toast.updated'));
-          },
-        },
-      );
-      return;
-    }
-    createContact.mutate(payload, {
-      onSuccess: () => {
-        resetForm();
-        toast.success(t('contacts.toast.created'));
-      },
-    });
-  }, [
-    formValid,
-    name,
-    email,
-    company,
-    notes,
-    starred,
-    editingId,
-    updateContact,
-    createContact,
-    resetForm,
-    t,
-  ]);
+    const onSuccess = () => {
+      if (!isCurrentEmailOwner(captured.owner)) return;
+      toast.success(t(snapshot.editingId ? 'contacts.toast.updated' : 'contacts.toast.created'));
+      if (!isCurrentEmailOwner(captured.owner)) return;
+      setForm((current) => (current === snapshot ? emptyContactForm() : current));
+    };
+    if (snapshot.editingId)
+      captured.update({ contactId: snapshot.editingId, ...payload }, { onSuccess });
+    else captured.create(payload, { onSuccess });
+  };
 
-  const handleDelete = useCallback(() => {
-    if (!pendingDelete) return;
-    deleteContact.mutate(pendingDelete.id, {
-      onSuccess: () => {
-        toast.success(t('contacts.toast.deleted'));
-        if (editingId === pendingDelete.id) resetForm();
-        setPendingDelete(null);
+  const handleDelete = () => {
+    const target = pendingDelete;
+    if (!target) return;
+    target.mutate(
+      { contactId: target.id },
+      {
+        onSuccess: () => {
+          if (!isCurrentEmailOwner(target.owner)) return;
+          toast.success(t('contacts.toast.deleted'));
+          if (!isCurrentEmailOwner(target.owner)) return;
+          setForm((current) =>
+            current === target.form && current.editingId === target.id
+              ? emptyContactForm()
+              : current,
+          );
+          setPendingDelete((current) => (current === target ? null : current));
+        },
       },
-    });
-  }, [pendingDelete, deleteContact, editingId, resetForm, t]);
+    );
+  };
 
   return (
     <>
@@ -199,7 +207,13 @@ export function ContactsSection() {
                       })}
                       icon={<RiDeleteBin6Line />}
                       onPress={() => {
-                        setPendingDelete({ id: contact._id, name: contact.name });
+                        setPendingDelete({
+                          id: contact._id,
+                          name: contact.name,
+                          form,
+                          owner: contactOwner,
+                          mutate: deleteContact.mutate,
+                        });
                         deleteConfirm.open();
                       }}
                     />
@@ -238,6 +252,15 @@ export function ContactsSection() {
               editingId ? 'ui.settings.contacts.editContact' : 'ui.settings.contacts.addContact',
             ),
             rows: [
+              ...(formUnavailable
+                ? [
+                    {
+                      key: 'owner-unavailable',
+                      label: t('contacts.form.sessionChanged'),
+                      control: null,
+                    },
+                  ]
+                : []),
               {
                 key: 'name',
                 label: t('ui.settings.contacts.name'),
@@ -245,7 +268,17 @@ export function ContactsSection() {
                   <TextFieldInput
                     label={t('ui.settings.contacts.name')}
                     value={name}
-                    onChangeText={setName}
+                    onChangeText={(value) =>
+                      setForm((current) => ({
+                        ...current,
+                        name: value,
+                        binding: current.binding ?? {
+                          owner: contactOwner,
+                          create: createContact.mutate,
+                          update: updateContact.mutate,
+                        },
+                      }))
+                    }
                   />
                 ),
               },
@@ -256,7 +289,17 @@ export function ContactsSection() {
                   <TextFieldInput
                     label={t('ui.settings.contacts.email')}
                     value={email}
-                    onChangeText={setEmail}
+                    onChangeText={(value) =>
+                      setForm((current) => ({
+                        ...current,
+                        email: value,
+                        binding: current.binding ?? {
+                          owner: contactOwner,
+                          create: createContact.mutate,
+                          update: updateContact.mutate,
+                        },
+                      }))
+                    }
                     keyboardType="email-address"
                   />
                 ),
@@ -268,7 +311,17 @@ export function ContactsSection() {
                   <TextFieldInput
                     label={t('ui.settings.contacts.company')}
                     value={company}
-                    onChangeText={setCompany}
+                    onChangeText={(value) =>
+                      setForm((current) => ({
+                        ...current,
+                        company: value,
+                        binding: current.binding ?? {
+                          owner: contactOwner,
+                          create: createContact.mutate,
+                          update: updateContact.mutate,
+                        },
+                      }))
+                    }
                   />
                 ),
               },
@@ -279,7 +332,17 @@ export function ContactsSection() {
                   <Textarea
                     accessibilityLabel={t('ui.settings.contacts.notes')}
                     value={notes}
-                    onChangeText={setNotes}
+                    onChangeText={(value) =>
+                      setForm((current) => ({
+                        ...current,
+                        notes: value,
+                        binding: current.binding ?? {
+                          owner: contactOwner,
+                          create: createContact.mutate,
+                          update: updateContact.mutate,
+                        },
+                      }))
+                    }
                     rows={3}
                     style={{ width: 202, maxWidth: '100%', flexGrow: 1 }}
                   />
@@ -292,7 +355,17 @@ export function ContactsSection() {
                   <Switch
                     accessibilityLabel={t('ui.settings.contacts.star')}
                     checked={starred}
-                    onCheckedChange={setStarred}
+                    onCheckedChange={(value) =>
+                      setForm((current) => ({
+                        ...current,
+                        starred: value,
+                        binding: current.binding ?? {
+                          owner: contactOwner,
+                          create: createContact.mutate,
+                          update: updateContact.mutate,
+                        },
+                      }))
+                    }
                   />
                 ),
               },
@@ -307,7 +380,7 @@ export function ContactsSection() {
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     <Button
                       onPress={handleSubmit}
-                      disabled={!formValid || submitting}
+                      disabled={!formValid || submitting || formUnavailable}
                       loading={submitting}
                     >
                       {t(
@@ -316,9 +389,9 @@ export function ContactsSection() {
                           : 'ui.settings.contacts.addContact',
                       )}
                     </Button>
-                    {editingId ? (
+                    {editingId || formUnavailable ? (
                       <Button appearance="subtle" onPress={resetForm}>
-                        {t('common.cancel')}
+                        {t(formUnavailable ? 'contacts.form.discard' : 'common.cancel')}
                       </Button>
                     ) : null}
                   </View>
@@ -332,16 +405,23 @@ export function ContactsSection() {
         control={deleteConfirm}
         title={t('ui.settings.contacts.deleteTitle')}
         description={
-          pendingDelete
-            ? t('ui.settings.contacts.deleteDescription', {
-                name: pendingDelete.name,
-              })
-            : ''
+          pendingDelete && !isCurrentEmailOwner(pendingDelete.owner)
+            ? t(
+                isCurrentEmailOwner(contactOwner)
+                  ? 'contacts.toast.selectionExpired'
+                  : 'contacts.toast.sessionUnavailable',
+              )
+            : pendingDelete
+              ? t('ui.settings.contacts.deleteDescription', {
+                  name: pendingDelete.name,
+                })
+              : ''
         }
         actions={[
           {
             label: t('common.delete'),
             color: 'destructive',
+            disabled: !pendingDelete || !isCurrentEmailOwner(pendingDelete.owner),
             onPress: handleDelete,
           },
           { label: t('common.cancel'), color: 'cancel' },

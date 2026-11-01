@@ -1171,6 +1171,9 @@ const de: LocaleDict = {
       mailboxCreateFailed: 'Ordner konnte nicht erstellt werden.',
       mailboxDeleted: 'Ordner gelöscht.',
       mailboxDeleteFailed: 'Ordner konnte nicht gelöscht werden.',
+      mailboxSelectionExpired: 'Deine Sitzung hat sich geändert. Wähle den Ordner erneut aus.',
+      mailboxSessionUnavailable:
+        'Dein Konto ist noch nicht bereit, Ordner zu ändern. Bitte versuche es in Kürze erneut.',
       reminderCreateFailed: 'Erinnerung konnte nicht erstellt werden',
       reminderUpdateFailed: 'Erinnerung konnte nicht aktualisiert werden',
       reminderDeleteFailed: 'Erinnerung konnte nicht gelöscht werden',

@@ -1161,6 +1161,9 @@ const en: LocaleDict = {
       mailboxCreateFailed: 'Failed to create folder.',
       mailboxDeleted: 'Folder deleted.',
       mailboxDeleteFailed: 'Failed to delete folder.',
+      mailboxSelectionExpired: 'Your session changed. Choose the folder again.',
+      mailboxSessionUnavailable:
+        'Your account is not ready to update folders. Please try again shortly.',
       reminderCreateFailed: 'Failed to create reminder',
       reminderUpdateFailed: 'Failed to update reminder',
       reminderDeleteFailed: 'Failed to delete reminder',

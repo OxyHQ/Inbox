@@ -12,6 +12,7 @@ import { useInboxSettings } from '@/components/settings/InboxSettings';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { useColors } from '@/constants/theme';
 import { useCreateMailbox, useDeleteMailbox } from '@/hooks/mutations/useMailboxMutations';
+import { isCurrentEmailOwner, useEmailMutationOwner } from '@/hooks/mutations/ownedEmailMutation';
 import { useLabels } from '@/hooks/queries/useLabels';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
 import { useScopedState } from '@/hooks/useScopedState';
@@ -151,12 +152,15 @@ export function MailboxShell({ children }: { children: ReactNode }) {
   // Custom-folder create / delete flows.
   const createMailbox = useCreateMailbox();
   const deleteMailbox = useDeleteMailbox();
+  const folderOwner = useEmailMutationOwner(true);
   const createFolderControl = useDialogControl();
   const deleteFolderControl = useDialogControl();
   const [newFolderName, setNewFolderName] = useScopedState(accountScope, () => '');
   const [folderPendingDelete, setFolderPendingDelete] = useScopedState<{
     id: string;
     name: string;
+    owner: typeof folderOwner;
+    mutate: typeof deleteMailbox.mutate;
   } | null>(accountScope, () => null);
 
   const handleCustomFolderSelect = useCallback(
@@ -187,7 +191,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
   const handleConfirmDeleteFolder = useCallback(() => {
     if (!folderPendingDelete) return;
     const deletedId = folderPendingDelete.id;
-    deleteMailbox.mutate(
+    folderPendingDelete.mutate(
       { mailboxId: deletedId },
       {
         onSuccess: () => {
@@ -206,7 +210,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
         onSettled: () => setFolderPendingDelete(null),
       },
     );
-  }, [folderPendingDelete, deleteMailbox, router, setFolderPendingDelete]);
+  }, [folderPendingDelete, router, setFolderPendingDelete]);
 
   const handleSelect = useCallback(
     (mailbox: Mailbox & { specialUse: string }) => {
@@ -331,7 +335,12 @@ export function MailboxShell({ children }: { children: ReactNode }) {
           badge: folder.unseenMessages || undefined,
           onPress: () => handleCustomFolderSelect(folder),
           onLongPress: () => {
-            setFolderPendingDelete({ id: folder._id, name: folder.name });
+            setFolderPendingDelete({
+              id: folder._id,
+              name: folder.name,
+              owner: folderOwner,
+              mutate: deleteMailbox.mutate,
+            });
             deleteFolderControl.open();
           },
         })),
@@ -513,7 +522,12 @@ export function MailboxShell({ children }: { children: ReactNode }) {
                   appearance="subtle"
                   onPress={() => {
                     manageFoldersControl.close();
-                    setFolderPendingDelete({ id: folder._id, name: folder.name });
+                    setFolderPendingDelete({
+                      id: folder._id,
+                      name: folder.name,
+                      owner: folderOwner,
+                      mutate: deleteMailbox.mutate,
+                    });
                     deleteFolderControl.open();
                   }}
                 >
@@ -526,16 +540,23 @@ export function MailboxShell({ children }: { children: ReactNode }) {
             control={deleteFolderControl}
             title={t('ui.drawer.deleteFolderTitle')}
             description={
-              folderPendingDelete
-                ? t('ui.drawer.deleteFolderDescription', {
-                    name: folderPendingDelete.name,
-                  })
-                : ''
+              folderPendingDelete && !isCurrentEmailOwner(folderPendingDelete.owner)
+                ? t(
+                    isCurrentEmailOwner(folderOwner)
+                      ? 'ui.mutations.mailboxSelectionExpired'
+                      : 'ui.mutations.mailboxSessionUnavailable',
+                  )
+                : folderPendingDelete
+                  ? t('ui.drawer.deleteFolderDescription', {
+                      name: folderPendingDelete.name,
+                    })
+                  : ''
             }
             actions={[
               {
                 label: t('common.delete'),
                 color: 'destructive',
+                disabled: !folderPendingDelete || !isCurrentEmailOwner(folderPendingDelete.owner),
                 onPress: handleConfirmDeleteFolder,
               },
               { label: t('common.cancel'), color: 'cancel' },

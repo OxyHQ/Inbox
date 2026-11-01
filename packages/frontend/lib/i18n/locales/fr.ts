@@ -1164,6 +1164,9 @@ const fr: LocaleDict = {
       mailboxCreateFailed: 'Impossible de créer le dossier.',
       mailboxDeleted: 'Dossier supprimé.',
       mailboxDeleteFailed: 'Impossible de supprimer le dossier.',
+      mailboxSelectionExpired: 'Votre session a changé. Sélectionnez à nouveau le dossier.',
+      mailboxSessionUnavailable:
+        'Votre compte n’est pas encore prêt à modifier les dossiers. Réessayez dans un instant.',
       reminderCreateFailed: 'Impossible de créer le rappel',
       reminderUpdateFailed: 'Impossible de mettre à jour le rappel',
       reminderDeleteFailed: 'Impossible de supprimer le rappel',

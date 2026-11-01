@@ -1159,6 +1159,9 @@ const it: LocaleDict = {
       mailboxCreateFailed: 'Impossibile creare la cartella.',
       mailboxDeleted: 'Cartella eliminata.',
       mailboxDeleteFailed: 'Impossibile eliminare la cartella.',
+      mailboxSelectionExpired: 'La sessione è cambiata. Seleziona di nuovo la cartella.',
+      mailboxSessionUnavailable:
+        'Il tuo account non è ancora pronto per modificare le cartelle. Riprova tra poco.',
       reminderCreateFailed: 'Impossibile creare il promemoria',
       reminderUpdateFailed: 'Impossibile aggiornare il promemoria',
       reminderDeleteFailed: 'Impossibile eliminare il promemoria',

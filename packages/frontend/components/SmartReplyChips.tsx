@@ -10,7 +10,8 @@ import { Chip } from '@oxy.so/bloom/chip';
 import { RiSparklingLine } from '@oxy.so/bloom/icons/RiSparklingLine';
 import { Loading } from '@oxy.so/bloom/loading';
 import { Text } from '@oxy.so/bloom/typography';
-import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { onlineManager } from '@tanstack/react-query';
 import { View } from 'react-native';
 
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
@@ -47,8 +48,18 @@ function MessageSmartReplyChips({
   const { t } = useTranslation();
   const { prefs } = useInboxPrefs();
   const [hasRequestedReplies, setHasRequestedReplies] = useState(false);
-  const { replies, isLoading, refetch } = useSmartReplies(message, owner);
+  const { replies, isLoading, isPending, isPaused, error, refetch } = useSmartReplies(
+    message,
+    owner,
+  );
+  const online = useSyncExternalStore(
+    onlineManager.subscribe,
+    () => onlineManager.isOnline(),
+    () => onlineManager.isOnline(),
+  );
   const mountedRef = useRef(false);
+  const requestedRef = useRef(false);
+  const inFlightRef = useRef(false);
 
   useLayoutEffect(() => {
     mountedRef.current = true;
@@ -58,9 +69,21 @@ function MessageSmartReplyChips({
   }, []);
 
   const handleGenerateReplies = useCallback(() => {
-    if (!mountedRef.current || !owner.isCurrent()) return;
+    if (
+      !mountedRef.current ||
+      !owner.isCurrent() ||
+      inFlightRef.current ||
+      (requestedRef.current && !onlineManager.isOnline())
+    )
+      return;
+    requestedRef.current = true;
+    inFlightRef.current = true;
     setHasRequestedReplies(true);
-    void refetch();
+    void refetch()
+      .catch(() => undefined)
+      .finally(() => {
+        inFlightRef.current = false;
+      });
   }, [refetch, owner]);
 
   // Smart Reply is opt-in; render nothing when the user disabled it.
@@ -84,12 +107,41 @@ function MessageSmartReplyChips({
       </View>
     );
   }
-  if (!isLoading && replies.length === 0) return null;
+  const generating = isLoading || (isPending && !isPaused);
+  if (!generating && replies.length === 0) {
+    const showFailure = error !== null || isPaused;
+    const status = !showFailure
+      ? t('smartReply.empty')
+      : !online
+        ? t('smartReply.offline')
+        : isPaused
+          ? t('smartReply.waiting')
+          : t('smartReply.failed');
+    return (
+      <View className="gap-2">
+        <Text variant="caption-1-regular" accessibilityLiveRegion="polite">
+          {status}
+        </Text>
+        {showFailure && (
+          <>
+            <Button
+              appearance="subtle"
+              onPress={handleGenerateReplies}
+              disabled={!online || isPaused || !owner.ready}
+            >
+              {t('common.retry')}
+            </Button>
+            <Text variant="caption-1-regular">{t('smartReply.notice')}</Text>
+          </>
+        )}
+      </View>
+    );
+  }
   return (
     <View className="gap-2">
       <Text variant="caption-1-regular">{t('smartReply.quickReplies')}</Text>
       <View className="flex-row flex-wrap gap-2">
-        {isLoading ? (
+        {generating ? (
           <Loading text={t('smartReply.generating')} />
         ) : (
           replies.map((reply, index) => (

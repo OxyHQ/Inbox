@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { OxyServices } from '@oxy.so/core';
 import type { ReactNode } from 'react';
 import type { Message } from '@/services/emailApi';
@@ -83,7 +83,10 @@ beforeEach(() => {
     mockRuntime.setActiveSessionId('session-a');
   });
 });
-afterEach(() => mockOxy.dispose());
+afterEach(() => {
+  onlineManager.setOnline(true);
+  mockOxy.dispose();
+});
 
 function token(subject: string, session: string, extra = '') {
   return `e30.${Buffer.from(JSON.stringify({ userId: subject, sessionId: session, exp: 2000000000, jti: extra })).toString('base64url')}.fixture`;
@@ -585,5 +588,185 @@ it('allocates non-enumerable decimal namespaces beyond integer precision', () =>
     '10000000000000000000000000000001',
   );
   second.unmount();
+  client.clear();
+});
+
+it('explains a generation failure and offers a retry for the current session', async () => {
+  const post = jest
+    .spyOn(mockOxy.http, 'post')
+    .mockRejectedValueOnce(new Error('synthetic failure'))
+    .mockResolvedValueOnce({ replies: ['recovered'] } as never);
+  const { createInboxQueryClient } = require('@/hooks/queries/queryClient');
+  const client = createInboxQueryClient();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <SmartReplyChips message={{ _id: 'same' } as Message} onSelectReply={() => {}} />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'smartReply.generate' }));
+  await waitFor(() => expect(screen.getByText('smartReply.failed')).toBeTruthy());
+  expect(post).toHaveBeenCalledTimes(1);
+  fireEvent.click(screen.getByRole('button', { name: 'common.retry' }));
+  await waitFor(() => expect(screen.getByText('recovered')).toBeTruthy());
+  expect(post).toHaveBeenCalledTimes(2);
+  view.unmount();
+  client.clear();
+});
+
+it('distinguishes a successful empty response from a generation failure', async () => {
+  jest.spyOn(mockOxy.http, 'post').mockResolvedValueOnce({ replies: [] } as never);
+  const { createInboxQueryClient } = require('@/hooks/queries/queryClient');
+  const client = createInboxQueryClient();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <SmartReplyChips message={{ _id: 'same' } as Message} onSelectReply={() => {}} />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'smartReply.generate' }));
+  await waitFor(() => expect(screen.getByText('smartReply.empty')).toBeTruthy());
+  expect(screen.queryByText('smartReply.failed')).toBeNull();
+  view.unmount();
+  client.clear();
+});
+
+it('explains an offline failure, then requires an explicit retry after reconnecting', async () => {
+  onlineManager.setOnline(false);
+  const post = jest
+    .spyOn(mockOxy.http, 'post')
+    .mockRejectedValueOnce(new Error('offline'))
+    .mockResolvedValueOnce({ replies: ['after reconnect'] } as never);
+  const { createInboxQueryClient } = require('@/hooks/queries/queryClient');
+  const client = createInboxQueryClient();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <SmartReplyChips message={{ _id: 'same' } as Message} onSelectReply={() => {}} />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'smartReply.generate' }));
+  await waitFor(() => expect(screen.getByText('smartReply.offline')).toBeTruthy());
+  expect((screen.getByRole('button', { name: 'common.retry' }) as HTMLButtonElement).disabled).toBe(
+    true,
+  );
+  expect(post).toHaveBeenCalledTimes(1);
+  act(() => onlineManager.setOnline(true));
+  await waitFor(() =>
+    expect(
+      (screen.getByRole('button', { name: 'common.retry' }) as HTMLButtonElement).disabled,
+    ).toBe(false),
+  );
+  expect(post).toHaveBeenCalledTimes(1);
+  fireEvent.click(screen.getByRole('button', { name: 'common.retry' }));
+  await waitFor(() => expect(screen.getByText('after reconnect')).toBeTruthy());
+  expect(post).toHaveBeenCalledTimes(2);
+  view.unmount();
+  client.clear();
+});
+
+it('does not let a retained retry run after the observed session changes', async () => {
+  const post = jest.spyOn(mockOxy.http, 'post').mockRejectedValueOnce(new Error('failure'));
+  const { createInboxQueryClient } = require('@/hooks/queries/queryClient');
+  const client = createInboxQueryClient();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <SmartReplyChips message={{ _id: 'same' } as Message} onSelectReply={() => {}} />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'smartReply.generate' }));
+  await waitFor(() => expect(screen.getByText('smartReply.failed')).toBeTruthy());
+  const retained = mockOldGenerate;
+  expect(retained).toBeDefined();
+  act(() => {
+    mockOxy.session.setAccessToken(token('alice', 'session-b'));
+    retained?.();
+    mockRuntime.setActiveSessionId('session-b');
+  });
+  expect(post).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole('button', { name: 'smartReply.generate' })).toBeTruthy();
+  view.unmount();
+  client.clear();
+});
+
+it('does not send duplicate requests from retained repeated presses', async () => {
+  let finish!: (value: { replies: string[] }) => void;
+  const pending = new Promise<{ replies: string[] }>((resolve) => {
+    finish = resolve;
+  });
+  const post = jest.spyOn(mockOxy.http, 'post').mockReturnValueOnce(pending as never);
+  const { createInboxQueryClient } = require('@/hooks/queries/queryClient');
+  const client = createInboxQueryClient();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <SmartReplyChips message={{ _id: 'same' } as Message} onSelectReply={() => {}} />
+    </QueryClientProvider>,
+  );
+  const retained = mockOldGenerate;
+  expect(retained).toBeDefined();
+  act(() => {
+    retained?.();
+    retained?.();
+  });
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+  await act(async () => {
+    finish({ replies: ['one reply'] });
+    await pending;
+  });
+  await waitFor(() => expect(screen.getByText('one reply')).toBeTruthy());
+  view.unmount();
+  client.clear();
+});
+
+it('reports a paused request and lets TanStack resume that same request after reconnecting', async () => {
+  onlineManager.setOnline(false);
+  const post = jest
+    .spyOn(mockOxy.http, 'post')
+    .mockResolvedValueOnce({ replies: ['resumed'] } as never);
+  const client = new QueryClient({
+    defaultOptions: { queries: { networkMode: 'online', retry: false } },
+  });
+  const view = render(
+    <QueryClientProvider client={client}>
+      <SmartReplyChips message={{ _id: 'same' } as Message} onSelectReply={() => {}} />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'smartReply.generate' }));
+  await waitFor(() => expect(screen.getByText('smartReply.offline')).toBeTruthy());
+  expect(post).not.toHaveBeenCalled();
+  expect((screen.getByRole('button', { name: 'common.retry' }) as HTMLButtonElement).disabled).toBe(
+    true,
+  );
+  act(() => onlineManager.setOnline(true));
+  await waitFor(() => expect(screen.getByText('resumed')).toBeTruthy());
+  expect(post).toHaveBeenCalledTimes(1);
+  view.unmount();
+  client.clear();
+});
+
+it('does not replay an offline failure after switching sessions and reconnecting', async () => {
+  onlineManager.setOnline(false);
+  const post = jest.spyOn(mockOxy.http, 'post').mockRejectedValueOnce(new Error('offline'));
+  const { createInboxQueryClient } = require('@/hooks/queries/queryClient');
+  const client = createInboxQueryClient();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <SmartReplyChips message={{ _id: 'same' } as Message} onSelectReply={() => {}} />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'smartReply.generate' }));
+  await waitFor(() => expect(screen.getByText('smartReply.offline')).toBeTruthy());
+  const retained = mockOldGenerate;
+  act(() => {
+    mockOxy.session.setAccessToken(token('alice', 'session-b'));
+    mockRuntime.setActiveSessionId('session-b');
+  });
+  act(() => {
+    onlineManager.setOnline(true);
+    retained?.();
+  });
+  await act(async () => {
+    await Promise.resolve();
+  });
+  expect(post).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole('button', { name: 'smartReply.generate' })).toBeTruthy();
+  view.unmount();
   client.clear();
 });

@@ -507,6 +507,10 @@ const ca: LocaleDict = {
   },
 
   smartReply: {
+    failed: 'No s’han pogut generar respostes ràpides.',
+    offline: 'Sembla que no tens connexió. Connecta’t per tornar-ho a provar.',
+    waiting: 'S’espera per continuar.',
+    empty: 'No hi ha respostes ràpides disponibles.',
     unavailable: 'Les respostes ràpides estaran disponibles quan el compte estigui preparat.',
     generate: 'Genera respostes ràpides amb IA',
     notice:

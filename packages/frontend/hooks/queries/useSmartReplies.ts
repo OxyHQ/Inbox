@@ -11,8 +11,10 @@ import type { Message } from '@/services/emailApi';
 interface SmartRepliesResult {
   replies: string[];
   isLoading: boolean;
+  isPending: boolean;
+  isPaused: boolean;
   error: Error | null;
-  refetch: () => void;
+  refetch: () => Promise<unknown>;
 }
 
 function aborted(): Error {
@@ -75,6 +77,8 @@ export function useSmartReplies(
   return {
     replies: query.data ?? [],
     isLoading: query.isFetching,
+    isPending: query.isPending,
+    isPaused: query.fetchStatus === 'paused',
     error: query.error as Error | null,
     refetch: query.refetch,
   };

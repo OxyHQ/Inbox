@@ -30,6 +30,10 @@ import {
 } from '@/hooks/mutations/ownedEmailMutation';
 import { eachWithConcurrency, PER_MESSAGE_CONCURRENCY } from '@/utils/concurrency';
 import { recordInboxMetric } from '@/utils/inboxTelemetry';
+import {
+  assertMessageOwner,
+  useGuardedMessageMutation,
+} from '@/hooks/mutations/guardedMessageMutation';
 import { type AlreadySent, alreadySentUnderKey } from '@/utils/sendIdempotency';
 import {
   cancelMessageQueries,
@@ -55,7 +59,7 @@ export function useToggleStar() {
   const { user } = useOxy();
   const userId = user?.id ?? null;
 
-  return useMutation({
+  return useGuardedMessageMutation({
     mutationKey: INBOX_MUTATION_KEYS.toggleStar,
     // Offline-first: when the device is offline this mutation is queued
     // (status "paused") and auto-resumes when connectivity returns. The
@@ -66,8 +70,10 @@ export function useToggleStar() {
       if (!api) throw new Error('Email API not initialized');
       return await api.updateFlags(messageId, { starred });
     },
-    onMutate: async ({ messageId, starred }) => {
+    onMutate: async (variables: { messageId: string; starred: boolean }) => {
+      const { messageId, starred } = variables;
       await cancelMessageQueries(queryClient, messageId);
+      assertMessageOwner(variables);
       const snapshot = snapshotForRollback(queryClient, messageId, userId);
       // Unstarred, it leaves Starred — and only Starred, whatever view is open.
       if (!starred) removeMessagesFromStarredLists(queryClient, [messageId]);

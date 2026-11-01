@@ -45,6 +45,7 @@ import {
 } from '@/contexts/inbox-prefs-context';
 import { useBulkUpdateFlags, useTogglePin } from '@/hooks/mutations/useMessageMutations';
 import { useDeleteReminder, useUpdateReminder } from '@/hooks/mutations/useReminderMutations';
+import { isCurrentEmailOwner, useEmailMutationOwner } from '@/hooks/mutations/ownedEmailMutation';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 
 import { useDailyBrief } from '@/hooks/queries/useDailyBrief';
@@ -216,10 +217,15 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     accountScope,
     () => null,
   );
-  const [editReminderTarget, setEditReminderTarget] = useScopedState<Reminder | null>(
-    accountScope,
-    () => null,
-  );
+  const reminderOwner = useEmailMutationOwner(true);
+  const reminderEditorId = useRef(0);
+  const updateReminderMutation = useUpdateReminder();
+  const [editReminderTarget, setEditReminderTarget] = useScopedState<{
+    reminder: Reminder;
+    owner: typeof reminderOwner;
+    mutate: typeof updateReminderMutation.mutateAsync;
+    key: number;
+  } | null>(accountScope, () => null);
 
   const { data: remindersResult } = useReminders();
   const reminders = useMemo(() => remindersResult?.data ?? [], [remindersResult]);
@@ -242,7 +248,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     return () => clearTimeout(timer);
   }, [nextReminderDue]);
 
-  const updateReminderMutation = useUpdateReminder();
   const deleteReminderMutation = useDeleteReminder();
 
   const isInboxView =
@@ -532,22 +537,36 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
         }
         return;
       }
-      setEditReminderTarget(reminder);
+      setEditReminderTarget({
+        reminder,
+        owner: reminderOwner,
+        mutate: updateReminderMutation.mutateAsync,
+        key: ++reminderEditorId.current,
+      });
     },
-    [reminders, router, replaceNavigation, setEditReminderTarget],
+    [
+      reminders,
+      router,
+      replaceNavigation,
+      setEditReminderTarget,
+      reminderOwner,
+      updateReminderMutation.mutateAsync,
+    ],
   );
 
   const handleUpdateReminder = useCallback(
-    (text: string, remindAt: Date) => {
-      if (!editReminderTarget) return;
-      updateReminderMutation.mutate({
-        reminderId: editReminderTarget._id,
+    async (text: string, remindAt: Date) => {
+      const target = editReminderTarget;
+      if (!target || !isCurrentEmailOwner(target.owner))
+        throw new Error('Reminder session changed');
+      await target.mutate({
+        reminderId: target.reminder._id,
         text,
         remindAt: remindAt.toISOString(),
       });
-      setEditReminderTarget(null);
+      setEditReminderTarget((current) => (current === target ? null : current));
     },
-    [editReminderTarget, updateReminderMutation, setEditReminderTarget],
+    [editReminderTarget, setEditReminderTarget],
   );
 
   const handleMessagePress = useCallback(
@@ -1029,9 +1048,17 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
 
         {/* Edit reminder sheet (opened by tapping a standalone reminder) */}
         <CreateReminderSheet
+          key={editReminderTarget?.key ?? 'closed-reminder'}
           visible={editReminderTarget !== null}
-          editReminder={editReminderTarget}
-          onClose={() => setEditReminderTarget(null)}
+          editReminder={editReminderTarget?.reminder}
+          onClose={() =>
+            setEditReminderTarget((current) => (current === editReminderTarget ? null : current))
+          }
+          unavailableMessage={
+            editReminderTarget && !isCurrentEmailOwner(editReminderTarget.owner)
+              ? t('ui.mutations.reminderEditorUnavailable')
+              : undefined
+          }
           onCreate={handleUpdateReminder}
           onUpdate={handleUpdateReminder}
         />

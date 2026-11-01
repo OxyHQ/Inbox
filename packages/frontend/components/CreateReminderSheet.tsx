@@ -11,14 +11,15 @@ import { View } from 'react-native';
 interface CreateReminderSheetProps {
   visible: boolean;
   onClose: () => void;
-  onCreate: (text: string, remindAt: Date) => void;
+  onCreate: (text: string, remindAt: Date) => Promise<void>;
   relatedMessageId?: string;
   /**
    * When provided, the sheet operates in edit mode: fields are prefilled and
    * submission calls `onUpdate` instead of `onCreate`.
    */
   editReminder?: { _id: string; text: string; remindAt: string } | null;
-  onUpdate?: (text: string, remindAt: Date) => void;
+  onUpdate?: (text: string, remindAt: Date) => Promise<void>;
+  unavailableMessage?: string;
 }
 
 interface ReminderDraft {
@@ -98,10 +99,19 @@ export function CreateReminderSheet({
   onCreate,
   editReminder,
   onUpdate,
+  unavailableMessage,
 }: CreateReminderSheetProps) {
   const { t, locale } = useTranslation();
   const isEdit = !!editReminder;
   const sheetRef = useRef<BottomSheetRef>(null);
+  const operation = useRef<symbol | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  useEffect(
+    () => () => {
+      operation.current = null;
+    },
+    [],
+  );
 
   const presets = useMemo(() => (visible ? getReminderPresets() : []), [visible]);
   const draftKey = useMemo(
@@ -146,21 +156,36 @@ export function CreateReminderSheet({
   );
 
   const handleSubmit = useCallback(() => {
-    if (!draft.text.trim() || !draft.selectedTime) return;
-    if (isEdit) {
-      onUpdate?.(draft.text.trim(), draft.selectedTime);
-    } else {
-      onCreate(draft.text.trim(), draft.selectedTime);
-    }
-    setStoredDraft({ key: draftKey, text: '', selectedTime: null });
-  }, [draft, draftKey, isEdit, onUpdate, onCreate]);
+    if (operation.current || unavailableMessage || !draft.text.trim() || !draft.selectedTime)
+      return;
+    const submit = isEdit ? onUpdate : onCreate;
+    if (!submit) return;
+    const id = Symbol();
+    operation.current = id;
+    setSubmitting(true);
+    void submit(draft.text.trim(), draft.selectedTime)
+      .catch(() => {
+        // The owning mutation reports the error; leave the entered draft intact.
+      })
+      .finally(() => {
+        if (operation.current !== id) return;
+        operation.current = null;
+        setSubmitting(false);
+      });
+  }, [draft, isEdit, onUpdate, onCreate, unavailableMessage]);
 
   const handleClose = useCallback(() => {
+    operation.current = null;
+    setSubmitting(false);
     setStoredDraft({ key: draftKey, text: '', selectedTime: null });
     onClose();
   }, [draftKey, onClose]);
 
-  const canSubmit = draft.text.trim().length > 0 && draft.selectedTime !== null;
+  const canSubmit =
+    !unavailableMessage &&
+    !submitting &&
+    draft.text.trim().length > 0 &&
+    draft.selectedTime !== null;
 
   return (
     <BottomSheet ref={sheetRef} onDismiss={handleClose} detached>
@@ -183,9 +208,12 @@ export function CreateReminderSheet({
           value={draft.text}
           onChangeText={handleTextChange}
           multiline
+          editable={!submitting}
           maxLength={500}
           autoFocus
         />
+        {unavailableMessage ? <Text>{unavailableMessage}</Text> : null}
+        {submitting ? <Text>{t('ui.mutations.reminderPendingNotice')}</Text> : null}
         <Text variant="body-semibold">{t('reminder.create.whenLabel')}</Text>
         <View className="gap-2">
           {presets.map((preset) => {
@@ -196,6 +224,7 @@ export function CreateReminderSheet({
                 appearance={isSelected ? 'subtle' : 'outline'}
                 tone={isSelected ? 'accent' : 'neutral'}
                 pressed={isSelected}
+                disabled={submitting}
                 onPress={() => handleTimeChange(preset.date)}
               >
                 {`${t(preset.label)} · ${preset.date.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' })}`}
@@ -203,7 +232,7 @@ export function CreateReminderSheet({
             );
           })}
         </View>
-        <Button onPress={handleSubmit} disabled={!canSubmit}>
+        <Button onPress={handleSubmit} disabled={!canSubmit} loading={submitting}>
           {isEdit ? t('common.save') : t('reminder.create.submit')}
         </Button>
       </View>

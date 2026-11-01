@@ -1148,6 +1148,13 @@ const ko: LocaleDict = {
       reminderDeleteFailed: '리마인더를 삭제하지 못했습니다',
       reminderSessionUnavailable:
         '아직 계정에서 알림을 삭제할 수 없습니다. 잠시 후 다시 시도해 주세요.',
+      reminderUpdateUnavailable:
+        '아직 계정에서 알림을 수정할 수 없습니다. 잠시 후 다시 시도해 주세요.',
+      reminderPendingNotice: '저장 중… 편집기를 닫아도 요청은 취소되지 않습니다.',
+      reminderEditorUnavailable:
+        '세션이 변경되었거나 준비되지 않았습니다. 알림을 닫았다가 다시 열기 전에 텍스트를 복사하세요.',
+      reminderSaveUnconfirmed:
+        '알림이 저장되었는지 확인할 수 없습니다. 다시 시도하기 전에 확인하세요.',
       templateCreateFailed: '템플릿을 만들지 못했습니다',
       templateUpdateFailed: '템플릿을 업데이트하지 못했습니다',
       templateDeleteFailed: '템플릿을 삭제하지 못했습니다',

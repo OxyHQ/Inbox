@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useGuardedMessageMutation } from '@/hooks/mutations/guardedMessageMutation';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
@@ -10,48 +10,66 @@ export function useCreateReminder() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const onUnavailable = useCallback(
+    () => toast.error(t('ui.mutations.reminderEditorUnavailable')),
+    [t],
+  );
 
-  return useMutation({
-    mutationFn: async (data: { text: string; remindAt: string; relatedMessageId?: string }) => {
-      if (!api) throw new Error('Email API not initialized');
-      return api.createReminder(data);
+  return useGuardedMessageMutation(
+    {
+      retry: 0,
+      onMutate: () => undefined,
+      mutationFn: async (data: { text: string; remindAt: string; relatedMessageId?: string }) => {
+        if (!api) throw new Error('Email API not initialized');
+        return api.createReminder(data);
+      },
+      onSuccess: () => {
+        void queryClient.invalidateQueries({ queryKey: emailKeys.reminders.root });
+      },
+      onError: () => {
+        toast.error(t('ui.mutations.reminderSaveUnconfirmed'));
+      },
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: emailKeys.reminders.root });
-    },
-    onError: () => {
-      toast.error(t('ui.mutations.reminderCreateFailed'));
-    },
-  });
+    onUnavailable,
+  );
 }
 
 export function useUpdateReminder() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const onUnavailable = useCallback(
+    () => toast.error(t('ui.mutations.reminderUpdateUnavailable')),
+    [t],
+  );
 
-  return useMutation({
-    mutationFn: async ({
-      reminderId,
-      ...updates
-    }: {
-      reminderId: string;
-      text?: string;
-      remindAt?: string;
-      completed?: boolean;
-      pinned?: boolean;
-      snoozedUntil?: string | null;
-    }) => {
-      if (!api) throw new Error('Email API not initialized');
-      return api.updateReminder(reminderId, updates);
+  return useGuardedMessageMutation(
+    {
+      retry: 0,
+      onMutate: () => undefined,
+      mutationFn: async ({
+        reminderId,
+        ...updates
+      }: {
+        reminderId: string;
+        text?: string;
+        remindAt?: string;
+        completed?: boolean;
+        pinned?: boolean;
+        snoozedUntil?: string | null;
+      }) => {
+        if (!api) throw new Error('Email API not initialized');
+        return api.updateReminder(reminderId, updates);
+      },
+      onSuccess: () => {
+        void queryClient.invalidateQueries({ queryKey: emailKeys.reminders.root });
+      },
+      onError: () => {
+        toast.error(t('ui.mutations.reminderSaveUnconfirmed'));
+      },
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: emailKeys.reminders.root });
-    },
-    onError: () => {
-      toast.error(t('ui.mutations.reminderUpdateFailed'));
-    },
-  });
+    onUnavailable,
+  );
 }
 
 export function useDeleteReminder() {

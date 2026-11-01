@@ -1,3 +1,7 @@
+jest.mock('@/hooks/mutations/ownedEmailMutation', () => ({
+  useEmailMutationOwner: () => ({}),
+  isCurrentEmailOwner: () => true,
+}));
 /** Exercise the real list while identity, token, cache and mail resolve separately. */
 import { InboxList } from '@/components/InboxList';
 import { MessageSchema } from '@/schemas/emailSchemas';

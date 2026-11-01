@@ -1172,6 +1172,13 @@ const fr: LocaleDict = {
       reminderDeleteFailed: 'Impossible de supprimer le rappel',
       reminderSessionUnavailable:
         'Votre compte n’est pas encore prêt à supprimer les rappels. Réessayez dans un instant.',
+      reminderUpdateUnavailable:
+        'Votre compte n’est pas encore prêt à modifier les rappels. Réessayez dans un instant.',
+      reminderPendingNotice: 'Enregistrement… Fermer cet éditeur n’annulera pas la demande.',
+      reminderEditorUnavailable:
+        'Votre session a changé ou n’est pas prête. Copiez votre texte avant de fermer et rouvrir ce rappel.',
+      reminderSaveUnconfirmed:
+        'Impossible de confirmer l’enregistrement du rappel. Vérifiez avant de réessayer.',
       templateCreateFailed: 'Impossible de créer le modèle',
       templateUpdateFailed: 'Impossible de mettre à jour le modèle',
       templateDeleteFailed: 'Impossible de supprimer le modèle',

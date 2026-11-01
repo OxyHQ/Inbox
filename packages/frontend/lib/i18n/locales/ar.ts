@@ -1197,6 +1197,12 @@ const ar: LocaleDict = {
       reminderDeleteFailed: 'تعذّر حذف التذكير',
       reminderSessionUnavailable:
         'حسابك غير جاهز لحذف التذكيرات بعد. يُرجى المحاولة مرة أخرى بعد قليل.',
+      reminderUpdateUnavailable:
+        'حسابك غير جاهز لتعديل التذكيرات بعد. يُرجى المحاولة مرة أخرى بعد قليل.',
+      reminderPendingNotice: 'جارٍ الحفظ… لن يؤدي إغلاق هذا المحرر إلى إلغاء الطلب.',
+      reminderEditorUnavailable:
+        'تغيّرت جلستك أو لم تجهز بعد. انسخ النص قبل إغلاق التذكير وفتحه مجددًا.',
+      reminderSaveUnconfirmed: 'تعذّر تأكيد حفظ التذكير. تحقّق قبل إعادة المحاولة.',
       templateCreateFailed: 'تعذّر إنشاء القالب',
       templateUpdateFailed: 'تعذّر تحديث القالب',
       templateDeleteFailed: 'تعذّر حذف القالب',

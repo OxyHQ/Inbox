@@ -1179,6 +1179,14 @@ const de: LocaleDict = {
       reminderDeleteFailed: 'Erinnerung konnte nicht gelöscht werden',
       reminderSessionUnavailable:
         'Dein Konto ist noch nicht bereit, Erinnerungen zu löschen. Bitte versuche es in Kürze erneut.',
+      reminderUpdateUnavailable:
+        'Dein Konto ist noch nicht bereit, Erinnerungen zu ändern. Bitte versuche es in Kürze erneut.',
+      reminderPendingNotice:
+        'Wird gespeichert… Das Schließen des Editors bricht die Anfrage nicht ab.',
+      reminderEditorUnavailable:
+        'Deine Sitzung hat sich geändert oder ist nicht bereit. Kopiere den Text, bevor du die Erinnerung schließt und erneut öffnest.',
+      reminderSaveUnconfirmed:
+        'Das Speichern der Erinnerung konnte nicht bestätigt werden. Prüfe dies vor einem erneuten Versuch.',
       templateCreateFailed: 'Vorlage konnte nicht erstellt werden',
       templateUpdateFailed: 'Vorlage konnte nicht aktualisiert werden',
       templateDeleteFailed: 'Vorlage konnte nicht gelöscht werden',

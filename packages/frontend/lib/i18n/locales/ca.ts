@@ -1166,6 +1166,13 @@ const ca: LocaleDict = {
       reminderDeleteFailed: "No s'ha pogut eliminar el recordatori",
       reminderSessionUnavailable:
         'El teu compte encara no està preparat per eliminar recordatoris. Torna-ho a provar d’aquí a un moment.',
+      reminderUpdateUnavailable:
+        'El teu compte encara no està preparat per modificar recordatoris. Torna-ho a provar d’aquí a un moment.',
+      reminderPendingNotice: 'Desant… Tancar aquest editor no cancel·larà la sol·licitud.',
+      reminderEditorUnavailable:
+        'La sessió ha canviat o no està preparada. Copia el text abans de tancar i tornar a obrir el recordatori.',
+      reminderSaveUnconfirmed:
+        'No s’ha pogut confirmar que s’hagi desat el recordatori. Comprova-ho abans de tornar-ho a provar.',
       templateCreateFailed: "No s'ha pogut crear la plantilla",
       templateUpdateFailed: "No s'ha pogut actualitzar la plantilla",
       templateDeleteFailed: "No s'ha pogut eliminar la plantilla",

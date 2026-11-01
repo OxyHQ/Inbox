@@ -392,6 +392,7 @@ const ja: LocaleDict = {
       hasAttachment: '添付ファイルあり',
     },
     nl: {
+      aiUnavailable: 'AI による絞り込みを利用できません。テキスト検索の結果を表示しています。',
       usingOperators: '検索演算子を使用',
       searchingFor: '「{{value}}」を検索中',
       inMailbox: '{{value}} 内',

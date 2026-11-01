@@ -403,6 +403,7 @@ const de: LocaleDict = {
       hasAttachment: 'Mit Anhang',
     },
     nl: {
+      aiUnavailable: 'Die KI-Verfeinerung ist nicht verfügbar. Textergebnisse werden angezeigt.',
       usingOperators: 'Mit Suchoperatoren',
       searchingFor: 'Suche nach „{{value}}“',
       inMailbox: 'in {{value}}',

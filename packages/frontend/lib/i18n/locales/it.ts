@@ -399,6 +399,8 @@ const it: LocaleDict = {
       hasAttachment: 'Con allegato',
     },
     nl: {
+      aiUnavailable:
+        'Il perfezionamento con IA non è disponibile. Sono mostrati i risultati testuali.',
       usingOperators: 'Uso degli operatori di ricerca',
       searchingFor: 'Ricerca di "{{value}}"',
       inMailbox: 'in {{value}}',

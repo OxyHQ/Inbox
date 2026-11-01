@@ -390,6 +390,7 @@ const ko: LocaleDict = {
       hasAttachment: '첨부 있음',
     },
     nl: {
+      aiUnavailable: 'AI 검색 보정을 사용할 수 없습니다. 텍스트 검색 결과를 표시합니다.',
       usingOperators: '검색 연산자 사용',
       searchingFor: '"{{value}}" 검색 중',
       inMailbox: '{{value}}에서',

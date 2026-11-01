@@ -100,8 +100,9 @@ export function runInboxCompose(
 export function runInboxNaturalSearch(
   http: HttpService,
   query: string,
+  signal?: AbortSignal,
 ): Promise<InboxNaturalSearchResponse> {
-  return postParsed(http, NATURAL_SEARCH_PATH, { query }, inboxNaturalSearchResponseSchema);
+  return postParsed(http, NATURAL_SEARCH_PATH, { query }, inboxNaturalSearchResponseSchema, signal);
 }
 
 export function runInboxSmartReplies(

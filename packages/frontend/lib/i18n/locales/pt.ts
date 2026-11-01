@@ -401,6 +401,8 @@ const pt: LocaleDict = {
       hasAttachment: 'Com anexo',
     },
     nl: {
+      aiUnavailable:
+        'O refinamento com IA não está disponível. Os resultados de texto são exibidos.',
       usingOperators: 'A usar operadores de pesquisa',
       searchingFor: 'A pesquisar "{{value}}"',
       inMailbox: 'em {{value}}',

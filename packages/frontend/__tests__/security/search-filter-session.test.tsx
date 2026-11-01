@@ -814,6 +814,20 @@ it('keeps an unresolved saved folder visible, blocks AI and allows explicit remo
   cleanup();
 });
 
+it('does not apply a late AI result after applying an unresolved folder', async () => {
+  const { view, pending, submit, cleanup } = await setup();
+  await submit();
+  act(() => mockApplySaved?.({ query: '', filters: { mailbox: 'missing-folder' } }));
+  await act(async () => {
+    pending[0]({ query: { from: 'old@example.test' }, interpretation: 'old result' });
+  });
+  expect(view.queryByText('old result')).toBeNull();
+  expect(view.getByText('search.ui.mailboxUnavailable')).toBeTruthy();
+  expect(mockOptions.from).toBeUndefined();
+  expect(mockSearchEnabled).toBe(false);
+  cleanup();
+});
+
 it('starts a scoped search when the requested folder becomes available', async () => {
   mockUseRealSearch = true;
   const search = jest.fn(async (_options: Record<string, unknown>) => ({

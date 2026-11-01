@@ -311,6 +311,7 @@ const zh: LocaleDict = {
     },
     toast: {
       spamUnavailable: '没有可移入的垃圾邮件文件夹。',
+      attachmentSessionUnavailable: '你的账户尚未准备好打开附件，请稍后重试。',
       attachmentFailed: '附件下载失败。',
       fileSystemUnavailable: '此设备不支持文件系统。',
       sharingUnavailable: '此设备不支持分享。',

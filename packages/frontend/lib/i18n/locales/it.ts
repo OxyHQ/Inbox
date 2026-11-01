@@ -316,6 +316,8 @@ const it: LocaleDict = {
     },
     toast: {
       spamUnavailable: "Non c'è una cartella Spam in cui spostarlo.",
+      attachmentSessionUnavailable:
+        'Il tuo account non è ancora pronto per aprire gli allegati. Riprova tra poco.',
       attachmentFailed: "Impossibile scaricare l'allegato.",
       fileSystemUnavailable: 'File system non disponibile su questo dispositivo.',
       sharingUnavailable: 'Condivisione non disponibile su questo dispositivo.',

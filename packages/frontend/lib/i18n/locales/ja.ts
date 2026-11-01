@@ -314,6 +314,8 @@ const ja: LocaleDict = {
     },
     toast: {
       spamUnavailable: '移動先の迷惑メールフォルダがありません。',
+      attachmentSessionUnavailable:
+        'アカウントの準備ができていないため、添付ファイルを開けません。しばらくしてからもう一度お試しください。',
       attachmentFailed: '添付ファイルをダウンロードできませんでした。',
       fileSystemUnavailable: 'このデバイスではファイルシステムを利用できません。',
       sharingUnavailable: 'このデバイスでは共有できません。',

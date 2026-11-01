@@ -313,6 +313,8 @@ const en: LocaleDict = {
     },
     toast: {
       spamUnavailable: 'There is no Spam folder to move this to.',
+      attachmentSessionUnavailable:
+        'Your account is not ready to open attachments. Please try again shortly.',
       attachmentFailed: 'Failed to download attachment.',
       fileSystemUnavailable: 'File system not available on this device.',
       sharingUnavailable: 'Sharing is not available on this device.',

@@ -307,6 +307,8 @@ const es: LocaleDict = {
     },
     toast: {
       spamUnavailable: 'No hay ninguna carpeta de spam a la que moverlo.',
+      attachmentSessionUnavailable:
+        'Tu cuenta aún no está lista para abrir archivos adjuntos. Vuelve a intentarlo en breve.',
       attachmentFailed: 'No se pudo descargar el adjunto.',
       fileSystemUnavailable: 'El sistema de archivos no está disponible en este dispositivo.',
       sharingUnavailable: 'Compartir no está disponible en este dispositivo.',

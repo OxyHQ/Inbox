@@ -313,6 +313,8 @@ const ko: LocaleDict = {
     },
     toast: {
       spamUnavailable: '이동할 스팸 폴더가 없습니다.',
+      attachmentSessionUnavailable:
+        '계정이 아직 첨부 파일을 열 준비가 되지 않았습니다. 잠시 후 다시 시도해 주세요.',
       attachmentFailed: '첨부 파일을 다운로드하지 못했어요.',
       fileSystemUnavailable: '이 기기에서 파일 시스템을 사용할 수 없어요.',
       sharingUnavailable: '이 기기에서 공유를 사용할 수 없어요.',

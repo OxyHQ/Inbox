@@ -316,6 +316,8 @@ const fr: LocaleDict = {
     },
     toast: {
       spamUnavailable: 'Aucun dossier Spam vers lequel le déplacer.',
+      attachmentSessionUnavailable:
+        'Votre compte n’est pas encore prêt à ouvrir les pièces jointes. Réessayez bientôt.',
       attachmentFailed: 'Échec du téléchargement de la pièce jointe.',
       fileSystemUnavailable: 'Système de fichiers indisponible sur cet appareil.',
       sharingUnavailable: 'Partage indisponible sur cet appareil.',

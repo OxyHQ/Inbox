@@ -315,6 +315,8 @@ const ca: LocaleDict = {
     },
     toast: {
       spamUnavailable: 'No hi ha cap carpeta de correu brossa on moure-ho.',
+      attachmentSessionUnavailable:
+        'El compte encara no està preparat per obrir fitxers adjunts. Torna-ho a provar aviat.',
       attachmentFailed: "No s'ha pogut baixar l'adjunt.",
       fileSystemUnavailable: "El sistema d'arxius no està disponible en aquest dispositiu.",
       sharingUnavailable: 'Compartir no està disponible en aquest dispositiu.',

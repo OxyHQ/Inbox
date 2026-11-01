@@ -1,5 +1,5 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { onlineManager, QueryClientProvider } from '@tanstack/react-query';
 import { OxyServices } from '@oxy.so/core';
 import { type ReactNode, useState } from 'react';
 import { createInboxQueryClient, INBOX_ACCOUNT_QUERIES } from '@/hooks/queries/queryClient';
@@ -240,21 +240,24 @@ it('hides suggestions if the known bearer subject differs from the projection', 
   cleanup();
 });
 
-it('does not reuse a previous mount’s in-memory suggestions', async () => {
+it('reuses current-session suggestions after remount offline without reviving an old callback', async () => {
   const { view, get, client, cleanup } = await setup();
   await waitFor(() => expect(view.getByText(suggestionA.address)).toBeTruthy());
   const retained = mockPick;
   get?.mockImplementation(() => new Promise(() => {}));
   view.unmount();
+  onlineManager.setOnline(false);
   const other = render(
     <QueryClientProvider client={client}>
       <Fields />
     </QueryClientProvider>,
   );
-  expect(other.queryByText(suggestionA.address)).toBeNull();
+  expect(other.getByText(suggestionA.address)).toBeTruthy();
+  expect(get).toHaveBeenCalledTimes(1);
   act(() => retained?.(suggestionA));
   expect(other.getByText('al')).toBeTruthy();
   other.unmount();
+  onlineManager.setOnline(true);
   cleanup();
 });
 
@@ -309,7 +312,7 @@ it.skip('does not offer a cached A contact after only the projected session chan
         client
           .getQueryCache()
           .getAll()
-          .some((q) => q.queryKey[5] === 'session-b' && q.state.status === 'success'),
+          .some((q) => q.queryKey[4] === 'session-b' && q.state.status === 'success'),
       ).toBe(true),
     );
     expect(fetchSpy).toHaveBeenCalledTimes(1);

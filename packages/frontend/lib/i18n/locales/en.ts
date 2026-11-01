@@ -502,6 +502,7 @@ const en: LocaleDict = {
   },
 
   smartReply: {
+    unavailable: 'Quick replies are unavailable until your account is ready.',
     generating: 'Generating quick replies',
     notice: 'Oxy checks for sensitive content before sending bounded email context to Kaana.',
     generate: 'Generate quick replies with AI',

@@ -511,6 +511,7 @@ const de: LocaleDict = {
   },
 
   smartReply: {
+    unavailable: 'Schnellantworten sind verfügbar, sobald dein Konto bereit ist.',
     generate: 'Schnellantworten mit KI erstellen',
     notice:
       'Oxy prüft auf sensible Inhalte, bevor begrenzter E-Mail-Kontext an Kaana gesendet wird.',

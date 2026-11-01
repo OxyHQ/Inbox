@@ -501,6 +501,7 @@ const ja: LocaleDict = {
   },
 
   smartReply: {
+    unavailable: 'アカウントの準備ができるとクイック返信を利用できます。',
     generate: 'AI でクイック返信を生成',
     notice:
       'Oxy は、限定されたメールの内容を Kaana に送信する前に、機密情報が含まれていないかを確認します。',

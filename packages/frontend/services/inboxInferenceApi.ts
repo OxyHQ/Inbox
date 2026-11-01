@@ -107,12 +107,14 @@ export function runInboxNaturalSearch(
 export function runInboxSmartReplies(
   http: HttpService,
   messageId: string,
+  signal?: AbortSignal,
 ): Promise<InboxSmartRepliesResponse> {
   return postParsed(
     http,
     messagePath(messageId, 'smart-replies'),
     {},
     inboxSmartRepliesResponseSchema,
+    signal,
   );
 }
 

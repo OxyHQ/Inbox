@@ -500,6 +500,7 @@ const es: LocaleDict = {
   },
 
   smartReply: {
+    unavailable: 'Las respuestas rápidas estarán disponibles cuando tu cuenta esté lista.',
     generate: 'Generar respuestas rápidas con IA',
     notice:
       'Oxy comprueba si hay contenido sensible antes de enviar un contexto limitado del correo a Kaana.',

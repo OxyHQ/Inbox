@@ -15,6 +15,7 @@ import { View } from 'react-native';
 
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
 import { useSmartReplies } from '@/hooks/queries/useSmartReplies';
+import { type SmartReplyOwner, useSmartReplyOwner } from '@/hooks/queries/useSmartReplyOwner';
 import type { Message } from '@/services/emailApi';
 import { useTranslation } from '@/lib/i18n';
 
@@ -24,14 +25,29 @@ interface SmartReplyChipsProps {
 }
 
 export function SmartReplyChips(props: SmartReplyChipsProps) {
-  return <MessageSmartReplyChips key={props.message._id} {...props} />;
+  const owner = useSmartReplyOwner();
+  const scope = JSON.stringify([
+    props.message._id,
+    owner.binding,
+    owner.subject,
+    owner.sessionId,
+    owner.revision,
+    owner.epoch,
+    owner.knownSubject,
+    owner.authenticated,
+  ]);
+  return <MessageSmartReplyChips key={scope} {...props} owner={owner} />;
 }
 
-function MessageSmartReplyChips({ message, onSelectReply }: SmartReplyChipsProps) {
+function MessageSmartReplyChips({
+  message,
+  onSelectReply,
+  owner,
+}: SmartReplyChipsProps & { owner: SmartReplyOwner }) {
   const { t } = useTranslation();
   const { prefs } = useInboxPrefs();
   const [hasRequestedReplies, setHasRequestedReplies] = useState(false);
-  const { replies, isLoading, refetch } = useSmartReplies(message);
+  const { replies, isLoading, refetch } = useSmartReplies(message, owner);
   const mountedRef = useRef(false);
 
   useLayoutEffect(() => {
@@ -42,10 +58,10 @@ function MessageSmartReplyChips({ message, onSelectReply }: SmartReplyChipsProps
   }, []);
 
   const handleGenerateReplies = useCallback(() => {
-    if (!mountedRef.current) return;
+    if (!mountedRef.current || !owner.isCurrent()) return;
     setHasRequestedReplies(true);
     void refetch();
-  }, [refetch]);
+  }, [refetch, owner]);
 
   // Smart Reply is opt-in; render nothing when the user disabled it.
   if (!prefs.aiSmartReply) {
@@ -55,10 +71,16 @@ function MessageSmartReplyChips({ message, onSelectReply }: SmartReplyChipsProps
   if (!hasRequestedReplies) {
     return (
       <View className="gap-2">
-        <Button appearance="subtle" leading={<RiSparklingLine />} onPress={handleGenerateReplies}>
+        <Button
+          appearance="subtle"
+          leading={<RiSparklingLine />}
+          onPress={handleGenerateReplies}
+          disabled={!owner.ready}
+        >
           {t('smartReply.generate')}
         </Button>
         <Text variant="caption-1-regular">{t('smartReply.notice')}</Text>
+        {!owner.ready && <Text variant="caption-1-regular">{t('smartReply.unavailable')}</Text>}
       </View>
     );
   }
@@ -77,7 +99,7 @@ function MessageSmartReplyChips({ message, onSelectReply }: SmartReplyChipsProps
               appearance="subtle"
               tone="accent"
               onPress={() => {
-                if (mountedRef.current) onSelectReply(reply);
+                if (mountedRef.current && owner.isCurrent()) onSelectReply(reply);
               }}
             >
               {reply}

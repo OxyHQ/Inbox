@@ -509,6 +509,7 @@ const fr: LocaleDict = {
   },
 
   smartReply: {
+    unavailable: 'Les réponses rapides seront disponibles lorsque votre compte sera prêt.',
     generate: "Générer des réponses rapides avec l'IA",
     notice:
       "Oxy vérifie l'absence de contenu sensible avant d'envoyer un contexte de courriel limité à Kaana.",

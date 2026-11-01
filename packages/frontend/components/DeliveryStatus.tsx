@@ -99,7 +99,7 @@ export function DeliveryNotice({ message }: { message: Message }) {
             <>
               {canRetry(delivery) ? (
                 <AdmonitionButton
-                  onPress={() => retry.mutate(message._id)}
+                  onPress={() => retry.mutate({ messageId: message._id })}
                   disabled={retry.isPending}
                 >
                   {t('delivery.retry')}

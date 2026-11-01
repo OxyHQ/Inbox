@@ -73,11 +73,18 @@ jest.mock('@oxy.so/bloom/chip', () => ({
 jest.mock('@oxy.so/bloom/dialog', () => ({
   Dialog: ({
     open,
+    onClose,
     actions,
     children,
   }: {
     open: boolean;
-    actions: { label: string; onPress?: () => void; disabled?: boolean }[];
+    onClose: () => void;
+    actions: {
+      label: string;
+      onPress?: () => void;
+      disabled?: boolean;
+      shouldCloseOnPress?: boolean;
+    }[];
     children: ReactNode;
   }) =>
     open ? (
@@ -87,7 +94,10 @@ jest.mock('@oxy.so/bloom/dialog', () => ({
           <button
             type="button"
             key={action.label}
-            onClick={action.onPress}
+            onClick={() => {
+              action.onPress?.();
+              if (action.shouldCloseOnPress !== false) onClose();
+            }}
             disabled={action.disabled}
           >
             {action.label}
@@ -156,6 +166,53 @@ beforeEach(() => {
 afterEach(() => {
   onlineManager.setOnline(true);
   client.clear();
+});
+
+it('allows closing a paused create and preserves a later dialog when it settles', async () => {
+  client.setDefaultOptions({
+    queries: { networkMode: 'offlineFirst', retry: 2, retryDelay: 0, gcTime: Infinity },
+    mutations: { networkMode: 'offlineFirst', retry: false, gcTime: Infinity },
+  });
+  mockTransportA.post.mockResolvedValue(row('new'));
+  const onApply = jest.fn();
+  render(
+    <QueryClientProvider client={client}>
+      <SavedSearchBar query="query" filters={{}} enabled onApply={onApply} />
+    </QueryClientProvider>,
+  );
+  await screen.findAllByRole('button', { name: 'search.ui.runSaved' });
+  fireEvent.click(screen.getByRole('button', { name: 'search.ui.saveSearch' }));
+  fireEvent.change(screen.getByLabelText('search.ui.searchName'), { target: { value: 'saved' } });
+  act(() => onlineManager.setOnline(false));
+  mockTransportA.get.mockRejectedValue(new Error('offline'));
+  fireEvent.click(screen.getByRole('button', { name: 'common.save' }));
+  await waitFor(() =>
+    expect(client.getQueryState(emailKeys.savedSearches)?.fetchStatus).toBe('paused'),
+  );
+  expect((screen.getByRole('button', { name: 'common.close' }) as HTMLButtonElement).disabled).toBe(
+    false,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'common.close' }));
+  expect(screen.queryByLabelText('search.ui.searchName')).toBeNull();
+  expect(screen.getByText('common.loading')).toBeTruthy();
+  fireEvent.click(screen.getAllByRole('button', { name: 'search.ui.runSaved' })[0]);
+  expect(onApply).toHaveBeenCalledWith(row('a'));
+  fireEvent.click(screen.getByRole('button', { name: 'search.ui.saveSearch' }));
+  fireEvent.change(screen.getByLabelText('search.ui.searchName'), {
+    target: { value: 'later draft' },
+  });
+  expect((screen.getByRole('button', { name: 'common.save' }) as HTMLButtonElement).disabled).toBe(
+    true,
+  );
+  mockTransportA.get.mockResolvedValue([row('a'), row('b'), row('new')]);
+  await act(async () => onlineManager.setOnline(true));
+  await waitFor(() => expect(client.isMutating()).toBe(0));
+  expect((screen.getByLabelText('search.ui.searchName') as HTMLInputElement).value).toBe(
+    'later draft',
+  );
+  expect((screen.getByRole('button', { name: 'common.save' }) as HTMLButtonElement).disabled).toBe(
+    false,
+  );
 });
 
 it('keeps confirmed offline data while deletion is pending and suppresses duplicate taps', async () => {

@@ -24,7 +24,7 @@ import {
   useIsMutating,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useCallback, useState, useSyncExternalStore } from 'react';
+import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 import { View } from 'react-native';
 
 interface SavedSearchBarProps {
@@ -85,6 +85,7 @@ export function SavedSearchBar({ query, filters, enabled, onApply }: SavedSearch
   const deleting = hasPendingMutation(queryClient, SAVED_SEARCH_MUTATION_KEYS.delete, owner);
   const [name, setName] = useState('');
   const [open, setOpen] = useState(false);
+  const dialogRevision = useRef(0);
   const handleSave = useCallback(() => {
     const trimmedName = name.trim();
     if (
@@ -95,10 +96,12 @@ export function SavedSearchBar({ query, filters, enabled, onApply }: SavedSearch
       hasPendingMutation(queryClient, SAVED_SEARCH_MUTATION_KEYS.create, owner)
     )
       return;
+    const revision = dialogRevision.current;
     createSavedSearch.mutate(
       { name: trimmedName, query: query.trim(), filters },
       {
         onSuccess: () => {
+          if (revision !== dialogRevision.current) return;
           setName('');
           setOpen(false);
         },
@@ -124,7 +127,14 @@ export function SavedSearchBar({ query, filters, enabled, onApply }: SavedSearch
               <Text variant="caption-1-medium">{t('search.ui.savedSearches')}</Text>
             )}
             {enabled && (
-              <Button appearance="plain" leading={<RiBookmarkLine />} onPress={() => setOpen(true)}>
+              <Button
+                appearance="plain"
+                leading={<RiBookmarkLine />}
+                onPress={() => {
+                  dialogRevision.current += 1;
+                  setOpen(true);
+                }}
+              >
                 {t('search.ui.saveSearch')}
               </Button>
             )}
@@ -156,20 +166,24 @@ export function SavedSearchBar({ query, filters, enabled, onApply }: SavedSearch
               </View>
             </View>
           )}
-          {deleting && <Text accessibilityLiveRegion="polite">{t('common.loading')}</Text>}
+          {(saving || deleting) && (
+            <Text accessibilityLiveRegion="polite">{t('common.loading')}</Text>
+          )}
         </View>
       )}
       <Dialog
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={() => {
+          dialogRevision.current += 1;
+          setOpen(false);
+        }}
         placement={{ base: 'bottom', md: 'center' }}
         title={t('search.ui.saveSearch')}
         description={t('search.ui.saveSearchDescription')}
         actions={[
           {
-            label: t('common.cancel'),
+            label: t('common.close'),
             color: 'cancel',
-            disabled: saving,
           },
           {
             label: t('common.save'),

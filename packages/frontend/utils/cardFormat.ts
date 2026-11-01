@@ -36,9 +36,19 @@ const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
 export function parseCardDate(value: string | null | undefined): Date | null {
   if (!value) return null;
   const dateOnly = DATE_ONLY.exec(value.trim());
-  const date = dateOnly
-    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
-    : new Date(value);
+  if (dateOnly) {
+    const year = Number(dateOnly[1]);
+    const month = Number(dateOnly[2]) - 1;
+    const day = Number(dateOnly[3]);
+    // setFullYear avoids the Date constructor's 1900 offset for years 0-99.
+    const date = new Date(0);
+    date.setHours(0, 0, 0, 0);
+    date.setFullYear(year, month, day);
+    if (date.getFullYear() !== year || date.getMonth() !== month || date.getDate() !== day)
+      return null;
+    return date;
+  }
+  const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 

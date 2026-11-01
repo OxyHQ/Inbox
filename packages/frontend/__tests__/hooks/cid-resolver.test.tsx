@@ -8,10 +8,27 @@
  * and that a lookup finishing after the user moved on is dropped.
  */
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, renderHook as render } from '@testing-library/react';
+import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, renderHook as render, waitFor } from '@testing-library/react';
 import type { OxyServices } from '@oxy.so/core';
 import type { ReactNode } from 'react';
+
+const mockRuntime = {};
+jest.mock('@/hooks/queries/useObservedInferenceOwner', () => ({
+  useObservedInferenceOwner: () => ({
+    binding: 'test',
+    subject: 'alice',
+    sessionId: 'session-a',
+    revision: 1,
+    epoch: 1,
+    knownSubject: 'alice',
+    authenticated: true,
+    ready: true,
+    isCurrent: () => true,
+    http: undefined,
+    runtime: mockRuntime,
+  }),
+}));
 
 import { useCidResolver } from '@/hooks/useCidResolver';
 import { MessageSchema, type Message } from '@/schemas/emailSchemas';
@@ -139,4 +156,116 @@ it('asks for an image URL once while it is fresh, not per message or per open', 
 
   // Two messages, two opens, one image: one request.
   expect(oxy.assets.url).toHaveBeenCalledTimes(1);
+});
+
+it('reuses an in-flight lookup for the same image after switching messages', async () => {
+  let finish: (url: string) => void = () => {};
+  const oxy = services(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  const first = [messageWithImage('a1')];
+  const second = [messageWithImage('b1')];
+  const { result, rerender } = renderHook(
+    ({ messages, resetKey }) => useCidResolver(messages, oxy, resetKey),
+    { initialProps: { messages: first, resetKey: 'a1' } },
+  );
+  await settle();
+  rerender({ messages: second, resetKey: 'b1' });
+  await settle();
+  await act(async () => {
+    finish('https://files.example/image');
+  });
+  await settle();
+  expect(result.current.b1).toContain('https://files.example/image');
+  expect(result.current.a1).toBeUndefined();
+  expect(oxy.assets.url).toHaveBeenCalledTimes(1);
+});
+
+it('reuses the previously resolved URL on an offline remount', async () => {
+  const client = new QueryClient({
+    defaultOptions: { queries: { networkMode: 'offlineFirst', retry: false } },
+  });
+  const oxy = services(async (fileId) => {
+    if (!onlineManager.isOnline()) throw new Error('offline');
+    return `https://files.example/${fileId}`;
+  });
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  const first = render(() => useCidResolver(thread, oxy, 'm1'), { wrapper });
+  await waitFor(() => expect(first.result.current.m1).toContain('https://files.example/file-logo'));
+  first.unmount();
+  onlineManager.setOnline(false);
+  const second = render(() => useCidResolver(thread, oxy, 'm1'), { wrapper });
+  try {
+    await waitFor(() =>
+      expect(second.result.current.m1).toContain('https://files.example/file-logo'),
+    );
+  } finally {
+    second.unmount();
+    client.clear();
+    onlineManager.setOnline(true);
+  }
+});
+
+it('does not renew a cached signed URL merely by reading it', async () => {
+  let now = 1_000_000;
+  const clock = jest.spyOn(Date, 'now').mockImplementation(() => now);
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const oxy = services(async (fileId) => `https://files.example/${fileId}`);
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  const hook = render(({ resetKey }) => useCidResolver(thread, oxy, resetKey), {
+    wrapper,
+    initialProps: { resetKey: 'm1' },
+  });
+  try {
+    await waitFor(() =>
+      expect(hook.result.current.m1).toContain('https://files.example/file-logo'),
+    );
+    const cached = client
+      .getQueryCache()
+      .getAll()
+      .find((q) => q.queryKey.includes('cid-scoped-v1') && !q.queryKey.includes('pending'));
+    expect(cached?.state.dataUpdatedAt).toBe(now);
+    now += 30 * 60_000;
+    hook.rerender({ resetKey: 'm2' });
+    await settle();
+    expect(cached?.state.dataUpdatedAt).toBe(1_000_000);
+    expect(oxy.assets.url).toHaveBeenCalledTimes(1);
+    now += 16 * 60_000;
+    hook.rerender({ resetKey: 'm1' });
+    await waitFor(() => expect(oxy.assets.url).toHaveBeenCalledTimes(2));
+  } finally {
+    hook.unmount();
+    client.clear();
+    clock.mockRestore();
+  }
+});
+
+it('fetches again when the confirmed URL cache is invalidated', async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const oxy = services(async (fileId) => `https://files.example/${fileId}`);
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  const hook = render(({ resetKey }) => useCidResolver(thread, oxy, resetKey), {
+    wrapper,
+    initialProps: { resetKey: 'm1' },
+  });
+  await waitFor(() => expect(hook.result.current.m1).toContain('https://files.example/file-logo'));
+  const cached = client
+    .getQueryCache()
+    .getAll()
+    .find((q) => q.queryKey.includes('cid-scoped-v1') && !q.queryKey.includes('pending'));
+  expect(cached).toBeDefined();
+  await client.invalidateQueries({ queryKey: cached?.queryKey, exact: true, refetchType: 'none' });
+  hook.rerender({ resetKey: 'm2' });
+  await waitFor(() => expect(oxy.assets.url).toHaveBeenCalledTimes(2));
+  hook.unmount();
+  client.clear();
 });

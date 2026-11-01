@@ -221,10 +221,14 @@ const BulkResultSchema = z.object({ matched: z.number(), modified: z.number() })
 async function inBatches(
   ids: string[],
   run: (batch: string[]) => Promise<{ matched: number; modified: number }>,
+  assertCurrent?: () => void,
 ): Promise<{ matched: number; modified: number }> {
   const total = { matched: 0, modified: 0 };
   for (const batch of chunk(ids, BULK_LIMIT)) {
+    // Live callers can fence each batch; omitted for existing replay callers.
+    assertCurrent?.();
     const result = await run(batch);
+    assertCurrent?.();
     total.matched += result.matched;
     total.modified += result.modified;
   }
@@ -382,23 +386,38 @@ export function createEmailApi(http: HttpService) {
     async bulkUpdateFlags(
       messageIds: string[],
       flags: Partial<MessageFlags>,
+      assertCurrent?: () => void,
     ): Promise<{ matched: number; modified: number }> {
+      assertCurrent?.();
       noteOwnChange(messageIds);
-      return inBatches(messageIds, async (batch) => {
-        const res = await http.post('/email/messages/bulk/flags', { messageIds: batch, flags });
-        return BulkResultSchema.parse(res);
-      });
+      return inBatches(
+        messageIds,
+        async (batch) => {
+          const res = await http.post('/email/messages/bulk/flags', { messageIds: batch, flags });
+          return BulkResultSchema.parse(res);
+        },
+        assertCurrent,
+      );
     },
 
     async bulkMoveMessages(
       messageIds: string[],
       mailboxId: string,
+      assertCurrent?: () => void,
     ): Promise<{ matched: number; modified: number }> {
+      assertCurrent?.();
       noteOwnChange(messageIds);
-      return inBatches(messageIds, async (batch) => {
-        const res = await http.post('/email/messages/bulk/move', { messageIds: batch, mailboxId });
-        return BulkResultSchema.parse(res);
-      });
+      return inBatches(
+        messageIds,
+        async (batch) => {
+          const res = await http.post('/email/messages/bulk/move', {
+            messageIds: batch,
+            mailboxId,
+          });
+          return BulkResultSchema.parse(res);
+        },
+        assertCurrent,
+      );
     },
 
     // ─── Labels ─────────────────────────────────────────────────────

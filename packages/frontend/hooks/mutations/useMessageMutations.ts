@@ -193,6 +193,7 @@ function toastWithUndo({
   queryClient,
   t,
   isCurrent,
+  undoErrorMessage,
 }: {
   message: string;
   snapshot: MessageSnapshot;
@@ -200,6 +201,7 @@ function toastWithUndo({
   queryClient: ReturnType<typeof useQueryClient>;
   t: (key: string) => string;
   isCurrent?: () => boolean;
+  undoErrorMessage?: string;
 }) {
   const origins = snapshotOrigins(snapshot);
   if (origins.size === 0) {
@@ -215,7 +217,8 @@ function toastWithUndo({
         if (isCurrent && !isCurrent()) return;
         reverse(origins)
           .catch(() => {
-            if (!isCurrent || isCurrent()) toast.error(t('ui.mutations.undoFailed'));
+            if (!isCurrent || isCurrent())
+              toast.error(undoErrorMessage ?? t('ui.mutations.undoFailed'));
           })
           .finally(() => {
             if (!isCurrent || isCurrent()) invalidateMailViews(queryClient);
@@ -226,13 +229,24 @@ function toastWithUndo({
 }
 
 /** Every message back to the folder it came from — one request per folder. */
-function moveBack(api: EmailApi, origins: Map<string, string>): Promise<unknown> {
+function moveBack(
+  api: EmailApi,
+  origins: Map<string, string>,
+  assertCurrent?: () => void,
+): Promise<unknown> {
   const byMailbox = new Map<string, string[]>();
   for (const [id, mailboxId] of origins) {
     byMailbox.set(mailboxId, [...(byMailbox.get(mailboxId) ?? []), id]);
   }
   return Promise.all(
-    [...byMailbox].map(([mailboxId, ids]) => api.bulkMoveMessages(ids, mailboxId)),
+    [...byMailbox].map(async ([mailboxId, ids]) => {
+      assertCurrent?.();
+      const result = assertCurrent
+        ? await api.bulkMoveMessages(ids, mailboxId, assertCurrent)
+        : await api.bulkMoveMessages(ids, mailboxId);
+      assertCurrent?.();
+      return result;
+    }),
   );
 }
 
@@ -705,51 +719,67 @@ export function useSnoozeMessage() {
   const queryClient = useQueryClient();
   const { user } = useOxy();
   const userId = user?.id ?? null;
+  const onUnavailable = useCallback(
+    () => toast.error(t('ui.mutations.messageSessionUnavailable')),
+    [t],
+  );
 
-  return useMutation({
-    mutationKey: INBOX_MUTATION_KEYS.snooze,
-    ...RETRY_IDEMPOTENT,
-    // A conversation is one mutation: one toast, and one rollback that covers
-    // exactly its messages. Snoozed message by message, it showed a toast per
-    // message, and one failure's rollback brought back the ones that had
-    // snoozed.
-    mutationFn: async ({ messageIds, until }: { messageIds: string[]; until: string }) => {
-      if (!api) throw new Error('Email API not initialized');
-      await eachWithConcurrency(messageIds, PER_MESSAGE_CONCURRENCY, (id) =>
-        api.snoozeMessage(id, until),
-      );
+  return useGuardedMessageMutation(
+    {
+      mutationKey: INBOX_MUTATION_KEYS.snooze,
+      ...RETRY_IDEMPOTENT,
+      // A conversation is one mutation: one toast, and one rollback that covers
+      // exactly its messages. Snoozed message by message, it showed a toast per
+      // message, and one failure's rollback brought back the ones that had
+      // snoozed.
+      mutationFn: async (variables: { messageIds: string[]; until: string }) => {
+        const { messageIds, until } = variables;
+        if (!api) throw new Error('Email API not initialized');
+        await eachWithConcurrency(messageIds, PER_MESSAGE_CONCURRENCY, async (id) => {
+          assertMessageOwner(variables);
+          await api.snoozeMessage(id, until);
+          assertMessageOwner(variables);
+        });
+      },
+      onMutate: async (variables) => {
+        const { messageIds } = variables;
+        await cancelMessageQueries(queryClient);
+        assertMessageOwner(variables);
+        const snapshot = snapshotForRollback(queryClient, messageIds, userId);
+        for (const messageId of messageIds) removeMessageFromList(queryClient, messageId);
+        return { snapshot };
+      },
+      onSuccess: (_data, variables, context) => {
+        if (!api || !context) {
+          toast.success(t('ui.mutations.snoozed'));
+          return;
+        }
+        toastWithUndo({
+          message: t('ui.mutations.snoozed'),
+          snapshot: context.snapshot,
+          reverse: (origins) =>
+            eachWithConcurrency([...origins.keys()], PER_MESSAGE_CONCURRENCY, async (id) => {
+              assertMessageOwner(variables);
+              await api.unsnoozeMessage(id);
+              assertMessageOwner(variables);
+            }),
+          queryClient,
+          t,
+          isCurrent: () => ownsMessageOperation(variables),
+          undoErrorMessage: t('ui.mutations.partialMessagesFailed'),
+        });
+      },
+      onError: (_err, _vars, context) => {
+        if (context) restoreSnapshot(queryClient, context.snapshot);
+        toast.error(t('ui.mutations.partialMessagesFailed'));
+      },
+      onSettled: () => {
+        // Mark stale but don't trigger immediate refetch — optimistic update is already applied
+        invalidateMailViews(queryClient, { views: 'stale' });
+      },
     },
-    onMutate: async ({ messageIds }) => {
-      await cancelMessageQueries(queryClient);
-      const snapshot = snapshotForRollback(queryClient, messageIds, userId);
-      for (const messageId of messageIds) removeMessageFromList(queryClient, messageId);
-      return { snapshot };
-    },
-    onSuccess: (_data, _vars, context) => {
-      if (!api || !context) {
-        toast.success(t('ui.mutations.snoozed'));
-        return;
-      }
-      toastWithUndo({
-        message: t('ui.mutations.snoozed'),
-        snapshot: context.snapshot,
-        reverse: (origins) =>
-          eachWithConcurrency([...origins.keys()], PER_MESSAGE_CONCURRENCY, (id) =>
-            api.unsnoozeMessage(id),
-          ),
-        queryClient,
-        t,
-      });
-    },
-    onError: (_err, _vars, context) => {
-      if (context) restoreSnapshot(queryClient, context.snapshot);
-      toast.error(t('ui.mutations.snoozeFailed'));
-    },
-    onSettled: () => {
-      // Mark stale but don't trigger immediate refetch — optimistic update is already applied
-      invalidateMailViews(queryClient, { views: 'stale' });
-    },
-  });
+    onUnavailable,
+  );
 }
 
 export function useUnsnoozeMessage() {
@@ -758,34 +788,43 @@ export function useUnsnoozeMessage() {
   const queryClient = useQueryClient();
   const { user } = useOxy();
   const userId = user?.id ?? null;
+  const onUnavailable = useCallback(
+    () => toast.error(t('ui.mutations.messageSessionUnavailable')),
+    [t],
+  );
 
-  return useMutation({
-    mutationKey: INBOX_MUTATION_KEYS.unsnooze,
-    ...RETRY_IDEMPOTENT,
-    mutationFn: async ({ messageId }: { messageId: string }) => {
-      if (!api) throw new Error('Email API not initialized');
-      return await api.unsnoozeMessage(messageId);
+  return useGuardedMessageMutation(
+    {
+      mutationKey: INBOX_MUTATION_KEYS.unsnooze,
+      ...RETRY_IDEMPOTENT,
+      mutationFn: async ({ messageId }: { messageId: string }) => {
+        if (!api) throw new Error('Email API not initialized');
+        return await api.unsnoozeMessage(messageId);
+      },
+      onMutate: async (variables) => {
+        const { messageId } = variables;
+        // Same optimistic pattern as useSnoozeMessage: unsnoozing removes the row
+        // from the current (Snoozed) view. Rollback via snapshot on error.
+        await cancelMessageQueries(queryClient, messageId);
+        assertMessageOwner(variables);
+        const snapshot = snapshotForRollback(queryClient, messageId, userId);
+        removeMessageFromList(queryClient, messageId);
+        return { snapshot };
+      },
+      onSuccess: () => {
+        toast.success(t('ui.mutations.unsnoozed'));
+      },
+      onError: (_err, _vars, context) => {
+        if (context) restoreSnapshot(queryClient, context.snapshot);
+        toast.error(t('ui.mutations.unsnoozeFailed'));
+      },
+      onSettled: () => {
+        // Mark stale but don't trigger immediate refetch — optimistic update is already applied
+        invalidateMailViews(queryClient, { views: 'stale' });
+      },
     },
-    onMutate: async ({ messageId }) => {
-      // Same optimistic pattern as useSnoozeMessage: unsnoozing removes the row
-      // from the current (Snoozed) view. Rollback via snapshot on error.
-      await cancelMessageQueries(queryClient, messageId);
-      const snapshot = snapshotForRollback(queryClient, messageId, userId);
-      removeMessageFromList(queryClient, messageId);
-      return { snapshot };
-    },
-    onSuccess: () => {
-      toast.success(t('ui.mutations.unsnoozed'));
-    },
-    onError: (_err, _vars, context) => {
-      if (context) restoreSnapshot(queryClient, context.snapshot);
-      toast.error(t('ui.mutations.unsnoozeFailed'));
-    },
-    onSettled: () => {
-      // Mark stale but don't trigger immediate refetch — optimistic update is already applied
-      invalidateMailViews(queryClient, { views: 'stale' });
-    },
-  });
+    onUnavailable,
+  );
 }
 
 // ─── Bulk Operations ─────────────────────────────────────────────
@@ -796,75 +835,84 @@ export function useBulkUpdateFlags() {
   const queryClient = useQueryClient();
   const { user } = useOxy();
   const userId = user?.id ?? null;
-
-  return useMutation({
-    mutationKey: INBOX_MUTATION_KEYS.bulkFlags,
-    ...RETRY_IDEMPOTENT,
-    mutationFn: async ({
-      messageIds,
-      flags,
-    }: {
-      messageIds: string[];
-      flags: Partial<Message['flags']>;
-      /** No success toast: the change is its own feedback (a conversation read on open). */
-      quiet?: boolean;
-    }) => {
-      if (!api) throw new Error('Email API not initialized');
-      return api.bulkUpdateFlags(messageIds, flags);
+  const onUnavailable = useCallback(
+    (_options: { quiet?: boolean } | undefined, variables: { quiet?: boolean }) => {
+      if (!variables.quiet) toast.error(t('ui.mutations.messageSessionUnavailable'));
     },
-    onMutate: async ({ messageIds, flags }) => {
-      await queryClient.cancelQueries({ queryKey: emailKeys.messages.root });
+    [t],
+  );
 
-      const snapshot = snapshotForRollback(queryClient, messageIds, userId);
-      const prevMessages = queryClient.getQueriesData<MessagesInfinite>({
-        queryKey: emailKeys.messages.root,
-      });
+  return useGuardedMessageMutation(
+    {
+      mutationKey: INBOX_MUTATION_KEYS.bulkFlags,
+      ...RETRY_IDEMPOTENT,
+      mutationFn: async (variables: {
+        messageIds: string[];
+        flags: Partial<Message['flags']>;
+        /** No success toast: the change is its own feedback (a conversation read on open). */
+        quiet?: boolean;
+      }) => {
+        const { messageIds, flags } = variables;
+        if (!api) throw new Error('Email API not initialized');
+        return api.bulkUpdateFlags(messageIds, flags, () => assertMessageOwner(variables));
+      },
+      onMutate: async (variables) => {
+        const { messageIds, flags } = variables;
+        await queryClient.cancelQueries({ queryKey: emailKeys.messages.root });
+        assertMessageOwner(variables);
 
-      if (flags.seen !== undefined) {
-        // Each message once: the same message is cached in every list it
-        // appears in (Inbox and Starred, say), and counting it per list moved
-        // the badge by two.
-        const ids = new Set(messageIds);
-        const seenIds = new Set<string>();
-        const unseenDeltas = new Map<string, number>();
-        for (const [, data] of prevMessages) {
-          for (const message of flatMessages(data)) {
-            if (!ids.has(message._id) || seenIds.has(message._id)) continue;
-            seenIds.add(message._id);
-            if (message.flags.seen !== flags.seen && message.mailboxId) {
-              const delta = flags.seen ? -1 : 1;
-              unseenDeltas.set(
-                message.mailboxId,
-                (unseenDeltas.get(message.mailboxId) ?? 0) + delta,
-              );
+        const snapshot = snapshotForRollback(queryClient, messageIds, userId);
+        const prevMessages = queryClient.getQueriesData<MessagesInfinite>({
+          queryKey: emailKeys.messages.root,
+        });
+
+        if (flags.seen !== undefined) {
+          // Each message once: the same message is cached in every list it
+          // appears in (Inbox and Starred, say), and counting it per list moved
+          // the badge by two.
+          const ids = new Set(messageIds);
+          const seenIds = new Set<string>();
+          const unseenDeltas = new Map<string, number>();
+          for (const [, data] of prevMessages) {
+            for (const message of flatMessages(data)) {
+              if (!ids.has(message._id) || seenIds.has(message._id)) continue;
+              seenIds.add(message._id);
+              if (message.flags.seen !== flags.seen && message.mailboxId) {
+                const delta = flags.seen ? -1 : 1;
+                unseenDeltas.set(
+                  message.mailboxId,
+                  (unseenDeltas.get(message.mailboxId) ?? 0) + delta,
+                );
+              }
             }
           }
+          for (const [mailboxId, delta] of unseenDeltas) {
+            patchMailboxUnseen(queryClient, mailboxId, delta);
+          }
         }
-        for (const [mailboxId, delta] of unseenDeltas) {
-          patchMailboxUnseen(queryClient, mailboxId, delta);
+
+        // Unstarred, they leave Starred, as one message does (useToggleStar).
+        if (flags.starred === false) removeMessagesFromStarredLists(queryClient, messageIds);
+        // Lists, the open message and the open conversation alike.
+        for (const messageId of messageIds) {
+          patchMessageFlags(queryClient, messageId, userId, flags);
         }
-      }
 
-      // Unstarred, they leave Starred, as one message does (useToggleStar).
-      if (flags.starred === false) removeMessagesFromStarredLists(queryClient, messageIds);
-      // Lists, the open message and the open conversation alike.
-      for (const messageId of messageIds) {
-        patchMessageFlags(queryClient, messageId, userId, flags);
-      }
-
-      return { snapshot };
+        return { snapshot };
+      },
+      onError: (_err, _vars, context) => {
+        if (context) restoreSnapshot(queryClient, context.snapshot);
+        toast.error(t('ui.mutations.partialMessagesFailed'));
+      },
+      onSuccess: (_data, { quiet }) => {
+        if (!quiet) toast.success(t('ui.mutations.bulkUpdated'));
+      },
+      onSettled: () => {
+        invalidateMailViews(queryClient, { views: 'stale' });
+      },
     },
-    onError: (_err, _vars, context) => {
-      if (context) restoreSnapshot(queryClient, context.snapshot);
-      toast.error(t('ui.mutations.bulkFailed'));
-    },
-    onSuccess: (_data, { quiet }) => {
-      if (!quiet) toast.success(t('ui.mutations.bulkUpdated'));
-    },
-    onSettled: () => {
-      invalidateMailViews(queryClient, { views: 'stale' });
-    },
-  });
+    onUnavailable,
+  );
 }
 
 export function useBulkMoveMessages() {
@@ -873,48 +921,58 @@ export function useBulkMoveMessages() {
   const queryClient = useQueryClient();
   const { user } = useOxy();
   const userId = user?.id ?? null;
+  const onUnavailable = useCallback(
+    () => toast.error(t('ui.mutations.messageSessionUnavailable')),
+    [t],
+  );
 
-  return useMutation({
-    mutationKey: INBOX_MUTATION_KEYS.bulkMove,
-    ...RETRY_IDEMPOTENT,
-    mutationFn: async ({
-      messageIds,
-      mailboxId,
-    }: {
-      messageIds: string[];
-      mailboxId: string;
-      kind?: MoveKind;
-    }) => {
-      if (!api) throw new Error('Email API not initialized');
-      return api.bulkMoveMessages(messageIds, mailboxId);
+  return useGuardedMessageMutation(
+    {
+      mutationKey: INBOX_MUTATION_KEYS.bulkMove,
+      ...RETRY_IDEMPOTENT,
+      mutationFn: async (variables: {
+        messageIds: string[];
+        mailboxId: string;
+        kind?: MoveKind;
+      }) => {
+        const { messageIds, mailboxId } = variables;
+        if (!api) throw new Error('Email API not initialized');
+        return api.bulkMoveMessages(messageIds, mailboxId, () => assertMessageOwner(variables));
+      },
+      onMutate: async (variables) => {
+        const { messageIds } = variables;
+        await queryClient.cancelQueries({ queryKey: emailKeys.messages.root });
+        assertMessageOwner(variables);
+        const snapshot = snapshotForRollback(queryClient, messageIds, userId);
+        removeMessagesFromLists(queryClient, messageIds);
+        return { snapshot };
+      },
+      onSuccess: (_data, variables, context) => {
+        const { kind = 'move' } = variables;
+        if (!api || !context) {
+          toast.success(t(MOVE_TOAST[kind]));
+          return;
+        }
+        toastWithUndo({
+          message: t(MOVE_TOAST[kind]),
+          snapshot: context.snapshot,
+          reverse: (origins) => moveBack(api, origins, () => assertMessageOwner(variables)),
+          queryClient,
+          t,
+          isCurrent: () => ownsMessageOperation(variables),
+          undoErrorMessage: t('ui.mutations.partialMessagesFailed'),
+        });
+      },
+      onError: (_err, _vars, context) => {
+        if (context) restoreSnapshot(queryClient, context.snapshot);
+        toast.error(t('ui.mutations.partialMessagesFailed'));
+      },
+      onSettled: () => {
+        invalidateMailViews(queryClient, { views: 'stale' });
+      },
     },
-    onMutate: async ({ messageIds }) => {
-      await queryClient.cancelQueries({ queryKey: emailKeys.messages.root });
-      const snapshot = snapshotForRollback(queryClient, messageIds, userId);
-      removeMessagesFromLists(queryClient, messageIds);
-      return { snapshot };
-    },
-    onSuccess: (_data, { kind = 'move' }, context) => {
-      if (!api || !context) {
-        toast.success(t(MOVE_TOAST[kind]));
-        return;
-      }
-      toastWithUndo({
-        message: t(MOVE_TOAST[kind]),
-        snapshot: context.snapshot,
-        reverse: (origins) => moveBack(api, origins),
-        queryClient,
-        t,
-      });
-    },
-    onError: (_err, _vars, context) => {
-      if (context) restoreSnapshot(queryClient, context.snapshot);
-      toast.error(t('ui.mutations.moveFailed'));
-    },
-    onSettled: () => {
-      invalidateMailViews(queryClient, { views: 'stale' });
-    },
-  });
+    onUnavailable,
+  );
 }
 
 /**
@@ -929,58 +987,70 @@ export function useBulkDeleteMessages() {
   const queryClient = useQueryClient();
   const { user } = useOxy();
   const userId = user?.id ?? null;
+  const onUnavailable = useCallback(
+    () => toast.error(t('ui.mutations.messageSessionUnavailable')),
+    [t],
+  );
 
-  return useMutation({
-    mutationFn: async ({
-      toTrash,
-      permanent,
-      trashMailboxId,
-    }: {
-      /** Messages to move to Trash. */
-      toTrash: string[];
-      /** Messages already in Trash, deleted for good. */
-      permanent: string[];
-      trashMailboxId?: string;
-    }) => {
-      if (!api) throw new Error('Email API not initialized');
-      if (toTrash.length > 0) {
-        if (!trashMailboxId) throw new Error('Trash mailbox not found');
-        await api.bulkMoveMessages(toTrash, trashMailboxId);
-      }
-      await eachWithConcurrency(permanent, PER_MESSAGE_CONCURRENCY, (id) =>
-        api.deleteMessage(id, true),
-      );
+  return useGuardedMessageMutation(
+    {
+      mutationFn: async (variables: {
+        /** Messages to move to Trash. */
+        toTrash: string[];
+        /** Messages already in Trash, deleted for good. */
+        permanent: string[];
+        trashMailboxId?: string;
+      }) => {
+        const { toTrash, permanent, trashMailboxId } = variables;
+        if (!api) throw new Error('Email API not initialized');
+        if (toTrash.length > 0) {
+          if (!trashMailboxId) throw new Error('Trash mailbox not found');
+          await api.bulkMoveMessages(toTrash, trashMailboxId, () => assertMessageOwner(variables));
+          assertMessageOwner(variables);
+        }
+        await eachWithConcurrency(permanent, PER_MESSAGE_CONCURRENCY, async (id) => {
+          assertMessageOwner(variables);
+          await api.deleteMessage(id, true);
+          assertMessageOwner(variables);
+        });
+      },
+      onMutate: async (variables) => {
+        const { toTrash, permanent } = variables;
+        await queryClient.cancelQueries({ queryKey: emailKeys.messages.root });
+        assertMessageOwner(variables);
+        const ids = [...toTrash, ...permanent];
+        const snapshot = snapshotForRollback(queryClient, ids, userId);
+        removeMessagesFromLists(queryClient, ids);
+        return { snapshot };
+      },
+      onSuccess: (_data, variables, context) => {
+        const { permanent, toTrash } = variables;
+        if (permanent.length > 0 || toTrash.length === 0 || !api || !context) {
+          toast.success(
+            permanent.length > 0 ? t('ui.mutations.deletedForever') : t('ui.mutations.trashed'),
+          );
+          return;
+        }
+        toastWithUndo({
+          message: t('ui.mutations.trashed'),
+          snapshot: context.snapshot,
+          reverse: (origins) => moveBack(api, origins, () => assertMessageOwner(variables)),
+          queryClient,
+          t,
+          isCurrent: () => ownsMessageOperation(variables),
+          undoErrorMessage: t('ui.mutations.partialMessagesFailed'),
+        });
+      },
+      onError: (_err, _vars, context) => {
+        if (context) restoreSnapshot(queryClient, context.snapshot);
+        toast.error(t('ui.mutations.partialMessagesFailed'));
+      },
+      onSettled: () => {
+        invalidateMailViews(queryClient, { views: 'stale' });
+      },
     },
-    onMutate: async ({ toTrash, permanent }) => {
-      await queryClient.cancelQueries({ queryKey: emailKeys.messages.root });
-      const ids = [...toTrash, ...permanent];
-      const snapshot = snapshotForRollback(queryClient, ids, userId);
-      removeMessagesFromLists(queryClient, ids);
-      return { snapshot };
-    },
-    onSuccess: (_data, { permanent, toTrash }, context) => {
-      if (permanent.length > 0 || toTrash.length === 0 || !api || !context) {
-        toast.success(
-          permanent.length > 0 ? t('ui.mutations.deletedForever') : t('ui.mutations.trashed'),
-        );
-        return;
-      }
-      toastWithUndo({
-        message: t('ui.mutations.trashed'),
-        snapshot: context.snapshot,
-        reverse: (origins) => moveBack(api, origins),
-        queryClient,
-        t,
-      });
-    },
-    onError: (_err, _vars, context) => {
-      if (context) restoreSnapshot(queryClient, context.snapshot);
-      toast.error(t('ui.mutations.deleteFailed'));
-    },
-    onSettled: () => {
-      invalidateMailViews(queryClient, { views: 'stale' });
-    },
-  });
+    onUnavailable,
+  );
 }
 
 function removeMessagesFromLists(

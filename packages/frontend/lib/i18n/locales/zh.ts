@@ -1104,6 +1104,7 @@ const zh: LocaleDict = {
       snoozeFailed: '无法推迟邮件。',
       unsnoozed: '已取消推迟。',
       unsnoozeFailed: '无法取消推迟。',
+      partialMessagesFailed: '部分邮件可能已更改。请刷新并检查后再重试。',
       bulkFailed: '无法更新邮件。',
       bulkUpdated: '已更新邮件。',
       moveFailed: '无法移动邮件。',

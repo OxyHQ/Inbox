@@ -1126,6 +1126,8 @@ const ja: LocaleDict = {
       snoozeFailed: 'メッセージをスヌーズできませんでした。',
       unsnoozed: 'スヌーズを解除しました。',
       unsnoozeFailed: 'スヌーズを解除できませんでした。',
+      partialMessagesFailed:
+        '一部のメッセージが変更された可能性があります。再試行する前に更新して確認してください。',
       bulkFailed: 'メッセージを更新できませんでした。',
       bulkUpdated: 'メッセージを更新しました。',
       moveFailed: 'メッセージを移動できませんでした。',

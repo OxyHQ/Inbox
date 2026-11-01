@@ -1170,6 +1170,8 @@ const ar: LocaleDict = {
       snoozeFailed: 'تعذّر تأجيل الرسالة.',
       unsnoozed: 'أُزيل التأجيل.',
       unsnoozeFailed: 'تعذّرت إزالة التأجيل.',
+      partialMessagesFailed:
+        'قد تكون بعض الرسائل قد تغيّرت. حدّث الصفحة وتحقق منها قبل إعادة المحاولة.',
       bulkFailed: 'تعذّر تحديث الرسائل.',
       bulkUpdated: 'تم تحديث الرسائل.',
       moveFailed: 'تعذّر نقل الرسائل.',

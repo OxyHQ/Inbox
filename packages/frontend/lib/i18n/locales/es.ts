@@ -1130,6 +1130,8 @@ const es: LocaleDict = {
       snoozeFailed: 'No se pudo posponer el mensaje.',
       unsnoozed: 'Se quitó el aplazamiento.',
       unsnoozeFailed: 'No se pudo quitar el aplazamiento.',
+      partialMessagesFailed:
+        'Es posible que algunos mensajes hayan cambiado. Actualiza y compruébalos antes de volver a intentarlo.',
       bulkFailed: 'No se pudieron actualizar los mensajes.',
       bulkUpdated: 'Mensajes actualizados.',
       moveFailed: 'No se pudieron mover los mensajes.',

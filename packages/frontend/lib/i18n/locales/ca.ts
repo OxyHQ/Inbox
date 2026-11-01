@@ -1137,6 +1137,8 @@ const ca: LocaleDict = {
       snoozeFailed: "No s'ha pogut posposar el missatge.",
       unsnoozed: "S'ha tret l'ajornament.",
       unsnoozeFailed: "No s'ha pogut treure l'ajornament.",
+      partialMessagesFailed:
+        'És possible que alguns missatges hagin canviat. Actualitza i comprova’ls abans de tornar-ho a provar.',
       bulkFailed: "No s'han pogut actualitzar els missatges.",
       bulkUpdated: 'Missatges actualitzats.',
       moveFailed: "No s'han pogut moure els missatges.",

@@ -1143,6 +1143,8 @@ const fr: LocaleDict = {
       snoozeFailed: 'Impossible de mettre le message en attente.',
       unsnoozed: 'Mise en attente annulée.',
       unsnoozeFailed: "Impossible d'annuler la mise en attente.",
+      partialMessagesFailed:
+        'Certains messages ont peut-être changé. Actualisez pour vérifier avant de réessayer.',
       bulkFailed: 'Impossible de mettre à jour les messages.',
       bulkUpdated: 'Messages mis à jour.',
       moveFailed: 'Impossible de déplacer les messages.',

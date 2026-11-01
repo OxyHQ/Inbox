@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import {
   focusManager,
   onlineManager,
@@ -65,7 +65,7 @@ jest.mock('@oxy.so/bloom/typography', () => ({
 
 import { SavedSearchBar } from '@/components/SavedSearchBar';
 
-it('shows an error and can retry when saved searches fail to load with no active search', async () => {
+it('shows an error without adding a retry action when no list is available', async () => {
   mockHttp.get.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce([
     {
       id: 'a',
@@ -84,9 +84,15 @@ it('shows an error and can retry when saved searches fail to load with no active
       <SavedSearchBar query="" filters={{}} enabled={false} onApply={() => {}} />
     </QueryClientProvider>,
   );
-  expect(await screen.findByText('search.saved.loadFailed')).toBeTruthy();
+  expect((await screen.findByText('search.saved.loadFailed')).getAttribute('aria-live')).toBe(
+    'polite',
+  );
   expect(screen.getByText('search.ui.savedSearches')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'common.retry: search.ui.savedSearches' }));
+  expect(screen.queryByRole('button')).toBeNull();
+  act(() => {
+    focusManager.setFocused(false);
+    focusManager.setFocused(true);
+  });
   await waitFor(() => expect(screen.getByText('Recovered search')).toBeTruthy());
   expect(screen.queryByText('search.saved.loadFailed')).toBeNull();
   client.clear();
@@ -127,9 +133,15 @@ it('keeps a cached list visible and distinguishes a failed refresh', async () =>
       <SavedSearchBar query="" filters={{}} enabled={false} onApply={() => {}} />
     </QueryClientProvider>,
   );
-  expect(await screen.findByText('search.saved.refreshFailed')).toBeTruthy();
+  expect((await screen.findByText('search.saved.refreshFailed')).getAttribute('aria-live')).toBe(
+    'polite',
+  );
   expect(screen.getByText('Cached search')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'common.retry: search.ui.savedSearches' }));
+  expect(screen.queryByRole('button')).toBeNull();
+  act(() => {
+    focusManager.setFocused(false);
+    focusManager.setFocused(true);
+  });
   await waitFor(() => expect(screen.queryByText('Cached search')).toBeNull());
   expect(screen.queryByText('search.saved.refreshFailed')).toBeNull();
   client.clear();

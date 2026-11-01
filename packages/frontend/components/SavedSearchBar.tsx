@@ -29,7 +29,7 @@ export function SavedSearchBar({ query, filters, enabled, onApply }: SavedSearch
     () => onlineManager.isOnline(),
     () => onlineManager.isOnline(),
   );
-  const { data, isError, isFetching, fetchStatus, refetch } = useSavedSearches();
+  const { data, isError, fetchStatus } = useSavedSearches();
   const savedSearches = data ?? [];
   const paused = fetchStatus === 'paused';
   const showStatus = paused || isError;
@@ -99,18 +99,6 @@ export function SavedSearchBar({ query, filters, enabled, onApply }: SavedSearch
               <View className="flex-1">
                 <Text accessibilityLiveRegion="polite">{status}</Text>
               </View>
-              {!paused && (
-                <Button
-                  appearance="plain"
-                  accessibilityLabel={`${t('common.retry')}: ${t('search.ui.savedSearches')}`}
-                  disabled={isFetching}
-                  onPress={() => {
-                    void refetch();
-                  }}
-                >
-                  {t('common.retry')}
-                </Button>
-              )}
             </View>
           )}
         </View>

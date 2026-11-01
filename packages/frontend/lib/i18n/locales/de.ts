@@ -1168,6 +1168,8 @@ const de: LocaleDict = {
       bundleSessionUnavailable:
         'Dein Konto ist noch nicht bereit, Gruppen zu ändern. Versuche es gleich erneut.',
       bundleUpdateFailed: 'Bündel konnte nicht aktualisiert werden.',
+      bundleReorderPartial:
+        'Die Reihenfolge wurde möglicherweise nur teilweise geändert. Prüfe die Liste.',
       bundleReorderFailed: 'Bündel konnte nicht neu angeordnet werden.',
       contactCreateFailed: 'Kontakt konnte nicht erstellt werden',
       contactUpdateFailed: 'Kontakt konnte nicht aktualisiert werden',

@@ -25,6 +25,7 @@ jest.mock('react-native', () => ({
 import { decideNativeNavigation } from '@/components/HtmlBody';
 import { getReminderPresets } from '@/components/CreateReminderSheet';
 import { formatReminderTime } from '@/components/ReminderRow';
+import { CardDataSchema } from '@/schemas/emailSchemas';
 import { calendarTimes, generateIcs } from '@/utils/calendarEvent';
 import { formatCardDate, formatMoney } from '@/utils/cardFormat';
 import { buildPrintHtml } from '@/utils/printMessage';
@@ -42,6 +43,27 @@ describe('calendar export', () => {
   it('escapes semicolons, commas and backslashes in TEXT', () => {
     const ics = generateIcs({ title: 'Lunch; bring a snack, or not \\ maybe' } as never, times);
     expect(ics).toContain(String.raw`SUMMARY:Lunch\; bring a snack\, or not \\ maybe`);
+  });
+
+  it('encodes carriage returns and all newline forms inside calendar text', () => {
+    const ics = generateIcs(
+      CardDataSchema.parse({
+        title: 'Meeting\rroom',
+        location: 'First\r\nSecond',
+        description: 'One\nTwo\rThree',
+        organizer: 'Alice\rBob',
+      }),
+      times,
+    );
+    expect(ics).toContain(String.raw`SUMMARY:Meeting\nroom`);
+    expect(ics).toContain(String.raw`LOCATION:First\nSecond`);
+    expect(ics).toContain(String.raw`DESCRIPTION:One\nTwo\nThree\nOrganizer: Alice\nBob`);
+    expect(ics.replace(/\r\n/g, '')).not.toMatch(/[\r\n]/);
+  });
+
+  it('keeps literal backslashes distinct from line breaks', () => {
+    const ics = generateIcs(CardDataSchema.parse({ title: 'a\\n\rb; c,d' }), times);
+    expect(ics).toContain(String.raw`SUMMARY:a\\n\nb\; c\,d`);
   });
 
   it('folds at 75 octets without splitting a character', () => {

@@ -1159,7 +1159,7 @@ const it: LocaleDict = {
       bundleSessionUnavailable:
         'Il tuo account non è ancora pronto per modificare i gruppi. Riprova tra poco.',
       bundleReorderPartial:
-        'L’ordine dei gruppi potrebbe essere stato aggiornato solo in parte. Aggiorna l’elenco e riprova.',
+        'L’ordine dei gruppi potrebbe essere stato aggiornato solo in parte. Controlla l’elenco.',
       bundleReorderFailed: 'Impossibile riordinare il gruppo.',
       contactCreateFailed: 'Impossibile creare il contatto',
       contactUpdateFailed: 'Impossibile aggiornare il contatto',

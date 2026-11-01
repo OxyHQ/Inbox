@@ -1146,7 +1146,7 @@ const ja: LocaleDict = {
       bundleSessionUnavailable:
         'アカウントの準備ができていないため、グループを更新できません。しばらくしてからもう一度お試しください。',
       bundleReorderPartial:
-        'グループの順序が一部だけ更新された可能性があります。一覧を更新して、もう一度お試しください。',
+        'グループの順序が一部だけ更新された可能性があります。一覧を確認してください。',
       bundleReorderFailed: 'まとめを並べ替えできませんでした。',
       contactCreateFailed: '連絡先を作成できませんでした',
       contactUpdateFailed: '連絡先を更新できませんでした',

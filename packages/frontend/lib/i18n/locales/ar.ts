@@ -1187,7 +1187,7 @@ const ar: LocaleDict = {
       bundleUpdateFailed: 'تعذّر تحديث المجموعة.',
       bundleSessionUnavailable:
         'حسابك غير جاهز بعد لتحديث المجموعات. يرجى المحاولة مجددًا بعد قليل.',
-      bundleReorderPartial: 'ربما تغير ترتيب المجموعات جزئيًا فقط. حدّث القائمة وحاول مجددًا.',
+      bundleReorderPartial: 'ربما تغير ترتيب المجموعات جزئيًا فقط. تحقق من القائمة.',
       bundleReorderFailed: 'تعذّرت إعادة ترتيب المجموعة.',
       contactCreateFailed: 'تعذّر إنشاء جهة الاتصال',
       contactUpdateFailed: 'تعذّر تحديث جهة الاتصال',

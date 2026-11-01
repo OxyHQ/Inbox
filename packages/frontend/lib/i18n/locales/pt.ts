@@ -1161,7 +1161,7 @@ const pt: LocaleDict = {
       bundleSessionUnavailable:
         'Sua conta ainda não está pronta para alterar os grupos. Tente novamente em instantes.',
       bundleReorderPartial:
-        'A ordem dos grupos pode ter sido alterada apenas parcialmente. Atualize a lista e tente novamente.',
+        'A ordem dos grupos pode ter sido alterada apenas parcialmente. Confira a lista.',
       bundleReorderFailed: 'Falha ao reordenar o grupo.',
       contactCreateFailed: 'Falha ao criar o contacto',
       contactUpdateFailed: 'Falha ao atualizar o contacto',

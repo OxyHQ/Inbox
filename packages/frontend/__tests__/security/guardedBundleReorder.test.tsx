@@ -216,13 +216,15 @@ it('sends both writes in order for the same account', async () => {
 
 it('warns of a possibly partial result and does not retry the pair after the second write fails', async () => {
   const sent: string[] = [];
+  let server = bundles('alice');
   globalThis.fetch = jest.fn(async (url: string | URL | Request, init?: RequestInit) => {
     if (init?.method === 'PUT') {
       sent.push(String(url));
       if (sent.length === 2) throw new Error('synthetic second write failure');
-      return response(bundle('alice'));
+      server = [{ ...server[0], order: 1 }, server[1]];
+      return response(server[0]);
     }
-    return response(bundles('alice'));
+    return response(server);
   }) as never;
   const client = createInboxQueryClient();
   client.setDefaultOptions({
@@ -243,6 +245,8 @@ it('warns of a possibly partial result and does not retry the pair after the sec
   expect(sent).toHaveLength(2);
   expect(sent[0]).toContain('/shared');
   expect(sent[1]).toContain('/second');
+  await waitFor(() => expect(client.getQueryData(emailKeys.bundles)).toEqual(server));
+  expect(server.map((item) => item.order)).toEqual([1, 1]);
   view.unmount();
   client.clear();
 });

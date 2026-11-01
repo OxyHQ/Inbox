@@ -1117,7 +1117,7 @@ const zh: LocaleDict = {
       bundleSessionUnavailable: '你的账户尚未准备好更新分组，请稍后重试。',
       bundleUpdateFailed: '无法更新分组。',
       bundleSessionUnavailable: '你的账户尚未准备好更新分组，请稍后重试。',
-      bundleReorderPartial: '分组顺序可能只更新了一部分。请刷新列表后重试。',
+      bundleReorderPartial: '分组顺序可能只更新了一部分，请检查列表。',
       bundleReorderFailed: '无法调整分组顺序。',
       contactCreateFailed: '无法创建联系人',
       contactUpdateFailed: '无法更新联系人',

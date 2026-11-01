@@ -350,6 +350,11 @@ const ko: LocaleDict = {
 
   search: {
     saved: {
+      retryPaused: '저장된 검색을 다시 불러오기를 기다리는 중이에요.',
+      loadFailed: '저장된 검색을 불러오지 못했어요.',
+      refreshFailed: '저장된 검색을 새로고침하지 못했어요. 마지막으로 불러온 목록을 표시해요.',
+      offlineEmpty: '저장된 검색을 불러오기 위해 연결을 기다리는 중이에요.',
+      offlineCached: '연결을 기다리는 중이에요. 저장된 검색이 최신 상태가 아닐 수 있어요.',
       saveFailed: '검색을 저장하지 못했어요.',
       deleteFailed: '저장된 검색을 삭제하지 못했어요.',
     },

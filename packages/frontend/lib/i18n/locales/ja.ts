@@ -352,6 +352,11 @@ const ja: LocaleDict = {
 
   search: {
     saved: {
+      retryPaused: '保存した検索の再読み込みを待っています。',
+      loadFailed: '保存した検索を読み込めませんでした。',
+      refreshFailed: '保存した検索を更新できませんでした。最後に取得した一覧を表示しています。',
+      offlineEmpty: '保存した検索を読み込むため、接続を待っています。',
+      offlineCached: '接続を待っています。保存した検索は最新でない可能性があります。',
       saveFailed: '検索を保存できませんでした。',
       deleteFailed: '保存した検索を削除できませんでした。',
     },

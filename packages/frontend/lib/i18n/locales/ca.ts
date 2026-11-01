@@ -357,6 +357,12 @@ const ca: LocaleDict = {
 
   search: {
     saved: {
+      retryPaused: 'S’espera per tornar a carregar les cerques desades.',
+      loadFailed: 'No s’han pogut carregar les cerques desades.',
+      refreshFailed:
+        'No s’han pogut actualitzar les cerques desades. Es mostra l’última llista disponible.',
+      offlineEmpty: 'S’espera connexió per carregar les cerques desades.',
+      offlineCached: 'S’espera connexió. Les cerques desades podrien no estar actualitzades.',
       saveFailed: "No s'ha pogut desar la cerca.",
       deleteFailed: "No s'ha pogut eliminar la cerca desada.",
     },

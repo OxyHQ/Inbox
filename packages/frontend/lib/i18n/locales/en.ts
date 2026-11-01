@@ -354,6 +354,11 @@ const en: LocaleDict = {
 
   search: {
     saved: {
+      retryPaused: 'Waiting to retry saved searches.',
+      loadFailed: "Couldn't load saved searches.",
+      refreshFailed: "Couldn't refresh saved searches. Showing the last available list.",
+      offlineEmpty: 'Waiting for a connection to load saved searches.',
+      offlineCached: 'Waiting for a connection. Saved searches may be out of date.',
       deleteFailed: 'Unable to delete saved search.',
       saveFailed: 'Unable to save search.',
     },

@@ -359,6 +359,13 @@ const de: LocaleDict = {
 
   search: {
     saved: {
+      retryPaused: 'Warten auf einen erneuten Versuch, gespeicherte Suchen zu laden.',
+      loadFailed: 'Gespeicherte Suchen konnten nicht geladen werden.',
+      refreshFailed:
+        'Gespeicherte Suchen konnten nicht aktualisiert werden. Die zuletzt verfügbare Liste wird angezeigt.',
+      offlineEmpty: 'Warten auf eine Verbindung, um gespeicherte Suchen zu laden.',
+      offlineCached:
+        'Warten auf eine Verbindung. Gespeicherte Suchen sind möglicherweise nicht aktuell.',
       saveFailed: 'Suche konnte nicht gespeichert werden.',
       deleteFailed: 'Gespeicherte Suche konnte nicht gelöscht werden.',
     },

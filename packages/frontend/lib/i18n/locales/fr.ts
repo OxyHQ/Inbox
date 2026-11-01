@@ -359,6 +359,13 @@ const fr: LocaleDict = {
 
   search: {
     saved: {
+      retryPaused: 'En attente d’une nouvelle tentative de chargement des recherches enregistrées.',
+      loadFailed: 'Impossible de charger les recherches enregistrées.',
+      refreshFailed:
+        'Impossible d’actualiser les recherches enregistrées. La dernière liste disponible est affichée.',
+      offlineEmpty: 'En attente d’une connexion pour charger les recherches enregistrées.',
+      offlineCached:
+        'En attente d’une connexion. Les recherches enregistrées peuvent être obsolètes.',
       saveFailed: "Impossible d'enregistrer la recherche.",
       deleteFailed: 'Impossible de supprimer la recherche enregistrée.',
     },

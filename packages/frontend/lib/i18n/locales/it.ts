@@ -356,6 +356,13 @@ const it: LocaleDict = {
 
   search: {
     saved: {
+      retryPaused: 'In attesa di riprovare a caricare le ricerche salvate.',
+      loadFailed: 'Impossibile caricare le ricerche salvate.',
+      refreshFailed:
+        'Impossibile aggiornare le ricerche salvate. Viene mostrato l’ultimo elenco disponibile.',
+      offlineEmpty: 'In attesa di una connessione per caricare le ricerche salvate.',
+      offlineCached:
+        'In attesa di una connessione. Le ricerche salvate potrebbero non essere aggiornate.',
       saveFailed: 'Impossibile salvare la ricerca.',
       deleteFailed: 'Impossibile eliminare la ricerca salvata.',
     },

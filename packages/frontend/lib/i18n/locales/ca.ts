@@ -1122,6 +1122,8 @@ const ca: LocaleDict = {
       starSessionUnavailable:
         'El teu compte encara no està preparat per actualitzar l’estrella. Torna-ho a provar d’aquí a uns moments.',
       readFailed: "No s'ha pogut actualitzar l'estat de lectura.",
+      messageSessionUnavailable:
+        'El teu compte encara no està preparat per actualitzar aquest missatge. Torna-ho a provar d’aquí a uns moments.',
       archived: 'Conversa arxivada.',
       archiveFailed: "No s'ha pogut arxivar la conversa.",
       deleteFailed: "No s'ha pogut suprimir la conversa.",

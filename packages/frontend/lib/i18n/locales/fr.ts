@@ -1128,6 +1128,8 @@ const fr: LocaleDict = {
       starSessionUnavailable:
         'Votre compte n’est pas encore prêt à modifier l’étoile. Réessayez dans quelques instants.',
       readFailed: "Impossible de mettre à jour l'état de lecture.",
+      messageSessionUnavailable:
+        'Votre compte n’est pas encore prêt à modifier ce message. Réessayez dans quelques instants.',
       archived: 'Conversation archivée.',
       archiveFailed: "Impossible d'archiver la conversation.",
       deleteFailed: 'Impossible de supprimer la conversation.',

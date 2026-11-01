@@ -6,6 +6,7 @@ import { useEmailStore } from '@/hooks/useEmail';
 import { wireMessage } from '../fixtures/wire';
 
 let mockOxy: OxyServices;
+let mockMarkRead = false;
 let mockRuntime: ReturnType<typeof import('@oxy.so/services/runtime').useOxyRuntime>;
 const mockToast = jest.fn();
 const mockTranslate = (s: string) => s;
@@ -67,12 +68,9 @@ jest.mock('@/hooks/useCidResolver', () => ({ useCidResolver: () => ({}) }));
 jest.mock('@/hooks/useGoBack', () => ({ useGoBack: () => jest.fn() }));
 jest.mock('@/hooks/useLeaveRemovedRows', () => ({ useLeaveOpenConversation: () => jest.fn() }));
 jest.mock('@/hooks/useOpenAttachment', () => ({ useOpenAttachment: () => jest.fn() }));
-jest.mock('@/hooks/useMessageActions', () => ({
-  useMessageActions: () => ({ isArchived: () => false }),
-}));
 jest.mock('@/hooks/mutations/useReminderMutations', () => ({ useCreateReminder: () => ({}) }));
 jest.mock('@/contexts/inbox-prefs-context', () => ({
-  useInboxPrefs: () => ({ prefs: { markReadOnOpen: false } }),
+  useInboxPrefs: () => ({ prefs: { markReadOnOpen: mockMarkRead } }),
 }));
 jest.mock('@/constants/theme', () => ({ useColors: () => ({}) }));
 jest.mock('@/components/DeliveryStatus', () => ({
@@ -140,4 +138,52 @@ it('reports that the current account is not ready from the real message star but
   view.unmount();
   client.clear();
   mockOxy.dispose();
+});
+
+it('keeps automatic single-message read quiet while the account is initializing', async () => {
+  mockToast.mockClear();
+  mockMarkRead = true;
+  mockOxy = new OxyServices({
+    baseURL: 'https://api.test',
+    enableRetry: false,
+    enableCache: false,
+  });
+  const payload = Buffer.from(
+    JSON.stringify({ userId: 'alice', sessionId: 'a', exp: 2000000000 }),
+  ).toString('base64url');
+  mockOxy.session.setAccessToken(`e30.${payload}.fixture`);
+  const { dirname, join } = require('node:path');
+  const dir = dirname(require.resolve('@oxy.so/services/package.json'));
+  const { createOxyRuntime } = require(join(dir, 'lib/commonjs/ui/runtime/createOxyRuntime.js'));
+  mockRuntime = createOxyRuntime({
+    oxyServices: mockOxy,
+    sessionClient: { getState: () => null, getDirectory: () => null, subscribe: () => () => {} },
+    sessionClientHost: { setCurrentAccountId: () => {} },
+    identity: null,
+    onDeviceEmpty: async () => {},
+    logger: () => {},
+  });
+  mockRuntime.setAccount({ id: 'alice' });
+  const client = createInboxQueryClient();
+  useEmailStore.getState().resetAccountScopedState();
+  const put = jest.spyOn(mockOxy.http, 'put');
+  const view = render(
+    <QueryClientProvider client={client}>
+      <MessageDetail mode="embedded" messageId="synthetic-message" />
+    </QueryClientProvider>,
+  );
+  await waitFor(() =>
+    expect(
+      client
+        .getMutationCache()
+        .getAll()
+        .some((m) => m.state.status === 'error'),
+    ).toBe(true),
+  );
+  expect(mockToast).not.toHaveBeenCalled();
+  expect(put).not.toHaveBeenCalled();
+  view.unmount();
+  client.clear();
+  mockOxy.dispose();
+  mockMarkRead = false;
 });

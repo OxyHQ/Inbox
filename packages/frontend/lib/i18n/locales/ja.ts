@@ -1111,6 +1111,8 @@ const ja: LocaleDict = {
       starSessionUnavailable:
         'アカウントでスターを更新する準備ができていません。しばらくしてからもう一度お試しください。',
       readFailed: '既読状態を更新できませんでした。',
+      messageSessionUnavailable:
+        'アカウントでこのメッセージを更新する準備ができていません。しばらくしてからもう一度お試しください。',
       archived: 'スレッドをアーカイブしました。',
       archiveFailed: 'スレッドをアーカイブできませんでした。',
       deleteFailed: 'スレッドを削除できませんでした。',

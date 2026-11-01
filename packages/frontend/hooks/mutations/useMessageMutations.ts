@@ -108,45 +108,56 @@ export function useToggleRead() {
   const queryClient = useQueryClient();
   const { user } = useOxy();
   const userId = user?.id ?? null;
+  const onUnavailable = useCallback(
+    (options?: { quiet?: boolean }) => {
+      if (!options?.quiet) toast.error(t('ui.mutations.messageSessionUnavailable'));
+    },
+    [t],
+  );
 
-  return useMutation({
-    mutationKey: INBOX_MUTATION_KEYS.toggleRead,
-    // Offline-first — see useToggleStar for the queue/replay rationale.
-    networkMode: 'offlineFirst',
-    mutationFn: async ({ messageId, seen }: { messageId: string; seen: boolean }) => {
-      if (!api) throw new Error('Email API not initialized');
-      return await api.updateFlags(messageId, { seen });
-    },
-    onMutate: async ({ messageId, seen }) => {
-      await cancelMessageQueries(queryClient, messageId);
-      const snapshot = snapshotForRollback(queryClient, messageId, userId);
+  return useGuardedMessageMutation(
+    {
+      mutationKey: INBOX_MUTATION_KEYS.toggleRead,
+      // Offline-first — see useToggleStar for the queue/replay rationale.
+      networkMode: 'offlineFirst',
+      mutationFn: async ({ messageId, seen }: { messageId: string; seen: boolean }) => {
+        if (!api) throw new Error('Email API not initialized');
+        return await api.updateFlags(messageId, { seen });
+      },
+      onMutate: async (variables: { messageId: string; seen: boolean }) => {
+        const { messageId, seen } = variables;
+        await cancelMessageQueries(queryClient, messageId);
+        assertMessageOwner(variables);
+        const snapshot = snapshotForRollback(queryClient, messageId, userId);
 
-      // Only adjust the mailbox badge if the seen state actually changes.
-      const cached = findCachedMessage(queryClient, messageId, userId);
-      if (cached && cached.flags.seen !== seen) {
-        // seen=true → one fewer unread; seen=false → one more unread.
-        patchMailboxUnseen(queryClient, cached.mailboxId, seen ? -1 : 1);
-      }
+        // Only adjust the mailbox badge if the seen state actually changes.
+        const cached = findCachedMessage(queryClient, messageId, userId);
+        if (cached && cached.flags.seen !== seen) {
+          // seen=true → one fewer unread; seen=false → one more unread.
+          patchMailboxUnseen(queryClient, cached.mailboxId, seen ? -1 : 1);
+        }
 
-      patchMessageFlags(queryClient, messageId, userId, { seen });
+        patchMessageFlags(queryClient, messageId, userId, { seen });
 
-      return { snapshot };
+        return { snapshot };
+      },
+      onError: (_err, _vars, context) => {
+        if (context) restoreSnapshot(queryClient, context.snapshot);
+        toast.error(t('ui.mutations.readFailed'));
+      },
+      onSuccess: (updatedMessage, { messageId }) => {
+        if (updatedMessage) {
+          mergeServerMessage(queryClient, messageId, userId, updatedMessage);
+        }
+      },
+      onSettled: () => {
+        // Lists, message and thread are already synced from the server response
+        // in onSuccess; search, bundles and the unseen counts are not.
+        invalidateMailViews(queryClient, { views: 'stale' });
+      },
     },
-    onError: (_err, _vars, context) => {
-      if (context) restoreSnapshot(queryClient, context.snapshot);
-      toast.error(t('ui.mutations.readFailed'));
-    },
-    onSuccess: (updatedMessage, { messageId }) => {
-      if (updatedMessage) {
-        mergeServerMessage(queryClient, messageId, userId, updatedMessage);
-      }
-    },
-    onSettled: () => {
-      // Lists, message and thread are already synced from the server response
-      // in onSuccess; search, bundles and the unseen counts are not.
-      invalidateMailViews(queryClient, { views: 'stale' });
-    },
-  });
+    onUnavailable,
+  );
 }
 
 /**
@@ -619,31 +630,42 @@ export function useTogglePin() {
   const queryClient = useQueryClient();
   const { user } = useOxy();
   const userId = user?.id ?? null;
+  const onUnavailable = useCallback(
+    (options?: { quiet?: boolean }) => {
+      if (!options?.quiet) toast.error(t('ui.mutations.messageSessionUnavailable'));
+    },
+    [t],
+  );
 
-  return useMutation({
-    mutationKey: INBOX_MUTATION_KEYS.togglePin,
-    ...RETRY_IDEMPOTENT,
-    mutationFn: async ({ messageId, pinned }: { messageId: string; pinned: boolean }) => {
-      if (!api) throw new Error('Email API not initialized');
-      return await api.updateFlags(messageId, { pinned });
+  return useGuardedMessageMutation(
+    {
+      mutationKey: INBOX_MUTATION_KEYS.togglePin,
+      ...RETRY_IDEMPOTENT,
+      mutationFn: async ({ messageId, pinned }: { messageId: string; pinned: boolean }) => {
+        if (!api) throw new Error('Email API not initialized');
+        return await api.updateFlags(messageId, { pinned });
+      },
+      onMutate: async (variables: { messageId: string; pinned: boolean }) => {
+        const { messageId, pinned } = variables;
+        await cancelMessageQueries(queryClient, messageId);
+        assertMessageOwner(variables);
+        const snapshot = snapshotForRollback(queryClient, messageId, userId);
+        patchMessageFlags(queryClient, messageId, userId, { pinned });
+        return { snapshot };
+      },
+      onError: (_err, _vars, context) => {
+        if (context) restoreSnapshot(queryClient, context.snapshot);
+        toast.error(t('ui.mutations.pinFailed'));
+      },
+      onSettled: () => {
+        // Re-read, not just marked stale: a pin MOVES the message — the API lists
+        // pinned messages first — and the optimistic flag cannot. An unpinned
+        // message sat on top of the list under its date heading until the poll.
+        invalidateMailViews(queryClient);
+      },
     },
-    onMutate: async ({ messageId, pinned }) => {
-      await cancelMessageQueries(queryClient, messageId);
-      const snapshot = snapshotForRollback(queryClient, messageId, userId);
-      patchMessageFlags(queryClient, messageId, userId, { pinned });
-      return { snapshot };
-    },
-    onError: (_err, _vars, context) => {
-      if (context) restoreSnapshot(queryClient, context.snapshot);
-      toast.error(t('ui.mutations.pinFailed'));
-    },
-    onSettled: () => {
-      // Re-read, not just marked stale: a pin MOVES the message — the API lists
-      // pinned messages first — and the optimistic flag cannot. An unpinned
-      // message sat on top of the list under its date heading until the poll.
-      invalidateMailViews(queryClient);
-    },
-  });
+    onUnavailable,
+  );
 }
 
 export function useSnoozeMessage() {

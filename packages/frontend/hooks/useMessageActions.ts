@@ -62,7 +62,7 @@ export function useMessageActions() {
       const changed = conversation.filter((m) => m.flags.seen !== seen && !m.flags.draft);
       if (changed.length === 0) return;
       if (changed.length === 1) {
-        toggleRead({ messageId: changed[0]._id, seen });
+        toggleRead({ messageId: changed[0]._id, seen }, undefined, { quiet });
         return;
       }
       bulkFlags({ messageIds: changed.map((m) => m._id), flags: { seen }, quiet });

@@ -1124,6 +1124,8 @@ const it: LocaleDict = {
       starSessionUnavailable:
         'Il tuo account non è ancora pronto per aggiornare la stella. Riprova tra poco.',
       readFailed: 'Impossibile aggiornare lo stato di lettura.',
+      messageSessionUnavailable:
+        'Il tuo account non è ancora pronto per aggiornare questo messaggio. Riprova tra poco.',
       archived: 'Conversazione archiviata.',
       archiveFailed: 'Impossibile archiviare la conversazione.',
       deleteFailed: 'Impossibile eliminare la conversazione.',

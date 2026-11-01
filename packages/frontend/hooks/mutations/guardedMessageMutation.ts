@@ -28,7 +28,7 @@ export function assertMessageOwner(variables: object): void {
 /** Guards live operations; persisted mutations still use the registered replay defaults. */
 export function useGuardedMessageMutation<TData, TVariables extends object, TContext>(
   options: UseMutationOptions<TData, Error, TVariables, TContext>,
-  onUnavailable?: () => void,
+  onUnavailable?: (options: { quiet?: boolean } | undefined) => void,
 ) {
   const owner = useEmailMutationOwner(true);
   const runtime = useOxyRuntime();
@@ -91,6 +91,7 @@ export function useGuardedMessageMutation<TData, TVariables extends object, TCon
     function prepare(
       variables: TVariables,
       callbacks?: MutateOptions<TData, Error, TVariables, TContext>,
+      feedback?: { quiet?: boolean },
     ) {
       const copy = { ...variables } as TVariables;
       owners.set(copy, captured);
@@ -104,7 +105,7 @@ export function useGuardedMessageMutation<TData, TVariables extends object, TCon
         captured.http.getSessionEpoch() === captured.epoch &&
         runtime.getAccountSessionRevision() === projection.revision
       ) {
-        onUnavailable?.();
+        onUnavailable?.(feedback);
       }
       const wrapped: MutateOptions<TData, Error, TVariables, TContext> | undefined = callbacks && {
         onSuccess: (data, value, result, context) => {
@@ -124,15 +125,17 @@ export function useGuardedMessageMutation<TData, TVariables extends object, TCon
       mutate: (
         variables: TVariables,
         callbacks?: MutateOptions<TData, Error, TVariables, TContext>,
+        feedback?: { quiet?: boolean },
       ) => {
-        const { copy, wrapped } = prepare(variables, callbacks);
+        const { copy, wrapped } = prepare(variables, callbacks, feedback);
         mutate(copy, wrapped);
       },
       mutateAsync: (
         variables: TVariables,
         callbacks?: MutateOptions<TData, Error, TVariables, TContext>,
+        feedback?: { quiet?: boolean },
       ) => {
-        const { copy, wrapped } = prepare(variables, callbacks);
+        const { copy, wrapped } = prepare(variables, callbacks, feedback);
         return mutateAsync(copy, wrapped).then(
           (data) => {
             assertMessageOwner(copy);

@@ -1177,6 +1177,8 @@ const de: LocaleDict = {
       reminderCreateFailed: 'Erinnerung konnte nicht erstellt werden',
       reminderUpdateFailed: 'Erinnerung konnte nicht aktualisiert werden',
       reminderDeleteFailed: 'Erinnerung konnte nicht gelöscht werden',
+      reminderSessionUnavailable:
+        'Dein Konto ist noch nicht bereit, Erinnerungen zu löschen. Bitte versuche es in Kürze erneut.',
       templateCreateFailed: 'Vorlage konnte nicht erstellt werden',
       templateUpdateFailed: 'Vorlage konnte nicht aktualisiert werden',
       templateDeleteFailed: 'Vorlage konnte nicht gelöscht werden',

@@ -1195,6 +1195,8 @@ const ar: LocaleDict = {
       reminderCreateFailed: 'تعذّر إنشاء التذكير',
       reminderUpdateFailed: 'تعذّر تحديث التذكير',
       reminderDeleteFailed: 'تعذّر حذف التذكير',
+      reminderSessionUnavailable:
+        'حسابك غير جاهز لحذف التذكيرات بعد. يُرجى المحاولة مرة أخرى بعد قليل.',
       templateCreateFailed: 'تعذّر إنشاء القالب',
       templateUpdateFailed: 'تعذّر تحديث القالب',
       templateDeleteFailed: 'تعذّر حذف القالب',

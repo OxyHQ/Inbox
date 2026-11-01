@@ -1152,6 +1152,8 @@ const ja: LocaleDict = {
       reminderCreateFailed: 'リマインダーを作成できませんでした',
       reminderUpdateFailed: 'リマインダーを更新できませんでした',
       reminderDeleteFailed: 'リマインダーを削除できませんでした',
+      reminderSessionUnavailable:
+        'アカウントでリマインダーを削除する準備ができていません。しばらくしてからもう一度お試しください。',
       templateCreateFailed: 'テンプレートを作成できませんでした',
       templateUpdateFailed: 'テンプレートを更新できませんでした',
       templateDeleteFailed: 'テンプレートを削除できませんでした',

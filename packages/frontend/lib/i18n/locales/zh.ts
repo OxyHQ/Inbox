@@ -1127,6 +1127,7 @@ const zh: LocaleDict = {
       reminderCreateFailed: '无法创建提醒',
       reminderUpdateFailed: '无法更新提醒',
       reminderDeleteFailed: '无法删除提醒',
+      reminderSessionUnavailable: '你的账号尚未准备好删除提醒，请稍后重试。',
       templateCreateFailed: '无法创建模板',
       templateUpdateFailed: '无法更新模板',
       templateDeleteFailed: '无法删除模板',

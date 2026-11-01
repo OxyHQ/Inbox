@@ -62,6 +62,23 @@ jobs:
       - name: Verify Oxy dependency health
         run: bun run doctor:oxy
 
+      - name: Verify Android device session module autolinking
+        run: |
+          node -e '
+            const { createRequire } = require("node:module");
+            const { resolve } = require("node:path");
+            const semver = require("semver");
+            const fromApp = createRequire(resolve("packages/frontend/package.json"));
+            const declared = fromApp("./package.json").dependencies?.["@oxy.so/services"];
+            const installed = fromApp("@oxy.so/services/package.json").version;
+            if (typeof declared !== "string" || !semver.validRange(declared) ||
+                !semver.valid(installed) || !semver.satisfies(installed, declared)) {
+              console.error("Installed Oxy Services does not satisfy the app declaration");
+              process.exit(1);
+            }
+          '
+          bun run oxy-doctor-expo-android --project-root=packages/frontend
+
       # Biome owns formatting and almost all linting (root biome.json). `ci`
       # never writes; it fails on unformatted files and on error-level rules.
       # The warning baseline was cleared to zero, and `--error-on-warnings`

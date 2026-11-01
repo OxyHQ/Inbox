@@ -168,6 +168,39 @@ afterEach(() => {
   client.clear();
 });
 
+it('keeps a pending create visible when the search is cleared and no saved rows exist', async () => {
+  let finish!: (value: unknown) => void;
+  mockTransportA.get.mockResolvedValue([]);
+  mockTransportA.post.mockReturnValue(
+    new Promise((resolve) => {
+      finish = resolve;
+    }),
+  );
+  const renderBar = (enabled: boolean) => (
+    <QueryClientProvider client={client}>
+      <SavedSearchBar
+        query={enabled ? 'query' : ''}
+        filters={{}}
+        enabled={enabled}
+        onApply={() => {}}
+      />
+    </QueryClientProvider>
+  );
+  const view = render(renderBar(true));
+  await waitFor(() => expect(client.getQueryData(emailKeys.savedSearches)).toEqual([]));
+  fireEvent.click(screen.getByRole('button', { name: 'search.ui.saveSearch' }));
+  fireEvent.change(screen.getByLabelText('search.ui.searchName'), { target: { value: 'saved' } });
+  fireEvent.click(screen.getByRole('button', { name: 'common.save' }));
+  await waitFor(() => expect(mockTransportA.post).toHaveBeenCalledTimes(1));
+  fireEvent.click(screen.getByRole('button', { name: 'common.close' }));
+  view.rerender(renderBar(false));
+  expect(screen.getByText('common.loading')).toBeTruthy();
+  await act(async () => {
+    finish(row('new'));
+  });
+  await waitFor(() => expect(client.isMutating()).toBe(0));
+});
+
 it('allows closing a paused create and preserves a later dialog when it settles', async () => {
   client.setDefaultOptions({
     queries: { networkMode: 'offlineFirst', retry: 2, retryDelay: 0, gcTime: Infinity },

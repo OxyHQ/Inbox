@@ -120,7 +120,7 @@ export function SavedSearchBar({ query, filters, enabled, onApply }: SavedSearch
 
   return (
     <>
-      {(savedSearches.length > 0 || enabled || showStatus) && (
+      {(savedSearches.length > 0 || enabled || showStatus || saving || deleting) && (
         <View className="gap-2 px-4 pb-3">
           <View className="flex-row flex-wrap items-center justify-between gap-2">
             {(savedSearches.length > 0 || showStatus) && (

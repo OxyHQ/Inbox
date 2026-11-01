@@ -24,6 +24,15 @@ jest.mock('@/lib/i18n', () => ({
   useLocale: () => ({ locale: 'es' }),
 }));
 
+jest.mock('@oxy.so/services/runtime', () => {
+  const runtime = {
+    subscribe: () => () => {},
+    getAccountSessionRevision: () => 0,
+    getAccountSessionIdentity: () => ({ accountId: 'user-1', sessionId: null, revision: 0 }),
+  };
+  return { useOxyRuntime: () => runtime };
+});
+
 jest.mock('@/services/inboxInferenceApi', () => ({
   inboxLocalDayWindow: jest.fn(),
   runInboxCompose: jest.fn(),
@@ -93,8 +102,11 @@ describe('Inbox inference hooks', () => {
   });
 
   it('aborts compose streaming on unmount and stops chunk callbacks', async () => {
+    const base = makeMockOxyServices();
     const oxyServices = {
-      ...makeMockOxyServices(),
+      ...base,
+      http: { ...base.http, getAccessToken: () => 'synthetic-token' },
+      session: { ...base.session, userId: 'user-1', isAuthenticated: true },
       httpService: {},
     };
     __setOxyState({
@@ -109,6 +121,7 @@ describe('Inbox inference hooks', () => {
     mockStreamInboxDraft.mockImplementation(async function* (_http, _request, signal) {
       observedSignal = signal;
       await new Promise<void>((_resolve, reject) => {
+        if (signal?.aborted) return reject(abortError());
         signal?.addEventListener('abort', () => reject(abortError()), { once: true });
       });
       yield 'unreachable';

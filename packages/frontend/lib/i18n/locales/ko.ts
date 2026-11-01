@@ -506,6 +506,7 @@ const ko: LocaleDict = {
 
   ai: {
     draftDialog: {
+      preview: 'AI 초안 미리보기',
       title: 'AI로 초안 작성',
       description: '하고 싶은 말을 설명하면 AI가 초안을 작성해 드려요.',
       label: '초안 작성 지시',

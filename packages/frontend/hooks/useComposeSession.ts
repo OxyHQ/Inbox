@@ -314,10 +314,19 @@ export function useComposeSession({
   const [draftSaveQueue] = useState(createDraftSaveQueue);
 
   const bodyValueRef = useRef(seed.body);
+  const bodyRevisionRef = useRef(0);
+  const bodyComposingRef = useRef(false);
+  const setBodyComposing = useCallback((composing: boolean) => {
+    if (composing && !bodyComposingRef.current) bodyRevisionRef.current += 1;
+    bodyComposingRef.current = composing;
+  }, []);
+  const isBodyComposing = useCallback(() => bodyComposingRef.current, []);
   const updateBody = useCallback((next: string) => {
+    if (bodyValueRef.current !== next) bodyRevisionRef.current += 1;
     bodyValueRef.current = next;
     setBody(next);
   }, []);
+  const getBodyRevision = useCallback(() => bodyRevisionRef.current, []);
 
   // The exact signature this composer wrote, so a body holding only it is not
   // "content" — it used to be, and every composer opened by a user with a
@@ -1148,6 +1157,9 @@ export function useComposeSession({
     setSubject,
     body,
     updateBody,
+    getBodyRevision,
+    setBodyComposing,
+    isBodyComposing,
     insertText,
     ownText,
     replaceOwnText,

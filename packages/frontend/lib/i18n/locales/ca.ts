@@ -516,6 +516,7 @@ const ca: LocaleDict = {
 
   ai: {
     draftDialog: {
+      preview: 'Previsualització de l’esborrany d’IA',
       title: 'Redacta amb IA',
       description: 'Descriu què vols dir i la IA ho redactarà per tu.',
       label: "Instruccions per a l'esborrany",

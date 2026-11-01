@@ -3,6 +3,7 @@ import { Button } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
 import { toast } from '@oxy.so/bloom/toast';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
+import { Text } from '@oxy.so/bloom/typography';
 /**
  * AI Compose Toolbar component.
  *
@@ -14,8 +15,15 @@ import { TextFieldInput } from '@oxy.so/bloom/text-field';
  */
 
 import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useCallback, useEffect, useRef, useState, type ComponentProps } from 'react';
-import { View } from 'react-native';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ComponentProps,
+} from 'react';
+import { ScrollView, View } from 'react-native';
 
 import { useAiCompose, type ComposeTone } from '@/hooks/mutations/useAiCompose';
 
@@ -24,25 +32,20 @@ type MaterialCommunityIconName = ComponentProps<typeof MaterialCommunityIcons>['
 /**
  * The toolbar reads and rewrites the user's OWN text only — plain text, the
  * signature excluded — and the composer owns what that means for the body.
- *
- * It used to read the editor's HTML as text and write the result over the
- * whole body: "Draft for me" replaced what the user had written and the
- * signature, a rewrite dropped formatting and links, and a failed draft
- * "restored" the plain-text copy. Now every operation is bracketed — `onBegin`
- * before, then `onCommit` (or `onAbort` to put the body back exactly) — so the
- * composer can restore the original and offer Undo.
+ * Streaming previews stay separate from the editor until an unchanged body
+ * and the originating session are checked at completion.
  */
 interface AiComposeToolbarProps {
   /** The user's own text, as plain text, without the signature. */
   text: string;
-  /** An operation is starting; remember the body as it is. */
+  /** Current editor revision, including edits not yet rendered. */
+  getBodyRevision: () => number;
+  /** Whether web input is in an uncommitted IME composition. */
+  isBodyComposing: () => boolean;
+  /** An operation is committing; remember the body as it is. */
   onBegin: () => void;
-  /** A draft streaming in: show it, nothing is final yet. */
-  onPreview: (text: string) => void;
   /** The result: replace the user's text with it. */
-  onCommit: (text: string) => void;
-  /** The operation failed or was overtaken: put the body back as it was. */
-  onAbort: () => void;
+  onCommit: (text: string, isCurrent?: () => boolean) => void;
   onSubjectSuggested?: (subject: string) => void;
 }
 
@@ -59,23 +62,32 @@ const TONE_OPTIONS: {
 
 export function AiComposeToolbar({
   text: body,
+  getBodyRevision,
+  isBodyComposing,
   onBegin,
-  onPreview,
   onCommit,
-  onAbort,
   onSubjectSuggested,
 }: AiComposeToolbarProps) {
   const { t } = useTranslation();
-  const { streamDraft, polish, changeTone, adjustLength, suggestSubject, isLoading } =
-    useAiCompose();
+  const {
+    streamDraft,
+    polish,
+    changeTone,
+    adjustLength,
+    suggestSubject,
+    isLoading,
+    isCurrentStream,
+  } = useAiCompose();
   const mountedRef = useRef(false);
 
   const draftControl = useDialogControl();
   const toneControl = useDialogControl();
   const [draftPrompt, setDraftPrompt] = useState('');
+  const [draftPreview, setDraftPreview] = useState<string | null>(null);
+  const draftSequence = useRef(0);
   const [selectedTone, setSelectedTone] = useState<ComposeTone>('professional');
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
@@ -124,23 +136,43 @@ export function AiComposeToolbar({
   const executeDraft = useCallback(async () => {
     if (!draftPrompt.trim()) return;
     draftControl.close();
-
-    onBegin();
+    const sequence = ++draftSequence.current;
+    const revision = getBodyRevision();
+    setDraftPreview('');
     try {
-      // Use streaming for typewriter effect
-      const text = await streamDraft(draftPrompt, selectedTone, (partial) => {
-        if (mountedRef.current) onPreview(partial);
-      });
-      if (mountedRef.current) onCommit(text);
-    } catch (error: unknown) {
-      // A rejected/truncated stream is not a valid draft: put back exactly what
-      // was there, formatting and signature included. An abort belongs to an
-      // unmounted or superseded request and must not race a replacement draft.
-      if (mountedRef.current && (!(error instanceof Error) || error.name !== 'AbortError')) {
-        onAbort();
-      }
+      await streamDraft(
+        draftPrompt,
+        selectedTone,
+        (partial) => {
+          if (mountedRef.current && draftSequence.current === sequence) setDraftPreview(partial);
+        },
+        (text, isCurrent) => {
+          if (!mountedRef.current || draftSequence.current !== sequence || !isCurrent()) return;
+          if (getBodyRevision() !== revision || isBodyComposing()) {
+            toast(t('ai.toast.keptYourEdits'));
+            return;
+          }
+          onBegin();
+          if (isCurrent() && getBodyRevision() === revision && !isBodyComposing())
+            onCommit(text, isCurrent);
+        },
+      );
+    } catch {
+      // The hook reports failures. An aborted request leaves the editor untouched.
+    } finally {
+      if (mountedRef.current && draftSequence.current === sequence) setDraftPreview(null);
     }
-  }, [draftPrompt, selectedTone, streamDraft, onBegin, onPreview, onCommit, onAbort, draftControl]);
+  }, [
+    draftPrompt,
+    selectedTone,
+    streamDraft,
+    getBodyRevision,
+    isBodyComposing,
+    onBegin,
+    onCommit,
+    draftControl,
+    t,
+  ]);
 
   // Handler for "Polish" button
   const handlePolish = useCallback(() => {
@@ -195,6 +227,14 @@ export function AiComposeToolbar({
           </Button>
         )}
       </View>
+      {isCurrentStream && draftPreview ? (
+        <View>
+          <Text>{t('ai.draftDialog.preview')}</Text>
+          <ScrollView style={{ maxHeight: 160 }} nestedScrollEnabled>
+            <Text selectable>{draftPreview}</Text>
+          </ScrollView>
+        </View>
+      ) : null}
       <Dialog
         control={draftControl}
         title={t('ai.draftDialog.title')}

@@ -518,6 +518,7 @@ const pt: LocaleDict = {
 
   ai: {
     draftDialog: {
+      preview: 'Prévia do rascunho de IA',
       title: 'Escrever rascunho com IA',
       description: 'Descreve o que queres dizer e a IA escreve o rascunho por ti.',
       label: 'Instruções para o rascunho',

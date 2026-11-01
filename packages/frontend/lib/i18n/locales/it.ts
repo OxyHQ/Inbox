@@ -516,6 +516,7 @@ const it: LocaleDict = {
 
   ai: {
     draftDialog: {
+      preview: 'Anteprima della bozza IA',
       title: "Scrivi una bozza con l'IA",
       description: "Descrivi cosa vuoi dire e l'IA scriverà la bozza per te.",
       label: 'Istruzioni per la bozza',

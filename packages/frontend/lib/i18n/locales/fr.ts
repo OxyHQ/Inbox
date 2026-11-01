@@ -518,6 +518,7 @@ const fr: LocaleDict = {
 
   ai: {
     draftDialog: {
+      preview: 'Aperçu du brouillon IA',
       title: "Rédiger avec l'IA",
       description: "Décris ce que tu veux dire, et l'IA le rédigera pour toi.",
       label: 'Instructions de rédaction',

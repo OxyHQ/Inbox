@@ -510,6 +510,7 @@ const en: LocaleDict = {
 
   ai: {
     draftDialog: {
+      preview: 'AI draft preview',
       placeholder: 'e.g. Decline the meeting politely, suggest next week instead',
       label: 'Draft instructions',
       description: 'Describe what you want to say, and AI will draft it for you.',

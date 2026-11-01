@@ -9,6 +9,7 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@oxy.so/bloom/toast';
 import { useOxy } from '@oxy.so/services/ui/client';
+import { useOxyRuntime } from '@oxy.so/services/runtime';
 import { useEmailStore } from '@/hooks/useEmail';
 import { useTranslation } from '@/lib/i18n';
 import { emailKeys } from '@/hooks/queries/queryKeys';
@@ -22,6 +23,7 @@ import { SPECIAL_USE } from '@/constants/mailbox';
 import type { EmailApiInstance, Mailbox, Message } from '@/services/emailApi';
 import {
   emailMutationApi,
+  isCurrentEmailOwner,
   ownsEmailMutation,
   type EmailMutationContext,
   type OwnedVariables,
@@ -1114,16 +1116,55 @@ export function useSaveDraft() {
  * Trash would keep it a draft there, editable and sendable from the bin.
  */
 export function useDiscardDraft() {
-  const api = useEmailStore((s) => s._api);
+  const owner = useEmailMutationOwner(true);
+  const runtime = useOxyRuntime();
+  const projection = runtime.getAccountSessionIdentity();
+  const { accountId, sessionId, revision } = projection;
+  const bearer = owner.http.getAccessToken();
   const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (draftId: string) => {
-      if (!api) throw new Error('Email API not initialized');
-      await api.deleteMessage(draftId, true);
+  const mutation = useMutation<void, Error, OwnedVariables<string>, EmailMutationContext>({
+    mutationFn: async (variables) => {
+      await emailMutationApi(variables).deleteMessage(variables.input, true);
     },
-    onSettled: () => {
-      invalidateMailViews(queryClient);
+    onSettled: (_data, _error, variables) => {
+      if (ownsEmailMutation(variables)) invalidateMailViews(queryClient);
     },
   });
+  const { api, http, session, subjectId, checkKnownSubject, epoch } = owner;
+  // Only controls error feedback. The projection is not actor authorization.
+  const discardErrorNotice = useCallback((): 'current' | 'unavailable' | 'stale' => {
+    const currentProjection = runtime.getAccountSessionIdentity();
+    const sessionProjectionCompleted =
+      accountId !== null &&
+      sessionId === null &&
+      currentProjection.accountId === accountId &&
+      currentProjection.sessionId !== null &&
+      currentProjection.revision === revision + 1 &&
+      bearer !== null &&
+      http.getAccessToken() === bearer;
+    if (
+      useEmailStore.getState()._api !== api ||
+      http.getSessionEpoch() !== epoch ||
+      (subjectId !== null && accountId !== subjectId) ||
+      (currentProjection.revision !== revision && !sessionProjectionCompleted) ||
+      (subjectId !== null && session.userId !== null && session.userId !== subjectId)
+    )
+      return 'stale';
+    return isCurrentEmailOwner({ api, http, session, subjectId, checkKnownSubject, epoch })
+      ? 'current'
+      : 'unavailable';
+  }, [
+    api,
+    http,
+    session,
+    subjectId,
+    checkKnownSubject,
+    epoch,
+    runtime,
+    accountId,
+    sessionId,
+    revision,
+    bearer,
+  ]);
+  return { ...useStableOwnedEmailMutation(owner, mutation), discardErrorNotice };
 }

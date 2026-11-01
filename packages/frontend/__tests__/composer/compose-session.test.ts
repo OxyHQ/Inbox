@@ -24,7 +24,7 @@ jest.mock('@/hooks/mutations/useMessageMutations', () => ({
   useSendMessageWithUndo: () => ({ sendWithUndo, isPending: false }),
   useSendMessage: () => ({ mutate: scheduleMutate, isPending: false }),
   useSaveDraft: () => ({ mutateAsync: saveDraft }),
-  useDiscardDraft: () => ({ mutateAsync: discardDraft }),
+  useDiscardDraft: () => ({ mutateAsync: discardDraft, discardErrorNotice: () => 'current' }),
 }));
 
 const routerPush = jest.fn();

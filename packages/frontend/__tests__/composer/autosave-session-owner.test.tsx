@@ -29,7 +29,7 @@ jest.mock('@/hooks/mutations/useMessageMutations', () => ({
   useSaveDraft: jest.requireActual('@/hooks/mutations/useMessageMutations').useSaveDraft,
   useSendMessageWithUndo: () => ({ sendWithUndo: jest.fn(), isPending: false }),
   useSendMessage: () => ({ mutate: jest.fn(), isPending: false }),
-  useDiscardDraft: () => ({ mutateAsync: jest.fn() }),
+  useDiscardDraft: () => ({ mutateAsync: jest.fn(), discardErrorNotice: () => 'current' }),
 }));
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
 jest.mock('@/lib/i18n', () => ({ useTranslation: () => ({ t: mockTranslate }) }));

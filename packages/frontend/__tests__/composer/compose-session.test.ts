@@ -1427,3 +1427,23 @@ it('resubscribes recovery to the current epoch when a bearer disappears temporar
   expect(record?.snapshot.subject).toBe('offline epoch draft');
   unmount();
 });
+
+it('advances the body revision for changes, including a return to earlier text', async () => {
+  const { result, unmount } = renderHook(() =>
+    useComposeSession(options({ initial: { body: 'initial' } })),
+  );
+  await settle();
+  const initial = result.current.getBodyRevision();
+  act(() => result.current.updateBody('initial'));
+  expect(result.current.getBodyRevision()).toBe(initial);
+  act(() => result.current.updateBody('edited'));
+  expect(result.current.getBodyRevision()).toBe(initial + 1);
+  act(() => result.current.updateBody('initial'));
+  expect(result.current.getBodyRevision()).toBe(initial + 2);
+  act(() => result.current.setBodyComposing(true));
+  expect(result.current.isBodyComposing()).toBe(true);
+  expect(result.current.getBodyRevision()).toBe(initial + 3);
+  act(() => result.current.setBodyComposing(false));
+  expect(result.current.isBodyComposing()).toBe(false);
+  unmount();
+});

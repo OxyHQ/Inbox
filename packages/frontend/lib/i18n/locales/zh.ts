@@ -500,6 +500,7 @@ const zh: LocaleDict = {
 
   ai: {
     draftDialog: {
+      preview: 'AI 草稿预览',
       title: '用 AI 起草',
       description: '描述你想表达的内容，AI 会为你起草。',
       label: '起草说明',

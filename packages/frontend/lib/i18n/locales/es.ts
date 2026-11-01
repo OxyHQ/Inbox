@@ -509,6 +509,7 @@ const es: LocaleDict = {
 
   ai: {
     draftDialog: {
+      preview: 'Vista previa del borrador de IA',
       title: 'Redactar con IA',
       description: 'Describe lo que quieres decir y la IA lo redactará por ti.',
       label: 'Instrucciones para el borrador',

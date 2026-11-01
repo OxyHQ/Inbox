@@ -510,6 +510,7 @@ const ja: LocaleDict = {
 
   ai: {
     draftDialog: {
+      preview: 'AI 下書きのプレビュー',
       title: 'AI で下書き',
       description: '伝えたい内容を入力すると、AI が下書きを作成します。',
       label: '下書きの指示',

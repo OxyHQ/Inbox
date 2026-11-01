@@ -520,6 +520,7 @@ const de: LocaleDict = {
 
   ai: {
     draftDialog: {
+      preview: 'Vorschau des KI-Entwurfs',
       title: 'Mit KI entwerfen',
       description: 'Beschreibe, was du sagen möchtest, und die KI erstellt einen Entwurf für dich.',
       label: 'Anweisungen für den Entwurf',

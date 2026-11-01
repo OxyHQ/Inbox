@@ -30,6 +30,8 @@ import { editorDomValue } from '@/utils/composeBody';
 export interface RichTextEditorProps {
   value: string;
   onChange: (content: string) => void;
+  /** Web IME state; composition text is not emitted until composition ends. */
+  onCompositionChange?: (composing: boolean) => void;
   placeholder?: string;
   style?: object;
   autoFocus?: boolean;
@@ -54,7 +56,7 @@ function isEditorContentEmpty(content: string): boolean {
 // ─── Web Implementation ──────────────────────────────────────────────
 
 function WebRichTextEditor(
-  { value, onChange, placeholder, style, autoFocus }: RichTextEditorProps,
+  { value, onChange, onCompositionChange, placeholder, style, autoFocus }: RichTextEditorProps,
   ref: React.Ref<RichTextEditorHandle>,
 ) {
   const { t } = useTranslation();
@@ -138,12 +140,14 @@ function WebRichTextEditor(
 
   const handleCompositionStart = useCallback(() => {
     isComposing.current = true;
-  }, []);
+    onCompositionChange?.(true);
+  }, [onCompositionChange]);
 
   const handleCompositionEnd = useCallback(() => {
     isComposing.current = false;
+    onCompositionChange?.(false);
     emitChange();
-  }, [emitChange]);
+  }, [emitChange, onCompositionChange]);
 
   // Paste is plain text: markup from the clipboard would become live DOM on
   // this origin. (A Shift+paste "keep formatting" path read `shiftKey` off the
@@ -198,6 +202,10 @@ function WebRichTextEditor(
       el.removeEventListener('paste', handlePaste as EventListener);
       el.removeEventListener('keydown', handleKeyDown as EventListener);
       document.removeEventListener('selectionchange', handleSelectionChange);
+      if (isComposing.current) {
+        isComposing.current = false;
+        onCompositionChange?.(false);
+      }
     };
   }, [
     handleInput,
@@ -206,6 +214,7 @@ function WebRichTextEditor(
     handlePaste,
     handleKeyDown,
     handleSelectionChange,
+    onCompositionChange,
   ]);
 
   // Toolbar commands

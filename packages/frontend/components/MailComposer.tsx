@@ -143,25 +143,36 @@ export function MailComposer({
 
       <AiComposeToolbar
         text={session.ownText}
+        getBodyRevision={session.getBodyRevision}
+        isBodyComposing={session.isBodyComposing}
         onBegin={() => {
           aiOriginal.current = session.body;
         }}
-        onPreview={session.replaceOwnText}
-        onCommit={(text) => {
+        onCommit={(text, isCurrent) => {
           const previous = aiOriginal.current;
           aiOriginal.current = null;
           session.replaceOwnText(text);
+          const appliedRevision = session.getBodyRevision();
           // A rewrite replaces formatting and links with plain text, so what
           // was there is always one tap away.
           if (previous !== null) {
             toast(t('ai.toast.applied'), {
-              action: { label: t('common.undo'), onClick: () => session.updateBody(previous) },
+              action: {
+                label: t('common.undo'),
+                onClick: () => {
+                  if (isCurrent && !isCurrent()) return;
+                  if (
+                    isCurrent &&
+                    (session.getBodyRevision() !== appliedRevision || session.isBodyComposing())
+                  ) {
+                    toast(t('ai.toast.keptYourEdits'));
+                    return;
+                  }
+                  session.updateBody(previous);
+                },
+              },
             } as Record<string, unknown>);
           }
-        }}
-        onAbort={() => {
-          if (aiOriginal.current !== null) session.updateBody(aiOriginal.current);
-          aiOriginal.current = null;
         }}
         onSubjectSuggested={!session.subject.trim() ? session.setSubject : undefined}
       />
@@ -169,6 +180,7 @@ export function MailComposer({
       <RichTextEditor
         value={session.body}
         onChange={session.updateBody}
+        onCompositionChange={session.setBodyComposing}
         placeholder={placeholder}
         autoFocus={autoFocus}
       />

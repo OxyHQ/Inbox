@@ -1,6 +1,7 @@
 /** Inbox compose assistance through Oxy's bounded `/email/ai/compose` lane. */
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useOxyRuntime } from '@oxy.so/services/runtime';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from '@oxy.so/bloom/toast';
 import { useOxy } from '@oxy.so/services/ui/client';
@@ -34,25 +35,80 @@ interface UseAiComposeReturn {
     prompt: string,
     tone?: ComposeTone,
     onChunk?: (chunk: string) => void,
+    onComplete?: (text: string, isCurrent: () => boolean) => void,
   ) => Promise<string>;
   isLoading: boolean;
+  isCurrentStream: boolean;
   error: Error | null;
+}
+
+function abortedStream(): Error {
+  const error = new Error('Inbox AI compose was aborted.');
+  error.name = 'AbortError';
+  return error;
 }
 
 export function useAiCompose(): UseAiComposeReturn {
   const { t } = useTranslation();
-  const { oxyServices } = useOxy();
+  const { oxyServices, user } = useOxy();
+  const runtime = useOxyRuntime();
+  const http = oxyServices.http;
+  const subjectId = user?.id ?? null;
+  const subscribeToken = useCallback(
+    (notify: () => void) => http.addTokenChangeListener(notify),
+    [http],
+  );
+  const getEpoch = useCallback(() => http.getSessionEpoch(), [http]);
+  const epoch = useSyncExternalStore(subscribeToken, getEpoch, getEpoch);
+  const subscribeProjection = useCallback(
+    (notify: () => void) => runtime.subscribe(notify),
+    [runtime],
+  );
+  const getProjectionRevision = useCallback(() => runtime.getAccountSessionRevision(), [runtime]);
+  const projectionRevision = useSyncExternalStore(
+    subscribeProjection,
+    getProjectionRevision,
+    getProjectionRevision,
+  );
+  const projection = runtime.getAccountSessionIdentity();
   const mountedRef = useRef(false);
+  const committedServicesRef = useRef<{
+    runtime: typeof runtime;
+    http: typeof http;
+    subjectId: string | null;
+  } | null>(null);
   const streamControllerRef = useRef<AbortController | null>(null);
+  const streamCleanupRef = useRef<(() => void) | null>(null);
+  const [visibleStream, setVisibleStream] = useState<{
+    accountId: string | null;
+    sessionId: string | null;
+    revision: number;
+    epoch: number;
+    runtime: typeof runtime;
+    http: typeof http;
+  } | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       streamControllerRef.current?.abort();
       streamControllerRef.current = null;
+      streamCleanupRef.current?.();
+      streamCleanupRef.current = null;
     };
   }, []);
+
+  useLayoutEffect(() => {
+    const binding = { runtime, http, subjectId };
+    committedServicesRef.current = binding;
+    return () => {
+      if (committedServicesRef.current !== binding) return;
+      committedServicesRef.current = null;
+      streamControllerRef.current?.abort();
+      streamCleanupRef.current?.();
+    };
+  }, [runtime, http, subjectId]);
 
   const mutation = useMutation<string, Error, ComposeOperation>({
     mutationKey: aiKeys.compose,
@@ -69,24 +125,22 @@ export function useAiCompose(): UseAiComposeReturn {
           ).text.trim();
         case 'streamDraft': {
           let fullText = '';
-          for await (const chunk of streamInboxDraft(
-            http,
-            {
-              operation: 'draft',
-              prompt: operation.prompt,
-              tone: operation.tone,
-            },
-            operation.signal,
-          )) {
-            if (operation.signal.aborted) {
-              const error = new Error('Inbox AI compose was aborted.');
-              error.name = 'AbortError';
-              throw error;
+          try {
+            for await (const chunk of streamInboxDraft(
+              http,
+              { operation: 'draft', prompt: operation.prompt, tone: operation.tone },
+              operation.signal,
+            )) {
+              if (operation.signal.aborted) throw abortedStream();
+              fullText += chunk;
+              if (mountedRef.current) operation.onChunk?.(fullText);
             }
-            fullText += chunk;
-            if (mountedRef.current) operation.onChunk?.(fullText);
+            if (operation.signal.aborted) throw abortedStream();
+            return fullText.trim();
+          } catch (error) {
+            if (operation.signal.aborted) throw abortedStream();
+            throw error;
           }
-          return fullText.trim();
         }
         case 'polish':
           return (
@@ -124,8 +178,13 @@ export function useAiCompose(): UseAiComposeReturn {
     },
     // The toolbar leaves the text as it was on failure; this says why nothing
     // happened. An abort is a superseded or unmounted request, not a failure.
-    onError: (error) => {
-      if (error.name === 'AbortError' || !mountedRef.current) return;
+    onError: (error, operation) => {
+      if (
+        error.name === 'AbortError' ||
+        (operation.kind === 'streamDraft' && operation.signal.aborted) ||
+        !mountedRef.current
+      )
+        return;
       toast.error(t('ai.toast.failed'));
     },
   });
@@ -141,23 +200,109 @@ export function useAiCompose(): UseAiComposeReturn {
       prompt: string,
       tone: ComposeTone = 'professional',
       onChunk?: (chunk: string) => void,
+      onComplete?: (text: string, isCurrent: () => boolean) => void,
     ) => {
+      if (!mountedRef.current) throw abortedStream();
       streamControllerRef.current?.abort();
+      streamCleanupRef.current?.();
       const controller = new AbortController();
+      const captured = {
+        accountId: subjectId,
+        sessionId: projection.sessionId,
+        revision: projectionRevision,
+      };
+      const current = (advance: boolean) => {
+        const identity = runtime.getAccountSessionIdentity();
+        const knownSubject = oxyServices.session.userId;
+        if (
+          !mountedRef.current ||
+          committedServicesRef.current?.runtime !== runtime ||
+          committedServicesRef.current?.http !== http ||
+          committedServicesRef.current?.subjectId !== captured.accountId ||
+          captured.accountId === null ||
+          identity.accountId !== captured.accountId ||
+          http.getSessionEpoch() !== epoch ||
+          !oxyServices.session.isAuthenticated ||
+          (knownSubject !== null && knownSubject !== captured.accountId)
+        )
+          return false;
+        if (identity.revision === captured.revision && identity.sessionId === captured.sessionId)
+          return true;
+        if (
+          captured.sessionId === null &&
+          identity.sessionId !== null &&
+          identity.revision === captured.revision + 1
+        ) {
+          if (advance) {
+            captured.sessionId = identity.sessionId;
+            captured.revision = identity.revision;
+          }
+          return true;
+        }
+        return false;
+      };
+      if (!current(true)) {
+        const identity = runtime.getAccountSessionIdentity();
+        if (identity.revision === projectionRevision && http.getSessionEpoch() === epoch)
+          toast.error(t('ai.toast.failed'));
+        throw abortedStream();
+      }
       streamControllerRef.current = controller;
+      const visibleOwner = { ...captured, epoch, runtime, http };
+      setVisibleStream(visibleOwner);
+      let cleanup = () => {};
+      const check = () => {
+        if (!current(true)) {
+          controller.abort();
+          cleanup();
+        }
+      };
+      const unsubscribeToken = http.addTokenChangeListener(check);
+      const unsubscribeProjection = runtime.subscribe(check);
+      let cleaned = false;
+      cleanup = () => {
+        if (cleaned) return;
+        cleaned = true;
+        unsubscribeToken();
+        unsubscribeProjection();
+      };
+      streamCleanupRef.current = cleanup;
+      check();
       try {
-        return await mutateAsync({
+        const result = await mutateAsync({
           kind: 'streamDraft',
           prompt,
           tone,
           signal: controller.signal,
-          onChunk,
+          onChunk: (chunk) => {
+            if (!current(true)) controller.abort();
+            if (!controller.signal.aborted) onChunk?.(chunk);
+          },
         });
+        if (!current(true) || controller.signal.aborted) throw abortedStream();
+        onComplete?.(result, () => !controller.signal.aborted && current(false));
+        return result;
       } finally {
-        if (streamControllerRef.current === controller) streamControllerRef.current = null;
+        cleanup();
+        if (streamControllerRef.current === controller) {
+          streamControllerRef.current = null;
+          streamCleanupRef.current = null;
+          if (mountedRef.current)
+            setVisibleStream((value) => (value === visibleOwner ? null : value));
+        }
       }
     },
-    [mutateAsync],
+    [
+      mutateAsync,
+      subjectId,
+      projection.sessionId,
+      projectionRevision,
+      runtime,
+      http,
+      epoch,
+      oxyServices,
+      t,
+    ],
   );
   const polish = useCallback(
     (text: string) => mutateAsync({ kind: 'polish', text }),
@@ -177,6 +322,26 @@ export function useAiCompose(): UseAiComposeReturn {
     [mutateAsync],
   );
 
+  const visibleProjectionMatches =
+    visibleStream &&
+    projection.accountId === visibleStream.accountId &&
+    ((projection.revision === visibleStream.revision &&
+      projection.sessionId === visibleStream.sessionId) ||
+      (visibleStream.sessionId === null &&
+        projection.sessionId !== null &&
+        projection.revision === visibleStream.revision + 1));
+  const isCurrentStream = Boolean(
+    visibleStream &&
+      visibleStream.accountId !== null &&
+      visibleStream.accountId === subjectId &&
+      visibleStream.runtime === runtime &&
+      visibleStream.http === http &&
+      visibleStream.epoch === epoch &&
+      visibleProjectionMatches &&
+      oxyServices.session.isAuthenticated &&
+      (oxyServices.session.userId === null ||
+        oxyServices.session.userId === visibleStream.accountId),
+  );
   return {
     draft,
     streamDraft,
@@ -184,7 +349,9 @@ export function useAiCompose(): UseAiComposeReturn {
     changeTone,
     adjustLength,
     suggestSubject,
-    isLoading: mutation.isPending,
+    isLoading:
+      mutation.isPending && (mutation.variables?.kind !== 'streamDraft' || isCurrentStream),
+    isCurrentStream,
     error: mutation.error,
   };
 }

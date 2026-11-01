@@ -4,6 +4,12 @@
  */
 
 const toast = Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() });
+jest.mock('@oxy.so/services/runtime', () => ({
+  useOxyRuntime: () => ({
+    getAccountSessionIdentity: () => ({ accountId: 'u1', sessionId: 's1', revision: 0 }),
+    getAccountSessionRevision: () => 0,
+  }),
+}));
 jest.mock('@oxy.so/bloom/toast', () => ({ toast }));
 const t = (key: string) => key;
 jest.mock('@/lib/i18n', () => ({ useTranslation: () => ({ t }) }));
@@ -26,6 +32,7 @@ jest.mock('@/hooks/useEmail', () => {
 import type { ReactNode } from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { OxyServices } from '@oxy.so/core';
 import { __setOxyState } from '@oxy.so/services/ui/client';
 
 import { emailKeys } from '@/hooks/queries/queryKeys';
@@ -37,6 +44,8 @@ import {
 import { MessageSchema, type Message } from '@/schemas/emailSchemas';
 import type { MessagesInfinite } from '@/utils/messageCache';
 import { wireMessage } from '../fixtures/wire';
+
+let oxy: OxyServices;
 
 function msg(id: string, mailboxId: string): Message {
   return MessageSchema.parse(wireMessage({ _id: id, id, mailboxId }));
@@ -70,7 +79,15 @@ function undoAction(): () => void {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  __setOxyState({ user: { id: 'u1' } });
+  oxy = new OxyServices({ baseURL: 'https://api.test', enableRetry: false, enableCache: false });
+  const payload = Buffer.from(
+    JSON.stringify({ userId: 'u1', sessionId: 's1', exp: 2000000000 }),
+  ).toString('base64url');
+  oxy.session.setAccessToken(`e30.${payload}.fixture`);
+  __setOxyState({ user: { id: 'u1' }, oxyServices: oxy as never });
+});
+afterEach(() => {
+  oxy.dispose();
 });
 
 it('offers Undo after archiving, which puts the row back and moves it to its folder', async () => {

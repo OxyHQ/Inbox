@@ -1122,6 +1122,8 @@ const pt: LocaleDict = {
     },
     mutations: {
       starFailed: 'Não foi possível atualizar a estrela.',
+      starSessionUnavailable:
+        'Sua conta ainda não está pronta para atualizar a estrela. Tente novamente em instantes.',
       readFailed: 'Não foi possível atualizar o estado de leitura.',
       archived: 'Conversa arquivada.',
       archiveFailed: 'Não foi possível arquivar a conversa.',

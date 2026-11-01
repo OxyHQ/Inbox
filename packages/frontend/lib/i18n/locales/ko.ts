@@ -1102,6 +1102,8 @@ const ko: LocaleDict = {
     },
     mutations: {
       starFailed: '별표를 업데이트하지 못했습니다.',
+      starSessionUnavailable:
+        '계정에서 별표를 업데이트할 준비가 되지 않았습니다. 잠시 후 다시 시도해 주세요.',
       readFailed: '읽음 상태를 업데이트하지 못했습니다.',
       archived: '대화를 보관처리했습니다.',
       archiveFailed: '대화를 보관처리하지 못했습니다.',

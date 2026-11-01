@@ -85,7 +85,7 @@ describe('DeliveryNotice', () => {
     expect(screen.getByText('554 5.7.1 Message rejected')).toBeTruthy();
 
     fireEvent.click(screen.getByText('delivery.retry'));
-    expect(mutate).toHaveBeenCalledWith('row-1');
+    expect(mutate).toHaveBeenCalledWith({ messageId: 'row-1' });
 
     fireEvent.click(screen.getByText('delivery.editAsNew'));
     expect(editAsNew).toHaveBeenCalledWith(expect.objectContaining({ _id: 'row-1' }));

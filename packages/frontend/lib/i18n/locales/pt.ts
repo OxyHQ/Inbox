@@ -511,7 +511,7 @@ const pt: LocaleDict = {
   smartReply: {
     failed: 'Não foi possível gerar respostas rápidas.',
     offline: 'Parece estar offline. Ligue-se para tentar novamente.',
-    waiting: 'A aguardar ligação.',
+    waiting: 'A aguardar para continuar.',
     empty: 'Não há respostas rápidas disponíveis.',
     unavailable: 'As respostas rápidas estarão disponíveis quando a conta estiver pronta.',
     generate: 'Gerar respostas rápidas com IA',

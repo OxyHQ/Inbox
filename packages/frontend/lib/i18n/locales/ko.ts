@@ -500,7 +500,7 @@ const ko: LocaleDict = {
   smartReply: {
     failed: '빠른 답장을 생성하지 못했습니다.',
     offline: '오프라인 상태인 것 같습니다. 연결한 후 다시 시도하세요.',
-    waiting: '연결을 기다리는 중입니다.',
+    waiting: '계속하기를 기다리는 중입니다.',
     empty: '사용할 수 있는 빠른 답장이 없습니다.',
     unavailable: '계정이 준비되면 빠른 답장을 사용할 수 있습니다.',
     generate: 'AI로 빠른 답장 만들기',

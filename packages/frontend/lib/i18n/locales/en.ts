@@ -504,7 +504,7 @@ const en: LocaleDict = {
   smartReply: {
     failed: 'Could not generate quick replies.',
     offline: 'You appear to be offline. Connect to retry.',
-    waiting: 'Waiting for a connection.',
+    waiting: 'Waiting to continue.',
     empty: 'No quick replies are available.',
     unavailable: 'Quick replies are unavailable until your account is ready.',
     generating: 'Generating quick replies',

@@ -494,7 +494,7 @@ const zh: LocaleDict = {
   smartReply: {
     failed: '无法生成快捷回复。',
     offline: '当前似乎处于离线状态，联网后可重试。',
-    waiting: '正在等待连接。',
+    waiting: '等待继续。',
     empty: '没有可用的快捷回复。',
     unavailable: '账户准备就绪后即可使用快捷回复。',
     generate: '用 AI 生成快速回复',

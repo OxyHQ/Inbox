@@ -513,7 +513,7 @@ const de: LocaleDict = {
   smartReply: {
     failed: 'Schnellantworten konnten nicht erstellt werden.',
     offline: 'Du scheinst offline zu sein. Verbinde dich für einen neuen Versuch.',
-    waiting: 'Warten auf eine Verbindung.',
+    waiting: 'Warten auf die Fortsetzung.',
     empty: 'Keine Schnellantworten verfügbar.',
     unavailable: 'Schnellantworten sind verfügbar, sobald dein Konto bereit ist.',
     generate: 'Schnellantworten mit KI erstellen',

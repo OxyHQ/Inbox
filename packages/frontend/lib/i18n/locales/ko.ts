@@ -1133,6 +1133,8 @@ const ko: LocaleDict = {
       bulkFailed: '메시지를 업데이트하지 못했습니다.',
       bulkUpdated: '메시지를 업데이트했습니다.',
       moveFailed: '메시지를 이동하지 못했습니다.',
+      bundleSessionUnavailable:
+        '계정이 아직 준비되지 않아 그룹을 수정할 수 없습니다. 잠시 후 다시 시도하세요.',
       bundleUpdateFailed: '묶음을 업데이트하지 못했습니다.',
       bundleReorderFailed: '묶음 순서를 변경하지 못했습니다.',
       contactCreateFailed: '연락처를 만들지 못했습니다',

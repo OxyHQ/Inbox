@@ -1153,6 +1153,8 @@ const it: LocaleDict = {
       bulkFailed: 'Impossibile aggiornare i messaggi.',
       bulkUpdated: 'Messaggi aggiornati.',
       moveFailed: 'Impossibile spostare i messaggi.',
+      bundleSessionUnavailable:
+        'Il tuo account non è ancora pronto per modificare i gruppi. Riprova tra poco.',
       bundleUpdateFailed: 'Impossibile aggiornare il gruppo.',
       bundleReorderFailed: 'Impossibile riordinare il gruppo.',
       contactCreateFailed: 'Impossibile creare il contatto',

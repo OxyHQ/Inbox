@@ -378,6 +378,13 @@ const pt: LocaleDict = {
       filterDraftUnavailable:
         'O contexto da conta ou da sessão mudou. Feche este rascunho de filtros para começar novamente.',
       invalidDate: 'Esta data é inválida. Corrija-a ou remova o filtro de data para pesquisar.',
+      mailboxesLoading: 'A carregar pastas…',
+      mailboxesOffline: 'A aguardar ligação para carregar as pastas.',
+      mailboxesFailed:
+        'Não foi possível carregar as pastas. Verifique a ligação ou remova o filtro de pasta.',
+      mailboxesNotReady: 'As pastas ainda não estão prontas. Aguarde ou remova o filtro de pasta.',
+      mailboxUnavailable:
+        'A pasta não consta da lista disponível. Verifique o nome ou remova o filtro de pasta.',
       filtersTitle: 'Filtros de pesquisa',
       filtersDescription: 'Restringe a pesquisa por pessoas, datas ou detalhes da mensagem.',
       clearFilters: 'Limpar filtros',

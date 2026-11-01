@@ -367,6 +367,12 @@ const ko: LocaleDict = {
       filterDraftUnavailable:
         '계정 또는 세션 상태가 변경되었습니다. 이 필터 초안을 닫고 다시 시작하세요.',
       invalidDate: '날짜가 올바르지 않습니다. 검색하려면 날짜를 수정하거나 날짜 필터를 제거하세요.',
+      mailboxesLoading: '폴더를 불러오는 중…',
+      mailboxesOffline: '폴더를 불러올 연결을 기다리는 중입니다.',
+      mailboxesFailed: '폴더를 불러오지 못했습니다. 연결을 확인하거나 폴더 필터를 제거하세요.',
+      mailboxesNotReady: '폴더가 아직 준비되지 않았습니다. 기다리거나 폴더 필터를 제거하세요.',
+      mailboxUnavailable:
+        '사용 가능한 목록에서 폴더를 찾을 수 없습니다. 이름을 확인하거나 폴더 필터를 제거하세요.',
       filtersTitle: '검색 필터',
       filtersDescription: '사람, 날짜 또는 메시지 정보로 검색 범위를 좁혀보세요.',
       clearFilters: '필터 지우기',

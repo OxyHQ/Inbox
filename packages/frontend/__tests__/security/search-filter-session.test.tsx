@@ -12,13 +12,20 @@ let mockSearchEnabled = false;
 let mockUseRealSearch = false;
 let mockSearchData: unknown;
 let mockRenderedItems: unknown[] = [];
+let mockEndReached: (() => void) | undefined;
+let mockRenderEmpty: (() => React.ReactElement | null) | undefined;
+let mockSearchFailed = false;
+let mockRefetch = jest.fn();
+let mockMailboxes: { _id: string; name: string; specialUse?: string }[] | undefined = [];
+let mockMailboxFetchStatus = 'idle';
+let mockMailboxError = false;
 let mockApply: (() => void) | undefined;
 let mockClose: (() => void) | undefined;
 let mockFromChange: ((value: string) => void) | undefined;
 let mockQuick: ((checked: boolean) => void) | undefined;
 let mockClear: (() => void) | undefined;
 let mockApplySaved:
-  | ((value: { query: string; filters: { dateAfter?: string } }) => void)
+  | ((value: { query: string; filters: { dateAfter?: string; mailbox?: string } }) => void)
   | undefined;
 jest.mock('@oxy.so/services/ui/client', () => ({
   useOxy: () => ({ oxyServices: mockOxy, user: { id: 'alice' } }),
@@ -37,11 +44,17 @@ jest.mock('react-native-reanimated', () => ({
     FlatList: ({
       ListHeaderComponent,
       data,
+      onEndReached,
+      ListEmptyComponent,
     }: {
       ListHeaderComponent: ReactNode;
       data: unknown[];
+      onEndReached?: () => void;
+      ListEmptyComponent?: () => React.ReactElement | null;
     }) => {
       mockRenderedItems = data;
+      mockEndReached = onEndReached;
+      mockRenderEmpty = ListEmptyComponent;
       return <div>{ListHeaderComponent}</div>;
     },
   },
@@ -209,7 +222,13 @@ jest.mock('@/hooks/useMailboxScrollRestoration', () => ({
   useMailboxScrollRestoration: () => () => {},
 }));
 jest.mock('@/hooks/queries/useLabels', () => ({ useLabels: () => ({ data: [] }) }));
-jest.mock('@/hooks/queries/useMailboxes', () => ({ useMailboxes: () => ({ data: [] }) }));
+jest.mock('@/hooks/queries/useMailboxes', () => ({
+  useMailboxes: () => ({
+    data: mockMailboxes,
+    fetchStatus: mockMailboxFetchStatus,
+    isError: mockMailboxError,
+  }),
+}));
 jest.mock('@/hooks/queries/useSearchMessages', () => ({
   useSearchMessages: (options: Record<string, unknown>, { enabled }: { enabled: boolean }) => {
     mockOptions = options;
@@ -222,11 +241,11 @@ jest.mock('@/hooks/queries/useSearchMessages', () => ({
     return {
       data: mockSearchData,
       isLoading: false,
-      isError: false,
+      isError: mockSearchFailed,
       isFetchingNextPage: false,
       hasNextPage: false,
       fetchNextPage: jest.fn(),
-      refetch: jest.fn(),
+      refetch: mockRefetch,
     };
   },
 }));
@@ -253,6 +272,11 @@ function token(session: string) {
 async function setup(strict = false) {
   mockSearchData = undefined;
   mockRenderedItems = [];
+  mockMailboxes = [];
+  mockMailboxFetchStatus = 'idle';
+  mockMailboxError = false;
+  mockSearchFailed = false;
+  mockRefetch = jest.fn();
   mockOxy = new OxyServices({
     baseURL: 'https://api.test',
     enableRetry: false,
@@ -710,5 +734,179 @@ it('does not start a search for an invalid date and hides an older late response
   fireEvent.change(input, { target: { value: 'from:alice after:2026-02-28' } });
   fireEvent.keyDown(input, { key: 'Enter' });
   await waitFor(() => expect(search).toHaveBeenCalledTimes(2));
+  cleanup();
+});
+
+it.each([false, true])(
+  'does not fetch a broad next page for an unresolved folder (StrictMode: %s)',
+  async (strict) => {
+    mockUseRealSearch = true;
+    const search = jest.fn(async (_options: Record<string, unknown>) => ({
+      data: [],
+      unreadable: [{ _id: 'broad-row' }],
+      pagination: { total: 100, limit: 50, offset: 0, hasMore: true, nextCursor: 'next' },
+    }));
+    useEmailStore.setState({ _api: { search } as never });
+    const { input, cleanup } = await setup(strict);
+    fireEvent.change(input, { target: { value: 'from:alice' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() => expect(mockRenderedItems).toHaveLength(1));
+    expect(search).toHaveBeenCalledTimes(1);
+    const oldEndReached = mockEndReached;
+    fireEvent.change(input, { target: { value: 'from:alice in:not-a-folder' } });
+    expect(mockSearchEnabled).toBe(false);
+    expect(mockRenderedItems).toHaveLength(0);
+    act(() => oldEndReached?.());
+    expect(search).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(mockSearchEnabled).toBe(false);
+    expect(mockRenderedItems).toHaveLength(0);
+    act(() => mockEndReached?.());
+    expect(search).toHaveBeenCalledTimes(1);
+    fireEvent.change(input, { target: { value: 'from:alice' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() => expect(mockSearchEnabled).toBe(true));
+    act(() => oldEndReached?.());
+    expect(search).toHaveBeenCalledTimes(1);
+    act(() => mockEndReached?.());
+    await waitFor(() => expect(search).toHaveBeenCalledTimes(2));
+    cleanup();
+  },
+);
+
+it('hides a previous search response that arrives after the folder becomes unresolved', async () => {
+  mockUseRealSearch = true;
+  let resolveSearch: (value: unknown) => void = () => {};
+  const search = jest.fn(
+    () =>
+      new Promise((resolve) => {
+        resolveSearch = resolve;
+      }),
+  );
+  useEmailStore.setState({ _api: { search } as never });
+  const { input, cleanup } = await setup();
+  fireEvent.change(input, { target: { value: 'from:alice' } });
+  fireEvent.keyDown(input, { key: 'Enter' });
+  await waitFor(() => expect(search).toHaveBeenCalledTimes(1));
+  fireEvent.change(input, { target: { value: 'from:alice in:missing' } });
+  fireEvent.keyDown(input, { key: 'Enter' });
+  await act(async () => {
+    resolveSearch({
+      data: [],
+      unreadable: [{ _id: 'late' }],
+      pagination: { total: 1, limit: 50, offset: 0, hasMore: false },
+    });
+  });
+  expect(mockRenderedItems).toHaveLength(0);
+  expect(search).toHaveBeenCalledTimes(1);
+  cleanup();
+});
+
+it('keeps an unresolved saved folder visible, blocks AI and allows explicit removal', async () => {
+  const { view, input, post, cleanup } = await setup();
+  act(() => mockApplySaved?.({ query: '', filters: { mailbox: 'missing-folder' } }));
+  expect(mockSearchEnabled).toBe(false);
+  expect(view.getByText('search.ui.mailboxUnavailable')).toBeTruthy();
+  expect(view.getByText(/missing-folder/)).toBeTruthy();
+  fireEvent.change(input, { target: { value: 'project discussion' } });
+  fireEvent.keyDown(input, { key: 'Enter' });
+  expect(post).not.toHaveBeenCalled();
+  expect(mockSearchEnabled).toBe(false);
+  fireEvent.click(view.getByLabelText('remove-chip'));
+  expect(view.queryByText('search.ui.mailboxUnavailable')).toBeNull();
+  cleanup();
+});
+
+it('does not apply a late AI result after applying an unresolved folder', async () => {
+  const { view, pending, submit, cleanup } = await setup();
+  await submit();
+  act(() => mockApplySaved?.({ query: '', filters: { mailbox: 'missing-folder' } }));
+  await act(async () => {
+    pending[0]({ query: { from: 'old@example.test' }, interpretation: 'old result' });
+  });
+  expect(view.queryByText('old result')).toBeNull();
+  expect(view.getByText('search.ui.mailboxUnavailable')).toBeTruthy();
+  expect(mockOptions.from).toBeUndefined();
+  expect(mockSearchEnabled).toBe(false);
+  cleanup();
+});
+
+it('starts a scoped search when the requested folder becomes available', async () => {
+  mockUseRealSearch = true;
+  const search = jest.fn(async (_options: Record<string, unknown>) => ({
+    data: [],
+    pagination: { total: 0, limit: 50, offset: 0, hasMore: false },
+  }));
+  useEmailStore.setState({ _api: { search } as never });
+  const { view, input, tree, cleanup } = await setup();
+  fireEvent.change(input, { target: { value: 'from:alice in:work' } });
+  fireEvent.keyDown(input, { key: 'Enter' });
+  expect(search).not.toHaveBeenCalled();
+  mockMailboxes = [{ _id: 'work-id', name: 'Work' }];
+  view.rerender(tree());
+  await waitFor(() => expect(search).toHaveBeenCalledTimes(1));
+  expect(search.mock.calls[0][0]).toMatchObject({ from: 'alice', mailbox: 'work-id' });
+  cleanup();
+});
+
+it('rejects a retained retry after an unresolved folder is committed', async () => {
+  const { view, input, tree, cleanup } = await setup();
+  fireEvent.change(input, { target: { value: 'from:alice' } });
+  fireEvent.keyDown(input, { key: 'Enter' });
+  mockSearchFailed = true;
+  view.rerender(tree());
+  const oldRetry = mockRenderEmpty?.()?.props.action.onPress as (() => void) | undefined;
+  expect(oldRetry).toBeDefined();
+  fireEvent.change(input, { target: { value: 'from:alice in:missing' } });
+  fireEvent.keyDown(input, { key: 'Enter' });
+  act(() => oldRetry?.());
+  expect(mockRefetch).not.toHaveBeenCalled();
+  expect(mockRenderEmpty?.()).toBeNull();
+  fireEvent.change(input, { target: { value: 'from:alice' } });
+  fireEvent.keyDown(input, { key: 'Enter' });
+  act(() => oldRetry?.());
+  expect(mockRefetch).not.toHaveBeenCalled();
+  const currentRetry = mockRenderEmpty?.()?.props.action.onPress as (() => void) | undefined;
+  act(() => currentRetry?.());
+  expect(mockRefetch).toHaveBeenCalledTimes(1);
+  cleanup();
+});
+
+it('does not interpret an old saved label as an active folder filter', async () => {
+  const { view, tree, cleanup } = await setup();
+  mockMailboxes = [{ _id: 'work-id', name: 'Work' }];
+  view.rerender(tree());
+  act(() => mockApplySaved?.({ query: 'in:missing', filters: { mailbox: 'work-id' } }));
+  expect(mockSearchEnabled).toBe(true);
+  expect(mockOptions.mailbox).toBe('work-id');
+  expect(view.queryByText('search.ui.mailboxUnavailable')).toBeNull();
+  cleanup();
+});
+
+it('distinguishes folder lookup loading, offline, error and an available list', async () => {
+  const { view, tree, cleanup } = await setup();
+  mockMailboxes = undefined;
+  mockMailboxFetchStatus = 'fetching';
+  view.rerender(tree());
+  act(() => mockApplySaved?.({ query: '', filters: { mailbox: 'missing-folder' } }));
+  expect(view.getByText('search.ui.mailboxesLoading')).toBeTruthy();
+  expect(mockSearchEnabled).toBe(false);
+  mockMailboxFetchStatus = 'paused';
+  view.rerender(tree());
+  expect(view.getByText('search.ui.mailboxesOffline')).toBeTruthy();
+  expect(mockSearchEnabled).toBe(false);
+  mockMailboxFetchStatus = 'idle';
+  mockMailboxError = true;
+  view.rerender(tree());
+  expect(view.getByText('search.ui.mailboxesFailed')).toBeTruthy();
+  expect(mockSearchEnabled).toBe(false);
+  mockMailboxError = false;
+  view.rerender(tree());
+  expect(view.getByText('search.ui.mailboxesNotReady')).toBeTruthy();
+  mockMailboxes = [];
+  view.rerender(tree());
+  expect(view.getByText('search.ui.mailboxUnavailable')).toBeTruthy();
+  expect(view.getByText(/missing-folder/)).toBeTruthy();
+  expect(mockSearchEnabled).toBe(false);
   cleanup();
 });

@@ -24,7 +24,7 @@ import { RiCloseLine } from '@oxy.so/bloom/icons/RiCloseLine';
 import { Loading } from '@oxy.so/bloom/loading';
 import { Text } from '@oxy.so/bloom/typography';
 import { useIsFocused, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { type FlatList, StyleSheet, type TextInputInstance, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
@@ -88,7 +88,12 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     clear: clearRecentSearches,
   } = useRecentSearches(user?.id);
   const messageActions = useMessageActions();
-  const { data: mailboxes = [] } = useMailboxes();
+  const {
+    data: mailboxData,
+    fetchStatus: mailboxFetchStatus,
+    isError: mailboxLoadFailed,
+  } = useMailboxes();
+  const mailboxes = mailboxData ?? [];
 
   const [query, setQuery] = useSearchSessionState('query');
   const [submittedQuery, setSubmittedQuery] = useSearchSessionState('submittedQuery');
@@ -116,33 +121,53 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     isInvalidSearchDate(nlParsedOptions?.before ?? parsedQuery.before ?? filters.dateBefore);
   const requestedMailbox = nlParsedOptions?.mailbox ?? parsedQuery.mailbox ?? filters.mailbox;
 
-  // Map mailbox name to mailbox ID
-  const mailboxIdFromName = useMemo(() => {
-    if (!requestedMailbox) return undefined;
-    // Saved searches persist the resolved mailbox id. Keep accepting the
-    // human-readable special-use names used by the parser as well.
-    const existingMailbox = mailboxes.find((mailbox) => mailbox._id === requestedMailbox);
-    if (existingMailbox) return existingMailbox._id;
-    const specialUseMap: Record<string, string> = {
-      inbox: SPECIAL_USE.INBOX,
-      sent: SPECIAL_USE.SENT,
-      drafts: SPECIAL_USE.DRAFTS,
-      trash: SPECIAL_USE.TRASH,
-      spam: SPECIAL_USE.SPAM,
-      junk: SPECIAL_USE.SPAM,
-      archive: SPECIAL_USE.ARCHIVE,
-    };
-    const specialUse = specialUseMap[requestedMailbox];
-    if (specialUse) {
-      const mailbox = mailboxes.find((m) => m.specialUse === specialUse);
+  // Map mailbox name to mailbox ID.
+  const resolveMailbox = useCallback(
+    (name: string | undefined) => {
+      if (!name) return undefined;
+      // Saved searches persist the resolved mailbox id. Keep accepting the
+      // human-readable special-use names used by the parser as well.
+      const existingMailbox = mailboxes.find((mailbox) => mailbox._id === name);
+      if (existingMailbox) return existingMailbox._id;
+      const specialUseMap: Record<string, string> = {
+        inbox: SPECIAL_USE.INBOX,
+        sent: SPECIAL_USE.SENT,
+        drafts: SPECIAL_USE.DRAFTS,
+        trash: SPECIAL_USE.TRASH,
+        spam: SPECIAL_USE.SPAM,
+        junk: SPECIAL_USE.SPAM,
+        archive: SPECIAL_USE.ARCHIVE,
+      };
+      const specialUse = specialUseMap[name];
+      if (specialUse) {
+        const mailbox = mailboxes.find((m) => m.specialUse === specialUse);
+        return mailbox?._id;
+      }
+      // Try to match by name
+      const mailbox = mailboxes.find((m) => m.name.toLowerCase() === name);
       return mailbox?._id;
-    }
-    // Try to match by name
-    const mailbox = mailboxes.find((m) => m.name.toLowerCase() === requestedMailbox);
-    return mailbox?._id;
-  }, [requestedMailbox, mailboxes]);
+    },
+    [mailboxes],
+  );
 
-  const mailboxUnresolved = !!requestedMailbox && !mailboxIdFromName;
+  const mailboxIdFromName = resolveMailbox(requestedMailbox);
+  const pendingMailbox =
+    !nlParsedOptions && query.trim() !== submittedQuery.trim()
+      ? parseSearchQuery(query).mailbox
+      : undefined;
+  const mailboxUnresolved =
+    (!!requestedMailbox && !mailboxIdFromName) ||
+    (!!pendingMailbox && !resolveMailbox(pendingMailbox));
+  const mailboxNotice =
+    mailboxFetchStatus === 'paused'
+      ? t('search.ui.mailboxesOffline')
+      : mailboxFetchStatus === 'fetching'
+        ? t('search.ui.mailboxesLoading')
+        : mailboxLoadFailed
+          ? t('search.ui.mailboxesFailed')
+          : !mailboxData
+            ? t('search.ui.mailboxesNotReady')
+            : t('search.ui.mailboxUnavailable');
 
   // `label:work` names the label "Work": labels are matched as the user wrote
   // them, but the API compares exactly, so the operator is resolved to the
@@ -178,6 +203,19 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     [nlParsedOptions, parsedQuery, filters, mailboxIdFromName, resolvedLabel],
   );
 
+  // Reject retained pagination/retry callbacks after a different search commits.
+  const resultScope = useMemo(
+    () => ({ searchOptions, invalidDate, mailboxUnresolved, naturalSearchBinding }),
+    [searchOptions, invalidDate, mailboxUnresolved, naturalSearchBinding],
+  );
+  const committedResultScope = useRef<object | null>(null);
+  useLayoutEffect(() => {
+    committedResultScope.current = resultScope;
+    return () => {
+      if (committedResultScope.current === resultScope) committedResultScope.current = null;
+    };
+  }, [resultScope]);
+
   const {
     data: searchData,
     isLoading: searching,
@@ -210,8 +248,8 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   // grouping when a result set is incomplete.
   const results = useMemo(() => collapseThreads(messages), [messages]);
   const unreadable = useMemo(
-    () => (invalidDate ? [] : collectUnreadable(searchData?.pages ?? [])),
-    [invalidDate, searchData],
+    () => (invalidDate || mailboxUnresolved ? [] : collectUnreadable(searchData?.pages ?? [])),
+    [invalidDate, mailboxUnresolved, searchData],
   );
   const items = useMemo(() => buildSearchItems(results, unreadable), [results, unreadable]);
   const total = searchData?.pages[0]?.pagination.total ?? 0;
@@ -239,10 +277,12 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       }
 
       const parsedOperators = parseSearchQuery(trimmed);
+      const candidateMailbox = parsedOperators.mailbox ?? filters.mailbox;
       if (
         hasInvalidSearchDate(trimmed) ||
         isInvalidSearchDate(parsedOperators.after ?? filters.dateAfter) ||
-        isInvalidSearchDate(parsedOperators.before ?? filters.dateBefore)
+        isInvalidSearchDate(parsedOperators.before ?? filters.dateBefore) ||
+        (!!candidateMailbox && !resolveMailbox(candidateMailbox))
       ) {
         setSubmittedQuery(trimmed);
         setNlInterpretation('');
@@ -330,6 +370,8 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       naturalSearchReady,
       filters.dateAfter,
       filters.dateBefore,
+      filters.mailbox,
+      resolveMailbox,
       t,
       setSubmittedQuery,
       setNlInterpretation,
@@ -546,17 +588,33 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   );
 
   const handleEndReached = useCallback(() => {
-    if (invalidDate || !hasNextPage || isFetchingNextPage || searching) return;
+    if (
+      committedResultScope.current !== resultScope ||
+      mailboxUnresolved ||
+      invalidDate ||
+      !hasNextPage ||
+      isFetchingNextPage ||
+      searching
+    )
+      return;
     void fetchNextPage();
-  }, [fetchNextPage, hasNextPage, invalidDate, isFetchingNextPage, searching]);
+  }, [
+    fetchNextPage,
+    hasNextPage,
+    invalidDate,
+    isFetchingNextPage,
+    mailboxUnresolved,
+    resultScope,
+    searching,
+  ]);
 
   const handleRetry = useCallback(() => {
-    if (invalidDate) return;
+    if (committedResultScope.current !== resultScope || mailboxUnresolved || invalidDate) return;
     void refetch();
-  }, [invalidDate, refetch]);
+  }, [invalidDate, mailboxUnresolved, refetch, resultScope]);
 
   const renderEmpty = useCallback(() => {
-    if (invalidDate) return null;
+    if (invalidDate || mailboxUnresolved) return null;
     if (searching) {
       return (
         <Loading
@@ -623,6 +681,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     handleClear,
     hasSearched,
     invalidDate,
+    mailboxUnresolved,
     recentSearches,
     runSearch,
     searchFailed,
@@ -632,7 +691,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   ]);
 
   const renderFooter = useCallback(() => {
-    if (invalidDate) return null;
+    if (invalidDate || mailboxUnresolved) return null;
     if (isFetchingNextPage) {
       return (
         <Loading size="sm" accessibilityLabel={t('common.loading')} style={styles.footerLoading} />
@@ -650,7 +709,15 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       );
     }
     return null;
-  }, [handleRetry, invalidDate, isFetchingNextPage, items.length, searchFailed, t]);
+  }, [
+    handleRetry,
+    invalidDate,
+    isFetchingNextPage,
+    items.length,
+    mailboxUnresolved,
+    searchFailed,
+    t,
+  ]);
 
   const listRef = useRef<FlatList<SearchItem>>(null);
   const focused = useIsFocused();
@@ -685,7 +752,11 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           <View>
             {/* Filters scroll so short mobile screens always have room for results. */}
             <SearchFiltersBar
-              filters={pickSearchFilters(searchOptions)}
+              filters={{
+                ...pickSearchFilters(searchOptions),
+                mailbox:
+                  requestedMailbox && !mailboxIdFromName ? requestedMailbox : searchOptions.mailbox,
+              }}
               mailboxes={mailboxes}
               onChange={handleFiltersChange}
               scope={naturalSearchBinding}
@@ -700,6 +771,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
               enabled={
                 hasSearched &&
                 !invalidDate &&
+                !mailboxUnresolved &&
                 !searching &&
                 !nlParsing &&
                 (query.trim() === submittedQuery.trim() || Boolean(nlParsedOptions))
@@ -711,6 +783,13 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
               <View className="px-4 pb-3">
                 <Text accessibilityLiveRegion="polite" variant="body-2-regular">
                   {t('search.ui.invalidDate')}
+                </Text>
+              </View>
+            )}
+            {mailboxUnresolved && (
+              <View className="px-4 pb-3">
+                <Text accessibilityLiveRegion="polite" variant="body-2-regular">
+                  {mailboxNotice}
                 </Text>
               </View>
             )}

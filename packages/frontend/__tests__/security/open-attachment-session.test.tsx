@@ -1,7 +1,7 @@
-import { act, renderHook } from '@testing-library/react';
+import { act, render, renderHook } from '@testing-library/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { OxyServices } from '@oxy.so/core';
-import type { ReactNode } from 'react';
+import { type ReactNode, startTransition, StrictMode, Suspense } from 'react';
 import { createInboxQueryClient } from '@/hooks/queries/queryClient';
 
 let mockOxy: OxyServices;
@@ -400,5 +400,163 @@ it('does not share a native error response as a file', async () => {
   });
   expect(mockShare).not.toHaveBeenCalled();
   expect(mockToast).toHaveBeenCalledWith('message.toast.attachmentFailed');
+  cleanup();
+});
+
+it('does not finish A after replacing the Oxy runtime and HTTP service', async () => {
+  mockPlatform = 'ios';
+  const { hook, cleanup } = setup();
+  const oldOxy = mockOxy;
+  const oldRuntime = mockRuntime;
+  const retained = hook.result.current;
+  const oldUrl = jest.spyOn(oldOxy.assets, 'url').mockResolvedValue('https://files.test/signed-a');
+  let finish: (result: { status: number; uri: string }) => void = () => {};
+  mockDownload.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  let request: Promise<void> = Promise.resolve();
+  await act(async () => {
+    request = hook.result.current('file-a', 'a.txt');
+    await Promise.resolve();
+  });
+  expect(mockDownload).toHaveBeenCalled();
+  const { dirname, join } = require('node:path');
+  const dir = dirname(require.resolve('@oxy.so/services/package.json'));
+  const { createOxyRuntime } = require(join(dir, 'lib/commonjs/ui/runtime/createOxyRuntime.js'));
+  mockOxy = new OxyServices({
+    baseURL: 'https://other.test',
+    enableRetry: false,
+    enableCache: false,
+  });
+  mockOxy.session.setAccessToken(token('session-a'));
+  mockRuntime = createOxyRuntime({
+    oxyServices: mockOxy,
+    sessionClient: { getState: () => null, getDirectory: () => null, subscribe: () => () => {} },
+    sessionClientHost: { setCurrentAccountId: () => {} },
+    identity: null,
+    onDeviceEmpty: async () => {},
+    logger: () => {},
+  });
+  mockRuntime.batch(() => {
+    mockRuntime.setAccount({ id: 'alice' });
+    mockRuntime.setActiveSessionId('session-a');
+  });
+  act(() => hook.rerender());
+  await act(async () => {
+    finish({ status: 200, uri: 'file:///cache/a.txt' });
+    await request;
+  });
+  expect(mockShare).not.toHaveBeenCalled();
+  await act(async () => {
+    await retained('file-a', 'a.txt');
+  });
+  expect(oldUrl).toHaveBeenCalledTimes(1);
+  const other = mockOxy;
+  act(() => {
+    mockOxy = oldOxy;
+    mockRuntime = oldRuntime;
+    hook.rerender();
+  });
+  await act(async () => {
+    await retained('file-a', 'a.txt');
+  });
+  expect(oldUrl).toHaveBeenCalledTimes(1);
+  cleanup();
+  other.dispose();
+});
+
+it('keeps committed A active when a replacement render suspends before commit', async () => {
+  mockPlatform = 'ios';
+  const { cleanup } = setup();
+  const oldOxy = mockOxy;
+  const oldRuntime = mockRuntime;
+  jest.spyOn(oldOxy.assets, 'url').mockResolvedValue('https://files.test/signed-a');
+  let finish: (result: { status: number; uri: string }) => void = () => {};
+  mockDownload.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  const client = createInboxQueryClient();
+  const suspended = new Promise(() => {});
+  let open: (file: string, name: string) => Promise<void> = async () => {};
+  function Probe({ waiting }: { waiting: boolean }) {
+    const action = useOpenAttachment();
+    if (waiting) throw suspended;
+    open = action;
+    return <div>committed</div>;
+  }
+  const tree = (waiting: boolean) => (
+    <QueryClientProvider client={client}>
+      <Suspense fallback={<div>loading</div>}>
+        <Probe waiting={waiting} />
+      </Suspense>
+    </QueryClientProvider>
+  );
+  const view = render(tree(false));
+  let request: Promise<void> = Promise.resolve();
+  await act(async () => {
+    request = open('file-a', 'a.txt');
+    await Promise.resolve();
+  });
+  const { dirname, join } = require('node:path');
+  const dir = dirname(require.resolve('@oxy.so/services/package.json'));
+  const { createOxyRuntime } = require(join(dir, 'lib/commonjs/ui/runtime/createOxyRuntime.js'));
+  mockOxy = new OxyServices({
+    baseURL: 'https://other.test',
+    enableRetry: false,
+    enableCache: false,
+  });
+  mockOxy.session.setAccessToken(token('session-a'));
+  mockRuntime = createOxyRuntime({
+    oxyServices: mockOxy,
+    sessionClient: { getState: () => null, getDirectory: () => null, subscribe: () => () => {} },
+    sessionClientHost: { setCurrentAccountId: () => {} },
+    identity: null,
+    onDeviceEmpty: async () => {},
+    logger: () => {},
+  });
+  mockRuntime.batch(() => {
+    mockRuntime.setAccount({ id: 'alice' });
+    mockRuntime.setActiveSessionId('session-a');
+  });
+  act(() => startTransition(() => view.rerender(tree(true))));
+  expect(view.getByText('committed')).toBeTruthy();
+  await act(async () => {
+    finish({ status: 200, uri: 'file:///cache/a.txt' });
+    await request;
+  });
+  expect(mockShare).toHaveBeenCalledWith('file:///cache/a.txt');
+  const other = mockOxy;
+  view.unmount();
+  client.clear();
+  mockOxy = oldOxy;
+  mockRuntime = oldRuntime;
+  cleanup();
+  other.dispose();
+});
+
+it('opens normally after StrictMode effect replay', async () => {
+  mockPlatform = 'ios';
+  const { cleanup } = setup();
+  jest.spyOn(mockOxy.assets, 'url').mockResolvedValue('https://files.test/signed-a');
+  mockDownload.mockResolvedValue({ status: 200, uri: 'file:///cache/a.txt' });
+  const client = createInboxQueryClient();
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <StrictMode>
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    </StrictMode>
+  );
+  const hook = renderHook(() => useOpenAttachment(), { wrapper });
+  await act(async () => {
+    await hook.result.current('file-a', 'a.txt');
+  });
+  expect(mockShare).toHaveBeenCalledWith('file:///cache/a.txt');
+  hook.unmount();
+  client.clear();
   cleanup();
 });

@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import { Linking, Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -13,39 +13,51 @@ export function useOpenAttachment() {
   const { oxyServices } = useOxy();
   const owner = useObservedInferenceOwner();
   const { t } = useTranslation();
-  const mounted = useRef(false);
-  const pendingTabs = useRef(new Set<Window>());
-  // biome-ignore lint/correctness/useExhaustiveDependencies: closing pending tabs depends on the captured session.
+  const binding = useMemo(
+    () => ({
+      identity: [
+        owner.binding,
+        owner.subject,
+        owner.sessionId,
+        owner.revision,
+        owner.epoch,
+        owner.knownSubject,
+        owner.authenticated,
+      ],
+      pendingTabs: new Set<Window>(),
+    }),
+    [
+      owner.binding,
+      owner.subject,
+      owner.sessionId,
+      owner.revision,
+      owner.epoch,
+      owner.knownSubject,
+      owner.authenticated,
+    ],
+  );
+  const committed = useRef<typeof binding | null>(null);
   useLayoutEffect(() => {
-    mounted.current = true;
+    committed.current = binding;
     return () => {
-      mounted.current = false;
-      for (const tab of pendingTabs.current) {
+      if (committed.current === binding) committed.current = null;
+      for (const tab of binding.pendingTabs) {
         try {
           tab.close();
         } catch {
           // The browser may already have closed the popup.
         }
       }
-      pendingTabs.current.clear();
+      binding.pendingTabs.clear();
     };
-  }, [
-    owner.runtime,
-    owner.http,
-    owner.subject,
-    owner.sessionId,
-    owner.revision,
-    owner.epoch,
-    owner.knownSubject,
-    owner.authenticated,
-  ]);
+  }, [binding]);
   return useCallback(
     async (fileId: string, filename: string) => {
-      const isCurrent = () => mounted.current && owner.ready && owner.isCurrent();
+      const isCurrent = () => committed.current === binding && owner.ready && owner.isCurrent();
       if (!isCurrent()) {
         const projection = owner.runtime.getAccountSessionIdentity();
         if (
-          mounted.current &&
+          committed.current === binding &&
           !owner.ready &&
           projection.revision === owner.revision &&
           owner.http.getSessionEpoch() === owner.epoch &&
@@ -58,9 +70,9 @@ export function useOpenAttachment() {
       if (Platform.OS === 'web') {
         // Keep popup creation in the user gesture to avoid browser popup blockers.
         const tab = window.open('', '_blank');
-        if (tab) pendingTabs.current.add(tab);
+        if (tab) binding.pendingTabs.add(tab);
         const close = () => {
-          if (!tab || !pendingTabs.current.delete(tab)) return;
+          if (!tab || !binding.pendingTabs.delete(tab)) return;
           try {
             tab.close();
           } catch {
@@ -74,7 +86,7 @@ export function useOpenAttachment() {
             return;
           }
           if (tab) {
-            pendingTabs.current.delete(tab);
+            binding.pendingTabs.delete(tab);
             tab.opener = null;
             tab.location.href = url;
           } else {
@@ -118,6 +130,6 @@ export function useOpenAttachment() {
           toast.error(error instanceof Error ? error.message : t('message.toast.attachmentFailed'));
       }
     },
-    [oxyServices, t, owner],
+    [oxyServices, t, owner, binding],
   );
 }

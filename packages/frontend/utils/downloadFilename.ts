@@ -8,3 +8,13 @@ export function safeDownloadFilename(filename: string, fallback = 'attachment'):
   if (!cleaned || cleaned === '.' || cleaned === '..') return fallback;
   return cleaned.slice(0, 180);
 }
+
+/** Encode one filename as a file-URI path segment, including malformed UTF-16. */
+export function safeDownloadUriComponent(filename: string): string {
+  const text = Array.from(safeDownloadFilename(filename), (character) => {
+    if (character.length !== 1) return character;
+    const unit = character.charCodeAt(0);
+    return unit >= 0xd800 && unit <= 0xdfff ? '\uFFFD' : character;
+  }).join('');
+  return encodeURIComponent(text);
+}

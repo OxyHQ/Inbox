@@ -1,25 +1,70 @@
 import { useQuery } from '@tanstack/react-query';
 import { useOxy } from '@oxy.so/services/ui/client';
-import { emailKeys } from '@/hooks/queries/queryKeys';
+import { useLayoutEffect, useMemo, useRef } from 'react';
+import { reserveInferenceNamespace } from '@/hooks/queries/inferenceNamespace';
+import {
+  ATTACHMENT_URL_STALE_MS,
+  resolveScopedAttachment,
+  scopedAttachmentKey,
+  useScopedAttachmentContext,
+} from '@/hooks/queries/scopedAttachment';
 
-/**
- * Resolves a download/preview URL for an attachment, which is a file in the
- * Oxy File Manager. Uses the core SDK's `getFileDownloadUrlAsync` (signed CDN
- * URL with a fallback to the authenticated `/assets/:id/stream` endpoint).
- * Signed URLs expire in 60 min; staleTime is 45 min to refresh before expiry.
- */
-/** Signed URLs expire in 60 min: refreshed before that. */
-export const ATTACHMENT_URL_STALE_MS = 45 * 60 * 1000;
+export { ATTACHMENT_URL_STALE_MS } from '@/hooks/queries/scopedAttachment';
 
+/** Resolve an attachment URL within the observed, memory-only account scope. */
 export function useAttachmentUrl(fileId: string, enabled = true, variant?: string) {
   const { oxyServices } = useOxy();
-
-  const { data: url = null, isLoading } = useQuery({
-    queryKey: emailKeys.attachmentUrl(fileId, variant),
-    queryFn: () => oxyServices.assets.url(fileId, variant),
-    enabled: enabled && !!fileId,
+  const { queryClient, owner, scope, committed } = useScopedAttachmentContext(
+    oxyServices,
+    enabled && !!fileId,
+  );
+  const eligible =
+    enabled && !!fileId && owner.ready && oxyServices.http === owner.http && owner.isCurrent();
+  const target = useMemo(
+    () => ({ scope, fileId, variant, enabled, id: reserveInferenceNamespace(queryClient) }),
+    [scope, fileId, variant, enabled, queryClient],
+  );
+  const committedTarget = useRef<typeof target | null>(null);
+  useLayoutEffect(() => {
+    committedTarget.current = target;
+    return () => {
+      if (committedTarget.current === target) committedTarget.current = null;
+    };
+  }, [target]);
+  const isCurrent = () =>
+    committedTarget.current === target &&
+    committed.current?.scope === scope &&
+    enabled &&
+    !!fileId &&
+    owner.ready &&
+    oxyServices.http === owner.http &&
+    owner.isCurrent();
+  const { data, isLoading } = useQuery({
+    queryKey: scopedAttachmentKey(fileId, variant, scope.identity),
+    queryFn: async ({ signal }) => {
+      const lease = committed.current?.scope === scope ? committed.current.lease : null;
+      const ownerCurrent = () => !!lease && lease.observers > 0 && owner.isCurrent();
+      if (!lease || signal.aborted || !ownerCurrent()) throw new Error('Email account changed');
+      const url = await resolveScopedAttachment({
+        queryClient,
+        service: oxyServices,
+        identity: scope.identity,
+        lease,
+        fileId,
+        variant,
+        ownerCurrent,
+        publish: false,
+      });
+      if (signal.aborted || !ownerCurrent()) throw new Error('Email account changed');
+      return url;
+    },
+    enabled: eligible,
     staleTime: ATTACHMENT_URL_STALE_MS,
   });
-
-  return { url, isLoading };
+  return {
+    url: eligible ? (data ?? null) : null,
+    isLoading: eligible && isLoading,
+    scope: target,
+    isCurrent,
+  };
 }

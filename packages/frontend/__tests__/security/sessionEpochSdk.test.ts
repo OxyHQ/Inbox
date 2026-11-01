@@ -1,4 +1,5 @@
 import { OxyServices } from '@oxy.so/core';
+import { createEmailApi } from '@/services/emailApi';
 
 function token(userId: string, sessionId: string): string {
   const payload = Buffer.from(JSON.stringify({ userId, sessionId, exp: 2000000000 })).toString(
@@ -60,6 +61,37 @@ it('rejects an old A response after 401 clears A and B signs in', async () => {
     release(response(200, { data: [{ name: 'A private label' }] }));
     await expect(oldResult).resolves.toMatchObject({ code: 'AUTH_SESSION_CHANGED' });
     expect(oxy.http.getAccessToken()).toBe(token('account-b', 'session-b'));
+  } finally {
+    oxy.dispose();
+    globalThis.fetch = previousFetch;
+  }
+});
+
+it('retains the current session when mail authority is unavailable and a retry succeeds', async () => {
+  const previousFetch = globalThis.fetch;
+  const bearer = token('account-a', 'session-a');
+  let unavailable = true;
+  globalThis.fetch = jest.fn(async () =>
+    unavailable
+      ? response(503, { code: 'SESSION_VALIDATION_ERROR', message: 'Session validation failed' })
+      : response(200, { data: [] }),
+  ) as never;
+  const oxy = new OxyServices({
+    baseURL: 'https://api.test',
+    enableRetry: false,
+    enableCache: false,
+  });
+  try {
+    oxy.session.setAccessToken(bearer);
+    const epoch = oxy.http.getSessionEpoch();
+    const api = createEmailApi(oxy.http);
+    await expect(api.listLabels()).rejects.toMatchObject({ status: 503 });
+    expect(oxy.session.accessToken).toBe(bearer);
+    expect(oxy.session.userId).toBe('account-a');
+    expect(oxy.http.getSessionEpoch()).toBe(epoch);
+    unavailable = false;
+    await expect(api.listLabels()).resolves.toEqual([]);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
   } finally {
     oxy.dispose();
     globalThis.fetch = previousFetch;

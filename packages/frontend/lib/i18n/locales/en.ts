@@ -815,6 +815,7 @@ const en: LocaleDict = {
       header: 'Event',
       addToCalendar: 'Add to Calendar',
       googleCalendar: 'Google Calendar',
+      exportUnavailable: 'Calendar export is unavailable for these dates.',
       addToCalendarDialog: 'Add to Calendar',
       defaultTitle: 'Event',
       summary: 'Event details',

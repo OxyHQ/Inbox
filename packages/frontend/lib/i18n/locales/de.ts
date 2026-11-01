@@ -836,6 +836,7 @@ const de: LocaleDict = {
       header: 'Termin',
       addToCalendar: 'Zum Kalender hinzufügen',
       googleCalendar: 'Google Kalender',
+      exportUnavailable: 'Für diese Daten ist kein Kalenderexport möglich.',
       addToCalendarDialog: 'Zum Kalender hinzufügen',
       defaultTitle: 'Termin',
       summary: 'Termindetails',

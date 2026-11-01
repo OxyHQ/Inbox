@@ -853,6 +853,7 @@ const ar: LocaleDict = {
       header: 'فعالية',
       addToCalendar: 'إضافة إلى التقويم',
       googleCalendar: 'Google Calendar',
+      exportUnavailable: 'لا يمكن التصدير إلى التقويم لهذه التواريخ.',
       addToCalendarDialog: 'إضافة إلى التقويم',
       defaultTitle: 'فعالية',
       summary: 'تفاصيل الفعالية',

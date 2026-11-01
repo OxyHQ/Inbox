@@ -821,6 +821,7 @@ const ja: LocaleDict = {
       header: 'イベント',
       addToCalendar: 'カレンダーに追加',
       googleCalendar: 'Google カレンダー',
+      exportUnavailable: 'これらの日付ではカレンダーに書き出せません。',
       addToCalendarDialog: 'カレンダーに追加',
       defaultTitle: 'イベント',
       summary: 'イベントの詳細',

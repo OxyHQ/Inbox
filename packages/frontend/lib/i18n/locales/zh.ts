@@ -797,6 +797,7 @@ const zh: LocaleDict = {
       header: '活动',
       addToCalendar: '添加到日历',
       googleCalendar: 'Google 日历',
+      exportUnavailable: '无法将这些日期导出到日历。',
       addToCalendarDialog: '添加到日历',
       defaultTitle: '活动',
       summary: '活动详情',

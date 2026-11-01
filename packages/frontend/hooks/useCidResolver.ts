@@ -1,6 +1,6 @@
 /** Resolve inline images without publishing a previous observed session's URLs. */
-import { type QueryClient, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { onlineManager, type QueryClient, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { OxyServices } from '@oxy.so/core';
 import { ATTACHMENT_URL_STALE_MS } from '@/hooks/queries/useAttachmentUrl';
 import { reserveInferenceNamespace } from '@/hooks/queries/inferenceNamespace';
@@ -10,7 +10,9 @@ import type { Message } from '@/services/emailApi';
 import { normalizeContentId, resolveCidImages } from '@/utils/htmlTransform';
 
 type CidMaps = Record<string, Record<string, string>>;
+type FailureEpochs = Record<string, number>;
 const NO_MAPS: CidMaps = {};
+const NO_FAILURES: FailureEpochs = {};
 const serviceScopes = new WeakMap<QueryClient, WeakMap<OxyServices, WeakMap<object, string>>>();
 type Lease = { id: string; observers: number };
 const activeScopes = new WeakMap<QueryClient, Map<string, Lease>>();
@@ -68,6 +70,17 @@ export function useCidResolver(
 ): Record<string, string> {
   const queryClient = useQueryClient();
   const owner = useObservedInferenceOwner();
+  const online = useSyncExternalStore(
+    onlineManager.subscribe,
+    () => onlineManager.isOnline(),
+    () => true,
+  );
+  const wasOnline = useRef(online);
+  const [reconnectEpoch, setReconnectEpoch] = useState(0);
+  useEffect(() => {
+    if (online && !wasOnline.current) setReconnectEpoch((previous) => previous + 1);
+    wasOnline.current = online;
+  }, [online]);
   const scope = useMemo(
     () => ({
       service: oxyServices,
@@ -107,19 +120,20 @@ export function useCidResolver(
   useLayoutEffect(() => {
     shownKey.current = resetKey;
   }, [resetKey]);
-  const [store, setStore] = useState<{ scope: typeof scope; key: string; maps: CidMaps }>(() => ({
-    scope,
-    key: resetKey,
-    maps: NO_MAPS,
-  }));
-  const cidMaps =
+  const [store, setStore] = useState<{
+    scope: typeof scope;
+    key: string;
+    maps: CidMaps;
+    failures: FailureEpochs;
+  }>(() => ({ scope, key: resetKey, maps: NO_MAPS, failures: NO_FAILURES }));
+  const sameStore =
     owner.ready &&
     oxyServices &&
     oxyServices.http === owner.http &&
     store.scope === scope &&
-    store.key === resetKey
-      ? store.maps
-      : NO_MAPS;
+    store.key === resetKey;
+  const cidMaps = sameStore ? store.maps : NO_MAPS;
+  const failures = sameStore ? store.failures : NO_FAILURES;
   const inFlight = useRef({ scope, key: resetKey, ids: new Set<string>() });
 
   useEffect(() => {
@@ -135,16 +149,20 @@ export function useCidResolver(
     const ids = inFlight.current.ids;
     const pending = messages.filter(
       (msg) =>
-        !(msg._id in cidMaps) && !ids.has(msg._id) && msg.attachments.some((a) => a.contentId),
+        (!(msg._id in cidMaps) ||
+          (failures[msg._id] !== undefined && failures[msg._id] < reconnectEpoch)) &&
+        !ids.has(msg._id) &&
+        msg.attachments.some((a) => a.contentId),
     );
     if (pending.length === 0) return;
     for (const msg of pending) ids.add(msg._id);
 
     (async () => {
-      const newEntries: [string, Record<string, string>][] = [];
+      const newEntries: [string, Record<string, string>, boolean][] = [];
       for (const msg of pending) {
         if (!current()) break;
         const cidMap: Record<string, string> = {};
+        let failed = false;
         await Promise.all(
           msg.attachments.map(async (att) => {
             if (!att.contentId || !current()) return;
@@ -179,22 +197,39 @@ export function useCidResolver(
               }
               if (url && current()) cidMap[normalizeContentId(att.contentId)] = url;
             } catch {
-              /* The image stays a cid: reference. */
+              failed = true;
             }
           }),
         );
-        if (current()) newEntries.push([msg._id, cidMap]);
+        if (current()) newEntries.push([msg._id, cidMap, failed]);
       }
       for (const msg of pending) ids.delete(msg._id);
       if (!current()) return;
       setStore((prev) => {
         if (!current()) return prev;
         const next = { ...(prev.scope === scope && prev.key === key ? prev.maps : NO_MAPS) };
-        for (const [id, map] of newEntries) next[id] = map;
-        return { scope, key, maps: next };
+        const nextFailures = {
+          ...(prev.scope === scope && prev.key === key ? prev.failures : NO_FAILURES),
+        };
+        for (const [id, map, failed] of newEntries) {
+          next[id] = map;
+          if (failed) nextFailures[id] = reconnectEpoch;
+          else delete nextFailures[id];
+        }
+        return { scope, key, maps: next, failures: nextFailures };
       });
     })();
-  }, [messages, oxyServices, cidMaps, resetKey, queryClient, owner, scope]);
+  }, [
+    messages,
+    oxyServices,
+    cidMaps,
+    failures,
+    reconnectEpoch,
+    resetKey,
+    queryClient,
+    owner,
+    scope,
+  ]);
 
   return useMemo(() => {
     const map: Record<string, string> = {};

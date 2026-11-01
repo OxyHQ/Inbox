@@ -269,3 +269,144 @@ it('fetches again when the confirmed URL cache is invalidated', async () => {
   hook.unmount();
   client.clear();
 });
+
+it('retries an initially unavailable image once connectivity returns', async () => {
+  const client = new QueryClient({
+    defaultOptions: { queries: { networkMode: 'offlineFirst', retry: false } },
+  });
+  const oxy = services(async (fileId) => {
+    if (!onlineManager.isOnline()) throw new Error('offline');
+    return `https://files.example/${fileId}`;
+  });
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  onlineManager.setOnline(false);
+  const oneMessage = [thread[0]];
+  const first = render(() => useCidResolver(oneMessage, oxy, 'm1'), { wrapper });
+  try {
+    await waitFor(() => expect(oxy.assets.url).toHaveBeenCalledTimes(1));
+    await settle();
+    expect(first.result.current.m1).toContain('cid:logo@example');
+    act(() => onlineManager.setOnline(true));
+    await waitFor(() =>
+      expect(first.result.current.m1).toContain('https://files.example/file-logo'),
+    );
+    expect(oxy.assets.url).toHaveBeenCalledTimes(2);
+  } finally {
+    first.unmount();
+    client.clear();
+    onlineManager.setOnline(true);
+  }
+});
+
+it('retries failed images at most once per reconnect, not in a render loop', async () => {
+  const client = new QueryClient({
+    defaultOptions: { queries: { networkMode: 'offlineFirst', retry: false } },
+  });
+  const oxy = services(async () => {
+    throw new Error('unavailable');
+  });
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  onlineManager.setOnline(false);
+  const hook = render(() => useCidResolver([thread[0]], oxy, 'm1'), { wrapper });
+  try {
+    await waitFor(() => expect(oxy.assets.url).toHaveBeenCalledTimes(1));
+    await settle();
+    expect(oxy.assets.url).toHaveBeenCalledTimes(1);
+    act(() => onlineManager.setOnline(true));
+    await waitFor(() => expect(oxy.assets.url).toHaveBeenCalledTimes(2));
+    await settle();
+    expect(oxy.assets.url).toHaveBeenCalledTimes(2);
+    act(() => onlineManager.setOnline(false));
+    act(() => onlineManager.setOnline(true));
+    await waitFor(() => expect(oxy.assets.url).toHaveBeenCalledTimes(3));
+    await settle();
+    expect(oxy.assets.url).toHaveBeenCalledTimes(3);
+  } finally {
+    hook.unmount();
+    client.clear();
+    onlineManager.setOnline(true);
+  }
+});
+
+it('retains successful inline images and retries only failures on reconnect', async () => {
+  const client = new QueryClient({
+    defaultOptions: { queries: { networkMode: 'offlineFirst', retry: false } },
+  });
+  const urls = jest.fn(async (fileId: string) => {
+    if (fileId === 'file-b' && !onlineManager.isOnline()) throw new Error('offline');
+    return `https://files.example/${fileId}`;
+  });
+  const oxy = services(urls);
+  const partial = MessageSchema.parse(
+    wireMessage({
+      _id: 'partial',
+      id: 'partial',
+      html: '<img src="cid:one"><img src="cid:two">',
+      attachments: [
+        { ...inlineImage, fileId: 'file-a', contentId: '<one>' },
+        { ...inlineImage, fileId: 'file-b', contentId: '<two>' },
+      ],
+    }),
+  );
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  onlineManager.setOnline(false);
+  const hook = render(() => useCidResolver([partial], oxy, 'partial'), { wrapper });
+  try {
+    await waitFor(() =>
+      expect(hook.result.current.partial).toContain('https://files.example/file-a'),
+    );
+    expect(hook.result.current.partial).toContain('cid:two');
+    act(() => onlineManager.setOnline(true));
+    await waitFor(() =>
+      expect(hook.result.current.partial).toContain('https://files.example/file-b'),
+    );
+    expect(hook.result.current.partial).toContain('https://files.example/file-a');
+    expect(urls.mock.calls.filter(([fileId]) => fileId === 'file-a')).toHaveLength(1);
+    expect(urls.mock.calls.filter(([fileId]) => fileId === 'file-b')).toHaveLength(2);
+  } finally {
+    hook.unmount();
+    client.clear();
+    onlineManager.setOnline(true);
+  }
+});
+
+it('retries an offline attempt that fails after connectivity has returned', async () => {
+  const client = new QueryClient({
+    defaultOptions: { queries: { networkMode: 'offlineFirst', retry: false } },
+  });
+  let fail: (error: Error) => void = () => {};
+  let attempts = 0;
+  const oxy = services(async (fileId) => {
+    if (++attempts === 1)
+      return new Promise<string>((_resolve, reject) => {
+        fail = reject;
+      });
+    return `https://files.example/${fileId}`;
+  });
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  onlineManager.setOnline(false);
+  const hook = render(() => useCidResolver([thread[0]], oxy, 'm1'), { wrapper });
+  try {
+    await waitFor(() => expect(attempts).toBe(1));
+    act(() => onlineManager.setOnline(true));
+    await act(async () => {
+      fail(new Error('offline'));
+    });
+    await waitFor(() =>
+      expect(hook.result.current.m1).toContain('https://files.example/file-logo'),
+    );
+    expect(attempts).toBe(2);
+  } finally {
+    hook.unmount();
+    client.clear();
+    onlineManager.setOnline(true);
+  }
+});

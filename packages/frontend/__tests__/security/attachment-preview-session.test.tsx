@@ -1,5 +1,5 @@
 import { act, render, renderHook, waitFor } from '@testing-library/react';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { onlineManager, QueryClientProvider } from '@tanstack/react-query';
 import { OxyServices } from '@oxy.so/core';
 import { createContext, type ReactNode, startTransition, StrictMode, Suspense } from 'react';
 import { createInboxQueryClient, INBOX_ACCOUNT_QUERIES } from '@/hooks/queries/queryClient';
@@ -362,4 +362,48 @@ it('resolves CID images after StrictMode effect replay', async () => {
   await waitFor(() => expect(hook.result.current.m1).toContain('https://files.test/current'));
   hook.unmount();
   cleanup();
+});
+
+it('does not retry a failed A lookup into B when connectivity returns', async () => {
+  onlineManager.setOnline(false);
+  const { wrapper, change, client, cleanup } = await setup();
+  client.setDefaultOptions({ queries: { networkMode: 'offlineFirst', retry: false } });
+  let finishB: (url: string) => void = () => {};
+  const lookup = jest
+    .spyOn(mockOxy.assets, 'url')
+    .mockRejectedValueOnce(new Error('offline'))
+    .mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishB = resolve;
+        }),
+    );
+  const hook = renderHook(() => useCidResolver(messages, mockOxy, 'm1'), { wrapper });
+  try {
+    await waitFor(() =>
+      expect(
+        client
+          .getQueryCache()
+          .getAll()
+          .some((q) => q.state.status === 'error'),
+      ).toBe(true),
+    );
+    expect(lookup).toHaveBeenCalledTimes(1);
+    change();
+    await waitFor(() => expect(lookup).toHaveBeenCalledTimes(2));
+    act(() => onlineManager.setOnline(true));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(lookup).toHaveBeenCalledTimes(2);
+    await act(async () => {
+      finishB('https://files.test/signed-b');
+    });
+    await waitFor(() => expect(hook.result.current.m1).toContain('https://files.test/signed-b'));
+  } finally {
+    hook.unmount();
+    cleanup();
+    onlineManager.setOnline(true);
+  }
 });

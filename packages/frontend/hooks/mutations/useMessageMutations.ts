@@ -630,45 +630,61 @@ export function useUpdateMessageLabels() {
   const { user } = useOxy();
   const userId = user?.id ?? null;
 
-  return useMutation({
-    mutationKey: INBOX_MUTATION_KEYS.updateLabels,
-    ...RETRY_IDEMPOTENT,
-    mutationFn: async ({
-      messageId,
-      add,
-      remove,
-    }: {
-      messageId: string;
-      add: string[];
-      remove: string[];
-    }) => {
-      if (!api) throw new Error('Email API not initialized');
-      return await api.updateLabels(messageId, add, remove);
+  const onUnavailable = useCallback(
+    () => toast.error(t('ui.mutations.messageSessionUnavailable')),
+    [t],
+  );
+
+  return useGuardedMessageMutation(
+    {
+      mutationKey: INBOX_MUTATION_KEYS.updateLabels,
+      ...RETRY_IDEMPOTENT,
+      mutationFn: async ({
+        messageId,
+        add,
+        remove,
+      }: {
+        messageId: string;
+        add: string[];
+        remove: string[];
+      }) => {
+        if (!api) throw new Error('Email API not initialized');
+        return await api.updateLabels(messageId, add, remove);
+      },
+      onMutate: async (variables) => {
+        const { messageId, add, remove } = variables;
+        await cancelMessageQueries(queryClient, messageId);
+        assertMessageOwner(variables);
+        const snapshot = snapshotForRollback(queryClient, messageId, userId);
+        const applyLabels = (labels: string[]): string[] => [
+          ...labels.filter((l) => !remove.includes(l)),
+          ...add.filter((l) => !labels.includes(l)),
+        ];
+        queryClient.setQueryData<Message | null>(
+          emailKeys.message.detail(messageId, userId),
+          (old) => (old ? { ...old, labels: applyLabels(old.labels) } : old),
+        );
+        assertMessageOwner(variables);
+        patchMessageInList(queryClient, messageId, (m) => ({
+          ...m,
+          labels: applyLabels(m.labels),
+        }));
+        return { snapshot };
+      },
+      onError: (_err, variables, context) => {
+        if (context) restoreSnapshot(queryClient, context.snapshot);
+        if (ownsMessageOperation(variables)) toast.error(t('ui.mutations.labelsFailed'));
+      },
+      onSettled: (_data, _err, variables) => {
+        // The list is updated optimistically; the message, thread and search are not.
+        void queryClient.invalidateQueries({
+          queryKey: emailKeys.message.byId(variables.messageId),
+        });
+        if (ownsMessageOperation(variables)) invalidateMailViews(queryClient, { views: 'stale' });
+      },
     },
-    onMutate: async ({ messageId, add, remove }) => {
-      await cancelMessageQueries(queryClient, messageId);
-      const snapshot = snapshotForRollback(queryClient, messageId, userId);
-      const applyLabels = (labels: string[]): string[] => [
-        ...labels.filter((l) => !remove.includes(l)),
-        ...add.filter((l) => !labels.includes(l)),
-      ];
-      queryClient.setQueryData<Message | null>(
-        emailKeys.message.detail(messageId, userId),
-        (old) => (old ? { ...old, labels: applyLabels(old.labels) } : old),
-      );
-      patchMessageInList(queryClient, messageId, (m) => ({ ...m, labels: applyLabels(m.labels) }));
-      return { snapshot };
-    },
-    onError: (_err, _vars, context) => {
-      if (context) restoreSnapshot(queryClient, context.snapshot);
-      toast.error(t('ui.mutations.labelsFailed'));
-    },
-    onSettled: (_data, _err, { messageId }) => {
-      // The list is updated optimistically; the message, thread and search are not.
-      void queryClient.invalidateQueries({ queryKey: emailKeys.message.byId(messageId) });
-      invalidateMailViews(queryClient, { views: 'stale' });
-    },
-  });
+    onUnavailable,
+  );
 }
 
 export function useTogglePin() {

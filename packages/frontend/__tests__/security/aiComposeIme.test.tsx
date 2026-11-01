@@ -148,6 +148,11 @@ function ComposeHarness() {
     ownText: body,
     updateBody,
     getBodyRevision: () => revision.current,
+    getAiBodySnapshot: () => ({
+      body: value.current,
+      text: value.current,
+      revision: revision.current,
+    }),
     isBodyComposing: () => composing.current,
     setBodyComposing,
     replaceOwnText: updateBody,
@@ -230,6 +235,40 @@ function beginDraft() {
   });
   fireEvent.click(screen.getAllByRole('button', { name: 'ai.toolbar.draft' })[1]);
 }
+
+it('does not replace uncommitted web IME text when a rewrite completes', async () => {
+  Object.defineProperty(document, 'queryCommandState', { configurable: true, value: () => false });
+  let finish!: (value: { schemaVersion: number; requestId: string; text: string }) => void;
+  const response = new Promise<{ schemaVersion: number; requestId: string; text: string }>(
+    (resolve) => {
+      finish = resolve;
+    },
+  );
+  jest.spyOn(mockOxy.http, 'post').mockReturnValueOnce(response as never);
+  const client = createInboxQueryClient();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <ComposeHarness />
+    </QueryClientProvider>,
+  );
+  const editor = view.container.querySelector('[contenteditable="true"]') as HTMLDivElement | null;
+  if (!editor) throw new Error('Expected web contentEditable editor');
+  fireEvent.click(screen.getByRole('button', { name: 'ai.toolbar.polish' }));
+  await waitFor(() => expect(mockOxy.http.post).toHaveBeenCalled());
+  fireEvent.compositionStart(editor);
+  editor.textContent = 'uncommitted IME text';
+  fireEvent.input(editor);
+  await act(async () => {
+    finish({ schemaVersion: 1, requestId: 'req_01a06477', text: 'AI result' });
+    await response;
+  });
+  const toast = require('@oxy.so/bloom/toast').toast as jest.Mock;
+  await waitFor(() => expect(toast).toHaveBeenCalledWith('ai.toast.keptYourEdits'));
+  expect(editor.textContent).toBe('uncommitted IME text');
+  fireEvent.compositionEnd(editor);
+  view.unmount();
+  client.clear();
+});
 
 it.each(['before', 'during'] as const)(
   'keeps uncommitted web IME text when composition starts %s streaming',

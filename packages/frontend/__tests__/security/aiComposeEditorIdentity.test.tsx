@@ -82,8 +82,15 @@ jest.mock('@/components/RichTextEditor', () => ({
     <textarea aria-label="editor" value={value} onChange={(e) => onChange(e.target.value)} />
   ),
 }));
-jest.mock('@/utils/composeBody', () => ({ editorContentToText: (s: string) => s }));
+jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
+jest.mock('@/hooks/mutations/useMessageMutations', () => ({
+  useSendMessageWithUndo: () => ({ sendWithUndo: jest.fn(), isPending: false }),
+  useSendMessage: () => ({ mutate: jest.fn(), isPending: false }),
+  useSaveDraft: () => ({ mutateAsync: jest.fn() }),
+  useDiscardDraft: () => ({ mutateAsync: jest.fn(), discardErrorNotice: () => 'current' }),
+}));
 import { MailComposer } from '@/components/MailComposer';
+import { useComposeSession } from '@/hooks/useComposeSession';
 
 function token(subject: string, session: string) {
   return `e30.${Buffer.from(JSON.stringify({ userId: subject, sessionId: session, exp: 2000000000 })).toString('base64url')}.fixture`;
@@ -148,9 +155,14 @@ function ComposeHarness() {
   }, []);
   const session = {
     body,
-    ownText: body,
+    ownText: body.replace(/<[^>]*>/g, ''),
     updateBody,
     getBodyRevision: () => revision.current,
+    getAiBodySnapshot: () => ({
+      body: value.current,
+      text: value.current.replace(/<[^>]*>/g, ''),
+      revision: revision.current,
+    }),
     isBodyComposing: () => composing.current,
     setBodyComposing,
     replaceOwnText: updateBody,
@@ -189,6 +201,48 @@ function ComposeHarness() {
       trailer=""
       placeholder="Message"
     />
+  );
+}
+function RealComposeHarness() {
+  const session = useComposeSession({
+    recoveryIdentity: 'synthetic-batch',
+    initial: { body: 'Original unsaved text' },
+    awaitingReplyHeaders: false,
+    insertSignature: false,
+    onFinished: () => {},
+  });
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          session.updateBody('newer body');
+          Array.from(document.querySelectorAll('button'))
+            .find((button) => button.textContent === 'ai.toolbar.polish')
+            ?.click();
+        }}
+      >
+        edit then polish
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          session.updateBody('newer body');
+          Array.from(document.querySelectorAll('button'))
+            .filter((button) => button.textContent === 'ai.toolbar.draft')[1]
+            ?.click();
+        }}
+      >
+        edit then draft
+      </button>
+      <MailComposer
+        session={session}
+        layout="inline"
+        title="Compose"
+        trailer=""
+        placeholder="Message"
+      />
+    </>
   );
 }
 it('does not overwrite new editor text with an earlier account stream', async () => {
@@ -300,6 +354,304 @@ function beginDraft() {
   });
   fireEvent.click(screen.getAllByRole('button', { name: 'ai.toolbar.draft' })[1]);
 }
+it('does not show an aborted old preview after a committed user-only ABA', async () => {
+  const stream = controlledStream();
+  const client = createInboxQueryClient();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <ComposeHarness />
+    </QueryClientProvider>,
+  );
+  beginDraft();
+  await waitFor(() => expect(screen.getByText('first')).toBeTruthy());
+  act(() => {
+    mockUser = 'bob';
+    view.rerender(
+      <QueryClientProvider client={client}>
+        <ComposeHarness />
+      </QueryClientProvider>,
+    );
+  });
+  expect(screen.queryByText('first')).toBeNull();
+  act(() => {
+    mockUser = 'alice';
+    view.rerender(
+      <QueryClientProvider client={client}>
+        <ComposeHarness />
+      </QueryClientProvider>,
+    );
+  });
+  expect(screen.queryByText('first')).toBeNull();
+  expect(
+    (screen.getAllByRole('button', { name: 'ai.toolbar.draft' })[0] as HTMLButtonElement).disabled,
+  ).toBe(false);
+  await act(async () => {
+    stream.finish();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+  expect((screen.getByLabelText('editor') as HTMLTextAreaElement).value).toBe(
+    'Original unsaved text',
+  );
+  view.unmount();
+  client.clear();
+});
+it('uses the real session current text when an edit and polish start in the same batch', async () => {
+  jest.spyOn(mockOxy.http, 'post').mockResolvedValueOnce({
+    schemaVersion: 1,
+    requestId: 'req_01a06477',
+    text: 'Polished result',
+  } as never);
+  const client = createInboxQueryClient();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <RealComposeHarness />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'edit then polish' }));
+  await waitFor(() => expect(mockOxy.http.post).toHaveBeenCalled());
+  expect(jest.mocked(mockOxy.http.post).mock.calls[0][1]).toEqual({
+    operation: 'polish',
+    text: 'newer body',
+  });
+  view.unmount();
+  client.clear();
+});
+it('Undo restores the real session edit made in the same batch as starting a stream', async () => {
+  const stream = controlledStream();
+  const client = createInboxQueryClient();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <RealComposeHarness />
+    </QueryClientProvider>,
+  );
+  fireEvent.change(screen.getByLabelText('ai.draftDialog.label'), { target: { value: 'prompt' } });
+  fireEvent.click(screen.getByRole('button', { name: 'edit then draft' }));
+  await waitFor(() => expect(screen.getByText('first')).toBeTruthy());
+  await act(async () => {
+    stream.finish();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+  await waitFor(() =>
+    expect((screen.getByLabelText('editor') as HTMLTextAreaElement).value).toBe('first complete'),
+  );
+  const toast = require('@oxy.so/bloom/toast').toast as jest.Mock;
+  const applied = toast.mock.calls.find(([message]) => message === 'ai.toast.applied');
+  expect(applied).toBeDefined();
+  act(() => applied?.[1].action.onClick());
+  expect((screen.getByLabelText('editor') as HTMLTextAreaElement).value).toBe('newer body');
+  view.unmount();
+  client.clear();
+});
+it('applies a same-owner rewrite and preserves its original text for Undo', async () => {
+  jest.spyOn(mockOxy.http, 'post').mockResolvedValueOnce({
+    schemaVersion: 1,
+    requestId: 'req_01a06477',
+    text: 'Polished result',
+  } as never);
+  const client = createInboxQueryClient();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <ComposeHarness />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'ai.toolbar.polish' }));
+  await waitFor(() =>
+    expect((screen.getByLabelText('editor') as HTMLTextAreaElement).value).toBe('Polished result'),
+  );
+  const toast = require('@oxy.so/bloom/toast').toast as jest.Mock;
+  const applied = toast.mock.calls.find(([message]) => message === 'ai.toast.applied');
+  expect(applied).toBeDefined();
+  act(() => applied?.[1].action.onClick());
+  expect((screen.getByLabelText('editor') as HTMLTextAreaElement).value).toBe(
+    'Original unsaved text',
+  );
+  view.unmount();
+  client.clear();
+});
+it('does not let a rewrite Undo replace later editor changes', async () => {
+  jest.spyOn(mockOxy.http, 'post').mockResolvedValueOnce({
+    schemaVersion: 1,
+    requestId: 'req_01a06477',
+    text: 'Polished result',
+  } as never);
+  const client = createInboxQueryClient();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <ComposeHarness />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'ai.toolbar.polish' }));
+  await waitFor(() =>
+    expect((screen.getByLabelText('editor') as HTMLTextAreaElement).value).toBe('Polished result'),
+  );
+  const toast = require('@oxy.so/bloom/toast').toast as jest.Mock;
+  const applied = toast.mock.calls.find(([message]) => message === 'ai.toast.applied');
+  expect(applied).toBeDefined();
+  fireEvent.change(screen.getByLabelText('editor'), { target: { value: 'Later edits' } });
+  act(() => applied?.[1].action.onClick());
+  expect((screen.getByLabelText('editor') as HTMLTextAreaElement).value).toBe('Later edits');
+  expect(toast).toHaveBeenCalledWith('ai.toast.keptYourEdits');
+  view.unmount();
+  client.clear();
+});
+it('keeps a newer edit even if the text returns to its original value before polish completes', async () => {
+  let finish!: (value: { schemaVersion: number; requestId: string; text: string }) => void;
+  const response = new Promise<{ schemaVersion: number; requestId: string; text: string }>(
+    (resolve) => {
+      finish = resolve;
+    },
+  );
+  jest.spyOn(mockOxy.http, 'post').mockReturnValueOnce(response as never);
+  const client = createInboxQueryClient();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <ComposeHarness />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'ai.toolbar.polish' }));
+  await waitFor(() => expect(mockOxy.http.post).toHaveBeenCalled());
+  fireEvent.change(screen.getByLabelText('editor'), { target: { value: 'newer version' } });
+  fireEvent.change(screen.getByLabelText('editor'), {
+    target: { value: 'Original unsaved text' },
+  });
+  await act(async () => {
+    finish({ schemaVersion: 1, requestId: 'req_01a06477', text: 'AI result' });
+    await response;
+  });
+  expect((screen.getByLabelText('editor') as HTMLTextAreaElement).value).toBe(
+    'Original unsaved text',
+  );
+  view.unmount();
+  client.clear();
+});
+it('keeps formatting changed while polish is waiting even when the plain text is unchanged', async () => {
+  let finish!: (value: { schemaVersion: number; requestId: string; text: string }) => void;
+  const response = new Promise<{ schemaVersion: number; requestId: string; text: string }>(
+    (resolve) => {
+      finish = resolve;
+    },
+  );
+  jest.spyOn(mockOxy.http, 'post').mockReturnValueOnce(response as never);
+  const client = createInboxQueryClient();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <ComposeHarness />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'ai.toolbar.polish' }));
+  await waitFor(() => expect(mockOxy.http.post).toHaveBeenCalled());
+  fireEvent.change(screen.getByLabelText('editor'), {
+    target: { value: '<b>Original unsaved text</b>' },
+  });
+  await act(async () => {
+    finish({ schemaVersion: 1, requestId: 'req_01a06477', text: 'AI result' });
+    await response;
+  });
+  expect((screen.getByLabelText('editor') as HTMLTextAreaElement).value).toBe(
+    '<b>Original unsaved text</b>',
+  );
+  view.unmount();
+  client.clear();
+});
+it('does not apply a polish result to a newly projected account', async () => {
+  let finish!: (response: Response) => void;
+  const response = new Promise<Response>((resolve) => {
+    finish = resolve;
+  });
+  globalThis.fetch = jest.fn(() => response) as never;
+  const client = createInboxQueryClient();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <ComposeHarness />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'ai.toolbar.polish' }));
+  await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
+  act(() => {
+    mockUser = 'bob';
+    mockRuntime.batch(() => {
+      mockRuntime.setAccount({ id: 'bob' });
+      mockRuntime.setActiveSessionId('b-session');
+    });
+    view.rerender(
+      <QueryClientProvider client={client}>
+        <ComposeHarness />
+      </QueryClientProvider>,
+    );
+  });
+  await act(async () => {
+    finish({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/json' },
+      json: async () => ({ schemaVersion: 1, requestId: 'req_01a06477', text: 'AI result' }),
+    } as unknown as Response);
+    await response;
+  });
+  await waitFor(() =>
+    expect(
+      (screen.getByRole('button', { name: 'ai.toolbar.polish' }) as HTMLButtonElement).disabled,
+    ).toBe(false),
+  );
+  expect((screen.getByLabelText('editor') as HTMLTextAreaElement).value).toBe(
+    'Original unsaved text',
+  );
+  view.unmount();
+  client.clear();
+});
+it('does not leave the next account toolbar blocked when the old rewrite ignores abort', async () => {
+  let finish!: (value: { schemaVersion: number; requestId: string; text: string }) => void;
+  const response = new Promise<{ schemaVersion: number; requestId: string; text: string }>(
+    (resolve) => {
+      finish = resolve;
+    },
+  );
+  jest
+    .spyOn(mockOxy.http, 'post')
+    .mockReturnValueOnce(response as never)
+    .mockResolvedValueOnce({
+      schemaVersion: 1,
+      requestId: 'req_01a06477',
+      text: 'new account result',
+    } as never);
+  const client = createInboxQueryClient();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <ComposeHarness />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'ai.toolbar.polish' }));
+  await waitFor(() => expect(mockOxy.http.post).toHaveBeenCalled());
+  act(() => {
+    mockUser = 'bob';
+    mockOxy.session.setAccessToken(token('bob', 'b-session'));
+    mockRuntime.batch(() => {
+      mockRuntime.setAccount({ id: 'bob' });
+      mockRuntime.setActiveSessionId('b-session');
+    });
+    view.rerender(
+      <QueryClientProvider client={client}>
+        <ComposeHarness />
+      </QueryClientProvider>,
+    );
+  });
+  expect(
+    (screen.getByRole('button', { name: 'ai.toolbar.polish' }) as HTMLButtonElement).disabled,
+  ).toBe(false);
+  fireEvent.click(screen.getByRole('button', { name: 'ai.toolbar.polish' }));
+  await waitFor(() =>
+    expect((screen.getByLabelText('editor') as HTMLTextAreaElement).value).toBe(
+      'new account result',
+    ),
+  );
+  await act(async () => {
+    finish({ schemaVersion: 1, requestId: 'req_01a06477', text: 'old' });
+    await response;
+  });
+  expect((screen.getByLabelText('editor') as HTMLTextAreaElement).value).toBe('new account result');
+  view.unmount();
+  client.clear();
+});
 it('previews separately, commits on success and restores the exact original through Undo', async () => {
   const stream = controlledStream();
   const client = createInboxQueryClient();

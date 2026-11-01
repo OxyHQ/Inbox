@@ -78,18 +78,23 @@ async function postParsed<T>(
   path: string,
   body: unknown,
   schema: z.ZodType<T>,
+  signal?: AbortSignal,
 ): Promise<T> {
   return parseResponse(
     schema,
-    await http.post<unknown>(path, body, { timeout: INFERENCE_TIMEOUT_MS }),
+    await http.post<unknown>(path, body, {
+      timeout: INFERENCE_TIMEOUT_MS,
+      ...(signal ? { signal } : {}),
+    }),
   );
 }
 
 export function runInboxCompose(
   http: HttpService,
   request: InboxNonStreamingComposeRequest,
+  signal?: AbortSignal,
 ): Promise<InboxInferenceTextResponse> {
-  return postParsed(http, COMPOSE_PATH, request, inboxInferenceTextResponseSchema);
+  return postParsed(http, COMPOSE_PATH, request, inboxInferenceTextResponseSchema, signal);
 }
 
 export function runInboxNaturalSearch(

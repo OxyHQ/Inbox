@@ -1,6 +1,13 @@
 /** Inbox compose assistance through Oxy's bounded `/email/ai/compose` lane. */
 
-import { useCallback, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { useOxyRuntime } from '@oxy.so/services/runtime';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from '@oxy.so/bloom/toast';
@@ -11,6 +18,17 @@ import { aiKeys } from '@/hooks/queries/queryKeys';
 
 export type ComposeTone = 'professional' | 'casual' | 'friendly' | 'formal';
 
+type RewriteOwner = {
+  isCurrent: () => boolean;
+  signal: AbortSignal;
+  dispose: () => void;
+  accountId: string | null;
+  sessionId: string | null;
+  revision: number;
+  epoch: number;
+  bindingId: symbol | null;
+};
+
 type ComposeOperation =
   | { kind: 'draft'; prompt: string; tone: ComposeTone }
   | {
@@ -20,16 +38,26 @@ type ComposeOperation =
       signal: AbortSignal;
       onChunk?: (text: string) => void;
     }
-  | { kind: 'polish'; text: string }
-  | { kind: 'changeTone'; text: string; tone: ComposeTone }
-  | { kind: 'adjustLength'; text: string; direction: 'shorter' | 'longer' }
+  | { kind: 'polish'; text: string; owner?: RewriteOwner }
+  | { kind: 'changeTone'; text: string; tone: ComposeTone; owner?: RewriteOwner }
+  | {
+      kind: 'adjustLength';
+      text: string;
+      direction: 'shorter' | 'longer';
+      owner?: RewriteOwner;
+    }
   | { kind: 'suggestSubject'; body: string };
 
 interface UseAiComposeReturn {
   draft: (prompt: string, tone?: ComposeTone) => Promise<string>;
-  polish: (text: string) => Promise<string>;
-  changeTone: (text: string, tone: ComposeTone) => Promise<string>;
-  adjustLength: (text: string, direction: 'shorter' | 'longer') => Promise<string>;
+  polish: (text: string, owner?: RewriteOwner) => Promise<string>;
+  changeTone: (text: string, tone: ComposeTone, owner?: RewriteOwner) => Promise<string>;
+  adjustLength: (
+    text: string,
+    direction: 'shorter' | 'longer',
+    owner?: RewriteOwner,
+  ) => Promise<string>;
+  captureOwner: () => RewriteOwner;
   suggestSubject: (body: string) => Promise<string>;
   streamDraft: (
     prompt: string,
@@ -54,6 +82,10 @@ export function useAiCompose(): UseAiComposeReturn {
   const runtime = useOxyRuntime();
   const http = oxyServices.http;
   const subjectId = user?.id ?? null;
+  const renderBinding = useMemo(
+    () => ({ id: Symbol(), runtime, http, subjectId }),
+    [runtime, http, subjectId],
+  );
   const subscribeToken = useCallback(
     (notify: () => void) => http.addTokenChangeListener(notify),
     [http],
@@ -76,9 +108,11 @@ export function useAiCompose(): UseAiComposeReturn {
     runtime: typeof runtime;
     http: typeof http;
     subjectId: string | null;
+    id: symbol;
   } | null>(null);
   const streamControllerRef = useRef<AbortController | null>(null);
   const streamCleanupRef = useRef<(() => void) | null>(null);
+  const rewriteStopsRef = useRef(new Set<() => void>());
   const [visibleStream, setVisibleStream] = useState<{
     accountId: string | null;
     sessionId: string | null;
@@ -86,6 +120,7 @@ export function useAiCompose(): UseAiComposeReturn {
     epoch: number;
     runtime: typeof runtime;
     http: typeof http;
+    bindingId: symbol | null;
   } | null>(null);
 
   useLayoutEffect(() => {
@@ -96,24 +131,32 @@ export function useAiCompose(): UseAiComposeReturn {
       streamControllerRef.current = null;
       streamCleanupRef.current?.();
       streamCleanupRef.current = null;
+      for (const stop of rewriteStopsRef.current) stop();
     };
   }, []);
 
   useLayoutEffect(() => {
-    const binding = { runtime, http, subjectId };
+    const binding = renderBinding;
     committedServicesRef.current = binding;
     return () => {
       if (committedServicesRef.current !== binding) return;
       committedServicesRef.current = null;
       streamControllerRef.current?.abort();
       streamCleanupRef.current?.();
+      for (const stop of rewriteStopsRef.current) stop();
     };
-  }, [runtime, http, subjectId]);
+  }, [renderBinding]);
 
   const mutation = useMutation<string, Error, ComposeOperation>({
     mutationKey: aiKeys.compose,
     mutationFn: async (operation) => {
       const http = oxyServices.http;
+      const owner = 'owner' in operation ? operation.owner : undefined;
+      if (owner && (!owner.isCurrent() || owner.signal.aborted)) throw abortedStream();
+      const requireCurrent = (text: string) => {
+        if (owner && (!owner.isCurrent() || owner.signal.aborted)) throw abortedStream();
+        return text;
+      };
       switch (operation.kind) {
         case 'draft':
           return (
@@ -143,28 +186,39 @@ export function useAiCompose(): UseAiComposeReturn {
           }
         }
         case 'polish':
-          return (
-            await runInboxCompose(http, {
-              operation: 'polish',
-              text: operation.text,
-            })
-          ).text.trim();
+          return requireCurrent(
+            (
+              await runInboxCompose(
+                http,
+                { operation: 'polish', text: operation.text },
+                owner?.signal,
+              )
+            ).text.trim(),
+          );
         case 'changeTone':
-          return (
-            await runInboxCompose(http, {
-              operation: 'change_tone',
-              text: operation.text,
-              tone: operation.tone,
-            })
-          ).text.trim();
+          return requireCurrent(
+            (
+              await runInboxCompose(
+                http,
+                { operation: 'change_tone', text: operation.text, tone: operation.tone },
+                owner?.signal,
+              )
+            ).text.trim(),
+          );
         case 'adjustLength':
-          return (
-            await runInboxCompose(http, {
-              operation: 'adjust_length',
-              text: operation.text,
-              direction: operation.direction,
-            })
-          ).text.trim();
+          return requireCurrent(
+            (
+              await runInboxCompose(
+                http,
+                {
+                  operation: 'adjust_length',
+                  text: operation.text,
+                  direction: operation.direction,
+                },
+                owner?.signal,
+              )
+            ).text.trim(),
+          );
         case 'suggestSubject':
           return (
             await runInboxCompose(http, {
@@ -181,6 +235,9 @@ export function useAiCompose(): UseAiComposeReturn {
     onError: (error, operation) => {
       if (
         error.name === 'AbortError' ||
+        ('owner' in operation &&
+          operation.owner &&
+          (operation.owner.signal.aborted || !operation.owner.isCurrent())) ||
         (operation.kind === 'streamDraft' && operation.signal.aborted) ||
         !mountedRef.current
       )
@@ -195,6 +252,90 @@ export function useAiCompose(): UseAiComposeReturn {
       mutateAsync({ kind: 'draft', prompt, tone }),
     [mutateAsync],
   );
+  const captureOwner = useCallback(() => {
+    const binding = committedServicesRef.current;
+    const controller = new AbortController();
+    const captured = {
+      accountId: subjectId,
+      sessionId: projection.sessionId,
+      revision: projectionRevision,
+    };
+    const isCurrent = () => {
+      const identity = runtime.getAccountSessionIdentity();
+      const knownSubject = oxyServices.session.userId;
+      if (
+        !mountedRef.current ||
+        committedServicesRef.current !== binding ||
+        committedServicesRef.current?.runtime !== runtime ||
+        committedServicesRef.current?.http !== http ||
+        committedServicesRef.current?.subjectId !== captured.accountId ||
+        captured.accountId === null ||
+        identity.accountId !== captured.accountId ||
+        http.getSessionEpoch() !== epoch ||
+        !oxyServices.session.isAuthenticated ||
+        (knownSubject !== null && knownSubject !== captured.accountId)
+      )
+        return false;
+      if (identity.revision === captured.revision && identity.sessionId === captured.sessionId)
+        return true;
+      if (
+        captured.sessionId === null &&
+        identity.sessionId !== null &&
+        identity.revision === captured.revision + 1
+      ) {
+        captured.sessionId = identity.sessionId;
+        captured.revision = identity.revision;
+        return true;
+      }
+      return false;
+    };
+    const initiallyCurrent = isCurrent();
+    if (
+      !initiallyCurrent &&
+      mountedRef.current &&
+      committedServicesRef.current?.runtime === runtime &&
+      committedServicesRef.current?.http === http &&
+      committedServicesRef.current?.subjectId === subjectId &&
+      runtime.getAccountSessionRevision() === projectionRevision &&
+      http.getSessionEpoch() === epoch
+    )
+      toast.error(t('ai.toast.failed'));
+    let unsubscribeToken = () => {};
+    let unsubscribeProjection = () => {};
+    let disposed = false;
+    const dispose = () => {
+      if (disposed) return;
+      disposed = true;
+      unsubscribeToken();
+      unsubscribeProjection();
+      rewriteStopsRef.current.delete(stop);
+    };
+    const stop = () => {
+      controller.abort();
+      dispose();
+    };
+    const check = () => {
+      if (!isCurrent()) stop();
+    };
+    if (initiallyCurrent) {
+      unsubscribeToken = http.addTokenChangeListener(check);
+      unsubscribeProjection = runtime.subscribe(check);
+      rewriteStopsRef.current.add(stop);
+      check();
+    } else {
+      stop();
+    }
+    return {
+      isCurrent,
+      signal: controller.signal,
+      dispose,
+      accountId: subjectId,
+      sessionId: projection.sessionId,
+      revision: projectionRevision,
+      epoch,
+      bindingId: binding?.id ?? null,
+    };
+  }, [subjectId, projection.sessionId, projectionRevision, runtime, http, epoch, oxyServices, t]);
   const streamDraft = useCallback(
     async (
       prompt: string,
@@ -206,6 +347,7 @@ export function useAiCompose(): UseAiComposeReturn {
       streamControllerRef.current?.abort();
       streamCleanupRef.current?.();
       const controller = new AbortController();
+      const binding = committedServicesRef.current;
       const captured = {
         accountId: subjectId,
         sessionId: projection.sessionId,
@@ -216,6 +358,7 @@ export function useAiCompose(): UseAiComposeReturn {
         const knownSubject = oxyServices.session.userId;
         if (
           !mountedRef.current ||
+          committedServicesRef.current !== binding ||
           committedServicesRef.current?.runtime !== runtime ||
           committedServicesRef.current?.http !== http ||
           committedServicesRef.current?.subjectId !== captured.accountId ||
@@ -248,7 +391,7 @@ export function useAiCompose(): UseAiComposeReturn {
         throw abortedStream();
       }
       streamControllerRef.current = controller;
-      const visibleOwner = { ...captured, epoch, runtime, http };
+      const visibleOwner = { ...captured, epoch, runtime, http, bindingId: binding?.id ?? null };
       setVisibleStream(visibleOwner);
       let cleanup = () => {};
       const check = () => {
@@ -305,16 +448,17 @@ export function useAiCompose(): UseAiComposeReturn {
     ],
   );
   const polish = useCallback(
-    (text: string) => mutateAsync({ kind: 'polish', text }),
+    (text: string, owner?: RewriteOwner) => mutateAsync({ kind: 'polish', text, owner }),
     [mutateAsync],
   );
   const changeTone = useCallback(
-    (text: string, tone: ComposeTone) => mutateAsync({ kind: 'changeTone', text, tone }),
+    (text: string, tone: ComposeTone, owner?: RewriteOwner) =>
+      mutateAsync({ kind: 'changeTone', text, tone, owner }),
     [mutateAsync],
   );
   const adjustLength = useCallback(
-    (text: string, direction: 'shorter' | 'longer') =>
-      mutateAsync({ kind: 'adjustLength', text, direction }),
+    (text: string, direction: 'shorter' | 'longer', owner?: RewriteOwner) =>
+      mutateAsync({ kind: 'adjustLength', text, direction, owner }),
     [mutateAsync],
   );
   const suggestSubject = useCallback(
@@ -336,21 +480,44 @@ export function useAiCompose(): UseAiComposeReturn {
       visibleStream.accountId === subjectId &&
       visibleStream.runtime === runtime &&
       visibleStream.http === http &&
+      visibleStream.bindingId === renderBinding.id &&
       visibleStream.epoch === epoch &&
       visibleProjectionMatches &&
       oxyServices.session.isAuthenticated &&
       (oxyServices.session.userId === null ||
         oxyServices.session.userId === visibleStream.accountId),
   );
+  const mutationOwner =
+    mutation.variables && 'owner' in mutation.variables ? mutation.variables.owner : undefined;
+  const isCurrentRewrite =
+    !mutationOwner ||
+    Boolean(
+      !mutationOwner.signal.aborted &&
+        mutationOwner.accountId !== null &&
+        mutationOwner.accountId === subjectId &&
+        mutationOwner.bindingId === renderBinding.id &&
+        mutationOwner.epoch === epoch &&
+        projection.accountId === mutationOwner.accountId &&
+        ((projection.revision === mutationOwner.revision &&
+          projection.sessionId === mutationOwner.sessionId) ||
+          (mutationOwner.sessionId === null &&
+            projection.sessionId !== null &&
+            projection.revision === mutationOwner.revision + 1)) &&
+        oxyServices.session.isAuthenticated &&
+        (oxyServices.session.userId === null ||
+          oxyServices.session.userId === mutationOwner.accountId),
+    );
   return {
     draft,
+    captureOwner,
     streamDraft,
     polish,
     changeTone,
     adjustLength,
     suggestSubject,
     isLoading:
-      mutation.isPending && (mutation.variables?.kind !== 'streamDraft' || isCurrentStream),
+      mutation.isPending &&
+      (mutation.variables?.kind === 'streamDraft' ? isCurrentStream : isCurrentRewrite),
     isCurrentStream,
     error: mutation.error,
   };

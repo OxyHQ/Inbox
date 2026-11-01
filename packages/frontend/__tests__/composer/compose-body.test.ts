@@ -199,3 +199,52 @@ it('handles long preformatted whitespace followed by text without changing it', 
   const text = `${' '.repeat(200_000)}x`;
   expect(bodyParts(`<pre>${text}</pre>`, true).text).toBe(text);
 });
+
+describe('numbered lists in plain-text bodies', () => {
+  it('keeps the starting number of a list', () => {
+    const html = '<ol start="5"><li>Fifth</li><li>Sixth</li></ol>';
+    expect(bodyParts(html, true)).toEqual({ text: '5. Fifth\n6. Sixth', html });
+  });
+});
+
+it('keeps explicit item values and continues from them', () => {
+  expect(bodyParts('<ol start="5"><li>A</li><li value="12">B</li><li>C</li></ol>', true).text).toBe(
+    '5. A\n12. B\n13. C',
+  );
+});
+
+it('handles reversed lists, explicit starts and item values', () => {
+  expect(bodyParts('<ol reversed><li>A</li><li>B</li><li>C</li></ol>', true).text).toBe(
+    '3. A\n2. B\n1. C',
+  );
+  expect(
+    bodyParts('<ol reversed start="8"><li>A</li><li value="3">B</li><li>C</li></ol>', true).text,
+  ).toBe('8. A\n3. B\n2. C');
+});
+
+it('treats nested numbered lists independently and ignores invalid integer attributes', () => {
+  expect(
+    bodyParts(
+      '<ol start="bad"><li>A<ol start="7"><li>Inner</li></ol></li><li value="bad">B</li></ol>',
+      true,
+    ).text,
+  ).toBe('1. A\n7. Inner\n2. B');
+});
+
+it('accepts zero, negative and HTML integer prefixes', () => {
+  expect(
+    bodyParts('<ol start="  -2tail"><li>A</li><li value="+0x">B</li><li>C</li></ol>', true).text,
+  ).toBe('-2. A\n0. B\n1. C');
+});
+
+it('uses explicit numbering when reopening an HTML-only native draft', () => {
+  expect(
+    draftToEditorContent({ html: '<ol start="5"><li>A</li><li>B</li></ol>', text: null }, false),
+  ).toBe('5. A\n6. B');
+});
+
+it('continues the ordinary sequence for item values that have no integer prefix', () => {
+  expect(bodyParts('<ol><li>A</li><li value="+ 3">B</li><li>C</li></ol>', true).text).toBe(
+    '1. A\n2. B\n3. C',
+  );
+});

@@ -48,7 +48,7 @@ function rollbackFilters<T>(
 }
 
 export function useCreateFilter() {
-  const owner = useEmailMutationOwner();
+  const owner = useEmailMutationOwner(true);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const mutation = useMutation<
@@ -91,7 +91,7 @@ export function useCreateFilter() {
 }
 
 export function useUpdateFilter() {
-  const owner = useEmailMutationOwner();
+  const owner = useEmailMutationOwner(true);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const mutation = useMutation<
@@ -124,7 +124,7 @@ export function useUpdateFilter() {
 }
 
 export function useDeleteFilter() {
-  const owner = useEmailMutationOwner();
+  const owner = useEmailMutationOwner(true);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const mutation = useMutation<void, Error, OwnedVariables<string>, EmailMutationContext>({

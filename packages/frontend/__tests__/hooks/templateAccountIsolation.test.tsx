@@ -16,9 +16,17 @@ const mockApiB = {
 };
 let mockCurrentApi: typeof mockApiA | null = mockApiA;
 let mockEpoch = 0;
+let mockBearerSubject: string | null = 'alice';
+let mockToken: string | null = 'token';
+const mockSession = {
+  get userId() {
+    return mockBearerSubject;
+  },
+};
 const mockListeners = new Set<() => void>();
 const mockHttp = {
   getSessionEpoch: () => mockEpoch,
+  getAccessToken: () => mockToken,
   addTokenChangeListener: (listener: () => void) => {
     mockListeners.add(listener);
     return () => mockListeners.delete(listener);
@@ -34,7 +42,7 @@ jest.mock('@/hooks/useEmail', () => ({
   ),
 }));
 jest.mock('@oxy.so/services/ui/client', () => ({
-  useOxy: () => ({ oxyServices: { http: mockHttp } }),
+  useOxy: () => ({ user: { id: 'alice' }, oxyServices: { http: mockHttp, session: mockSession } }),
 }));
 jest.mock('@oxy.so/bloom/toast', () => ({
   toast: { error: (...args: unknown[]) => mockToast(...args) },
@@ -61,6 +69,8 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockCurrentApi = mockApiA;
   mockEpoch = 0;
+  mockBearerSubject = 'alice';
+  mockToken = 'token';
 });
 
 it('does not roll A templates into B after an old mutation fails', async () => {
@@ -302,4 +312,112 @@ it('keeps rollback snapshots outside serializable mutation state and rejects lat
     resolve(template('A response'));
     expect(await pending).toEqual(expect.objectContaining({ message: 'Email account changed' }));
   });
+});
+
+it.each(['create', 'update', 'delete'] as const)(
+  'rejects %s when the known bearer subject disagrees with the projected account',
+  async (kind) => {
+    mockBearerSubject = 'bob';
+    const { client, wrapper } = setup();
+    const cancel = jest.spyOn(client, 'cancelQueries');
+    client.setQueryData(emailKeys.templates, [template('A private')]);
+    const { result } = renderHook(
+      () => ({
+        create: useCreateTemplate(),
+        update: useUpdateTemplate(),
+        remove: useDeleteTemplate(),
+      }),
+      { wrapper },
+    );
+    await act(async () => {
+      const attempt =
+        kind === 'create'
+          ? result.current.create.mutateAsync({ name: 'A', body: 'draft' })
+          : kind === 'update'
+            ? result.current.update.mutateAsync({ templateId: 'same-id', name: 'A' })
+            : result.current.remove.mutateAsync('same-id');
+      await expect(attempt).rejects.toThrow('Email account changed');
+    });
+    expect(cancel).not.toHaveBeenCalled();
+    expect(mockApiA.createTemplate).not.toHaveBeenCalled();
+    expect(mockApiA.updateTemplate).not.toHaveBeenCalled();
+    expect(mockApiA.deleteTemplate).not.toHaveBeenCalled();
+    expect(client.getQueryData(emailKeys.templates)).toEqual([template('A private')]);
+    expect(mockToast).not.toHaveBeenCalled();
+    client.clear();
+  },
+);
+
+it.each(['create', 'update', 'delete'] as const)(
+  'continues allowing %s with an opaque bearer',
+  async (kind) => {
+    mockBearerSubject = null;
+    const method =
+      kind === 'create'
+        ? mockApiA.createTemplate
+        : kind === 'update'
+          ? mockApiA.updateTemplate
+          : mockApiA.deleteTemplate;
+    method.mockResolvedValueOnce(kind === 'delete' ? undefined : template('done'));
+    const { client, wrapper } = setup();
+    const { result } = renderHook(
+      () => ({
+        create: useCreateTemplate(),
+        update: useUpdateTemplate(),
+        remove: useDeleteTemplate(),
+      }),
+      { wrapper },
+    );
+    await act(async () => {
+      if (kind === 'create') await result.current.create.mutateAsync({ name: 'A', body: 'draft' });
+      else if (kind === 'update')
+        await result.current.update.mutateAsync({ templateId: 'same-id', name: 'A' });
+      else await result.current.remove.mutateAsync('same-id');
+    });
+    expect(method).toHaveBeenCalledTimes(1);
+    client.clear();
+  },
+);
+
+it('suppresses a late template success when the bearer subject changes before projection', async () => {
+  let resolve!: (value: EmailTemplate) => void;
+  mockApiA.updateTemplate.mockReturnValueOnce(
+    new Promise((done) => {
+      resolve = done;
+    }),
+  );
+  const { client, wrapper } = setup();
+  const invalidate = jest.spyOn(client, 'invalidateQueries');
+  const onSuccess = jest.fn();
+  const { result } = renderHook(() => useUpdateTemplate(), { wrapper });
+  let pending!: Promise<unknown>;
+  act(() => {
+    pending = result.current
+      .mutateAsync({ templateId: 'same-id', name: 'A' }, { onSuccess })
+      .catch((error) => error);
+  });
+  await waitFor(() => expect(mockApiA.updateTemplate).toHaveBeenCalled());
+  mockBearerSubject = 'bob';
+  invalidate.mockClear();
+  await act(async () => {
+    resolve(template('A result'));
+    expect(await pending).toEqual(expect.objectContaining({ message: 'Email account changed' }));
+  });
+  expect(onSuccess).not.toHaveBeenCalled();
+  expect(invalidate).not.toHaveBeenCalled();
+  client.clear();
+});
+
+it('rejects a template write without a bearer', async () => {
+  mockToken = null;
+  const { client, wrapper } = setup();
+  const { result } = renderHook(() => useCreateTemplate(), { wrapper });
+  await act(async () => {
+    await expect(result.current.mutateAsync({ name: 'A', body: 'draft' })).rejects.toThrow(
+      'Email account changed',
+    );
+  });
+  expect(mockApiA.createTemplate).not.toHaveBeenCalled();
+  expect(client.getQueryData(emailKeys.templates)).toBeUndefined();
+  client.clear();
 });

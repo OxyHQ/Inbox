@@ -108,29 +108,45 @@ export function useReorderBundle() {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  const mutation = useMutation({
-    mutationFn: async ({ swap }: { swap: { id: string; order: number }[] }) => {
-      if (!api) throw new Error('Email API not initialized');
-      await Promise.all(swap.map(({ id, order }) => api.updateBundle(id, { order })));
+  const onUnavailable = useCallback(
+    () => toast.error(t('ui.mutations.bundleSessionUnavailable')),
+    [t],
+  );
+  const mutation = useGuardedMessageMutation(
+    {
+      retry: 0,
+      mutationFn: async (variables: { swap: { id: string; order: number }[] }) => {
+        if (!api) throw new Error('Email API not initialized');
+        for (const { id, order } of variables.swap) {
+          assertMessageOwner(variables);
+          await api.updateBundle(id, { order });
+          assertMessageOwner(variables);
+        }
+      },
+      onMutate: async (variables) => {
+        const orders = new Map(variables.swap.map(({ id, order }) => [id, order]));
+        await queryClient.cancelQueries({ queryKey: BUNDLES_KEY });
+        assertMessageOwner(variables);
+        const prev = queryClient.getQueryData<Bundle[]>(BUNDLES_KEY);
+        queryClient.setQueryData<Bundle[]>(BUNDLES_KEY, (old) =>
+          (old ?? []).map((bundle) => {
+            const order = orders.get(bundle._id);
+            return order === undefined ? bundle : { ...bundle, order };
+          }),
+        );
+        return { prev };
+      },
+      onError: (_err, variables, context) => {
+        if (context?.prev && ownsMessageOperation(variables))
+          queryClient.setQueryData(BUNDLES_KEY, context.prev);
+        if (ownsMessageOperation(variables)) toast.error(t('ui.mutations.bundleReorderPartial'));
+      },
+      onSettled: () => {
+        queryClient.invalidateQueries({ queryKey: BUNDLES_KEY });
+      },
     },
-    onMutate: async ({ swap }) => {
-      const orders = new Map(swap.map(({ id, order }) => [id, order]));
-      const { prev } = await optimisticBundles(queryClient, (bundles) =>
-        bundles.map((b) => {
-          const order = orders.get(b._id);
-          return order === undefined ? b : { ...b, order };
-        }),
-      );
-      return { prev };
-    },
-    onError: (_err, _vars, context) => {
-      if (context?.prev) queryClient.setQueryData(BUNDLES_KEY, context.prev);
-      toast.error(t('ui.mutations.bundleReorderFailed'));
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: BUNDLES_KEY });
-    },
-  });
+    onUnavailable,
+  );
 
   const { mutate } = mutation;
   return {

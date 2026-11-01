@@ -1155,6 +1155,10 @@ const ca: LocaleDict = {
       bundleSessionUnavailable:
         'El teu compte encara no està preparat per modificar els grups. Torna-ho a provar en un moment.',
       bundleUpdateFailed: "No s'ha pogut actualitzar el grup.",
+      bundleSessionUnavailable:
+        'El teu compte encara no està preparat per modificar els grups. Torna-ho a provar en un moment.',
+      bundleReorderPartial:
+        'És possible que l’ordre dels grups només s’hagi actualitzat en part. Actualitza la llista i torna-ho a provar.',
       bundleReorderFailed: "No s'ha pogut reordenar el grup.",
       contactCreateFailed: "No s'ha pogut crear el contacte",
       contactUpdateFailed: "No s'ha pogut actualitzar el contacte",

@@ -269,6 +269,7 @@ export function useComposeSession({
   const discardDraftMutation = useDiscardDraft();
   const saveDraftAsync = saveDraftMutation.mutateAsync;
   const discardDraftAsync = discardDraftMutation.mutateAsync;
+  const discardErrorNotice = discardDraftMutation.discardErrorNotice;
 
   // Everything below is seeded ONCE, from the draft or the initial fields. The
   // caller mounts the session only after what it is seeded from has loaded.
@@ -1060,9 +1061,12 @@ export function useComposeSession({
     try {
       await discardDraftAsync(draftId);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : t('common.notSaved'));
+      const notice = discardErrorNotice();
+      if (notice === 'unavailable') toast.error(t('ui.mutations.messageSessionUnavailable'));
+      else if (notice === 'current')
+        toast.error(err instanceof Error ? err.message : t('common.notSaved'));
     }
-  }, [discardDraftAsync, recoveryKey, settleSaves, t]);
+  }, [discardDraftAsync, discardErrorNotice, recoveryKey, settleSaves, t]);
 
   // Every commit: what the unmount save above and a queued send read.
   useEffect(() => {

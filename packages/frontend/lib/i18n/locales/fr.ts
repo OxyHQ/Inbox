@@ -732,12 +732,18 @@ const fr: LocaleDict = {
       none: 'Pas encore de contacts.',
     },
     toast: {
+      sessionUnavailable:
+        'Votre compte n’est pas encore prêt à modifier les contacts. Réessayez dans un instant.',
+      selectionExpired: 'Votre session a changé. Sélectionnez à nouveau le contact.',
       nameEmailRequired: 'Nom et courriel sont requis.',
       created: 'Contact créé.',
       updated: 'Contact mis à jour.',
       deleted: 'Contact supprimé.',
     },
     form: {
+      sessionChanged:
+        'Votre session a changé ou n’est pas prête. Copiez votre texte avant d’abandonner ce formulaire.',
+      discard: 'Abandonner',
       name: 'Nom *',
       email: 'Courriel *',
       company: 'Entreprise',

@@ -719,12 +719,17 @@ const en: LocaleDict = {
       none: 'No contacts yet.',
     },
     toast: {
+      sessionUnavailable: 'Your account is not ready to update contacts. Please try again shortly.',
+      selectionExpired: 'Your session changed. Choose the contact again.',
       nameEmailRequired: 'Name and email are required.',
       created: 'Contact created.',
       updated: 'Contact updated.',
       deleted: 'Contact deleted.',
     },
     form: {
+      sessionChanged:
+        'Your session changed or is not ready. Copy your text before discarding this form.',
+      discard: 'Discard',
       name: 'Name *',
       email: 'Email *',
       company: 'Company',

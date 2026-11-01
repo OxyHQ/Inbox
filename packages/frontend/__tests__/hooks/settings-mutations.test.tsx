@@ -285,7 +285,7 @@ describe('contacts', () => {
     });
     const { result } = renderHook(() => useDeleteContact(), { wrapper });
     act(() => {
-      result.current.mutate('c1');
+      result.current.mutate({ contactId: 'c1' });
     });
     await waitFor(() => {
       const cache = defined(

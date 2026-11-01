@@ -728,12 +728,18 @@ const it: LocaleDict = {
       none: 'Ancora nessun contatto.',
     },
     toast: {
+      sessionUnavailable:
+        'Il tuo account non è ancora pronto per modificare i contatti. Riprova tra poco.',
+      selectionExpired: 'La sessione è cambiata. Seleziona di nuovo il contatto.',
       nameEmailRequired: 'Nome ed email sono obbligatori.',
       created: 'Contatto creato.',
       updated: 'Contatto aggiornato.',
       deleted: 'Contatto eliminato.',
     },
     form: {
+      sessionChanged:
+        'La sessione è cambiata o non è pronta. Copia il testo prima di scartare il modulo.',
+      discard: 'Scarta',
       name: 'Nome *',
       email: 'Email *',
       company: 'Azienda',

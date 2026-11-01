@@ -377,6 +377,7 @@ const pt: LocaleDict = {
         'A conta ou a sessão mudou. Feche este rascunho de pesquisa para começar de novo.',
       filterDraftUnavailable:
         'O contexto da conta ou da sessão mudou. Feche este rascunho de filtros para começar novamente.',
+      invalidDate: 'Esta data é inválida. Corrija-a ou remova o filtro de data para pesquisar.',
       filtersTitle: 'Filtros de pesquisa',
       filtersDescription: 'Restringe a pesquisa por pessoas, datas ou detalhes da mensagem.',
       clearFilters: 'Limpar filtros',

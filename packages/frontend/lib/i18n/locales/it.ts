@@ -375,6 +375,8 @@ const it: LocaleDict = {
         'L’account o la sessione sono cambiati. Chiudi questa bozza di ricerca per ricominciare.',
       filterDraftUnavailable:
         'Il contesto dell’account o della sessione è cambiato. Chiudi questa bozza di filtri per ricominciare.',
+      invalidDate:
+        'Questa data non è valida. Correggila o rimuovi il filtro della data per cercare.',
       filtersTitle: 'Filtri di ricerca',
       filtersDescription: 'Restringi la ricerca per persone, date o dettagli del messaggio.',
       clearFilters: 'Cancella filtri',

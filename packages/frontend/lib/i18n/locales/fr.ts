@@ -378,6 +378,8 @@ const fr: LocaleDict = {
         'Le compte ou la session a changé. Fermez ce brouillon de recherche pour recommencer.',
       filterDraftUnavailable:
         'Le contexte du compte ou de la session a changé. Fermez ce brouillon de filtres pour recommencer.',
+      invalidDate:
+        'Cette date est invalide. Corrigez-la ou supprimez le filtre de date pour rechercher.',
       filtersTitle: 'Filtres de recherche',
       filtersDescription: 'Affine la recherche par personne, date ou détails du message.',
       clearFilters: 'Effacer les filtres',

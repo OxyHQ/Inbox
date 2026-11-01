@@ -2,9 +2,31 @@ import {
   dateRangeFilters,
   filtersDateRange,
   hasSearchCriteria,
+  isInvalidSearchDate,
   pickSearchFilters,
+  searchDateBound,
 } from '@/utils/searchFilters';
 import { defined } from '../fixtures/defined';
+import { hasInvalidSearchDate, parseSearchQuery } from '@/utils/threadGrouping';
+
+it('validates calendar days without changing timestamp or unknown formats', () => {
+  expect(isInvalidSearchDate('2026-02-30')).toBe(true);
+  expect(isInvalidSearchDate('2024-02-29')).toBe(false);
+  expect(isInvalidSearchDate('1900-02-29')).toBe(true);
+  expect(searchDateBound('2026-02-30')).toBe('2026-02-30');
+  expect(searchDateBound('2026-10-15T10:00:00.000Z')).toBe('2026-10-15T10:00:00.000Z');
+  expect(searchDateBound('legacy')).toBe('legacy');
+  expect(hasInvalidSearchDate('after:2026-02-30 after:2026-02-28')).toBe(true);
+  expect(hasInvalidSearchDate('after:garbage')).toBe(false);
+  expect(parseSearchQuery('after:garbage').text).toBe('after:garbage');
+  const early = new Date(0);
+  early.setHours(0, 0, 0, 0);
+  early.setFullYear(99, 1, 28);
+  expect(searchDateBound('0099-02-28')).toBe(early.toISOString());
+  if (Intl.DateTimeFormat().resolvedOptions().timeZone === 'Pacific/Apia') {
+    expect(isInvalidSearchDate('2011-12-30')).toBe(true);
+  }
+});
 
 it('searches read mail even when false is the only active filter', () => {
   expect(hasSearchCriteria({ unread: false })).toBe(true);

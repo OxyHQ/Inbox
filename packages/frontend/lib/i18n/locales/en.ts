@@ -370,6 +370,7 @@ const en: LocaleDict = {
         'The account or session context changed. Close this saved search draft to start again.',
       filterDraftUnavailable:
         'The account or session context changed. Close this filter draft to start again.',
+      invalidDate: 'This date is not valid. Correct it or remove the date filter to search.',
       filtersTitle: 'Search filters',
       filtersDescription: 'Narrow your search by people, dates, or message details.',
       clearFilters: 'Clear filters',

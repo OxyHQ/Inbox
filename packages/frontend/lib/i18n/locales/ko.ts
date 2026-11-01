@@ -366,6 +366,7 @@ const ko: LocaleDict = {
         '계정 또는 세션이 변경되었습니다. 저장할 검색 초안을 닫고 다시 시작하세요.',
       filterDraftUnavailable:
         '계정 또는 세션 상태가 변경되었습니다. 이 필터 초안을 닫고 다시 시작하세요.',
+      invalidDate: '날짜가 올바르지 않습니다. 검색하려면 날짜를 수정하거나 날짜 필터를 제거하세요.',
       filtersTitle: '검색 필터',
       filtersDescription: '사람, 날짜 또는 메시지 정보로 검색 범위를 좁혀보세요.',
       clearFilters: '필터 지우기',

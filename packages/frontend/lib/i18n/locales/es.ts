@@ -367,6 +367,7 @@ const es: LocaleDict = {
         'La cuenta o la sesión han cambiado. Cierra este borrador de búsqueda guardada para empezar de nuevo.',
       filterDraftUnavailable:
         'El contexto de la cuenta o la sesión ha cambiado. Cierra este borrador de filtros para empezar de nuevo.',
+      invalidDate: 'Esta fecha no es válida. Corrígela o elimina el filtro de fecha para buscar.',
       filtersTitle: 'Filtros de búsqueda',
       filtersDescription: 'Acota la búsqueda por personas, fechas o detalles del mensaje.',
       clearFilters: 'Limpiar filtros',

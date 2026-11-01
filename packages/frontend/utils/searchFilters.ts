@@ -29,6 +29,8 @@ export function dateRangeFilters(
 
 export function filtersDateRange(filters: SearchFilters): DateRange | null {
   if (!filters.dateAfter || !filters.dateBefore) return null;
+  if (isInvalidSearchDate(filters.dateAfter) || isInvalidSearchDate(filters.dateBefore))
+    return null;
   // Date-only search operators represent local calendar days, not UTC midnights.
   const parse = (value: string) =>
     /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00`) : new Date(value);
@@ -36,6 +38,20 @@ export function filtersDateRange(filters: SearchFilters): DateRange | null {
   const end = parse(filters.dateBefore);
   if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) return null;
   return { start, end };
+}
+
+/** Validate date-only values without changing the legacy timestamp contract. */
+export function isInvalidSearchDate(value: string | undefined): boolean {
+  if (!value) return false;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const local = new Date(0);
+  local.setHours(0, 0, 0, 0);
+  local.setFullYear(year, month - 1, day);
+  return local.getFullYear() !== year || local.getMonth() !== month - 1 || local.getDate() !== day;
 }
 
 /**
@@ -49,5 +65,9 @@ export function searchDateBound(value: string | undefined): string | undefined {
   if (!value) return undefined;
   const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
   if (!dateOnly) return value;
-  return new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3])).toISOString();
+  if (isInvalidSearchDate(value)) return value;
+  const local = new Date(0);
+  local.setHours(0, 0, 0, 0);
+  local.setFullYear(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]));
+  return local.toISOString();
 }

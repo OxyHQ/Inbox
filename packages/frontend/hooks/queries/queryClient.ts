@@ -22,7 +22,11 @@ import { useEmailStore } from '@/hooks/useEmail';
 import type { MessageFlags } from '@/services/emailApi';
 import { eachWithConcurrency, PER_MESSAGE_CONCURRENCY } from '@/utils/concurrency';
 
-import { MEMORY_ONLY_QUERY_ROOTS, PERSISTED_QUERY_ROOTS } from '@/hooks/queries/queryKeys';
+import {
+  MEMORY_ONLY_QUERY_ROOTS,
+  PERSISTED_QUERY_ROOTS,
+  SAVED_SEARCH_MUTATION_KEYS,
+} from '@/hooks/queries/queryKeys';
 
 /**
  * For mutations that set state (a flag, a folder, a label set) and so may be
@@ -232,5 +236,8 @@ export const INBOX_ACCOUNT_QUERIES: AccountQueriesConfig = {
   roots: [...PERSISTED_QUERY_ROOTS],
   memoryOnlyRoots: [...MEMORY_ONLY_QUERY_ROOTS],
   mutationKeys: Object.values(INBOX_MUTATION_KEYS),
-  memoryOnlyMutationKeys: Object.values(INBOX_MEMORY_ONLY_MUTATION_KEYS),
+  memoryOnlyMutationKeys: [
+    ...Object.values(INBOX_MEMORY_ONLY_MUTATION_KEYS),
+    ...Object.values(SAVED_SEARCH_MUTATION_KEYS),
+  ],
 };

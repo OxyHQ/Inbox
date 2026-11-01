@@ -2,6 +2,13 @@ import {
   useCreateSavedSearch,
   useDeleteSavedSearch,
 } from '@/hooks/mutations/useSavedSearchMutations';
+import {
+  isCurrentEmailOwner,
+  matchesCurrentEmailMutation,
+  type OwnedVariables,
+  useEmailMutationOwner,
+} from '@/hooks/mutations/ownedEmailMutation';
+import { SAVED_SEARCH_MUTATION_KEYS } from '@/hooks/queries/queryKeys';
 import { useSavedSearches } from '@/hooks/queries/useSavedSearches';
 import { useTranslation } from '@/lib/i18n';
 import type { SavedEmailSearchFilters } from '@/services/emailApi';
@@ -11,8 +18,13 @@ import { Dialog } from '@oxy.so/bloom/dialog';
 import { RiBookmarkLine } from '@oxy.so/bloom/icons/RiBookmarkLine';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { Text } from '@oxy.so/bloom/typography';
-import { onlineManager } from '@tanstack/react-query';
-import { useCallback, useState, useSyncExternalStore } from 'react';
+import {
+  onlineManager,
+  type QueryClient,
+  useIsMutating,
+  useQueryClient,
+} from '@tanstack/react-query';
+import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 import { View } from 'react-native';
 
 interface SavedSearchBarProps {
@@ -20,6 +32,26 @@ interface SavedSearchBarProps {
   filters: SavedEmailSearchFilters;
   enabled: boolean;
   onApply: (search: { query: string; filters: SavedEmailSearchFilters }) => void;
+}
+
+type MutationOwner = ReturnType<typeof useEmailMutationOwner>;
+
+function hasPendingMutation(
+  client: QueryClient,
+  key: readonly unknown[],
+  owner: MutationOwner,
+): boolean {
+  return client
+    .getMutationCache()
+    .findAll({ mutationKey: key, exact: true, status: 'pending' })
+    .some((mutation) => {
+      const variables = mutation.state.variables;
+      return (
+        variables !== null &&
+        typeof variables === 'object' &&
+        matchesCurrentEmailMutation(variables as OwnedVariables<unknown>, owner)
+      );
+    });
 }
 
 export function SavedSearchBar({ query, filters, enabled, onApply }: SavedSearchBarProps) {
@@ -44,32 +76,65 @@ export function SavedSearchBar({ query, filters, enabled, onApply }: SavedSearch
       : t('search.saved.refreshFailed');
   const createSavedSearch = useCreateSavedSearch();
   const deleteSavedSearch = useDeleteSavedSearch();
+  const owner = useEmailMutationOwner(true);
+  const queryClient = useQueryClient();
+  // Subscribe to mutation changes; derive visibility against this render's owner.
+  useIsMutating({ mutationKey: SAVED_SEARCH_MUTATION_KEYS.create, exact: true });
+  useIsMutating({ mutationKey: SAVED_SEARCH_MUTATION_KEYS.delete, exact: true });
+  const saving = hasPendingMutation(queryClient, SAVED_SEARCH_MUTATION_KEYS.create, owner);
+  const deleting = hasPendingMutation(queryClient, SAVED_SEARCH_MUTATION_KEYS.delete, owner);
   const [name, setName] = useState('');
   const [open, setOpen] = useState(false);
+  const dialogRevision = useRef(0);
   const handleSave = useCallback(() => {
     const trimmedName = name.trim();
-    if (!enabled || !trimmedName || createSavedSearch.isPending) return;
+    if (
+      !enabled ||
+      !trimmedName ||
+      saving ||
+      !isCurrentEmailOwner(owner) ||
+      hasPendingMutation(queryClient, SAVED_SEARCH_MUTATION_KEYS.create, owner)
+    )
+      return;
+    const revision = dialogRevision.current;
     createSavedSearch.mutate(
       { name: trimmedName, query: query.trim(), filters },
       {
         onSuccess: () => {
+          if (revision !== dialogRevision.current) return;
           setName('');
           setOpen(false);
         },
       },
     );
-  }, [createSavedSearch, enabled, filters, name, query]);
+  }, [createSavedSearch, enabled, filters, name, owner, query, queryClient, saving]);
+
+  const handleDelete = (id: string) => {
+    if (
+      !isCurrentEmailOwner(owner) ||
+      hasPendingMutation(queryClient, SAVED_SEARCH_MUTATION_KEYS.delete, owner)
+    )
+      return;
+    deleteSavedSearch.mutate(id);
+  };
 
   return (
     <>
-      {(savedSearches.length > 0 || enabled || showStatus) && (
+      {(savedSearches.length > 0 || enabled || showStatus || saving || deleting) && (
         <View className="gap-2 px-4 pb-3">
           <View className="flex-row flex-wrap items-center justify-between gap-2">
             {(savedSearches.length > 0 || showStatus) && (
               <Text variant="caption-1-medium">{t('search.ui.savedSearches')}</Text>
             )}
             {enabled && (
-              <Button appearance="plain" leading={<RiBookmarkLine />} onPress={() => setOpen(true)}>
+              <Button
+                appearance="plain"
+                leading={<RiBookmarkLine />}
+                onPress={() => {
+                  dialogRevision.current += 1;
+                  setOpen(true);
+                }}
+              >
                 {t('search.ui.saveSearch')}
               </Button>
             )}
@@ -85,7 +150,7 @@ export function SavedSearchBar({ query, filters, enabled, onApply }: SavedSearch
                   accessibilityLabel={t('search.ui.runSaved', {
                     name: saved.name,
                   })}
-                  onClose={() => deleteSavedSearch.mutate(saved.id)}
+                  onClose={deleting ? undefined : () => handleDelete(saved.id)}
                   closeLabel={t('search.ui.deleteSaved', { name: saved.name })}
                   style={{ maxWidth: '100%' }}
                 >
@@ -101,24 +166,29 @@ export function SavedSearchBar({ query, filters, enabled, onApply }: SavedSearch
               </View>
             </View>
           )}
+          {(saving || deleting) && (
+            <Text accessibilityLiveRegion="polite">{t('common.loading')}</Text>
+          )}
         </View>
       )}
       <Dialog
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={() => {
+          dialogRevision.current += 1;
+          setOpen(false);
+        }}
         placement={{ base: 'bottom', md: 'center' }}
         title={t('search.ui.saveSearch')}
         description={t('search.ui.saveSearchDescription')}
         actions={[
           {
-            label: t('common.cancel'),
+            label: t('common.close'),
             color: 'cancel',
-            disabled: createSavedSearch.isPending,
           },
           {
             label: t('common.save'),
             onPress: handleSave,
-            disabled: !enabled || !name.trim() || createSavedSearch.isPending,
+            disabled: !enabled || !name.trim() || saving,
             shouldCloseOnPress: false,
           },
         ]}

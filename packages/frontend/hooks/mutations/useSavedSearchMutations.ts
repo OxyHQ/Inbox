@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@oxy.so/bloom/toast';
-import { emailKeys } from '@/hooks/queries/queryKeys';
+import { emailKeys, SAVED_SEARCH_MUTATION_KEYS } from '@/hooks/queries/queryKeys';
 import type { SavedEmailSearch, SavedEmailSearchFilters } from '@/services/emailApi';
 import { useTranslation } from '@/lib/i18n';
 import {
@@ -13,30 +13,16 @@ import {
 } from '@/hooks/mutations/ownedEmailMutation';
 
 const key = emailKeys.savedSearches;
-const rollbackSnapshots = new WeakMap<object, SavedEmailSearch[] | undefined>();
-
 type CreateSavedSearchInput = { name: string; query: string; filters: SavedEmailSearchFilters };
 
-async function optimisticSavedSearches<T>(
-  queryClient: ReturnType<typeof useQueryClient>,
-  variables: OwnedVariables<T>,
-  update: (previous: SavedEmailSearch[]) => SavedEmailSearch[],
-): Promise<undefined> {
-  if (!ownsEmailMutation(variables)) return undefined;
-  await queryClient.cancelQueries({ queryKey: key });
-  if (!ownsEmailMutation(variables)) return undefined;
-  const previous = queryClient.getQueryData<SavedEmailSearch[]>(key);
-  rollbackSnapshots.set(variables, previous);
-  queryClient.setQueryData<SavedEmailSearch[]>(key, update(previous ?? []));
-  return undefined;
-}
-
-function rollbackSavedSearches<T>(
+async function reconcile<T>(
   queryClient: ReturnType<typeof useQueryClient>,
   variables: OwnedVariables<T>,
 ) {
-  const previous = rollbackSnapshots.get(variables);
-  if (previous) queryClient.setQueryData(key, previous);
+  if (!ownsEmailMutation(variables)) return;
+  await queryClient.cancelQueries({ queryKey: key });
+  if (!ownsEmailMutation(variables)) return;
+  await queryClient.invalidateQueries({ queryKey: key });
 }
 
 export function useCreateSavedSearch() {
@@ -49,28 +35,14 @@ export function useCreateSavedSearch() {
     OwnedVariables<CreateSavedSearchInput>,
     EmailMutationContext
   >({
+    mutationKey: SAVED_SEARCH_MUTATION_KEYS.create,
     mutationFn: async (variables) => emailMutationApi(variables).createSavedSearch(variables.input),
-    onMutate: async (variables) =>
-      optimisticSavedSearches(queryClient, variables, (previous) => {
-        const now = new Date().toISOString();
-        return [
-          ...previous,
-          {
-            id: `optimistic:${Date.now()}`,
-            ...variables.input,
-            order: previous.length,
-            createdAt: now,
-            updatedAt: now,
-          },
-        ];
-      }),
     onError: (error, variables) => {
       if (!ownsEmailMutation(variables)) return;
-      rollbackSavedSearches(queryClient, variables);
       toast.error(error instanceof Error ? error.message : t('search.saved.saveFailed'));
     },
     onSettled: (_data, _error, variables) => {
-      if (ownsEmailMutation(variables)) return queryClient.invalidateQueries({ queryKey: key });
+      return reconcile(queryClient, variables);
     },
   });
   return exposeOwnedEmailMutation(owner, mutation);
@@ -81,18 +53,14 @@ export function useDeleteSavedSearch() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const mutation = useMutation<void, Error, OwnedVariables<string>, EmailMutationContext>({
+    mutationKey: SAVED_SEARCH_MUTATION_KEYS.delete,
     mutationFn: async (variables) => emailMutationApi(variables).deleteSavedSearch(variables.input),
-    onMutate: async (variables) =>
-      optimisticSavedSearches(queryClient, variables, (previous) =>
-        previous.filter((item) => item.id !== variables.input),
-      ),
     onError: (error, variables) => {
       if (!ownsEmailMutation(variables)) return;
-      rollbackSavedSearches(queryClient, variables);
       toast.error(error instanceof Error ? error.message : t('search.saved.deleteFailed'));
     },
     onSettled: (_data, _error, variables) => {
-      if (ownsEmailMutation(variables)) return queryClient.invalidateQueries({ queryKey: key });
+      return reconcile(queryClient, variables);
     },
   });
   return exposeOwnedEmailMutation(owner, mutation);

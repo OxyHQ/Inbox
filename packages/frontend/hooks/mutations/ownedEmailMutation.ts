@@ -51,8 +51,7 @@ export function useEmailMutationOwner(checkKnownSubject = false): EmailMutationO
   };
 }
 
-export function ownsEmailMutation<T>(variables: OwnedVariables<T>): boolean {
-  const owner = mutationOwners.get(variables);
+export function isCurrentEmailOwner(owner: EmailMutationOwner | undefined): boolean {
   return (
     owner?.api != null &&
     isCurrentApi(owner.api) &&
@@ -62,6 +61,10 @@ export function ownsEmailMutation<T>(variables: OwnedVariables<T>): boolean {
         Boolean(owner.http.getAccessToken()) &&
         (owner.session.userId === null || owner.session.userId === owner.subjectId)))
   );
+}
+
+export function ownsEmailMutation<T>(variables: OwnedVariables<T>): boolean {
+  return isCurrentEmailOwner(mutationOwners.get(variables));
 }
 
 /** Both values are immutable snapshots from the corresponding React renders. */
@@ -76,6 +79,14 @@ function matchesRenderOwner<T>(variables: OwnedVariables<T>, current: EmailMutat
       (initial.session === current.session && initial.subjectId === current.subjectId)) &&
     initial.epoch === current.epoch
   );
+}
+
+/** Test a live mutation against the account observed by the current render. */
+export function matchesCurrentEmailMutation<T>(
+  variables: OwnedVariables<T>,
+  current: EmailMutationOwner,
+): boolean {
+  return ownsEmailMutation(variables) && matchesRenderOwner(variables, current);
 }
 
 export function emailMutationApi<T>(variables: OwnedVariables<T>): EmailApiInstance {

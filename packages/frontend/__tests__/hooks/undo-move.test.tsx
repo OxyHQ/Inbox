@@ -4,6 +4,12 @@
  */
 
 const toast = Object.assign(jest.fn(), { success: jest.fn(), error: jest.fn() });
+jest.mock('@oxy.so/services/runtime', () => ({
+  useOxyRuntime: () => ({
+    getAccountSessionIdentity: () => ({ accountId: 'u1', sessionId: 's1', revision: 0 }),
+    getAccountSessionRevision: () => 0,
+  }),
+}));
 jest.mock('@oxy.so/bloom/toast', () => ({ toast }));
 const t = (key: string) => key;
 jest.mock('@/lib/i18n', () => ({ useTranslation: () => ({ t }) }));

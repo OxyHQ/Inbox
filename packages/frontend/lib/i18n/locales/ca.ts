@@ -1119,6 +1119,8 @@ const ca: LocaleDict = {
     },
     mutations: {
       starFailed: "No s'ha pogut actualitzar l'estrella.",
+      starSessionUnavailable:
+        'El teu compte encara no està preparat per actualitzar l’estrella. Torna-ho a provar d’aquí a uns moments.',
       readFailed: "No s'ha pogut actualitzar l'estat de lectura.",
       archived: 'Conversa arxivada.',
       archiveFailed: "No s'ha pogut arxivar la conversa.",

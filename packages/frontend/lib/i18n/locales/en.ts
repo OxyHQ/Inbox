@@ -1123,6 +1123,8 @@ const en: LocaleDict = {
     },
     mutations: {
       starFailed: 'Failed to update star.',
+      starSessionUnavailable:
+        'Your account is not ready to update the star. Please try again shortly.',
       readFailed: 'Failed to update read status.',
       archived: 'Conversation archived.',
       archiveFailed: 'Failed to archive conversation.',

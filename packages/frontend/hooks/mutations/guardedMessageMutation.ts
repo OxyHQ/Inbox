@@ -1,4 +1,6 @@
-import { useMemo } from 'react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
+import { useOxyRuntime } from '@oxy.so/services/runtime';
+import { useEmailStore } from '@/hooks/useEmail';
 import {
   useMutation,
   useQueryClient,
@@ -26,8 +28,19 @@ export function assertMessageOwner(variables: object): void {
 /** Guards live operations; persisted mutations still use the registered replay defaults. */
 export function useGuardedMessageMutation<TData, TVariables extends object, TContext>(
   options: UseMutationOptions<TData, Error, TVariables, TContext>,
+  onUnavailable?: () => void,
 ) {
   const owner = useEmailMutationOwner(true);
+  const runtime = useOxyRuntime();
+  const projection = runtime.getAccountSessionIdentity();
+  const feedbackScope = useRef<{ runtime: typeof runtime; mounted: boolean } | null>(null);
+  useLayoutEffect(() => {
+    const scope = { runtime, mounted: true };
+    feedbackScope.current = scope;
+    return () => {
+      scope.mounted = false;
+    };
+  }, [runtime]);
   const queryClient = useQueryClient();
   const inheritedRetry =
     options.retry ??
@@ -81,6 +94,18 @@ export function useGuardedMessageMutation<TData, TVariables extends object, TCon
     ) {
       const copy = { ...variables } as TVariables;
       owners.set(copy, captured);
+      /* Report only an unavailable action in the same observed UI context. This
+       * projection is not an authorization check and does not identify actors. */
+      if (
+        !isCurrentEmailOwner(captured) &&
+        feedbackScope.current?.mounted === true &&
+        feedbackScope.current.runtime === runtime &&
+        captured.api === useEmailStore.getState()._api &&
+        captured.http.getSessionEpoch() === captured.epoch &&
+        runtime.getAccountSessionRevision() === projection.revision
+      ) {
+        onUnavailable?.();
+      }
       const wrapped: MutateOptions<TData, Error, TVariables, TContext> | undefined = callbacks && {
         onSuccess: (data, value, result, context) => {
           if (ownsMessageOperation(value)) callbacks.onSuccess?.(data, value, result, context);
@@ -120,7 +145,19 @@ export function useGuardedMessageMutation<TData, TVariables extends object, TCon
         );
       },
     };
-  }, [api, http, session, subjectId, checkKnownSubject, epoch, mutate, mutateAsync]);
+  }, [
+    api,
+    http,
+    session,
+    subjectId,
+    checkKnownSubject,
+    epoch,
+    mutate,
+    mutateAsync,
+    runtime,
+    projection.revision,
+    onUnavailable,
+  ]);
   const pendingOwner = mutation.variables ? owners.get(mutation.variables) : undefined;
   const visible =
     !mutation.variables ||

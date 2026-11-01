@@ -1088,6 +1088,7 @@ const zh: LocaleDict = {
     },
     mutations: {
       starFailed: '无法更新星标。',
+      starSessionUnavailable: '你的账户尚未准备好更新星标。请稍后重试。',
       readFailed: '无法更新已读状态。',
       archived: '已归档会话。',
       archiveFailed: '无法归档会话。',

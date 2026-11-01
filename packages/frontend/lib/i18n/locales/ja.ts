@@ -1108,6 +1108,8 @@ const ja: LocaleDict = {
     },
     mutations: {
       starFailed: 'スターを更新できませんでした。',
+      starSessionUnavailable:
+        'アカウントでスターを更新する準備ができていません。しばらくしてからもう一度お試しください。',
       readFailed: '既読状態を更新できませんでした。',
       archived: 'スレッドをアーカイブしました。',
       archiveFailed: 'スレッドをアーカイブできませんでした。',

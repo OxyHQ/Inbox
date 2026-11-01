@@ -58,41 +58,48 @@ export function useToggleStar() {
   const queryClient = useQueryClient();
   const { user } = useOxy();
   const userId = user?.id ?? null;
+  const onUnavailable = useCallback(
+    () => toast.error(t('ui.mutations.starSessionUnavailable')),
+    [t],
+  );
 
-  return useGuardedMessageMutation({
-    mutationKey: INBOX_MUTATION_KEYS.toggleStar,
-    // Offline-first: when the device is offline this mutation is queued
-    // (status "paused") and auto-resumes when connectivity returns. The
-    // mutationFn re-runs through the SDK `httpService`, so auth + CSRF are
-    // preserved on replay (see utils/offlineQueue.ts for the full rationale).
-    networkMode: 'offlineFirst',
-    mutationFn: async ({ messageId, starred }: { messageId: string; starred: boolean }) => {
-      if (!api) throw new Error('Email API not initialized');
-      return await api.updateFlags(messageId, { starred });
+  return useGuardedMessageMutation(
+    {
+      mutationKey: INBOX_MUTATION_KEYS.toggleStar,
+      // Offline-first: when the device is offline this mutation is queued
+      // (status "paused") and auto-resumes when connectivity returns. The
+      // mutationFn re-runs through the SDK `httpService`, so auth + CSRF are
+      // preserved on replay (see utils/offlineQueue.ts for the full rationale).
+      networkMode: 'offlineFirst',
+      mutationFn: async ({ messageId, starred }: { messageId: string; starred: boolean }) => {
+        if (!api) throw new Error('Email API not initialized');
+        return await api.updateFlags(messageId, { starred });
+      },
+      onMutate: async (variables: { messageId: string; starred: boolean }) => {
+        const { messageId, starred } = variables;
+        await cancelMessageQueries(queryClient, messageId);
+        assertMessageOwner(variables);
+        const snapshot = snapshotForRollback(queryClient, messageId, userId);
+        // Unstarred, it leaves Starred — and only Starred, whatever view is open.
+        if (!starred) removeMessagesFromStarredLists(queryClient, [messageId]);
+        patchMessageFlags(queryClient, messageId, userId, { starred });
+        return { snapshot };
+      },
+      onError: (_err, _vars, context) => {
+        if (context) restoreSnapshot(queryClient, context.snapshot);
+        toast.error(t('ui.mutations.starFailed'));
+      },
+      onSuccess: (updatedMessage, { messageId }) => {
+        // Merged into the rows still listed; one taken out of Starred stays out.
+        if (updatedMessage) mergeServerMessage(queryClient, messageId, userId, updatedMessage);
+      },
+      onSettled: () => {
+        // Reconcile filtered caches (e.g. Starred) with the server.
+        invalidateMailViews(queryClient);
+      },
     },
-    onMutate: async (variables: { messageId: string; starred: boolean }) => {
-      const { messageId, starred } = variables;
-      await cancelMessageQueries(queryClient, messageId);
-      assertMessageOwner(variables);
-      const snapshot = snapshotForRollback(queryClient, messageId, userId);
-      // Unstarred, it leaves Starred — and only Starred, whatever view is open.
-      if (!starred) removeMessagesFromStarredLists(queryClient, [messageId]);
-      patchMessageFlags(queryClient, messageId, userId, { starred });
-      return { snapshot };
-    },
-    onError: (_err, _vars, context) => {
-      if (context) restoreSnapshot(queryClient, context.snapshot);
-      toast.error(t('ui.mutations.starFailed'));
-    },
-    onSuccess: (updatedMessage, { messageId }) => {
-      // Merged into the rows still listed; one taken out of Starred stays out.
-      if (updatedMessage) mergeServerMessage(queryClient, messageId, userId, updatedMessage);
-    },
-    onSettled: () => {
-      // Reconcile filtered caches (e.g. Starred) with the server.
-      invalidateMailViews(queryClient);
-    },
-  });
+    onUnavailable,
+  );
 }
 
 export function useToggleRead() {

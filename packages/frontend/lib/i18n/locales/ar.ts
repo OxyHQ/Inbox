@@ -1153,6 +1153,7 @@ const ar: LocaleDict = {
     },
     mutations: {
       starFailed: 'تعذّر تحديث النجمة.',
+      starSessionUnavailable: 'حسابك غير جاهز لتحديث النجمة بعد. يرجى المحاولة مرة أخرى بعد قليل.',
       readFailed: 'تعذّر تحديث حالة القراءة.',
       archived: 'تمت أرشفة المحادثة.',
       archiveFailed: 'تعذّرت أرشفة المحادثة.',

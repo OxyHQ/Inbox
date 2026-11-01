@@ -7,14 +7,15 @@ import { createInboxQueryClient, INBOX_MUTATION_KEYS } from '@/hooks/queries/que
 import { wireMessage } from '../fixtures/wire';
 
 let mockOxy: OxyServices;
-let mockUser = 'alice';
+let mockUser: string | null = 'alice';
 let mockRuntime: ReturnType<typeof import('@oxy.so/services/runtime').useOxyRuntime>;
 jest.mock('@oxy.so/services/runtime', () => ({ useOxyRuntime: () => mockRuntime }));
 jest.mock('@oxy.so/services/ui/client', () => ({
-  useOxy: () => ({ oxyServices: mockOxy, user: { id: mockUser } }),
+  useOxy: () => ({ oxyServices: mockOxy, user: mockUser === null ? null : { id: mockUser } }),
 }));
 jest.mock('@oxy.so/bloom/toast', () => ({ toast: { error: jest.fn(), success: jest.fn() } }));
-jest.mock('@/lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+const mockTranslate = (key: string) => key;
+jest.mock('@/lib/i18n', () => ({ useTranslation: () => ({ t: mockTranslate }) }));
 import { useToggleStar } from '@/hooks/mutations/useMessageMutations';
 
 function token(subject: string, session: string) {
@@ -298,6 +299,7 @@ it('suppresses a late A rollback and retry after the real persister switches to 
     code: 'AUTH_SESSION_CHANGED',
   });
   expect(resultError).toBeInstanceOf(Error);
+  expect(require('@oxy.so/bloom/toast').toast.error).not.toHaveBeenCalled();
   expect(sent).toEqual([`Bearer ${token('alice', 'a-session')}`]);
   expect(client.getQueryData(oldKey)).toBeUndefined();
   persistence.detach();
@@ -569,5 +571,85 @@ it('keeps the star action stable across renders within an owner', async () => {
     await operation;
   });
   unmount();
+  client.clear();
+});
+
+it('reports an unavailable current account and allows a later retry after initialization', async () => {
+  const { toast } = require('@oxy.so/bloom/toast');
+  const client = createInboxQueryClient();
+  const fetchSpy = jest.fn(async () => response({ data: wireMessage() }));
+  globalThis.fetch = fetchSpy as never;
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  const { result, rerender, unmount } = renderHook(() => useToggleStar(), { wrapper });
+  act(() => result.current.mutate({ messageId: 'synthetic-A-message', starred: true }));
+  expect(toast.error).toHaveBeenCalledWith('ui.mutations.starSessionUnavailable');
+  expect(fetchSpy).not.toHaveBeenCalled();
+  act(() => {
+    useEmailStore.getState()._initApi(mockOxy.http);
+    rerender();
+  });
+  await act(async () => {
+    await result.current.mutateAsync({ messageId: 'synthetic-A-message', starred: true });
+  });
+  expect(fetchSpy).toHaveBeenCalledTimes(1);
+  unmount();
+  client.clear();
+});
+
+it('does not report an unavailable retained A action after a projection-only A to B to A', () => {
+  const { toast } = require('@oxy.so/bloom/toast');
+  const client = createInboxQueryClient();
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  const { result, unmount } = renderHook(() => useToggleStar(), { wrapper });
+  const retained = result.current.mutate;
+  act(() => {
+    mockRuntime.setAccount({ id: 'bob' });
+    mockRuntime.setAccount({ id: 'alice' });
+    retained({ messageId: 'synthetic-A-message', starred: true });
+  });
+  expect(toast.error).not.toHaveBeenCalled();
+  unmount();
+  client.clear();
+});
+
+it.each(['bearer', 'projection'] as const)(
+  'reports an unavailable current session when %s is missing',
+  async (missing) => {
+    const { toast } = require('@oxy.so/bloom/toast');
+    useEmailStore.getState()._initApi(mockOxy.http);
+    if (missing === 'bearer') mockOxy.session.clear();
+    if (missing === 'projection') mockUser = null;
+    const client = createInboxQueryClient();
+    const fetchSpy = jest.fn();
+    globalThis.fetch = fetchSpy as never;
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const { result, unmount } = renderHook(() => useToggleStar(), { wrapper });
+    await act(async () => {
+      await result.current.mutateAsync({ messageId: 'synthetic', starred: true }).catch(() => {});
+    });
+    expect(toast.error).toHaveBeenCalledWith('ui.mutations.starSessionUnavailable');
+    expect(fetchSpy).not.toHaveBeenCalled();
+    unmount();
+    client.clear();
+  },
+);
+
+it('does not report an unavailable retained action after its component unmounts', () => {
+  const { toast } = require('@oxy.so/bloom/toast');
+  const client = createInboxQueryClient();
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  const { result, unmount } = renderHook(() => useToggleStar(), { wrapper });
+  const retained = result.current.mutate;
+  unmount();
+  act(() => retained({ messageId: 'synthetic', starred: true }));
+  expect(toast.error).not.toHaveBeenCalled();
   client.clear();
 });

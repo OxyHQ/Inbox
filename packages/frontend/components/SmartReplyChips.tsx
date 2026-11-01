@@ -16,7 +16,10 @@ import { View } from 'react-native';
 
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
 import { useSmartReplies } from '@/hooks/queries/useSmartReplies';
-import { type SmartReplyOwner, useSmartReplyOwner } from '@/hooks/queries/useSmartReplyOwner';
+import {
+  type InferenceOwner,
+  useObservedInferenceOwner,
+} from '@/hooks/queries/useObservedInferenceOwner';
 import type { Message } from '@/services/emailApi';
 import { useTranslation } from '@/lib/i18n';
 
@@ -26,7 +29,7 @@ interface SmartReplyChipsProps {
 }
 
 export function SmartReplyChips(props: SmartReplyChipsProps) {
-  const owner = useSmartReplyOwner();
+  const owner = useObservedInferenceOwner();
   const scope = JSON.stringify([
     props.message._id,
     owner.binding,
@@ -44,7 +47,7 @@ function MessageSmartReplyChips({
   message,
   onSelectReply,
   owner,
-}: SmartReplyChipsProps & { owner: SmartReplyOwner }) {
+}: SmartReplyChipsProps & { owner: InferenceOwner }) {
   const { t } = useTranslation();
   const { prefs } = useInboxPrefs();
   const [hasRequestedReplies, setHasRequestedReplies] = useState(false);

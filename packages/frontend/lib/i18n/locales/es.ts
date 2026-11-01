@@ -552,6 +552,7 @@ const es: LocaleDict = {
   },
 
   threadSummary: {
+    accountUnavailable: 'Los resúmenes estarán disponibles cuando tu cuenta esté lista.',
     summarize: 'Resumir',
     title: 'Resumen de la conversación',
     messages_one: '{{count}} mensaje',

@@ -553,6 +553,7 @@ const en: LocaleDict = {
   },
 
   threadSummary: {
+    accountUnavailable: 'Summaries are unavailable until your account is ready.',
     summarize: 'Summarize',
     title: 'Thread Summary',
     messages_one: '{{count}} message',

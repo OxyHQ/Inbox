@@ -559,6 +559,7 @@ const it: LocaleDict = {
   },
 
   threadSummary: {
+    accountUnavailable: 'I riepiloghi saranno disponibili quando il tuo account sarà pronto.',
     summarize: 'Riassumi',
     title: 'Riepilogo conversazione',
     messages_one: '{{count}} messaggio',

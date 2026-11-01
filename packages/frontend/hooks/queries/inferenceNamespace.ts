@@ -1,5 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
 
+// Keep the original symbols so a live code update cannot reuse old query IDs.
 const MOUNT_COUNTER = Symbol.for('inbox.smartReply.mountCounter.v1');
 const BINDING_COUNTER = Symbol.for('inbox.smartReply.bindingCounter.v1');
 
@@ -22,11 +23,11 @@ function reserveCounter(target: object, key: symbol): string {
 }
 
 /** Reserve a memory-only key without reusing one while the QueryClient lives. */
-export function reserveSmartReplyNamespace(client: QueryClient): string {
+export function reserveInferenceNamespace(client: QueryClient): string {
   return reserveCounter(client, MOUNT_COUNTER);
 }
 
 /** Distinguish runtime and QueryClient bindings, including after a module reload. */
-export function reserveSmartReplyBinding(): string {
+export function reserveInferenceBinding(): string {
   return reserveCounter(globalThis, BINDING_COUNTER);
 }

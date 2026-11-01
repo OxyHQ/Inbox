@@ -560,6 +560,7 @@ const ca: LocaleDict = {
   },
 
   threadSummary: {
+    accountUnavailable: 'Els resums estaran disponibles quan el compte estigui preparat.',
     summarize: 'Resumeix',
     title: 'Resum de la conversa',
     messages_one: '{{count}} missatge',

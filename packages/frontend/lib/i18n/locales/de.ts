@@ -564,6 +564,7 @@ const de: LocaleDict = {
   },
 
   threadSummary: {
+    accountUnavailable: 'Zusammenfassungen sind verfügbar, sobald dein Konto bereit ist.',
     summarize: 'Zusammenfassen',
     title: 'Konversations-Zusammenfassung',
     messages_one: '{{count}} Nachricht',

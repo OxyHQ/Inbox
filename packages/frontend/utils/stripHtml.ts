@@ -159,7 +159,38 @@ function tagName(node: ChildNode): string | null {
     : null;
 }
 
-function render(nodes: ChildNode[], writer: TextWriter, pre: boolean): void {
+/** Parse the integer prefix HTML accepts, limited to exactly representable numbers. */
+function listInteger(value: string | undefined): number | undefined {
+  if (value === undefined) return undefined;
+  const match = /^[\t\n\f\r ]*([+-]?\d+)/.exec(value);
+  if (!match) return undefined;
+  const result = Number(match[1]);
+  return Number.isSafeInteger(result) ? result : undefined;
+}
+
+/** Compute the direct list-item ordinals once, including explicit resets. */
+function listOrdinals(
+  parent: ChildNode & { children: ChildNode[]; attribs: Record<string, string> },
+): Map<ChildNode, number> {
+  const items = parent.children.filter((child) => tagName(child) === 'li');
+  const reversed = parent.attribs.reversed !== undefined;
+  const step = reversed ? -1 : 1;
+  let ordinal = listInteger(parent.attribs.start) ?? (reversed ? items.length : 1);
+  const result = new Map<ChildNode, number>();
+  for (const [index, item] of items.entries()) {
+    if ('attribs' in item) ordinal = listInteger(item.attribs.value) ?? ordinal;
+    result.set(item, Number.isSafeInteger(ordinal) ? ordinal : index + 1);
+    ordinal += step;
+  }
+  return result;
+}
+
+function render(
+  nodes: ChildNode[],
+  writer: TextWriter,
+  pre: boolean,
+  ordinals: WeakMap<object, Map<ChildNode, number>>,
+): void {
   for (const node of nodes) {
     if (node.type === 'text') {
       if (pre) {
@@ -182,7 +213,7 @@ function render(nodes: ChildNode[], writer: TextWriter, pre: boolean): void {
       writer.write('---\n');
     } else if (name === 'blockquote') {
       const inner = new TextWriter();
-      render(node.children, inner, pre);
+      render(node.children, inner, pre, ordinals);
       let end = inner.out.length;
       while (end > 0 && inner.out[end - 1] === '\n' && !inner.isPreserved(end - 1)) end--;
       writer.lineBreak();
@@ -205,26 +236,30 @@ function render(nodes: ChildNode[], writer: TextWriter, pre: boolean): void {
       writer.lineBreak();
       const parent = node.parent;
       if (parent && 'name' in parent && parent.name.toLowerCase() === 'ol') {
-        const items = parent.children.filter((child) => tagName(child) === 'li');
-        writer.write(`${items.indexOf(node) + 1}. `);
+        let values = ordinals.get(parent);
+        if (!values) {
+          values = listOrdinals(parent);
+          ordinals.set(parent, values);
+        }
+        writer.write(`${values.get(node) ?? 1}. `);
       } else {
         writer.write('- ');
       }
-      render(node.children, writer, pre);
+      render(node.children, writer, pre, ordinals);
       writer.lineBreak();
     } else if (name === 'td' || name === 'th') {
       // The cells of a row stay on one line.
       if (!writer.atLineStart) writer.write('\t');
-      render(node.children, writer, pre);
+      render(node.children, writer, pre, ordinals);
     } else if (BLOCK_TAGS.has(name)) {
       const paragraph = PARAGRAPH_TAGS.has(name);
       if (paragraph) writer.paragraphBreak();
       else writer.lineBreak();
-      render(node.children, writer, pre || name === 'pre');
+      render(node.children, writer, pre || name === 'pre', ordinals);
       if (paragraph) writer.paragraphBreak();
       else writer.lineBreak();
     } else {
-      render(node.children, writer, pre);
+      render(node.children, writer, pre, ordinals);
     }
   }
 }
@@ -232,6 +267,6 @@ function render(nodes: ChildNode[], writer: TextWriter, pre: boolean): void {
 export function stripHtml(html: string): string {
   if (!html) return '';
   const writer = new TextWriter();
-  render(parseDocument(html).children, writer, false);
+  render(parseDocument(html).children, writer, false, new WeakMap());
   return writer.normalized();
 }

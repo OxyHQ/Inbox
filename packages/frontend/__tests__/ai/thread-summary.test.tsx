@@ -4,13 +4,18 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useThreadSummary } from '@/hooks/queries/useThreadSummary';
 import { runInboxThreadSummary } from '@/services/inboxInferenceApi';
 import type { Message } from '@/services/emailApi';
+import type { InferenceOwner } from '@/hooks/queries/useObservedInferenceOwner';
 
-jest.mock('@oxy.so/services/ui/client', () => ({
-  useOxy: () => ({ user: { id: 'reader' }, oxyServices: { http: {} } }),
-}));
 jest.mock('@/services/inboxInferenceApi', () => ({ runInboxThreadSummary: jest.fn() }));
 const summarize = jest.mocked(runInboxThreadSummary);
 const messages = [{ _id: 'one' }] as Message[];
+const owner = {
+  binding: 'test',
+  ready: true,
+  isCurrent: () => true,
+  http: { addTokenChangeListener: () => () => {} },
+  runtime: { subscribe: () => () => {} },
+} as unknown as InferenceOwner;
 
 function setup() {
   const client = new QueryClient({
@@ -31,22 +36,23 @@ beforeEach(() => {
   }));
 });
 
-it('summarizes a single-message thread on open and reuses its cached result on reopening', async () => {
+it('summarizes a single-message thread and generates again after reopening', async () => {
   const { wrapper, client } = setup();
-  const first = renderHook(() => useThreadSummary('one', messages), { wrapper });
+  const first = renderHook(() => useThreadSummary('one', messages, owner), { wrapper });
   await waitFor(() => expect(first.result.current.summary).toBe('Summary for one'));
   expect(summarize).toHaveBeenCalledTimes(1);
   first.unmount();
-  const reopened = renderHook(() => useThreadSummary('one', messages), { wrapper });
-  expect(reopened.result.current.summary).toBe('Summary for one');
-  expect(summarize).toHaveBeenCalledTimes(1);
+  const reopened = renderHook(() => useThreadSummary('one', messages, owner), { wrapper });
+  expect(reopened.result.current.summary).toBe('');
+  await waitFor(() => expect(reopened.result.current.summary).toBe('Summary for one'));
+  expect(summarize).toHaveBeenCalledTimes(2);
   reopened.unmount();
   client.clear();
 });
 
 it('waits for readable messages and requests the selected thread when navigation changes', async () => {
   const { wrapper, client } = setup();
-  const hook = renderHook(({ id, rows }) => useThreadSummary(id, rows), {
+  const hook = renderHook(({ id, rows }) => useThreadSummary(id, rows, owner), {
     wrapper,
     initialProps: { id: 'one', rows: [] as Message[] },
   });

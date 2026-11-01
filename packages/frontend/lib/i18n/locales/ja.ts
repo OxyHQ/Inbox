@@ -554,6 +554,7 @@ const ja: LocaleDict = {
   },
 
   threadSummary: {
+    accountUnavailable: 'アカウントの準備ができると要約を利用できます。',
     summarize: '要約する',
     title: 'スレッドの要約',
     messages_one: 'メッセージ {{count}} 件',

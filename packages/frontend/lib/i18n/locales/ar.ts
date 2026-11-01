@@ -585,6 +585,7 @@ const ar: LocaleDict = {
   },
 
   threadSummary: {
+    accountUnavailable: 'ستتوفر الملخصات عندما يصبح حسابك جاهزًا.',
     messages_many: '{{count}} رسالة',
     messages_few: '{{count}} رسائل',
     messages_two: 'رسالتان',

@@ -9,10 +9,14 @@ import { Divider } from '@oxy.so/bloom/divider';
 import { RiSparklingLine } from '@oxy.so/bloom/icons/RiSparklingLine';
 import { Loading } from '@oxy.so/bloom/loading';
 import { Text } from '@oxy.so/bloom/typography';
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
 import { useThreadSummary } from '@/hooks/queries/useThreadSummary';
+import {
+  type InferenceOwner,
+  useObservedInferenceOwner,
+} from '@/hooks/queries/useObservedInferenceOwner';
 import { useTranslation } from '@/lib/i18n';
 import type { Message } from '@/services/emailApi';
 
@@ -28,16 +32,44 @@ interface ThreadSummaryProps {
  * said only the Daily Brief and Smart Reply used inference. Now it is a button,
  * behind its own preference, and nothing leaves until it is pressed.
  */
-export function ThreadSummary({ messageId, messages, minMessages = 1 }: ThreadSummaryProps) {
+export function ThreadSummary(props: ThreadSummaryProps) {
+  const owner = useObservedInferenceOwner();
+  const scope = JSON.stringify([
+    props.messageId,
+    owner.binding,
+    owner.subject,
+    owner.sessionId,
+    owner.revision,
+    owner.epoch,
+    owner.knownSubject,
+    owner.authenticated,
+  ]);
+  return <SessionThreadSummary key={scope} {...props} owner={owner} />;
+}
+
+function SessionThreadSummary({
+  messageId,
+  messages,
+  minMessages = 1,
+  owner,
+}: ThreadSummaryProps & { owner: InferenceOwner }) {
   const { t } = useTranslation();
   const { prefs } = useInboxPrefs();
   const [expanded, setExpanded] = useState(true);
+  const mountedRef = useRef(false);
+  useLayoutEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   // Per conversation: opening another one asks again.
   const [requestedFor, setRequestedFor] = useState<string | null>(null);
   const requested = requestedFor === messageId;
   const { summary, keyPoints, actionItems, isLoading, error } = useThreadSummary(
     messageId,
     messages,
+    owner,
     {
       minMessages,
       enabled: prefs.aiThreadSummary && requested,
@@ -50,10 +82,14 @@ export function ThreadSummary({ messageId, messages, minMessages = 1 }: ThreadSu
         <Button
           appearance="subtle"
           leadingIcon={RiSparklingLine}
-          onPress={() => setRequestedFor(messageId)}
+          disabled={!owner.ready}
+          onPress={() => {
+            if (mountedRef.current && owner.isCurrent()) setRequestedFor(messageId);
+          }}
         >
           {t('threadSummary.summarize')}
         </Button>
+        {!owner.ready && <Text>{t('threadSummary.accountUnavailable')}</Text>}
       </View>
     );
   }

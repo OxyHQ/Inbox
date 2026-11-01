@@ -3,8 +3,9 @@
 import { useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { aiKeys } from '@/hooks/queries/queryKeys';
-import type { SmartReplyOwner } from '@/hooks/queries/useSmartReplyOwner';
-import { reserveSmartReplyNamespace } from '@/hooks/queries/smartReplyNamespace';
+import type { InferenceOwner } from '@/hooks/queries/useObservedInferenceOwner';
+import { reserveInferenceNamespace } from '@/hooks/queries/inferenceNamespace';
+import { runObservedInference } from '@/hooks/queries/runObservedInference';
 import { runInboxSmartReplies } from '@/services/inboxInferenceApi';
 import type { Message } from '@/services/emailApi';
 
@@ -17,56 +18,22 @@ interface SmartRepliesResult {
   refetch: () => Promise<unknown>;
 }
 
-function aborted(): Error {
-  const error = new Error('Smart reply session changed.');
-  error.name = 'AbortError';
-  return error;
-}
-
 export function useSmartReplies(
   message: Message | null | undefined,
-  owner: SmartReplyOwner,
+  owner: InferenceOwner,
 ): SmartRepliesResult {
   // The namespace prevents a later mount from attaching to an earlier mount's
   // in-memory query. The query root remains private and is excluded from disk.
   const client = useQueryClient();
-  const mount = useMemo(() => reserveSmartReplyNamespace(client), [client]);
+  const mount = useMemo(() => reserveInferenceNamespace(client), [client]);
   const query = useQuery({
     queryKey: [...aiKeys.smartReplies(message?._id), owner.binding, mount],
     queryFn: async ({ signal }) => {
       if (!message) throw new Error('A message is required for smart replies.');
-      if (!owner.isCurrent()) throw aborted();
-      const controller = new AbortController();
-      let offToken = () => {};
-      let offRuntime = () => {};
-      let disposed = false;
-      const dispose = () => {
-        if (disposed) return;
-        disposed = true;
-        offToken();
-        offRuntime();
-        signal.removeEventListener('abort', stop);
-      };
-      const stop = () => {
-        controller.abort();
-        dispose();
-      };
-      const check = () => {
-        if (!owner.isCurrent()) stop();
-      };
-      offToken = owner.http.addTokenChangeListener(check);
-      offRuntime = owner.runtime.subscribe(check);
-      signal.addEventListener('abort', stop, { once: true });
-      if (signal.aborted) stop();
-      check();
-      try {
-        if (controller.signal.aborted) throw aborted();
-        const result = await runInboxSmartReplies(owner.http, message._id, controller.signal);
-        if (controller.signal.aborted || !owner.isCurrent()) throw aborted();
-        return result.replies;
-      } finally {
-        dispose();
-      }
+      const result = await runObservedInference(owner, signal, (requestSignal) =>
+        runInboxSmartReplies(owner.http, message._id, requestSignal),
+      );
+      return result.replies;
     },
     enabled: false,
     staleTime: 5 * 60 * 1000,

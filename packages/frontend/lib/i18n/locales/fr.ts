@@ -562,6 +562,7 @@ const fr: LocaleDict = {
   },
 
   threadSummary: {
+    accountUnavailable: 'Les résumés seront disponibles lorsque votre compte sera prêt.',
     summarize: 'Résumer',
     title: 'Résumé de la conversation',
     messages_one: '{{count}} message',

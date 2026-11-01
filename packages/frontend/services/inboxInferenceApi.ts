@@ -121,12 +121,14 @@ export function runInboxSmartReplies(
 export function runInboxThreadSummary(
   http: HttpService,
   messageId: string,
+  signal?: AbortSignal,
 ): Promise<InboxThreadSummaryResponse> {
   return postParsed(
     http,
     messagePath(messageId, 'thread-summary'),
     {},
     inboxThreadSummaryResponseSchema,
+    signal,
   );
 }
 

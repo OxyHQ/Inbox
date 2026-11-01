@@ -543,6 +543,7 @@ const zh: LocaleDict = {
   },
 
   threadSummary: {
+    accountUnavailable: '账户准备就绪后即可使用摘要。',
     summarize: '总结',
     title: '会话摘要',
     messages_one: '{{count}} 条消息',

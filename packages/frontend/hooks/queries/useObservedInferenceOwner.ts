@@ -1,11 +1,11 @@
-/** Observable session fence for the memory-only smart-reply UI. */
+/** Observable session fence for memory-only inference UI. */
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { useOxy } from '@oxy.so/services/ui/client';
 import { useOxyRuntime } from '@oxy.so/services/runtime';
 import { useQueryClient } from '@tanstack/react-query';
-import { reserveSmartReplyBinding } from '@/hooks/queries/smartReplyNamespace';
+import { reserveInferenceBinding } from '@/hooks/queries/inferenceNamespace';
 
-export function useSmartReplyOwner() {
+export function useObservedInferenceOwner() {
   const { oxyServices, user } = useOxy();
   const runtime = useOxyRuntime();
   const queryClient = useQueryClient();
@@ -29,7 +29,7 @@ export function useSmartReplyOwner() {
   const revision = useSyncExternalStore(subscribeRuntime, getRevision, getRevision);
   const projection = runtime.getAccountSessionIdentity();
   const binding = useMemo(
-    () => ({ id: reserveSmartReplyBinding(), runtime, http, queryClient }),
+    () => ({ id: reserveInferenceBinding(), runtime, http, queryClient }),
     [runtime, http, queryClient],
   );
   // A decoded subject is only a local mismatch check, never proof of an actor.
@@ -66,4 +66,4 @@ export function useSmartReplyOwner() {
     isCurrent,
   };
 }
-export type SmartReplyOwner = ReturnType<typeof useSmartReplyOwner>;
+export type InferenceOwner = ReturnType<typeof useObservedInferenceOwner>;

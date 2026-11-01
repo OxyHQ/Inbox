@@ -549,6 +549,7 @@ const ko: LocaleDict = {
   },
 
   threadSummary: {
+    accountUnavailable: '계정이 준비되면 요약을 사용할 수 있습니다.',
     summarize: '요약',
     title: '대화 요약',
     messages_one: '메시지 {{count}}개',

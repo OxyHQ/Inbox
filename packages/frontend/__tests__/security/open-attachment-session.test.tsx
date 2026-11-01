@@ -578,7 +578,7 @@ it.each(['android', 'ios'])(
       ['50%.txt', '50%.txt'],
       ['中文 😀.png', '中文 😀.png'],
       ['bad\ud800name.txt', 'bad�name.txt'],
-      [`${'a'.repeat(179)}😀.txt`, `${'a'.repeat(179)}�`],
+      [`${'a'.repeat(179)}😀`, `${'a'.repeat(179)}`],
     ];
     for (const [filename, expected] of examples) {
       await act(async () => {
@@ -591,6 +591,26 @@ it.each(['android', 'ios'])(
       expect(decodeURIComponent(url.pathname.slice('/cache/'.length))).toBe(expected);
     }
     expect(mockToast).not.toHaveBeenCalled();
+    cleanup();
+  },
+);
+
+it.each(['android', 'ios'])(
+  'keeps the extension when a long attachment name is shared on %s',
+  async (platform) => {
+    mockPlatform = platform;
+    const { hook, cleanup } = setup();
+    jest.spyOn(mockOxy.assets, 'url').mockResolvedValue('https://files.test/file');
+    mockDownload.mockImplementation(async (_source: string, destination: string) => ({
+      status: 200,
+      uri: destination,
+    }));
+    mockShare.mockResolvedValue(undefined);
+    await act(async () => {
+      await hook.result.current('file', `${'a'.repeat(180)}.pdf`);
+    });
+    const shared = mockShare.mock.calls.at(-1)?.[0] as string;
+    expect(decodeURIComponent(new URL(shared).pathname)).toMatch(/\.pdf$/);
     cleanup();
   },
 );

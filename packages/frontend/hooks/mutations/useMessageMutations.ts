@@ -1145,6 +1145,7 @@ export function useDiscardDraft() {
     if (
       useEmailStore.getState()._api !== api ||
       http.getSessionEpoch() !== epoch ||
+      (subjectId !== null && accountId !== subjectId) ||
       (currentProjection.revision !== revision && !sessionProjectionCompleted) ||
       (subjectId !== null && session.userId !== null && session.userId !== subjectId)
     )

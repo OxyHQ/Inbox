@@ -777,3 +777,57 @@ it.each(['B', 'ABA'] as const)(
     client.clear();
   },
 );
+
+it('suppresses feedback when runtime and rendered account disagree', async () => {
+  mockRuntime.setAccount({ id: 'bob' });
+  useEmailStore.getState()._initApi(mockOxy.http);
+  globalThis.fetch = jest.fn(async () => ({
+    ...response({ error: 'forbidden' }),
+    ok: false,
+    status: 403,
+    statusText: 'Forbidden',
+  })) as never;
+  const client = createInboxQueryClient();
+  const draft = MessageSchema.parse(
+    wireMessage({
+      _id: 'synthetic-draft-A',
+      userId: 'alice',
+      flags: {
+        seen: true,
+        starred: false,
+        answered: false,
+        forwarded: false,
+        draft: true,
+        pinned: false,
+      },
+    }),
+  );
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  const { result, unmount } = renderHook(
+    () =>
+      useComposeSession({
+        recoveryIdentity: 'draft:synthetic',
+        draft,
+        awaitingReplyHeaders: false,
+        insertSignature: false,
+        onFinished: jest.fn(),
+      }),
+    { wrapper },
+  );
+  await act(async () => {
+    for (let i = 0; i < 10; i++) await Promise.resolve();
+  });
+  let discard!: Promise<unknown>;
+  act(() => {
+    discard = result.current.discardDraft();
+  });
+  unmount();
+  await act(async () => {
+    await discard;
+  });
+  expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+  expect(mockToast.error).not.toHaveBeenCalled();
+  client.clear();
+});

@@ -363,6 +363,8 @@ const es: LocaleDict = {
       deleteFailed: 'No se pudo eliminar la búsqueda guardada.',
     },
     ui: {
+      filterDraftUnavailable:
+        'El contexto de la cuenta o la sesión ha cambiado. Cierra este borrador de filtros para empezar de nuevo.',
       filtersTitle: 'Filtros de búsqueda',
       filtersDescription: 'Acota la búsqueda por personas, fechas o detalles del mensaje.',
       clearFilters: 'Limpiar filtros',

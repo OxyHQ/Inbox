@@ -366,6 +366,8 @@ const en: LocaleDict = {
       saveFailed: 'Unable to save search.',
     },
     ui: {
+      filterDraftUnavailable:
+        'The account or session context changed. Close this filter draft to start again.',
       filtersTitle: 'Search filters',
       filtersDescription: 'Narrow your search by people, dates, or message details.',
       clearFilters: 'Clear filters',

@@ -101,6 +101,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     isLoading: nlParsing,
     isCurrent: isNaturalSearchCurrent,
     isBindingCurrent: isNaturalSearchBindingCurrent,
+    binding: naturalSearchBinding,
     isReady: naturalSearchReady,
   } = useNaturalLanguageSearch();
 
@@ -430,6 +431,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   // makes removing a chip remove the real filter, including one from AI/text.
   const handleFiltersChange = useCallback(
     (next: SearchFilters) => {
+      if (!isNaturalSearchBindingCurrent()) return;
       cancelPendingSearch();
       // A quick chip can be clicked before the typing debounce has run. Keep
       // those new words instead of replacing them with the previous request.
@@ -447,6 +449,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     },
     [
       cancelPendingSearch,
+      isNaturalSearchBindingCurrent,
       nlParsedOptions,
       query,
       submittedQuery,
@@ -658,6 +661,8 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
               filters={pickSearchFilters(searchOptions)}
               mailboxes={mailboxes}
               onChange={handleFiltersChange}
+              scope={naturalSearchBinding}
+              isScopeCurrent={isNaturalSearchBindingCurrent}
             />
 
             <SavedSearchBar

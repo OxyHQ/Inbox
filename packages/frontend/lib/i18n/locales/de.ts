@@ -374,6 +374,8 @@ const de: LocaleDict = {
       deleteFailed: 'Gespeicherte Suche konnte nicht gelöscht werden.',
     },
     ui: {
+      filterDraftUnavailable:
+        'Der Konto- oder Sitzungskontext hat sich geändert. Schließe diesen Filterentwurf, um neu zu beginnen.',
       filtersTitle: 'Suchfilter',
       filtersDescription: 'Grenze die Suche nach Personen, Datum oder Nachrichtendetails ein.',
       clearFilters: 'Filter löschen',

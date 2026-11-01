@@ -374,6 +374,8 @@ const fr: LocaleDict = {
       deleteFailed: 'Impossible de supprimer la recherche enregistrée.',
     },
     ui: {
+      filterDraftUnavailable:
+        'Le contexte du compte ou de la session a changé. Fermez ce brouillon de filtres pour recommencer.',
       filtersTitle: 'Filtres de recherche',
       filtersDescription: 'Affine la recherche par personne, date ou détails du message.',
       clearFilters: 'Effacer les filtres',

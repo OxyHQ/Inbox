@@ -30,7 +30,13 @@ jest.mock('@/hooks/queries/useMessage', () => ({
   },
 }));
 jest.mock('@/hooks/queries/useDailyBrief', () => ({
-  useDailyBrief: () => ({ regenerate: mockRegenerate, markOpened: mockMarkOpened, ...mockState }),
+  useDailyBrief: () => ({
+    regenerate: mockRegenerate,
+    markOpened: mockMarkOpened,
+    canAct: () => true,
+    actionsReady: true,
+    ...mockState,
+  }),
 }));
 jest.mock('@oxy.so/bloom/card', () => ({
   Card: ({ children }: Children) => <div data-testid="brief-card">{children}</div>,

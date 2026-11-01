@@ -182,6 +182,7 @@ const pt: LocaleDict = {
       attachments: '{{count}}',
     },
     brief: {
+      sessionUnavailable: 'A conta não está pronta. As ações do resumo não estão disponíveis.',
       unavailable: 'Não foi possível gerar o resumo agora.',
       empty: 'Ainda não há emails para resumir.',
       writing: 'A escrever o teu resumo…',

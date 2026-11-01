@@ -147,7 +147,11 @@ describe('Inbox inference hooks', () => {
   });
 
   it('fetches the Daily Brief only while enabled, in the UI language, and marks opened rows read', async () => {
-    const oxyServices = makeMockOxyServices();
+    const base = makeMockOxyServices();
+    const oxyServices = {
+      ...base,
+      session: { ...base.session, userId: 'user-1', isAuthenticated: true },
+    };
     __setOxyState({
       user: { id: 'user-1', username: 'nate' },
       isAuthenticated: true,

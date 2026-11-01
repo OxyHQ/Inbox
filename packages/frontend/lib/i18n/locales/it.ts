@@ -182,6 +182,8 @@ const it: LocaleDict = {
       attachments: '{{count}}',
     },
     brief: {
+      sessionUnavailable:
+        'Il tuo account non è pronto. Le azioni del riepilogo non sono disponibili.',
       unavailable: 'Impossibile generare il riepilogo in questo momento.',
       empty: 'Ancora nessuna email da riepilogare.',
       writing: 'Scrittura del riepilogo…',

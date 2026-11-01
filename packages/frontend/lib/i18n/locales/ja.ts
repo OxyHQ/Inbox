@@ -181,6 +181,7 @@ const ja: LocaleDict = {
       attachments: '{{count}}',
     },
     brief: {
+      sessionUnavailable: 'アカウントの準備ができていません。ブリーフの操作は利用できません。',
       unavailable: '現在ブリーフを生成できません。',
       empty: 'まだ要約するメールがありません。',
       writing: 'ブリーフを作成しています…',

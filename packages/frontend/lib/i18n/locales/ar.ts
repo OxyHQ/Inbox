@@ -206,6 +206,7 @@ const ar: LocaleDict = {
       attachments: '{{count}}',
     },
     brief: {
+      sessionUnavailable: 'حسابك غير جاهز. إجراءات الملخص غير متاحة.',
       unavailable: 'تعذّر إنشاء الملخّص الآن.',
       empty: 'لا توجد رسائل للتلخيص بعد.',
       writing: 'جارٍ كتابة ملخّصك…',

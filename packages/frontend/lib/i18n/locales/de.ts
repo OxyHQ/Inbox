@@ -182,6 +182,8 @@ const de: LocaleDict = {
       attachments: '{{count}}',
     },
     brief: {
+      sessionUnavailable:
+        'Dein Konto ist noch nicht bereit. Aktionen für die Übersicht sind nicht verfügbar.',
       unavailable: 'Überblick kann gerade nicht erstellt werden.',
       empty: 'Noch keine E-Mails zum Zusammenfassen.',
       writing: 'Dein Überblick wird geschrieben…',

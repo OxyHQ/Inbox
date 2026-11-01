@@ -28,7 +28,7 @@ export function DailyBrief({
 }) {
   const { prefs } = useInboxPrefs();
   const { t } = useTranslation();
-  const { brief, isLoading, error, regenerate, markOpened } = useDailyBrief({
+  const { brief, isLoading, error, regenerate, markOpened, canAct, actionsReady } = useDailyBrief({
     enabled: prefs.aiBrief,
   });
 
@@ -46,14 +46,19 @@ export function DailyBrief({
   return (
     <View className="px-3 pb-3">
       <Card>
-        {(status || summary) && (
+        {(status || summary || !actionsReady) && (
           <CardBody>
-            <Text
-              variant={status ? 'body-regular' : 'title-3-regular'}
-              accessibilityLiveRegion="polite"
-            >
-              {status ?? summary}
-            </Text>
+            {(status || summary) && (
+              <Text
+                variant={status ? 'body-regular' : 'title-3-regular'}
+                accessibilityLiveRegion="polite"
+              >
+                {status ?? summary}
+              </Text>
+            )}
+            {!actionsReady && (
+              <Text accessibilityLiveRegion="polite">{t('home.brief.sessionUnavailable')}</Text>
+            )}
             {!error && brief?.actions && (
               <View className="flex-row flex-wrap gap-2 pt-3">
                 {brief.actions.map((action) => (
@@ -61,7 +66,10 @@ export function DailyBrief({
                     key={action.label}
                     appearance="subtle"
                     size="sm"
-                    onPress={() => onAction(action)}
+                    disabled={!actionsReady}
+                    onPress={() => {
+                      if (canAct()) onAction(action);
+                    }}
                   >
                     {action.label}
                   </Button>
@@ -69,7 +77,12 @@ export function DailyBrief({
               </View>
             )}
             {error && (
-              <Button appearance="subtle" className="self-start" onPress={() => void regenerate()}>
+              <Button
+                appearance="subtle"
+                className="self-start"
+                disabled={!actionsReady}
+                onPress={() => void regenerate()}
+              >
                 {t('common.retry')}
               </Button>
             )}
@@ -82,9 +95,11 @@ export function DailyBrief({
               item={item}
               message={messages.find((message) => message._id === item.messageId)}
               renderMessage={renderMessage}
+              actionsReady={actionsReady}
               onOpen={() => {
+                if (!canAct()) return;
                 markOpened(item.messageId);
-                onOpenMessage(item.messageId);
+                if (canAct()) onOpenMessage(item.messageId);
               }}
             />
           ))}
@@ -98,17 +113,19 @@ function BriefMessageRow({
   item,
   message,
   renderMessage,
+  actionsReady,
   onOpen,
 }: {
   item: InboxDailyBrief['items'][number];
   message?: Message;
   renderMessage?: (message: Message, note: string, onOpen: () => void) => ReactNode;
+  actionsReady: boolean;
   onOpen: () => void;
 }) {
   const { data } = useMessage(message ? undefined : item.messageId);
   const { t, locale } = useTranslation();
   const current = message ?? data;
-  if (current && renderMessage) return renderMessage(current, item.note, onOpen);
+  if (current && renderMessage && actionsReady) return renderMessage(current, item.note, onOpen);
   return (
     <MailRow
       sender={{ name: item.from.name || item.from.address }}
@@ -118,7 +135,7 @@ function BriefMessageRow({
       unread={item.unread}
       hasAttachment={item.hasAttachments}
       swipeEnabled={false}
-      onPress={onOpen}
+      onPress={actionsReady ? onOpen : undefined}
       strings={{ attachment: t('search.filters.hasAttachment'), unread: t('message.unreadState') }}
     />
   );

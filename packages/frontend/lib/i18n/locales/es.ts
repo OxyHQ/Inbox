@@ -174,6 +174,7 @@ const es: LocaleDict = {
       attachments: '{{count}}',
     },
     brief: {
+      sessionUnavailable: 'Tu cuenta no está lista. Las acciones del resumen no están disponibles.',
       unavailable: 'No se pudo generar el resumen ahora.',
       empty: 'Aún no hay correos para resumir.',
       writing: 'Escribiendo tu resumen…',

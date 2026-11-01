@@ -182,6 +182,7 @@ const ca: LocaleDict = {
       attachments: '{{count}}',
     },
     brief: {
+      sessionUnavailable: 'El compte no està preparat. Les accions del resum no estan disponibles.',
       unavailable: "No s'ha pogut generar el resum ara mateix.",
       empty: 'Encara no hi ha correus per resumir.',
       writing: 'Escrivint el teu resum…',

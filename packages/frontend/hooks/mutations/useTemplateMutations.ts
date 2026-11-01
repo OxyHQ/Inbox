@@ -38,7 +38,7 @@ function rollbackTemplates<T>(
 }
 
 export function useCreateTemplate() {
-  const owner = useEmailMutationOwner();
+  const owner = useEmailMutationOwner(true);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   type Input = { name: string; subject?: string; body: string };
@@ -73,7 +73,7 @@ export function useCreateTemplate() {
 }
 
 export function useUpdateTemplate() {
-  const owner = useEmailMutationOwner();
+  const owner = useEmailMutationOwner(true);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   type Input = { templateId: string; name?: string; subject?: string; body?: string };
@@ -104,7 +104,7 @@ export function useUpdateTemplate() {
 }
 
 export function useDeleteTemplate() {
-  const owner = useEmailMutationOwner();
+  const owner = useEmailMutationOwner(true);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const mutation = useMutation<void, Error, OwnedVariables<string>, EmailMutationContext>({

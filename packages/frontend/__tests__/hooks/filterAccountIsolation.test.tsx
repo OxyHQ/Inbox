@@ -16,9 +16,17 @@ const mockApiB = {
 };
 let mockCurrentApi: typeof mockApiA | null = mockApiA;
 let mockEpoch = 0;
+let mockBearerSubject: string | null = 'alice';
+let mockToken: string | null = 'token';
+const mockSession = {
+  get userId() {
+    return mockBearerSubject;
+  },
+};
 const mockListeners = new Set<() => void>();
 const mockHttp = {
   getSessionEpoch: () => mockEpoch,
+  getAccessToken: () => mockToken,
   addTokenChangeListener: (listener: () => void) => {
     mockListeners.add(listener);
     return () => mockListeners.delete(listener);
@@ -34,7 +42,7 @@ jest.mock('@/hooks/useEmail', () => ({
   ),
 }));
 jest.mock('@oxy.so/services/ui/client', () => ({
-  useOxy: () => ({ oxyServices: { http: mockHttp } }),
+  useOxy: () => ({ user: { id: 'alice' }, oxyServices: { http: mockHttp, session: mockSession } }),
 }));
 jest.mock('@oxy.so/bloom/toast', () => ({
   toast: { error: (...args: unknown[]) => mockToast(...args) },
@@ -61,6 +69,8 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockCurrentApi = mockApiA;
   mockEpoch = 0;
+  mockBearerSubject = 'alice';
+  mockToken = 'token';
 });
 
 it('does not roll A filters into B after an old mutation fails', async () => {
@@ -302,4 +312,105 @@ it('keeps rollback snapshots outside serializable mutation state and rejects lat
     resolve(filter('A response'));
     expect(await pending).toEqual(expect.objectContaining({ message: 'Email account changed' }));
   });
+});
+
+it.each(['create', 'update', 'delete'] as const)(
+  'rejects %s when the known bearer subject disagrees with the projected account',
+  async (kind) => {
+    mockBearerSubject = 'bob';
+    const { client, wrapper } = setup();
+    const cancel = jest.spyOn(client, 'cancelQueries');
+    client.setQueryData(emailKeys.filters, [filter('A private')]);
+    const { result } = renderHook(
+      () => ({ create: useCreateFilter(), update: useUpdateFilter(), remove: useDeleteFilter() }),
+      { wrapper },
+    );
+    await act(async () => {
+      const attempt =
+        kind === 'create'
+          ? result.current.create.mutateAsync({ name: 'A', conditions: [], actions: [] })
+          : kind === 'update'
+            ? result.current.update.mutateAsync({ filterId: 'same-id', name: 'A' })
+            : result.current.remove.mutateAsync('same-id');
+      await expect(attempt).rejects.toThrow('Email account changed');
+    });
+    expect(cancel).not.toHaveBeenCalled();
+    expect(mockApiA.createFilter).not.toHaveBeenCalled();
+    expect(mockApiA.updateFilter).not.toHaveBeenCalled();
+    expect(mockApiA.deleteFilter).not.toHaveBeenCalled();
+    expect(client.getQueryData(emailKeys.filters)).toEqual([filter('A private')]);
+    expect(mockToast).not.toHaveBeenCalled();
+    client.clear();
+  },
+);
+
+it.each(['create', 'update', 'delete'] as const)(
+  'continues allowing %s with an opaque bearer',
+  async (kind) => {
+    mockBearerSubject = null;
+    const method =
+      kind === 'create'
+        ? mockApiA.createFilter
+        : kind === 'update'
+          ? mockApiA.updateFilter
+          : mockApiA.deleteFilter;
+    method.mockResolvedValueOnce(kind === 'delete' ? undefined : filter('done'));
+    const { client, wrapper } = setup();
+    const { result } = renderHook(
+      () => ({ create: useCreateFilter(), update: useUpdateFilter(), remove: useDeleteFilter() }),
+      { wrapper },
+    );
+    await act(async () => {
+      if (kind === 'create')
+        await result.current.create.mutateAsync({ name: 'A', conditions: [], actions: [] });
+      else if (kind === 'update')
+        await result.current.update.mutateAsync({ filterId: 'same-id', name: 'A' });
+      else await result.current.remove.mutateAsync('same-id');
+    });
+    expect(method).toHaveBeenCalledTimes(1);
+    client.clear();
+  },
+);
+
+it('suppresses a late filter success when the bearer subject changes before projection', async () => {
+  let resolve!: (value: EmailFilter) => void;
+  mockApiA.updateFilter.mockReturnValueOnce(
+    new Promise((done) => {
+      resolve = done;
+    }),
+  );
+  const { client, wrapper } = setup();
+  const invalidate = jest.spyOn(client, 'invalidateQueries');
+  const onSuccess = jest.fn();
+  const { result } = renderHook(() => useUpdateFilter(), { wrapper });
+  let pending!: Promise<unknown>;
+  act(() => {
+    pending = result.current
+      .mutateAsync({ filterId: 'same-id', name: 'A' }, { onSuccess })
+      .catch((error) => error);
+  });
+  await waitFor(() => expect(mockApiA.updateFilter).toHaveBeenCalled());
+  mockBearerSubject = 'bob';
+  invalidate.mockClear();
+  await act(async () => {
+    resolve(filter('A result'));
+    expect(await pending).toEqual(expect.objectContaining({ message: 'Email account changed' }));
+  });
+  expect(onSuccess).not.toHaveBeenCalled();
+  expect(invalidate).not.toHaveBeenCalled();
+  client.clear();
+});
+
+it('rejects a filter write without a bearer', async () => {
+  mockToken = null;
+  const { client, wrapper } = setup();
+  const { result } = renderHook(() => useCreateFilter(), { wrapper });
+  await act(async () => {
+    await expect(
+      result.current.mutateAsync({ name: 'A', conditions: [], actions: [] }),
+    ).rejects.toThrow('Email account changed');
+  });
+  expect(mockApiA.createFilter).not.toHaveBeenCalled();
+  expect(client.getQueryData(emailKeys.filters)).toBeUndefined();
+  client.clear();
 });

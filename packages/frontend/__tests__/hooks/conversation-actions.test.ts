@@ -116,3 +116,14 @@ it('archives a conversation only partly in Archive', () => {
     kind: 'archive',
   });
 });
+
+it.each([true, false])(
+  'forwards quiet=%s for a single-message read without changing variables',
+  (quiet) => {
+    const { result } = renderHook(() => useMessageActions());
+    result.current.setRead([msg('a', 'inbox', false)], true, { quiet });
+    expect(toggleRead.mutate).toHaveBeenCalledWith({ messageId: 'a', seen: true }, undefined, {
+      quiet,
+    });
+  },
+);

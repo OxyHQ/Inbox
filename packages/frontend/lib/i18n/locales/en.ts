@@ -1126,6 +1126,8 @@ const en: LocaleDict = {
       starSessionUnavailable:
         'Your account is not ready to update the star. Please try again shortly.',
       readFailed: 'Failed to update read status.',
+      messageSessionUnavailable:
+        'Your account is not ready to update this message. Please try again shortly.',
       archived: 'Conversation archived.',
       archiveFailed: 'Failed to archive conversation.',
       deleteFailed: 'Failed to delete conversation.',

@@ -1135,6 +1135,8 @@ const de: LocaleDict = {
       starSessionUnavailable:
         'Dein Konto ist noch nicht bereit, den Stern zu ändern. Bitte versuche es gleich erneut.',
       readFailed: 'Lesestatus konnte nicht aktualisiert werden.',
+      messageSessionUnavailable:
+        'Dein Konto ist noch nicht bereit, diese Nachricht zu ändern. Bitte versuche es gleich erneut.',
       archived: 'Unterhaltung archiviert.',
       archiveFailed: 'Unterhaltung konnte nicht archiviert werden.',
       deleteFailed: 'Unterhaltung konnte nicht gelöscht werden.',

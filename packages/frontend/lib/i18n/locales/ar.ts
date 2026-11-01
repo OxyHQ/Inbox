@@ -1155,6 +1155,8 @@ const ar: LocaleDict = {
       starFailed: 'تعذّر تحديث النجمة.',
       starSessionUnavailable: 'حسابك غير جاهز لتحديث النجمة بعد. يرجى المحاولة مرة أخرى بعد قليل.',
       readFailed: 'تعذّر تحديث حالة القراءة.',
+      messageSessionUnavailable:
+        'حسابك غير جاهز لتحديث هذه الرسالة بعد. يرجى المحاولة مرة أخرى بعد قليل.',
       archived: 'تمت أرشفة المحادثة.',
       archiveFailed: 'تعذّرت أرشفة المحادثة.',
       deleteFailed: 'تعذّر حذف المحادثة.',

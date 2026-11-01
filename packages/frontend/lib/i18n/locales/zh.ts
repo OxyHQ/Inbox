@@ -1090,6 +1090,7 @@ const zh: LocaleDict = {
       starFailed: '无法更新星标。',
       starSessionUnavailable: '你的账户尚未准备好更新星标。请稍后重试。',
       readFailed: '无法更新已读状态。',
+      messageSessionUnavailable: '你的账户尚未准备好更新此邮件。请稍后重试。',
       archived: '已归档会话。',
       archiveFailed: '无法归档会话。',
       deleteFailed: '无法删除会话。',

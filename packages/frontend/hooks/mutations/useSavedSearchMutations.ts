@@ -40,7 +40,7 @@ function rollbackSavedSearches<T>(
 }
 
 export function useCreateSavedSearch() {
-  const owner = useEmailMutationOwner();
+  const owner = useEmailMutationOwner(true);
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const mutation = useMutation<
@@ -70,14 +70,14 @@ export function useCreateSavedSearch() {
       toast.error(error instanceof Error ? error.message : t('search.saved.saveFailed'));
     },
     onSettled: (_data, _error, variables) => {
-      if (ownsEmailMutation(variables)) void queryClient.invalidateQueries({ queryKey: key });
+      if (ownsEmailMutation(variables)) return queryClient.invalidateQueries({ queryKey: key });
     },
   });
   return exposeOwnedEmailMutation(owner, mutation);
 }
 
 export function useDeleteSavedSearch() {
-  const owner = useEmailMutationOwner();
+  const owner = useEmailMutationOwner(true);
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const mutation = useMutation<void, Error, OwnedVariables<string>, EmailMutationContext>({
@@ -92,7 +92,7 @@ export function useDeleteSavedSearch() {
       toast.error(error instanceof Error ? error.message : t('search.saved.deleteFailed'));
     },
     onSettled: (_data, _error, variables) => {
-      if (ownsEmailMutation(variables)) void queryClient.invalidateQueries({ queryKey: key });
+      if (ownsEmailMutation(variables)) return queryClient.invalidateQueries({ queryKey: key });
     },
   });
   return exposeOwnedEmailMutation(owner, mutation);

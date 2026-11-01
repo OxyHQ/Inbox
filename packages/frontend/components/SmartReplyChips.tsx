@@ -10,7 +10,7 @@ import { Chip } from '@oxy.so/bloom/chip';
 import { RiSparklingLine } from '@oxy.so/bloom/icons/RiSparklingLine';
 import { Loading } from '@oxy.so/bloom/loading';
 import { Text } from '@oxy.so/bloom/typography';
-import { useCallback, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
@@ -23,13 +23,26 @@ interface SmartReplyChipsProps {
   onSelectReply: (text: string) => void;
 }
 
-export function SmartReplyChips({ message, onSelectReply }: SmartReplyChipsProps) {
+export function SmartReplyChips(props: SmartReplyChipsProps) {
+  return <MessageSmartReplyChips key={props.message._id} {...props} />;
+}
+
+function MessageSmartReplyChips({ message, onSelectReply }: SmartReplyChipsProps) {
   const { t } = useTranslation();
   const { prefs } = useInboxPrefs();
   const [hasRequestedReplies, setHasRequestedReplies] = useState(false);
   const { replies, isLoading, refetch } = useSmartReplies(message);
+  const mountedRef = useRef(false);
+
+  useLayoutEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const handleGenerateReplies = useCallback(() => {
+    if (!mountedRef.current) return;
     setHasRequestedReplies(true);
     void refetch();
   }, [refetch]);
@@ -63,7 +76,9 @@ export function SmartReplyChips({ message, onSelectReply }: SmartReplyChipsProps
               key={index}
               appearance="subtle"
               tone="accent"
-              onPress={() => onSelectReply(reply)}
+              onPress={() => {
+                if (mountedRef.current) onSelectReply(reply);
+              }}
             >
               {reply}
             </Chip>

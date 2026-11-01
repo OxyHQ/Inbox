@@ -673,6 +673,10 @@ const ca: LocaleDict = {
       'Quan et dones de baixa, poden passar uns dies fins que deixis de rebre missatges.',
     toast: {
       unsubscribed: "T'has donat de baixa.",
+      unconfirmed:
+        'No s’ha pogut confirmar el canvi. Comprova la subscripció abans de tornar-ho a provar.',
+      sessionUnavailable:
+        'El teu compte encara no està preparat per actualitzar les subscripcions. Torna-ho a provar d’aquí a uns moments.',
       requestSent: "S'ha enviat la sol·licitud de baixa.",
       blocked: 'Remitent bloquejat.',
     },

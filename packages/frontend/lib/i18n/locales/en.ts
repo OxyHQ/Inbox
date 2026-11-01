@@ -671,6 +671,9 @@ const en: LocaleDict = {
     },
     toast: {
       blocked: 'Sender blocked.',
+      unconfirmed: 'Couldn’t confirm the change. Check the subscription before trying again.',
+      sessionUnavailable:
+        'Your account is not ready to update subscriptions. Please try again shortly.',
       requestSent: 'Unsubscribe request sent.',
       unsubscribed: 'Unsubscribed.',
     },

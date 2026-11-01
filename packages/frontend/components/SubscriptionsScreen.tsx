@@ -20,7 +20,7 @@ import { useOxy } from '@oxy.so/services/ui/client';
 import { useMinimizeOnScroll } from '@oxy.so/bloom/tab-bar';
 import { FlashList, type FlashListProps, type FlashListRef } from '@shopify/flash-list';
 import type React from 'react';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWindowDimensions, RefreshControl, View } from 'react-native';
 import Animated, { type AnimatedProps } from 'react-native-reanimated';
 
@@ -68,7 +68,7 @@ function SubscriptionsContent() {
   const { width: viewportWidth } = useWindowDimensions();
   const bottomClearance = viewportWidth < BREAKPOINTS.md ? occupiedBottom : 0;
   const { t } = useTranslation();
-  const { user } = useOxy();
+  const { user, oxyServices } = useOxy();
 
   const { data, isLoading, isRefetching, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useSubscriptions();
@@ -80,7 +80,16 @@ function SubscriptionsContent() {
   }, [refetch]);
 
   const unsubscribeMutation = useUnsubscribe();
-  const [unsubscribingAddress, setUnsubscribingAddress] = useState<string | null>(null);
+  const pending = useRef(new Map<string, symbol>());
+  const mounted = useRef(false);
+  const [pendingKeys, setPendingKeys] = useState<ReadonlySet<string>>(() => new Set());
+  const scope = JSON.stringify([user?.id ?? null, oxyServices.http.getSessionEpoch()]);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   // Offset pagination over a live aggregate: a message arriving between two
   // page fetches shifts every sender's rank, so a sender already on screen can
@@ -110,13 +119,21 @@ function SubscriptionsContent() {
 
   const handleUnsubscribe = useCallback(
     (senderAddress: string, method?: 'list-unsubscribe' | 'block') => {
-      setUnsubscribingAddress(senderAddress);
-      unsubscribeMutation.mutate(
-        { senderAddress, method },
-        { onSettled: () => setUnsubscribingAddress(null) },
-      );
+      const key = JSON.stringify([scope, senderAddress]);
+      if (pending.current.has(key)) return;
+      const operation = Symbol();
+      pending.current.set(key, operation);
+      setPendingKeys(new Set(pending.current.keys()));
+      void unsubscribeMutation
+        .mutateAsync({ senderAddress, method })
+        .catch(() => {})
+        .finally(() => {
+          if (pending.current.get(key) !== operation) return;
+          pending.current.delete(key);
+          if (mounted.current) setPendingKeys(new Set(pending.current.keys()));
+        });
     },
-    [unsubscribeMutation],
+    [unsubscribeMutation, scope],
   );
 
   const handleEndReached = useCallback(() => {
@@ -165,10 +182,10 @@ function SubscriptionsContent() {
       <SubscriptionRow
         subscription={item}
         onUnsubscribe={handleUnsubscribe}
-        isUnsubscribing={unsubscribingAddress === item._id}
+        isUnsubscribing={pendingKeys.has(JSON.stringify([scope, item._id]))}
       />
     ),
-    [handleUnsubscribe, unsubscribingAddress],
+    [handleUnsubscribe, scope, pendingKeys],
   );
 
   const renderSeparator = useCallback(() => <Divider spacing={0} />, []);

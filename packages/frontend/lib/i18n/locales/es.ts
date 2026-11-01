@@ -665,6 +665,10 @@ const es: LocaleDict = {
     delayNotice: 'Al darte de baja, pueden pasar unos días hasta que dejen de llegarte mensajes.',
     toast: {
       unsubscribed: 'Te has dado de baja.',
+      unconfirmed:
+        'No se pudo confirmar el cambio. Comprueba la suscripción antes de volver a intentarlo.',
+      sessionUnavailable:
+        'Tu cuenta aún no está lista para actualizar las suscripciones. Inténtalo de nuevo en unos momentos.',
       requestSent: 'Solicitud de baja enviada.',
       blocked: 'Remitente bloqueado.',
     },

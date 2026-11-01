@@ -675,6 +675,10 @@ const pt: LocaleDict = {
       'Após cancelar a subscrição, pode demorar alguns dias até deixares de receber mensagens.',
     toast: {
       unsubscribed: 'Subscrição cancelada.',
+      unconfirmed:
+        'Não foi possível confirmar a alteração. Confira a assinatura antes de tentar novamente.',
+      sessionUnavailable:
+        'Sua conta ainda não está pronta para atualizar as assinaturas. Tente novamente em instantes.',
       requestSent: 'Pedido de cancelamento da subscrição enviado.',
       blocked: 'Remetente bloqueado.',
     },

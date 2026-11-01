@@ -661,6 +661,9 @@ const ko: LocaleDict = {
     delayNotice: '구독을 취소해도 메시지가 더 이상 오지 않기까지 며칠이 걸릴 수 있어요.',
     toast: {
       unsubscribed: '구독을 취소했어요.',
+      unconfirmed: '변경 사항을 확인하지 못했습니다. 다시 시도하기 전에 구독 상태를 확인하세요.',
+      sessionUnavailable:
+        '계정에서 구독을 업데이트할 준비가 되지 않았습니다. 잠시 후 다시 시도해 주세요.',
       requestSent: '구독 취소 요청을 보냈어요.',
       blocked: '보낸 사람을 차단했어요.',
     },

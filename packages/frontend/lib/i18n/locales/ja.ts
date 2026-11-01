@@ -666,6 +666,9 @@ const ja: LocaleDict = {
     delayNotice: '購読を解除しても、メッセージが届かなくなるまで数日かかる場合があります。',
     toast: {
       unsubscribed: '購読を解除しました。',
+      unconfirmed: '変更を確認できませんでした。再試行する前に購読状態を確認してください。',
+      sessionUnavailable:
+        'アカウントで購読を更新する準備ができていません。しばらくしてからもう一度お試しください。',
       requestSent: '購読解除のリクエストを送信しました。',
       blocked: '差出人をブロックしました。',
     },

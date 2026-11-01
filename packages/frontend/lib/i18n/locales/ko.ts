@@ -1136,8 +1136,6 @@ const ko: LocaleDict = {
       bundleSessionUnavailable:
         '계정이 아직 준비되지 않아 그룹을 수정할 수 없습니다. 잠시 후 다시 시도하세요.',
       bundleUpdateFailed: '묶음을 업데이트하지 못했습니다.',
-      bundleSessionUnavailable:
-        '계정이 아직 준비되지 않아 그룹을 수정할 수 없습니다. 잠시 후 다시 시도하세요.',
       bundleReorderPartial: '그룹 순서가 일부만 변경되었을 수 있습니다. 목록을 확인하세요.',
       bundleReorderFailed: '묶음 순서를 변경하지 못했습니다.',
       contactCreateFailed: '연락처를 만들지 못했습니다',

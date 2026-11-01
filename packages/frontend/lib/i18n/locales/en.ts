@@ -1157,8 +1157,6 @@ const en: LocaleDict = {
       bundleSessionUnavailable:
         'Your account is not ready to update bundles. Please try again shortly.',
       bundleUpdateFailed: 'Failed to update bundle.',
-      bundleSessionUnavailable:
-        'Your account is not ready to update bundles. Please try again shortly.',
       bundleReorderPartial: 'The bundle order may have changed only partly. Check the list.',
       bundleReorderFailed: 'Failed to reorder bundle.',
       contactCreateFailed: 'Failed to create contact',

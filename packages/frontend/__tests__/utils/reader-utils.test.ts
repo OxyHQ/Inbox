@@ -30,6 +30,29 @@ describe('cards', () => {
     expect(parseCardDate('next tuesday')).toBeNull();
   });
 
+  it('rejects impossible date-only values without normalizing them', () => {
+    for (const value of [
+      '2026-02-29',
+      '2026-02-30',
+      '2026-04-31',
+      '2026-00-01',
+      '2026-13-01',
+      '2026-01-00',
+      '1900-02-29',
+    ]) {
+      expect(parseCardDate(value)).toBeNull();
+      expect(isPastDue(value, new Date(2030, 0, 1))).toBe(false);
+    }
+  });
+
+  it('retains valid leap days and years below 100 as local calendar dates', () => {
+    for (const value of ['2024-02-29', '2000-02-29', '0000-02-29', '0099-12-31']) {
+      const date = defined(parseCardDate(value));
+      const [year, month, day] = value.split('-').map(Number);
+      expect([date.getFullYear(), date.getMonth() + 1, date.getDate()]).toEqual([year, month, day]);
+    }
+  });
+
   it('is due all of its due day', () => {
     expect(isPastDue('2026-10-15', new Date(2026, 9, 15, 23, 0))).toBe(false);
     expect(isPastDue('2026-10-15', new Date(2026, 9, 16, 0, 1))).toBe(true);

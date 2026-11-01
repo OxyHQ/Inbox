@@ -181,6 +181,7 @@ const ko: LocaleDict = {
       attachments: '{{count}}',
     },
     brief: {
+      sessionUnavailable: '계정이 준비되지 않아 브리핑 작업을 사용할 수 없습니다.',
       unavailable: '지금은 요약을 만들 수 없어요.',
       empty: '아직 요약할 메일이 없어요.',
       writing: '요약을 작성하고 있어요…',

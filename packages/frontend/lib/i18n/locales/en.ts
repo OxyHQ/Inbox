@@ -180,6 +180,7 @@ const en: LocaleDict = {
       attachments: '{{count}}',
     },
     brief: {
+      sessionUnavailable: 'Your account is not ready. Brief actions are unavailable.',
       unavailable: 'Unable to generate brief right now.',
       empty: 'No emails to summarize yet.',
       writing: 'Writing your brief…',

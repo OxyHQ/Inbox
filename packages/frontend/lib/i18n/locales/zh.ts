@@ -179,6 +179,7 @@ const zh: LocaleDict = {
       attachments: '{{count}}',
     },
     brief: {
+      sessionUnavailable: '账户尚未准备就绪，摘要操作暂不可用。',
       unavailable: '当前无法生成摘要。',
       empty: '还没有可摘要的邮件。',
       writing: '正在撰写你的摘要…',

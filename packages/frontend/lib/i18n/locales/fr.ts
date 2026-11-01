@@ -182,6 +182,8 @@ const fr: LocaleDict = {
       attachments: '{{count}}',
     },
     brief: {
+      sessionUnavailable:
+        'Votre compte n’est pas prêt. Les actions du résumé ne sont pas disponibles.',
       unavailable: 'Impossible de générer le résumé pour le moment.',
       empty: 'Aucun courriel à résumer pour le moment.',
       writing: 'Rédaction de ton résumé…',

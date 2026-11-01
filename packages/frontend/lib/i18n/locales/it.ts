@@ -673,6 +673,9 @@ const it: LocaleDict = {
       'Quando ti disiscrivi, potrebbero volerci alcuni giorni prima di smettere di ricevere messaggi.',
     toast: {
       unsubscribed: 'Disiscrizione completata.',
+      unconfirmed: 'Impossibile confermare la modifica. Controlla l’iscrizione prima di riprovare.',
+      sessionUnavailable:
+        'Il tuo account non è ancora pronto per aggiornare le iscrizioni. Riprova tra poco.',
       requestSent: 'Richiesta di disiscrizione inviata.',
       blocked: 'Mittente bloccato.',
     },

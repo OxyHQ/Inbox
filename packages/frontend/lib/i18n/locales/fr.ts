@@ -676,6 +676,10 @@ const fr: LocaleDict = {
       'Après ton désabonnement, il peut falloir quelques jours avant de ne plus recevoir de messages.',
     toast: {
       unsubscribed: 'Désabonné.',
+      unconfirmed:
+        'Impossible de confirmer la modification. Vérifiez l’abonnement avant de réessayer.',
+      sessionUnavailable:
+        'Votre compte n’est pas encore prêt à modifier les abonnements. Réessayez dans quelques instants.',
       requestSent: 'Demande de désabonnement envoyée.',
       blocked: 'Expéditeur bloqué.',
     },

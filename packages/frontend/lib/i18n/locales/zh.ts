@@ -653,6 +653,8 @@ const zh: LocaleDict = {
     delayNotice: '取消订阅后，可能需要几天才能不再收到邮件。',
     toast: {
       unsubscribed: '已取消订阅。',
+      unconfirmed: '无法确认更改。请在重试前检查订阅状态。',
+      sessionUnavailable: '你的账户尚未准备好更新订阅。请稍后重试。',
       requestSent: '已发送退订请求。',
       blocked: '已屏蔽发件人。',
     },

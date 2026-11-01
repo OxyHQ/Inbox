@@ -1,10 +1,16 @@
-import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query';
+import { useCallback } from 'react';
+import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { toast } from '@oxy.so/bloom/toast';
 import { useEmailStore } from '@/hooks/useEmail';
 import { invalidateMailViews } from '@/hooks/queries/invalidateMailViews';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import type { Subscription, Pagination } from '@/services/emailApi';
 import { useTranslation } from '@/lib/i18n';
+import {
+  assertMessageOwner,
+  ownsMessageOperation,
+  useGuardedMessageMutation,
+} from '@/hooks/mutations/guardedMessageMutation';
 
 interface SubscriptionsPage {
   data: Subscription[];
@@ -36,61 +42,71 @@ export function useUnsubscribe() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const onUnavailable = useCallback(
+    () => toast.error(t('subscriptions.toast.sessionUnavailable')),
+    [t],
+  );
 
-  return useMutation({
-    mutationFn: async ({
-      senderAddress,
-      method,
-    }: {
-      senderAddress: string;
-      method?: 'list-unsubscribe' | 'block';
-    }) => {
-      if (!api) throw new Error('Email API not initialized');
-      return await api.unsubscribe(senderAddress, method);
+  return useGuardedMessageMutation(
+    {
+      // This action can contact the sender and must not be retried automatically.
+      retry: 0,
+      mutationFn: async ({
+        senderAddress,
+        method,
+      }: {
+        senderAddress: string;
+        method?: 'list-unsubscribe' | 'block';
+      }) => {
+        if (!api) throw new Error('Email API not initialized');
+        const result = await api.unsubscribe(senderAddress, method);
+        if (!result.success) throw new Error('Unsubscribe was not confirmed');
+        return result;
+      },
+      onMutate: async (variables) => {
+        await queryClient.cancelQueries({ queryKey: emailKeys.subscriptions });
+        assertMessageOwner(variables);
+      },
+      onSuccess: async (result, variables) => {
+        // A refetch begun while the request was pending must not overwrite the
+        // server-confirmed result with older subscription data.
+        await queryClient.cancelQueries({ queryKey: emailKeys.subscriptions });
+        assertMessageOwner(variables);
+        const unsubscribedAt = new Date().toISOString();
+        queryClient.setQueryData<SubscriptionsInfinite>(emailKeys.subscriptions, (old) =>
+          old ? markUnsubscribed(old, variables.senderAddress, unsubscribedAt) : old,
+        );
+        if (!ownsMessageOperation(variables)) return;
+        const label =
+          result.method === 'one-click' || result.method === 'http'
+            ? t('subscriptions.toast.unsubscribed')
+            : result.method === 'mailto'
+              ? t('subscriptions.toast.requestSent')
+              : t('subscriptions.toast.blocked');
+        toast.success(label);
+      },
+      onError: (_err, variables) => {
+        toast.error(t('subscriptions.toast.unconfirmed'));
+        if (ownsMessageOperation(variables))
+          void queryClient.invalidateQueries({
+            queryKey: emailKeys.subscriptions,
+            refetchType: 'none',
+          });
+      },
+      onSettled: (_result, error) => {
+        if (error) return;
+        // Stale, not refetched now: an API from before `unsubscribed` existed
+        // would hand the sender back as still subscribed, and the row would flip
+        // back to an active button under the user's finger. The next visit
+        // reads the server's state.
+        void queryClient.invalidateQueries({
+          queryKey: emailKeys.subscriptions,
+          refetchType: 'none',
+        });
+        // A block moves the sender's mail; every view that shows it is stale.
+        invalidateMailViews(queryClient);
+      },
     },
-    onMutate: async ({ senderAddress }) => {
-      await queryClient.cancelQueries({ queryKey: emailKeys.subscriptions });
-
-      const prev = queryClient.getQueryData<SubscriptionsInfinite>(emailKeys.subscriptions);
-
-      // Mark the row unsubscribed — not remove it. Removed, it came straight
-      // back with an active button on the refetch that followed, because the
-      // sender still has mail in the mailbox; the API now reports the state
-      // per sender (`unsubscribed`, `unsubscribedAt`), and the row says so.
-      const unsubscribedAt = new Date().toISOString();
-      queryClient.setQueryData<SubscriptionsInfinite>(emailKeys.subscriptions, (old) =>
-        old ? markUnsubscribed(old, senderAddress, unsubscribedAt) : old,
-      );
-
-      return { prev };
-    },
-    onSuccess: (result) => {
-      const label =
-        result.method === 'one-click' || result.method === 'http'
-          ? t('subscriptions.toast.unsubscribed')
-          : result.method === 'mailto'
-            ? t('subscriptions.toast.requestSent')
-            : t('subscriptions.toast.blocked');
-      toast.success(label);
-    },
-    onError: (_err, _vars, context) => {
-      if (context?.prev) {
-        queryClient.setQueryData(emailKeys.subscriptions, context.prev);
-      }
-      toast.error(t('ui.mutations.unsubscribeFailed'));
-    },
-    onSettled: (_result, error) => {
-      if (error) return;
-      // Stale, not refetched now: an API from before `unsubscribed` existed
-      // would hand the sender back as still subscribed, and the row would flip
-      // back to an active button under the user's finger. The next visit
-      // reads the server's state.
-      void queryClient.invalidateQueries({
-        queryKey: emailKeys.subscriptions,
-        refetchType: 'none',
-      });
-      // A block moves the sender's mail; every view that shows it is stale.
-      invalidateMailViews(queryClient);
-    },
-  });
+    onUnavailable,
+  );
 }

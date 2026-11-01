@@ -679,6 +679,10 @@ const de: LocaleDict = {
       'Nach dem Abbestellen kann es ein paar Tage dauern, bis keine Nachrichten mehr ankommen.',
     toast: {
       unsubscribed: 'Abbestellt.',
+      unconfirmed:
+        'Die Änderung konnte nicht bestätigt werden. Prüfe das Abonnement, bevor du es erneut versuchst.',
+      sessionUnavailable:
+        'Dein Konto ist noch nicht bereit, Abonnements zu ändern. Bitte versuche es gleich erneut.',
       requestSent: 'Abbestellanfrage gesendet.',
       blocked: 'Absender blockiert.',
     },

@@ -30,9 +30,22 @@ jest.mock('@/lib/i18n', () => ({
   }),
 }));
 
-const mockHttp = { getSessionEpoch: () => 0, addTokenChangeListener: () => () => {} };
+const mockHttp = {
+  getSessionEpoch: () => 0,
+  getAccessToken: () => 'synthetic-token',
+  addTokenChangeListener: () => () => {},
+};
+jest.mock('@oxy.so/services/runtime', () => ({
+  useOxyRuntime: () => ({
+    getAccountSessionIdentity: () => ({ accountId: 'u1', sessionId: 's1', revision: 0 }),
+    getAccountSessionRevision: () => 0,
+  }),
+}));
 jest.mock('@oxy.so/services/ui/client', () => ({
-  useOxy: () => ({ oxyServices: { http: mockHttp } }),
+  useOxy: () => ({
+    user: { id: 'u1' },
+    oxyServices: { http: mockHttp, session: { userId: null } },
+  }),
 }));
 
 import type { ReactNode } from 'react';

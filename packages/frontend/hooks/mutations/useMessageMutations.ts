@@ -32,6 +32,7 @@ import { eachWithConcurrency, PER_MESSAGE_CONCURRENCY } from '@/utils/concurrenc
 import { recordInboxMetric } from '@/utils/inboxTelemetry';
 import {
   assertMessageOwner,
+  ownsMessageOperation,
   useGuardedMessageMutation,
 } from '@/hooks/mutations/guardedMessageMutation';
 import { type AlreadySent, alreadySentUnderKey } from '@/utils/sendIdempotency';
@@ -191,12 +192,14 @@ function toastWithUndo({
   reverse,
   queryClient,
   t,
+  isCurrent,
 }: {
   message: string;
   snapshot: MessageSnapshot;
   reverse: (origins: Map<string, string>) => Promise<unknown>;
   queryClient: ReturnType<typeof useQueryClient>;
   t: (key: string) => string;
+  isCurrent?: () => boolean;
 }) {
   const origins = snapshotOrigins(snapshot);
   if (origins.size === 0) {
@@ -207,10 +210,16 @@ function toastWithUndo({
     action: {
       label: t('common.undo'),
       onClick: () => {
+        if (isCurrent && !isCurrent()) return;
         restoreSnapshot(queryClient, snapshot, { reread: false });
+        if (isCurrent && !isCurrent()) return;
         reverse(origins)
-          .catch(() => toast.error(t('ui.mutations.undoFailed')))
-          .finally(() => invalidateMailViews(queryClient));
+          .catch(() => {
+            if (!isCurrent || isCurrent()) toast.error(t('ui.mutations.undoFailed'));
+          })
+          .finally(() => {
+            if (!isCurrent || isCurrent()) invalidateMailViews(queryClient);
+          });
       },
     },
   } as Record<string, unknown>);
@@ -233,53 +242,64 @@ export function useArchiveMessage() {
   const queryClient = useQueryClient();
   const { user } = useOxy();
   const userId = user?.id ?? null;
+  const onUnavailable = useCallback(
+    () => toast.error(t('ui.mutations.messageSessionUnavailable')),
+    [t],
+  );
 
-  return useMutation({
-    mutationKey: INBOX_MUTATION_KEYS.archive,
-    // Offline-first — see useToggleStar for the queue/replay rationale.
-    networkMode: 'offlineFirst',
-    mutationFn: async ({
-      messageId,
-      archiveMailboxId,
-    }: {
-      messageId: string;
-      archiveMailboxId: string;
-      kind?: MoveKind;
-    }) => {
-      if (!api) throw new Error('Email API not initialized');
-      await api.moveMessage(messageId, archiveMailboxId);
+  return useGuardedMessageMutation(
+    {
+      mutationKey: INBOX_MUTATION_KEYS.archive,
+      // Offline-first — see useToggleStar for the queue/replay rationale.
+      networkMode: 'offlineFirst',
+      mutationFn: async ({
+        messageId,
+        archiveMailboxId,
+      }: {
+        messageId: string;
+        archiveMailboxId: string;
+        kind?: MoveKind;
+      }) => {
+        if (!api) throw new Error('Email API not initialized');
+        await api.moveMessage(messageId, archiveMailboxId);
+      },
+      onMutate: async (variables) => {
+        const { messageId } = variables;
+        await cancelMessageQueries(queryClient, messageId);
+        assertMessageOwner(variables);
+        // The account's own detail key: under `null` the open message was never
+        // in the snapshot, and opened alone (from search, a notification) its
+        // archive had nowhere to Undo to.
+        const snapshot = snapshotForRollback(queryClient, messageId, userId);
+        removeMessageFromList(queryClient, messageId);
+        return { snapshot };
+      },
+      onSuccess: (_data, variables, context) => {
+        const { kind = 'archive' } = variables;
+        if (!api || !context) {
+          toast.success(t(MOVE_TOAST[kind]));
+          return;
+        }
+        toastWithUndo({
+          message: t(MOVE_TOAST[kind]),
+          snapshot: context.snapshot,
+          reverse: (origins) => moveBack(api, origins),
+          queryClient,
+          t,
+          isCurrent: () => ownsMessageOperation(variables),
+        });
+      },
+      onError: (_err, _vars, context) => {
+        if (context) restoreSnapshot(queryClient, context.snapshot);
+        toast.error(t('ui.mutations.archiveFailed'));
+      },
+      onSettled: () => {
+        // Mark stale but don't trigger immediate refetch — optimistic update is already applied
+        invalidateMailViews(queryClient, { views: 'stale' });
+      },
     },
-    onMutate: async ({ messageId }) => {
-      await cancelMessageQueries(queryClient, messageId);
-      // The account's own detail key: under `null` the open message was never
-      // in the snapshot, and opened alone (from search, a notification) its
-      // archive had nowhere to Undo to.
-      const snapshot = snapshotForRollback(queryClient, messageId, userId);
-      removeMessageFromList(queryClient, messageId);
-      return { snapshot };
-    },
-    onSuccess: (_data, { kind = 'archive' }, context) => {
-      if (!api || !context) {
-        toast.success(t(MOVE_TOAST[kind]));
-        return;
-      }
-      toastWithUndo({
-        message: t(MOVE_TOAST[kind]),
-        snapshot: context.snapshot,
-        reverse: (origins) => moveBack(api, origins),
-        queryClient,
-        t,
-      });
-    },
-    onError: (_err, _vars, context) => {
-      if (context) restoreSnapshot(queryClient, context.snapshot);
-      toast.error(t('ui.mutations.archiveFailed'));
-    },
-    onSettled: () => {
-      // Mark stale but don't trigger immediate refetch — optimistic update is already applied
-      invalidateMailViews(queryClient, { views: 'stale' });
-    },
-  });
+    onUnavailable,
+  );
 }
 
 export function useDeleteMessage() {
@@ -288,58 +308,69 @@ export function useDeleteMessage() {
   const queryClient = useQueryClient();
   const { user } = useOxy();
   const userId = user?.id ?? null;
+  const onUnavailable = useCallback(
+    () => toast.error(t('ui.mutations.messageSessionUnavailable')),
+    [t],
+  );
 
-  return useMutation({
-    mutationKey: INBOX_MUTATION_KEYS.delete,
-    // Offline-first — see useToggleStar for the queue/replay rationale.
-    networkMode: 'offlineFirst',
-    mutationFn: async ({
-      messageId,
-      trashMailboxId,
-      isInTrash,
-    }: {
-      messageId: string;
-      trashMailboxId?: string;
-      isInTrash: boolean;
-    }) => {
-      if (!api) throw new Error('Email API not initialized');
-      if (isInTrash) {
-        await api.deleteMessage(messageId, true);
-      } else if (trashMailboxId) {
-        await api.moveMessage(messageId, trashMailboxId);
-      } else {
-        await api.deleteMessage(messageId);
-      }
+  return useGuardedMessageMutation(
+    {
+      mutationKey: INBOX_MUTATION_KEYS.delete,
+      // Offline-first — see useToggleStar for the queue/replay rationale.
+      networkMode: 'offlineFirst',
+      mutationFn: async ({
+        messageId,
+        trashMailboxId,
+        isInTrash,
+      }: {
+        messageId: string;
+        trashMailboxId?: string;
+        isInTrash: boolean;
+      }) => {
+        if (!api) throw new Error('Email API not initialized');
+        if (isInTrash) {
+          await api.deleteMessage(messageId, true);
+        } else if (trashMailboxId) {
+          await api.moveMessage(messageId, trashMailboxId);
+        } else {
+          await api.deleteMessage(messageId);
+        }
+      },
+      onMutate: async (variables) => {
+        const { messageId } = variables;
+        await cancelMessageQueries(queryClient, messageId);
+        assertMessageOwner(variables);
+        const snapshot = snapshotForRollback(queryClient, messageId, userId);
+        removeMessageFromList(queryClient, messageId);
+        return { snapshot };
+      },
+      onSuccess: (_data, variables, context) => {
+        const { isInTrash, trashMailboxId } = variables;
+        // Deleted for good (or without a Trash to come back from): nothing to undo.
+        if (isInTrash || !trashMailboxId || !api || !context) {
+          toast.success(isInTrash ? t('ui.mutations.deletedForever') : t('ui.mutations.trashed'));
+          return;
+        }
+        toastWithUndo({
+          message: t('ui.mutations.trashed'),
+          snapshot: context.snapshot,
+          reverse: (origins) => moveBack(api, origins),
+          queryClient,
+          t,
+          isCurrent: () => ownsMessageOperation(variables),
+        });
+      },
+      onError: (_err, _vars, context) => {
+        if (context) restoreSnapshot(queryClient, context.snapshot);
+        toast.error(t('ui.mutations.deleteFailed'));
+      },
+      onSettled: () => {
+        // Mark stale but don't trigger immediate refetch — optimistic update is already applied
+        invalidateMailViews(queryClient, { views: 'stale' });
+      },
     },
-    onMutate: async ({ messageId }) => {
-      await cancelMessageQueries(queryClient, messageId);
-      const snapshot = snapshotForRollback(queryClient, messageId, userId);
-      removeMessageFromList(queryClient, messageId);
-      return { snapshot };
-    },
-    onSuccess: (_data, { isInTrash, trashMailboxId }, context) => {
-      // Deleted for good (or without a Trash to come back from): nothing to undo.
-      if (isInTrash || !trashMailboxId || !api || !context) {
-        toast.success(isInTrash ? t('ui.mutations.deletedForever') : t('ui.mutations.trashed'));
-        return;
-      }
-      toastWithUndo({
-        message: t('ui.mutations.trashed'),
-        snapshot: context.snapshot,
-        reverse: (origins) => moveBack(api, origins),
-        queryClient,
-        t,
-      });
-    },
-    onError: (_err, _vars, context) => {
-      if (context) restoreSnapshot(queryClient, context.snapshot);
-      toast.error(t('ui.mutations.deleteFailed'));
-    },
-    onSettled: () => {
-      // Mark stale but don't trigger immediate refetch — optimistic update is already applied
-      invalidateMailViews(queryClient, { views: 'stale' });
-    },
-  });
+    onUnavailable,
+  );
 }
 
 export function useSendMessage() {

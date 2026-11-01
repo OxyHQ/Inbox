@@ -60,6 +60,7 @@ const SKIPPED_TAGS = new Set(['head', 'noscript', 'script', 'style', 'template',
 class TextWriter {
   out = '';
   private preserved: { start: number; end: number }[] = [];
+  private explicitBreaks: number[] = [];
 
   get atLineStart(): boolean {
     return this.out === '' || this.out.endsWith('\n');
@@ -77,7 +78,8 @@ class TextWriter {
     if (!this.out.endsWith('\n\n')) this.out += '\n';
   }
 
-  write(text: string, preserve = false): void {
+  write(text: string, preserve = false, explicitBreak = false): void {
+    if (explicitBreak && text === '\n') this.explicitBreaks.push(this.out.length);
     if (preserve && text)
       this.preserved.push({ start: this.out.length, end: this.out.length + text.length });
     this.out += text;
@@ -100,8 +102,24 @@ class TextWriter {
     return !!range && range.start <= offset;
   }
 
+  private firstBreakAtOrAfter(offset: number): number {
+    let low = 0;
+    let high = this.explicitBreaks.length;
+    while (low < high) {
+      const middle = (low + high) >>> 1;
+      if (this.explicitBreaks[middle] < offset) low = middle + 1;
+      else high = middle;
+    }
+    return low;
+  }
+
   /** Copy a slice and its preformatted ranges without inventing sentinels. */
   copyTo(other: TextWriter, start: number, end: number): void {
+    if (end === start + 1 && this.out[start] === '\n') {
+      const index = this.firstBreakAtOrAfter(start);
+      other.write('\n', this.isPreserved(start), this.explicitBreaks[index] === start);
+      return;
+    }
     let cursor = start;
     for (let i = this.firstAfter(start); i < this.preserved.length; i++) {
       const range = this.preserved[i];
@@ -132,7 +150,12 @@ class TextWriter {
     for (const match of this.out.matchAll(/\n{3,}/g)) {
       const end = match.index + match[0].length;
       const range = this.preserved[this.firstAfter(match.index)];
-      if (!range || range.start >= end) removals.push({ start: match.index + 2, end });
+      if (range && range.start < end) continue;
+      const first = this.firstBreakAtOrAfter(match.index);
+      const last = first + match[0].length - 1;
+      const onlyExplicit =
+        this.explicitBreaks[first] === match.index && this.explicitBreaks[last] === end - 1;
+      if (!onlyExplicit) removals.push({ start: match.index + 2, end });
     }
     let leading = 0;
     while (this.out[leading] === '\n' && !this.isPreserved(leading)) leading++;
@@ -222,7 +245,7 @@ function render(
     if (!name || SKIPPED_TAGS.has(name) || !('children' in node)) continue;
 
     if (name === 'br') {
-      writer.write('\n', pre);
+      writer.write('\n', pre, true);
     } else if (name === 'hr') {
       writer.lineBreak();
       writer.write('---\n');

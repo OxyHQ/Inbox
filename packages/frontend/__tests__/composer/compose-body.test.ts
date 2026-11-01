@@ -268,3 +268,27 @@ describe('HTML pre initial line-feed parsing', () => {
     expect(draftToEditorContent({ html, text: null }, false)).toBe(expected);
   });
 });
+describe('explicit blank lines in plain-text bodies', () => {
+  it('keeps consecutive explicit breaks between text', () => {
+    const html = 'A<br><br><br>B';
+    expect(bodyParts(html, true)).toEqual({ text: 'A\n\n\nB', html });
+  });
+  it('keeps multiple explicit breaks when reopening an HTML-only native draft', () => {
+    expect(draftToEditorContent({ html: 'A<br><br><br>B', text: null }, false)).toBe('A\n\n\nB');
+  });
+});
+
+it('preserves explicit breaks in quoted text and preformatted text', () => {
+  expect(bodyParts('<blockquote>A<br><br><br>B</blockquote>', true).text).toBe('> A\n>\n>\n> B');
+  expect(bodyParts('<pre>A<br><br><br>B</pre>', true).text).toBe('A\n\n\nB');
+});
+
+it('preserves a long run of explicit breaks without changing its length', () => {
+  const breaks = '<br>'.repeat(1000);
+  expect(bodyParts(`A${breaks}B`, true).text).toBe(`A${'\n'.repeat(1000)}B`);
+});
+
+it('keeps existing outer-boundary and paragraph normalization', () => {
+  expect(bodyParts('<br><br>A<br><br>', true).text).toBe('A');
+  expect(bodyParts('<p>A</p><p>B</p>', true).text).toBe('A\n\nB');
+});

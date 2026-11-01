@@ -108,8 +108,9 @@ export function AttachmentPreview({
   const { colors } = useTheme();
   const openAttachment = useOpenAttachment();
   const isImage = attachment.contentType.toLowerCase().startsWith('image/');
-  const { url } = useAttachmentUrl(attachment.fileId, isImage, 'thumb');
-  const [failed, setFailed] = useState(false);
+  const { url, scope, isCurrent } = useAttachmentUrl(attachment.fileId, isImage, 'thumb');
+  const [failure, setFailure] = useState<{ url: string; scope: typeof scope } | null>(null);
+  const failed = failure?.url === url && failure.scope === scope;
   const info = getAttachmentInfo(attachment, colors);
   const extension = attachment.name.split('.').pop();
   const fileType =
@@ -134,7 +135,9 @@ export function AttachmentPreview({
           source={url}
           contentFit="cover"
           style={styles.image}
-          onError={() => setFailed(true)}
+          onError={() => {
+            if (isCurrent()) setFailure({ url, scope });
+          }}
           accessibilityLabel={attachment.name}
         />
       ) : (

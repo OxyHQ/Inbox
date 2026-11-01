@@ -9,9 +9,10 @@ interface AttachmentThumbnailProps {
 }
 export function AttachmentThumbnail({ fileId, size = 48 }: AttachmentThumbnailProps) {
   const { t } = useTranslation();
-  const { url, isLoading } = useAttachmentUrl(fileId, true, 'thumb');
+  const { url, isLoading, scope } = useAttachmentUrl(fileId, true, 'thumb');
   return (
     <Avatar
+      key={scope.id}
       source={url}
       size={size}
       shape="squircle"

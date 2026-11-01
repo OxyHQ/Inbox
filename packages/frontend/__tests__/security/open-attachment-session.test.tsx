@@ -560,3 +560,37 @@ it('opens normally after StrictMode effect replay', async () => {
   client.clear();
   cleanup();
 });
+
+it.each(['android', 'ios'])(
+  'keeps ordinary and Unicode attachment names in native file URIs on %s',
+  async (platform) => {
+    mockPlatform = platform;
+    const { hook, cleanup } = setup();
+    jest.spyOn(mockOxy.assets, 'url').mockResolvedValue('https://files.test/file');
+    mockDownload.mockImplementation(async (_source: string, destination: string) => ({
+      status: 200,
+      uri: destination,
+    }));
+    mockShare.mockResolvedValue(undefined);
+    const examples: [string, string][] = [
+      ['ordinary.txt', 'ordinary.txt'],
+      ['report #2.pdf', 'report #2.pdf'],
+      ['50%.txt', '50%.txt'],
+      ['中文 😀.png', '中文 😀.png'],
+      ['bad\ud800name.txt', 'bad�name.txt'],
+      [`${'a'.repeat(179)}😀.txt`, `${'a'.repeat(179)}�`],
+    ];
+    for (const [filename, expected] of examples) {
+      await act(async () => {
+        await hook.result.current('file', filename);
+      });
+      const destination = mockDownload.mock.calls.at(-1)?.[1] as string;
+      const url = new URL(destination);
+      expect(url.hash).toBe('');
+      expect(url.search).toBe('');
+      expect(decodeURIComponent(url.pathname.slice('/cache/'.length))).toBe(expected);
+    }
+    expect(mockToast).not.toHaveBeenCalled();
+    cleanup();
+  },
+);

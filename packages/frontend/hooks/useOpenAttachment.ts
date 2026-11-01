@@ -6,7 +6,7 @@ import { toast } from '@oxy.so/bloom/toast';
 import { useOxy } from '@oxy.so/services/ui/client';
 import { useTranslation } from '@/lib/i18n';
 import { useObservedInferenceOwner } from '@/hooks/queries/useObservedInferenceOwner';
-import { safeDownloadFilename } from '@/utils/downloadFilename';
+import { safeDownloadUriComponent } from '@/utils/downloadFilename';
 
 /** Open the same authenticated file from a mail row or the message reader. */
 export function useOpenAttachment() {
@@ -112,7 +112,7 @@ export function useOpenAttachment() {
         }
         const download = await FileSystem.downloadAsync(
           url,
-          cacheDirectory + safeDownloadFilename(filename),
+          cacheDirectory + safeDownloadUriComponent(filename),
         );
         if (!isCurrent()) return;
         if (download.status < 200 || download.status >= 300) {

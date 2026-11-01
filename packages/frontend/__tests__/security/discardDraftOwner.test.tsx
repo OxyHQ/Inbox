@@ -9,6 +9,7 @@ import { wireMessage } from '../fixtures/wire';
 
 let mockOxy: OxyServices;
 let mockUser: string | null = 'alice';
+let mockUseRuntimeSnapshot = false;
 let mockRuntime: ReturnType<typeof import('@oxy.so/services/runtime').useOxyRuntime>;
 const mockTranslate = (key: string) => key;
 const mockToast = Object.assign(jest.fn(), {
@@ -19,7 +20,18 @@ const mockToast = Object.assign(jest.fn(), {
 });
 jest.mock('@oxy.so/services/runtime', () => ({ useOxyRuntime: () => mockRuntime }));
 jest.mock('@oxy.so/services/ui/client', () => ({
-  useOxy: () => ({ user: mockUser === null ? null : { id: mockUser }, oxyServices: mockOxy }),
+  useOxy: () => {
+    const { useSyncExternalStore } = require('react');
+    const snapshot = useSyncExternalStore(
+      mockRuntime.subscribe,
+      mockRuntime.getSnapshot,
+      mockRuntime.getSnapshot,
+    );
+    return {
+      user: mockUseRuntimeSnapshot ? snapshot.account : mockUser === null ? null : { id: mockUser },
+      oxyServices: mockOxy,
+    };
+  },
 }));
 jest.mock('@oxy.so/bloom/toast', () => ({ toast: mockToast }));
 jest.mock('@/lib/i18n', () => ({ useTranslation: () => ({ t: mockTranslate, locale: 'en' }) }));
@@ -52,6 +64,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   previousFetch = globalThis.fetch;
   mockUser = 'alice';
+  mockUseRuntimeSnapshot = false;
   mockOxy = new OxyServices({
     baseURL: 'https://api.test',
     enableRetry: false,
@@ -778,56 +791,115 @@ it.each(['B', 'ABA'] as const)(
   },
 );
 
-it('suppresses feedback when runtime and rendered account disagree', async () => {
-  mockRuntime.setAccount({ id: 'bob' });
-  useEmailStore.getState()._initApi(mockOxy.http);
-  globalThis.fetch = jest.fn(async () => ({
-    ...response({ error: 'forbidden' }),
-    ok: false,
-    status: 403,
-    statusText: 'Forbidden',
-  })) as never;
-  const client = createInboxQueryClient();
-  const draft = MessageSchema.parse(
-    wireMessage({
-      _id: 'synthetic-draft-A',
-      userId: 'alice',
-      flags: {
-        seen: true,
-        starred: false,
-        answered: false,
-        forwarded: false,
-        draft: true,
-        pinned: false,
-      },
-    }),
-  );
-  const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={client}>{children}</QueryClientProvider>
-  );
-  const { result, unmount } = renderHook(
-    () =>
-      useComposeSession({
-        recoveryIdentity: 'draft:synthetic',
-        draft,
-        awaitingReplyHeaders: false,
-        insertSignature: false,
-        onFinished: jest.fn(),
+it.each(['bob', 'null'] as const)(
+  'suppresses feedback when runtime %s and rendered account disagree',
+  async (projection) => {
+    if (projection === 'null') mockRuntime.clearSession();
+    else mockRuntime.setAccount({ id: 'bob' });
+    useEmailStore.getState()._initApi(mockOxy.http);
+    globalThis.fetch = jest.fn(async () => ({
+      ...response({ error: 'forbidden' }),
+      ok: false,
+      status: 403,
+      statusText: 'Forbidden',
+    })) as never;
+    const client = createInboxQueryClient();
+    const draft = MessageSchema.parse(
+      wireMessage({
+        _id: 'synthetic-draft-A',
+        userId: 'alice',
+        flags: {
+          seen: true,
+          starred: false,
+          answered: false,
+          forwarded: false,
+          draft: true,
+          pinned: false,
+        },
       }),
-    { wrapper },
-  );
-  await act(async () => {
-    for (let i = 0; i < 10; i++) await Promise.resolve();
-  });
-  let discard!: Promise<unknown>;
-  act(() => {
-    discard = result.current.discardDraft();
-  });
-  unmount();
-  await act(async () => {
-    await discard;
-  });
-  expect(globalThis.fetch).toHaveBeenCalledTimes(1);
-  expect(mockToast.error).not.toHaveBeenCalled();
-  client.clear();
-});
+    );
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const { result, unmount } = renderHook(
+      () =>
+        useComposeSession({
+          recoveryIdentity: 'draft:synthetic',
+          draft,
+          awaitingReplyHeaders: false,
+          insertSignature: false,
+          onFinished: jest.fn(),
+        }),
+      { wrapper },
+    );
+    await act(async () => {
+      for (let i = 0; i < 10; i++) await Promise.resolve();
+    });
+    let discard!: Promise<unknown>;
+    act(() => {
+      discard = result.current.discardDraft();
+    });
+    unmount();
+    await act(async () => {
+      await discard;
+    });
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    expect(mockToast.error).not.toHaveBeenCalled();
+    client.clear();
+  },
+);
+
+it.each(['null', 'alice'] as const)(
+  'reports not-ready when real runtime snapshot projects %s and API is unavailable',
+  async (account) => {
+    mockUseRuntimeSnapshot = true;
+    if (account === 'null') mockRuntime.clearSession();
+    const fetchSpy = jest.fn();
+    globalThis.fetch = fetchSpy as never;
+    const client = createInboxQueryClient(),
+      onFinished = jest.fn();
+    const draft = MessageSchema.parse(
+      wireMessage({
+        _id: 'synthetic-draft-A',
+        userId: 'alice',
+        flags: {
+          seen: true,
+          starred: false,
+          answered: false,
+          forwarded: false,
+          draft: true,
+          pinned: false,
+        },
+      }),
+    );
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const { result, unmount } = renderHook(
+      () =>
+        useComposeSession({
+          recoveryIdentity: 'draft:synthetic',
+          draft,
+          awaitingReplyHeaders: false,
+          insertSignature: false,
+          onFinished,
+        }),
+      { wrapper },
+    );
+    await act(async () => {
+      for (let i = 0; i < 10; i++) await Promise.resolve();
+    });
+    let discard!: Promise<unknown>;
+    act(() => {
+      discard = result.current.discardDraft();
+    });
+    expect(onFinished).toHaveBeenCalled();
+    unmount();
+    await act(async () => {
+      await discard;
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(mockToast.error).toHaveBeenCalledWith('ui.mutations.messageSessionUnavailable');
+    client.clear();
+  },
+);

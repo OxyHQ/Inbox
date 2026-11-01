@@ -110,7 +110,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   // Parse the submitted query for Gmail-style operators
   const parsedQuery = useMemo(() => parseSearchQuery(submittedQuery), [submittedQuery]);
   const invalidDate =
-    hasInvalidSearchDate(query) ||
+    (!nlParsedOptions && hasInvalidSearchDate(query)) ||
     hasInvalidSearchDate(submittedQuery) ||
     isInvalidSearchDate(nlParsedOptions?.after ?? parsedQuery.after ?? filters.dateAfter) ||
     isInvalidSearchDate(nlParsedOptions?.before ?? parsedQuery.before ?? filters.dateBefore);

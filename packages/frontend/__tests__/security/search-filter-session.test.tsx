@@ -631,6 +631,21 @@ it('blocks an invalid saved filter while keeping the original value', async () =
   cleanup();
 });
 
+it('uses executed saved filters instead of an old invalid date in its label', async () => {
+  const { view, cleanup } = await setup();
+  act(() => mockApplySaved?.({ query: 'after:2026-02-30', filters: { dateAfter: '2026-02-28' } }));
+  expect(mockSearchEnabled).toBe(true);
+  expect(view.queryByText('search.ui.invalidDate')).toBeNull();
+  expect(mockOptions.dateAfter).toBe(new Date(2026, 1, 28).toISOString());
+  const input = view.getByLabelText('search');
+  fireEvent.change(input, { target: { value: 'after:2026-02-30 from:alice' } });
+  expect(mockSearchEnabled).toBe(false);
+  fireEvent.keyDown(input, { key: 'Enter' });
+  expect(mockSearchEnabled).toBe(false);
+  expect(view.getByText('search.ui.invalidDate')).toBeTruthy();
+  cleanup();
+});
+
 it('does not start AI interpretation while an invalid saved date is active', async () => {
   const { input, post, cleanup } = await setup();
   act(() => mockApplySaved?.({ query: '', filters: { dateAfter: '2026-02-30' } }));

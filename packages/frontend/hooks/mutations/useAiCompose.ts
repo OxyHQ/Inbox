@@ -1,6 +1,13 @@
 /** Inbox compose assistance through Oxy's bounded `/email/ai/compose` lane. */
 
-import { useCallback, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { useOxyRuntime } from '@oxy.so/services/runtime';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from '@oxy.so/bloom/toast';
@@ -15,6 +22,11 @@ type RewriteOwner = {
   isCurrent: () => boolean;
   signal: AbortSignal;
   dispose: () => void;
+  accountId: string | null;
+  sessionId: string | null;
+  revision: number;
+  epoch: number;
+  bindingId: symbol | null;
 };
 
 type ComposeOperation =
@@ -70,6 +82,10 @@ export function useAiCompose(): UseAiComposeReturn {
   const runtime = useOxyRuntime();
   const http = oxyServices.http;
   const subjectId = user?.id ?? null;
+  const renderBinding = useMemo(
+    () => ({ id: Symbol(), runtime, http, subjectId }),
+    [runtime, http, subjectId],
+  );
   const subscribeToken = useCallback(
     (notify: () => void) => http.addTokenChangeListener(notify),
     [http],
@@ -92,6 +108,7 @@ export function useAiCompose(): UseAiComposeReturn {
     runtime: typeof runtime;
     http: typeof http;
     subjectId: string | null;
+    id: symbol;
   } | null>(null);
   const streamControllerRef = useRef<AbortController | null>(null);
   const streamCleanupRef = useRef<(() => void) | null>(null);
@@ -103,6 +120,7 @@ export function useAiCompose(): UseAiComposeReturn {
     epoch: number;
     runtime: typeof runtime;
     http: typeof http;
+    bindingId: symbol | null;
   } | null>(null);
 
   useLayoutEffect(() => {
@@ -118,7 +136,7 @@ export function useAiCompose(): UseAiComposeReturn {
   }, []);
 
   useLayoutEffect(() => {
-    const binding = { runtime, http, subjectId };
+    const binding = renderBinding;
     committedServicesRef.current = binding;
     return () => {
       if (committedServicesRef.current !== binding) return;
@@ -127,7 +145,7 @@ export function useAiCompose(): UseAiComposeReturn {
       streamCleanupRef.current?.();
       for (const stop of rewriteStopsRef.current) stop();
     };
-  }, [runtime, http, subjectId]);
+  }, [renderBinding]);
 
   const mutation = useMutation<string, Error, ComposeOperation>({
     mutationKey: aiKeys.compose,
@@ -307,7 +325,16 @@ export function useAiCompose(): UseAiComposeReturn {
     } else {
       stop();
     }
-    return { isCurrent, signal: controller.signal, dispose };
+    return {
+      isCurrent,
+      signal: controller.signal,
+      dispose,
+      accountId: subjectId,
+      sessionId: projection.sessionId,
+      revision: projectionRevision,
+      epoch,
+      bindingId: binding?.id ?? null,
+    };
   }, [subjectId, projection.sessionId, projectionRevision, runtime, http, epoch, oxyServices, t]);
   const streamDraft = useCallback(
     async (
@@ -364,7 +391,7 @@ export function useAiCompose(): UseAiComposeReturn {
         throw abortedStream();
       }
       streamControllerRef.current = controller;
-      const visibleOwner = { ...captured, epoch, runtime, http };
+      const visibleOwner = { ...captured, epoch, runtime, http, bindingId: binding?.id ?? null };
       setVisibleStream(visibleOwner);
       let cleanup = () => {};
       const check = () => {
@@ -453,12 +480,33 @@ export function useAiCompose(): UseAiComposeReturn {
       visibleStream.accountId === subjectId &&
       visibleStream.runtime === runtime &&
       visibleStream.http === http &&
+      visibleStream.bindingId === renderBinding.id &&
       visibleStream.epoch === epoch &&
       visibleProjectionMatches &&
       oxyServices.session.isAuthenticated &&
       (oxyServices.session.userId === null ||
         oxyServices.session.userId === visibleStream.accountId),
   );
+  const mutationOwner =
+    mutation.variables && 'owner' in mutation.variables ? mutation.variables.owner : undefined;
+  const isCurrentRewrite =
+    !mutationOwner ||
+    Boolean(
+      !mutationOwner.signal.aborted &&
+        mutationOwner.accountId !== null &&
+        mutationOwner.accountId === subjectId &&
+        mutationOwner.bindingId === renderBinding.id &&
+        mutationOwner.epoch === epoch &&
+        projection.accountId === mutationOwner.accountId &&
+        ((projection.revision === mutationOwner.revision &&
+          projection.sessionId === mutationOwner.sessionId) ||
+          (mutationOwner.sessionId === null &&
+            projection.sessionId !== null &&
+            projection.revision === mutationOwner.revision + 1)) &&
+        oxyServices.session.isAuthenticated &&
+        (oxyServices.session.userId === null ||
+          oxyServices.session.userId === mutationOwner.accountId),
+    );
   return {
     draft,
     captureOwner,
@@ -468,7 +516,8 @@ export function useAiCompose(): UseAiComposeReturn {
     adjustLength,
     suggestSubject,
     isLoading:
-      mutation.isPending && (mutation.variables?.kind !== 'streamDraft' || isCurrentStream),
+      mutation.isPending &&
+      (mutation.variables?.kind === 'streamDraft' ? isCurrentStream : isCurrentRewrite),
     isCurrentStream,
     error: mutation.error,
   };

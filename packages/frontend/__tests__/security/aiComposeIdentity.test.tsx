@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { onlineManager, QueryClientProvider } from '@tanstack/react-query';
+import { dehydrate, onlineManager, QueryClientProvider } from '@tanstack/react-query';
 import { OxyServices } from '@oxy.so/core';
 import type { ReactNode } from 'react';
 import { useEmailStore } from '@/hooks/useEmail';
@@ -353,6 +353,8 @@ it('keeps rewrite operations memory-only and suppresses an obsolete failure', as
     join(directory, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
   );
   expect(accountQueryOwnership(INBOX_ACCOUNT_QUERIES).persistsMutation(mutation)).toBe(false);
+  const forced = dehydrate(client, { shouldDehydrateMutation: () => true });
+  expect(JSON.stringify(forced)).not.toContain(token('alice', 'a-session'));
   await act(async () => {
     mockRuntime.setAccount({ id: 'bob' });
     reject(new Error('synthetic failure'));

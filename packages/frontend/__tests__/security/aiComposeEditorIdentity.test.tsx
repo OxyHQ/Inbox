@@ -354,6 +354,47 @@ function beginDraft() {
   });
   fireEvent.click(screen.getAllByRole('button', { name: 'ai.toolbar.draft' })[1]);
 }
+it('does not show an aborted old preview after a committed user-only ABA', async () => {
+  const stream = controlledStream();
+  const client = createInboxQueryClient();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <ComposeHarness />
+    </QueryClientProvider>,
+  );
+  beginDraft();
+  await waitFor(() => expect(screen.getByText('first')).toBeTruthy());
+  act(() => {
+    mockUser = 'bob';
+    view.rerender(
+      <QueryClientProvider client={client}>
+        <ComposeHarness />
+      </QueryClientProvider>,
+    );
+  });
+  expect(screen.queryByText('first')).toBeNull();
+  act(() => {
+    mockUser = 'alice';
+    view.rerender(
+      <QueryClientProvider client={client}>
+        <ComposeHarness />
+      </QueryClientProvider>,
+    );
+  });
+  expect(screen.queryByText('first')).toBeNull();
+  expect(
+    (screen.getAllByRole('button', { name: 'ai.toolbar.draft' })[0] as HTMLButtonElement).disabled,
+  ).toBe(false);
+  await act(async () => {
+    stream.finish();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+  expect((screen.getByLabelText('editor') as HTMLTextAreaElement).value).toBe(
+    'Original unsaved text',
+  );
+  view.unmount();
+  client.clear();
+});
 it('uses the real session current text when an edit and polish start in the same batch', async () => {
   jest.spyOn(mockOxy.http, 'post').mockResolvedValueOnce({
     schemaVersion: 1,
@@ -555,6 +596,59 @@ it('does not apply a polish result to a newly projected account', async () => {
   expect((screen.getByLabelText('editor') as HTMLTextAreaElement).value).toBe(
     'Original unsaved text',
   );
+  view.unmount();
+  client.clear();
+});
+it('does not leave the next account toolbar blocked when the old rewrite ignores abort', async () => {
+  let finish!: (value: { schemaVersion: number; requestId: string; text: string }) => void;
+  const response = new Promise<{ schemaVersion: number; requestId: string; text: string }>(
+    (resolve) => {
+      finish = resolve;
+    },
+  );
+  jest
+    .spyOn(mockOxy.http, 'post')
+    .mockReturnValueOnce(response as never)
+    .mockResolvedValueOnce({
+      schemaVersion: 1,
+      requestId: 'req_01a06477',
+      text: 'new account result',
+    } as never);
+  const client = createInboxQueryClient();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <ComposeHarness />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'ai.toolbar.polish' }));
+  await waitFor(() => expect(mockOxy.http.post).toHaveBeenCalled());
+  act(() => {
+    mockUser = 'bob';
+    mockOxy.session.setAccessToken(token('bob', 'b-session'));
+    mockRuntime.batch(() => {
+      mockRuntime.setAccount({ id: 'bob' });
+      mockRuntime.setActiveSessionId('b-session');
+    });
+    view.rerender(
+      <QueryClientProvider client={client}>
+        <ComposeHarness />
+      </QueryClientProvider>,
+    );
+  });
+  expect(
+    (screen.getByRole('button', { name: 'ai.toolbar.polish' }) as HTMLButtonElement).disabled,
+  ).toBe(false);
+  fireEvent.click(screen.getByRole('button', { name: 'ai.toolbar.polish' }));
+  await waitFor(() =>
+    expect((screen.getByLabelText('editor') as HTMLTextAreaElement).value).toBe(
+      'new account result',
+    ),
+  );
+  await act(async () => {
+    finish({ schemaVersion: 1, requestId: 'req_01a06477', text: 'old' });
+    await response;
+  });
+  expect((screen.getByLabelText('editor') as HTMLTextAreaElement).value).toBe('new account result');
   view.unmount();
   client.clear();
 });

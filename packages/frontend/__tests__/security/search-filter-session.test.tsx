@@ -737,39 +737,42 @@ it('does not start a search for an invalid date and hides an older late response
   cleanup();
 });
 
-it('does not show cached unreadable rows or fetch a broad next page for an unresolved folder', async () => {
-  mockUseRealSearch = true;
-  const search = jest.fn(async (_options: Record<string, unknown>) => ({
-    data: [],
-    unreadable: [{ _id: 'broad-row' }],
-    pagination: { total: 100, limit: 50, offset: 0, hasMore: true, nextCursor: 'next' },
-  }));
-  useEmailStore.setState({ _api: { search } as never });
-  const { input, cleanup } = await setup();
-  fireEvent.change(input, { target: { value: 'from:alice' } });
-  fireEvent.keyDown(input, { key: 'Enter' });
-  await waitFor(() => expect(mockRenderedItems).toHaveLength(1));
-  expect(search).toHaveBeenCalledTimes(1);
-  const oldEndReached = mockEndReached;
-  fireEvent.change(input, { target: { value: 'from:alice in:not-a-folder' } });
-  expect(mockSearchEnabled).toBe(false);
-  expect(mockRenderedItems).toHaveLength(0);
-  act(() => oldEndReached?.());
-  expect(search).toHaveBeenCalledTimes(1);
-  fireEvent.keyDown(input, { key: 'Enter' });
-  expect(mockSearchEnabled).toBe(false);
-  expect(mockRenderedItems).toHaveLength(0);
-  act(() => mockEndReached?.());
-  expect(search).toHaveBeenCalledTimes(1);
-  fireEvent.change(input, { target: { value: 'from:alice' } });
-  fireEvent.keyDown(input, { key: 'Enter' });
-  await waitFor(() => expect(mockSearchEnabled).toBe(true));
-  act(() => oldEndReached?.());
-  expect(search).toHaveBeenCalledTimes(1);
-  act(() => mockEndReached?.());
-  await waitFor(() => expect(search).toHaveBeenCalledTimes(2));
-  cleanup();
-});
+it.each([false, true])(
+  'does not fetch a broad next page for an unresolved folder (StrictMode: %s)',
+  async (strict) => {
+    mockUseRealSearch = true;
+    const search = jest.fn(async (_options: Record<string, unknown>) => ({
+      data: [],
+      unreadable: [{ _id: 'broad-row' }],
+      pagination: { total: 100, limit: 50, offset: 0, hasMore: true, nextCursor: 'next' },
+    }));
+    useEmailStore.setState({ _api: { search } as never });
+    const { input, cleanup } = await setup(strict);
+    fireEvent.change(input, { target: { value: 'from:alice' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() => expect(mockRenderedItems).toHaveLength(1));
+    expect(search).toHaveBeenCalledTimes(1);
+    const oldEndReached = mockEndReached;
+    fireEvent.change(input, { target: { value: 'from:alice in:not-a-folder' } });
+    expect(mockSearchEnabled).toBe(false);
+    expect(mockRenderedItems).toHaveLength(0);
+    act(() => oldEndReached?.());
+    expect(search).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(mockSearchEnabled).toBe(false);
+    expect(mockRenderedItems).toHaveLength(0);
+    act(() => mockEndReached?.());
+    expect(search).toHaveBeenCalledTimes(1);
+    fireEvent.change(input, { target: { value: 'from:alice' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() => expect(mockSearchEnabled).toBe(true));
+    act(() => oldEndReached?.());
+    expect(search).toHaveBeenCalledTimes(1);
+    act(() => mockEndReached?.());
+    await waitFor(() => expect(search).toHaveBeenCalledTimes(2));
+    cleanup();
+  },
+);
 
 it('hides a previous search response that arrives after the folder becomes unresolved', async () => {
   mockUseRealSearch = true;

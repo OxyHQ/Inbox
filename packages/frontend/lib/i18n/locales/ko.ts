@@ -498,6 +498,7 @@ const ko: LocaleDict = {
   },
 
   smartReply: {
+    unavailable: '계정이 준비되면 빠른 답장을 사용할 수 있습니다.',
     generate: 'AI로 빠른 답장 만들기',
     notice: 'Oxy는 제한된 메일 내용을 Kaana로 보내기 전에 민감한 정보가 있는지 확인해요.',
     generating: '빠른 답장을 만드는 중',

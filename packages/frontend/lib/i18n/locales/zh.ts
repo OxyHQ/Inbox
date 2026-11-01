@@ -492,6 +492,7 @@ const zh: LocaleDict = {
   },
 
   smartReply: {
+    unavailable: '账户准备就绪后即可使用快捷回复。',
     generate: '用 AI 生成快速回复',
     notice: 'Oxy 会先检查敏感内容，再将有限的邮件上下文发送给 Kaana。',
     generating: '正在生成快速回复',

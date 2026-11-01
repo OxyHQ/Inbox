@@ -1151,6 +1151,9 @@ const es: LocaleDict = {
       mailboxCreateFailed: 'No se pudo crear la carpeta.',
       mailboxDeleted: 'Carpeta eliminada.',
       mailboxDeleteFailed: 'No se pudo eliminar la carpeta.',
+      mailboxSelectionExpired: 'Tu sesión ha cambiado. Selecciona la carpeta de nuevo.',
+      mailboxSessionUnavailable:
+        'Tu cuenta aún no está lista para modificar carpetas. Inténtalo de nuevo en un momento.',
       reminderCreateFailed: 'No se pudo crear el recordatorio',
       reminderUpdateFailed: 'No se pudo actualizar el recordatorio',
       reminderDeleteFailed: 'No se pudo eliminar el recordatorio',

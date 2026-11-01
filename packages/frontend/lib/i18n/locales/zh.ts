@@ -1122,6 +1122,8 @@ const zh: LocaleDict = {
       mailboxCreateFailed: '无法创建文件夹。',
       mailboxDeleted: '文件夹已删除。',
       mailboxDeleteFailed: '无法删除文件夹。',
+      mailboxSelectionExpired: '会话已更改，请重新选择文件夹。',
+      mailboxSessionUnavailable: '你的账号尚未准备好修改文件夹，请稍后重试。',
       reminderCreateFailed: '无法创建提醒',
       reminderUpdateFailed: '无法更新提醒',
       reminderDeleteFailed: '无法删除提醒',

@@ -1,3 +1,7 @@
+jest.mock('@/hooks/mutations/ownedEmailMutation', () => ({
+  useEmailMutationOwner: () => ({}),
+  isCurrentEmailOwner: () => true,
+}));
 jest.mock('@/components/EmptyStateSticker', () => ({ EmptyStateSticker: () => null }));
 jest.mock('@oxy.so/bloom/empty-state', () => ({
   EmptyState: ({

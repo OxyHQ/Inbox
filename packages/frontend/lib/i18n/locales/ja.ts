@@ -1146,6 +1146,9 @@ const ja: LocaleDict = {
       mailboxCreateFailed: 'フォルダーを作成できませんでした。',
       mailboxDeleted: 'フォルダーを削除しました。',
       mailboxDeleteFailed: 'フォルダーを削除できませんでした。',
+      mailboxSelectionExpired: 'セッションが変更されました。フォルダーをもう一度選択してください。',
+      mailboxSessionUnavailable:
+        'アカウントでフォルダーを変更する準備ができていません。しばらくしてからもう一度お試しください。',
       reminderCreateFailed: 'リマインダーを作成できませんでした',
       reminderUpdateFailed: 'リマインダーを更新できませんでした',
       reminderDeleteFailed: 'リマインダーを削除できませんでした',

@@ -1161,6 +1161,9 @@ const pt: LocaleDict = {
       mailboxCreateFailed: 'Falha ao criar a pasta.',
       mailboxDeleted: 'Pasta eliminada.',
       mailboxDeleteFailed: 'Falha ao eliminar a pasta.',
+      mailboxSelectionExpired: 'A tua sessão mudou. Escolhe novamente a pasta.',
+      mailboxSessionUnavailable:
+        'A tua conta ainda não está pronta para alterar pastas. Tenta novamente dentro de momentos.',
       reminderCreateFailed: 'Falha ao criar o lembrete',
       reminderUpdateFailed: 'Falha ao atualizar o lembrete',
       reminderDeleteFailed: 'Falha ao eliminar o lembrete',

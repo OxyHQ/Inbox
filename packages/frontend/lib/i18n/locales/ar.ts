@@ -1189,6 +1189,9 @@ const ar: LocaleDict = {
       mailboxCreateFailed: 'تعذّر إنشاء المجلد.',
       mailboxDeleted: 'تم حذف المجلد.',
       mailboxDeleteFailed: 'تعذّر حذف المجلد.',
+      mailboxSelectionExpired: 'تغيّرت جلستك. اختر المجلد مرة أخرى.',
+      mailboxSessionUnavailable:
+        'حسابك غير جاهز لتعديل المجلدات بعد. يُرجى المحاولة مرة أخرى بعد قليل.',
       reminderCreateFailed: 'تعذّر إنشاء التذكير',
       reminderUpdateFailed: 'تعذّر تحديث التذكير',
       reminderDeleteFailed: 'تعذّر حذف التذكير',

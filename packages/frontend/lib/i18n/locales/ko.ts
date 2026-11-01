@@ -1140,6 +1140,9 @@ const ko: LocaleDict = {
       mailboxCreateFailed: '폴더를 만들지 못했습니다.',
       mailboxDeleted: '폴더를 삭제했습니다.',
       mailboxDeleteFailed: '폴더를 삭제하지 못했습니다.',
+      mailboxSelectionExpired: '세션이 변경되었습니다. 폴더를 다시 선택해 주세요.',
+      mailboxSessionUnavailable:
+        '아직 계정에서 폴더를 변경할 수 없습니다. 잠시 후 다시 시도해 주세요.',
       reminderCreateFailed: '리마인더를 만들지 못했습니다',
       reminderUpdateFailed: '리마인더를 업데이트하지 못했습니다',
       reminderDeleteFailed: '리마인더를 삭제하지 못했습니다',

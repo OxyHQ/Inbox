@@ -1158,6 +1158,9 @@ const ca: LocaleDict = {
       mailboxCreateFailed: "No s'ha pogut crear la carpeta.",
       mailboxDeleted: 'Carpeta eliminada.',
       mailboxDeleteFailed: "No s'ha pogut eliminar la carpeta.",
+      mailboxSelectionExpired: 'La sessió ha canviat. Torna a seleccionar la carpeta.',
+      mailboxSessionUnavailable:
+        'El teu compte encara no està preparat per modificar carpetes. Torna-ho a provar d’aquí a un moment.',
       reminderCreateFailed: "No s'ha pogut crear el recordatori",
       reminderUpdateFailed: "No s'ha pogut actualitzar el recordatori",
       reminderDeleteFailed: "No s'ha pogut eliminar el recordatori",

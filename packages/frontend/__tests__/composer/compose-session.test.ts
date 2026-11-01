@@ -1328,6 +1328,25 @@ describe('the signature', () => {
     expect(result.current.body).toBe('Could you send it, please?\n\n--\nNate');
   });
 
+  it('snapshots the current body, signature-free text and revision before a render', async () => {
+    getSettings.mockResolvedValue({ signature: 'Nate' });
+    const { result, unmount } = renderHook(() =>
+      useComposeSession(options({ insertSignature: true })),
+    );
+    await settle();
+    let snapshot!: ReturnType<typeof result.current.getAiBodySnapshot>;
+    act(() => {
+      result.current.insertText('New text');
+      snapshot = result.current.getAiBodySnapshot();
+    });
+    expect(snapshot.body).toBe('New text\n\n--\nNate');
+    expect(snapshot.text).toBe('New text');
+    expect(snapshot.revision).toBe(result.current.getBodyRevision());
+    act(() => result.current.replaceOwnText('Rewritten'));
+    expect(result.current.body).toBe('Rewritten\n\n--\nNate');
+    unmount();
+  });
+
   it('is not inserted into a reopened draft', async () => {
     getSettings.mockResolvedValue({ signature: 'Nate' });
     const { result } = renderHook(() =>

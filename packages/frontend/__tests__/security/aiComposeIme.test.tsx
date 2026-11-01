@@ -148,6 +148,11 @@ function ComposeHarness() {
     ownText: body,
     updateBody,
     getBodyRevision: () => revision.current,
+    getAiBodySnapshot: () => ({
+      body: value.current,
+      text: value.current,
+      revision: revision.current,
+    }),
     isBodyComposing: () => composing.current,
     setBodyComposing,
     replaceOwnText: updateBody,

@@ -33,6 +33,8 @@ interface AiComposeToolbarProps {
   text: string;
   /** Current editor revision, including edits not yet rendered. */
   getBodyRevision: () => number;
+  /** Raw body, plain text and revision from the same editor state. */
+  getAiBodySnapshot: () => { body: string; text: string; revision: number };
   /** Whether web input is in an uncommitted IME composition. */
   isBodyComposing: () => boolean;
   /** An operation is committing; remember the body as it is. */
@@ -56,6 +58,7 @@ const TONE_OPTIONS: {
 export function AiComposeToolbar({
   text: body,
   getBodyRevision,
+  getAiBodySnapshot,
   isBodyComposing,
   onBegin,
   onCommit,
@@ -96,8 +99,7 @@ export function AiComposeToolbar({
    */
   const rewrite = useCallback(
     async (run: (input: string, owner: ReturnType<typeof captureOwner>) => Promise<string>) => {
-      const input = body;
-      const revision = getBodyRevision();
+      const { text: input, revision } = getAiBodySnapshot();
       const owner = captureOwner();
       const { isCurrent } = owner;
       if (!isCurrent()) {
@@ -121,7 +123,7 @@ export function AiComposeToolbar({
         owner.dispose();
       }
     },
-    [body, getBodyRevision, isBodyComposing, captureOwner, onBegin, onCommit, t],
+    [getAiBodySnapshot, getBodyRevision, isBodyComposing, captureOwner, onBegin, onCommit, t],
   );
 
   // Handler for "Draft for me" button

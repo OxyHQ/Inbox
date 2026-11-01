@@ -82,8 +82,15 @@ jest.mock('@/components/RichTextEditor', () => ({
     <textarea aria-label="editor" value={value} onChange={(e) => onChange(e.target.value)} />
   ),
 }));
-jest.mock('@/utils/composeBody', () => ({ editorContentToText: (s: string) => s }));
+jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
+jest.mock('@/hooks/mutations/useMessageMutations', () => ({
+  useSendMessageWithUndo: () => ({ sendWithUndo: jest.fn(), isPending: false }),
+  useSendMessage: () => ({ mutate: jest.fn(), isPending: false }),
+  useSaveDraft: () => ({ mutateAsync: jest.fn() }),
+  useDiscardDraft: () => ({ mutateAsync: jest.fn(), discardErrorNotice: () => 'current' }),
+}));
 import { MailComposer } from '@/components/MailComposer';
+import { useComposeSession } from '@/hooks/useComposeSession';
 
 function token(subject: string, session: string) {
   return `e30.${Buffer.from(JSON.stringify({ userId: subject, sessionId: session, exp: 2000000000 })).toString('base64url')}.fixture`;
@@ -151,6 +158,11 @@ function ComposeHarness() {
     ownText: body.replace(/<[^>]*>/g, ''),
     updateBody,
     getBodyRevision: () => revision.current,
+    getAiBodySnapshot: () => ({
+      body: value.current,
+      text: value.current.replace(/<[^>]*>/g, ''),
+      revision: revision.current,
+    }),
     isBodyComposing: () => composing.current,
     setBodyComposing,
     replaceOwnText: updateBody,
@@ -189,6 +201,48 @@ function ComposeHarness() {
       trailer=""
       placeholder="Message"
     />
+  );
+}
+function RealComposeHarness() {
+  const session = useComposeSession({
+    recoveryIdentity: 'synthetic-batch',
+    initial: { body: 'Original unsaved text' },
+    awaitingReplyHeaders: false,
+    insertSignature: false,
+    onFinished: () => {},
+  });
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          session.updateBody('newer body');
+          Array.from(document.querySelectorAll('button'))
+            .find((button) => button.textContent === 'ai.toolbar.polish')
+            ?.click();
+        }}
+      >
+        edit then polish
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          session.updateBody('newer body');
+          Array.from(document.querySelectorAll('button'))
+            .filter((button) => button.textContent === 'ai.toolbar.draft')[1]
+            ?.click();
+        }}
+      >
+        edit then draft
+      </button>
+      <MailComposer
+        session={session}
+        layout="inline"
+        title="Compose"
+        trailer=""
+        placeholder="Message"
+      />
+    </>
   );
 }
 it('does not overwrite new editor text with an earlier account stream', async () => {
@@ -300,6 +354,53 @@ function beginDraft() {
   });
   fireEvent.click(screen.getAllByRole('button', { name: 'ai.toolbar.draft' })[1]);
 }
+it('uses the real session current text when an edit and polish start in the same batch', async () => {
+  jest.spyOn(mockOxy.http, 'post').mockResolvedValueOnce({
+    schemaVersion: 1,
+    requestId: 'req_01a06477',
+    text: 'Polished result',
+  } as never);
+  const client = createInboxQueryClient();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <RealComposeHarness />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'edit then polish' }));
+  await waitFor(() => expect(mockOxy.http.post).toHaveBeenCalled());
+  expect(jest.mocked(mockOxy.http.post).mock.calls[0][1]).toEqual({
+    operation: 'polish',
+    text: 'newer body',
+  });
+  view.unmount();
+  client.clear();
+});
+it('Undo restores the real session edit made in the same batch as starting a stream', async () => {
+  const stream = controlledStream();
+  const client = createInboxQueryClient();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <RealComposeHarness />
+    </QueryClientProvider>,
+  );
+  fireEvent.change(screen.getByLabelText('ai.draftDialog.label'), { target: { value: 'prompt' } });
+  fireEvent.click(screen.getByRole('button', { name: 'edit then draft' }));
+  await waitFor(() => expect(screen.getByText('first')).toBeTruthy());
+  await act(async () => {
+    stream.finish();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+  await waitFor(() =>
+    expect((screen.getByLabelText('editor') as HTMLTextAreaElement).value).toBe('first complete'),
+  );
+  const toast = require('@oxy.so/bloom/toast').toast as jest.Mock;
+  const applied = toast.mock.calls.find(([message]) => message === 'ai.toast.applied');
+  expect(applied).toBeDefined();
+  act(() => applied?.[1].action.onClick());
+  expect((screen.getByLabelText('editor') as HTMLTextAreaElement).value).toBe('newer body');
+  view.unmount();
+  client.clear();
+});
 it('applies a same-owner rewrite and preserves its original text for Undo', async () => {
   jest.spyOn(mockOxy.http, 'post').mockResolvedValueOnce({
     schemaVersion: 1,

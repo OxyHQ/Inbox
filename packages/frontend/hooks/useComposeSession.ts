@@ -74,6 +74,13 @@ const isWeb = Platform.OS === 'web';
 const AUTOSAVE_DELAY_MS = 8_000;
 const RECOVERY_DELAY_MS = 750;
 
+function splitSignatureContent(content: string, signature: string | null) {
+  if (signature && content.endsWith(signature)) {
+    return { own: content.slice(0, -signature.length), signature };
+  }
+  return { own: content, signature: '' };
+}
+
 /**
  * An attachment as the composer holds it: a reference into the user's Oxy File
  * Manager, plus what the chip shows.
@@ -333,6 +340,7 @@ export function useComposeSession({
   // signature autosaved a junk draft and asked "Save draft?" on close. State,
   // not a ref: `hasContent` and `ownText` are derived from it during render.
   const [signature, setSignature] = useState<string | null>(null);
+  const signatureRef = useRef<string | null>(null);
 
   const draftIdRef = useRef<string | null>(draft?._id ?? null);
   const draftRevisionRef = useRef<number | null>(draft?.draftRevision ?? null);
@@ -545,6 +553,7 @@ export function useComposeSession({
         if (cancelled || !settings.signature) return;
         if (!isBodyBlank(bodyValueRef.current, null, isWeb)) return;
         const block = signatureBlock(settings.signature, isWeb);
+        signatureRef.current = block;
         setSignature(block);
         updateBody(block);
         // The signature is where the session starts, not something to save.
@@ -740,28 +749,34 @@ export function useComposeSession({
    * user has edited into it, it is their text like the rest.
    */
   const splitSignature = useCallback(
-    (content: string) => {
-      if (signature && content.endsWith(signature)) {
-        return { own: content.slice(0, -signature.length), signature };
-      }
-      return { own: content, signature: '' };
-    },
+    (content: string) => splitSignatureContent(content, signature),
     [signature],
   );
 
   /** Replace what the user wrote with plain text (an AI rewrite), keeping the signature. */
   const replaceOwnText = useCallback(
     (text: string) => {
-      const kept = splitSignature(bodyValueRef.current).signature;
+      const kept = splitSignatureContent(bodyValueRef.current, signatureRef.current).signature;
       updateBody(`${textToEditorContent(text, isWeb)}${kept}`);
     },
-    [splitSignature, updateBody],
+    [updateBody],
   );
 
   const ownText = useMemo(
     () => editorContentToText(splitSignature(body).own, isWeb).trim(),
     [body, splitSignature],
   );
+  const getAiBodySnapshot = useCallback(() => {
+    const currentBody = bodyValueRef.current;
+    return {
+      body: currentBody,
+      revision: bodyRevisionRef.current,
+      text: editorContentToText(
+        splitSignatureContent(currentBody, signatureRef.current).own,
+        isWeb,
+      ).trim(),
+    };
+  }, []);
 
   // ── Recipients and attachments ────────────────────────────────────
 
@@ -1158,6 +1173,7 @@ export function useComposeSession({
     body,
     updateBody,
     getBodyRevision,
+    getAiBodySnapshot,
     setBodyComposing,
     isBodyComposing,
     insertText,

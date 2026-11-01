@@ -144,9 +144,10 @@ export function MailComposer({
       <AiComposeToolbar
         text={session.ownText}
         getBodyRevision={session.getBodyRevision}
+        getAiBodySnapshot={session.getAiBodySnapshot}
         isBodyComposing={session.isBodyComposing}
         onBegin={() => {
-          aiOriginal.current = session.body;
+          aiOriginal.current = session.getAiBodySnapshot().body;
         }}
         onCommit={(text, isCurrent) => {
           const previous = aiOriginal.current;

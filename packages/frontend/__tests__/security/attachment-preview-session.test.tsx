@@ -754,3 +754,35 @@ it('performs an explicit thumbnail refetch even when its cached URL is fresh', a
   hook.unmount();
   cleanup();
 });
+
+it('does not multiply the configured retries when CID and thumbnail share a failing request', async () => {
+  const { wrapper, client, cleanup } = await setup();
+  client.setDefaultOptions({ queries: { networkMode: 'offlineFirst', retry: 2, retryDelay: 0 } });
+  const lookup = jest.spyOn(mockOxy.assets, 'url').mockRejectedValue(new Error('unavailable'));
+  const hook = renderHook(
+    () => ({
+      cid: useCidResolver(messages, mockOxy, 'm1'),
+      attachment: useAttachmentUrl('file-a'),
+    }),
+    { wrapper },
+  );
+  try {
+    await waitFor(() =>
+      expect(
+        client
+          .getQueryCache()
+          .getAll()
+          .some(
+            (q) =>
+              q.queryKey.includes('cid-scoped-v1') &&
+              !q.queryKey.includes('pending') &&
+              q.state.status === 'error',
+          ),
+      ).toBe(true),
+    );
+    expect(lookup).toHaveBeenCalledTimes(3);
+  } finally {
+    hook.unmount();
+    cleanup();
+  }
+});

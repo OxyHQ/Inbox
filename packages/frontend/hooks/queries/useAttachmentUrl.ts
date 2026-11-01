@@ -59,6 +59,8 @@ export function useAttachmentUrl(fileId: string, enabled = true, variant?: strin
       return url;
     },
     enabled: eligible,
+    // The shared in-flight query already applies the client's retry policy.
+    retry: false,
     staleTime: ATTACHMENT_URL_STALE_MS,
   });
   return {

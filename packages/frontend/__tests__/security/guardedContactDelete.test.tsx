@@ -753,6 +753,11 @@ it.each(['create', 'update'] as const)(
       mockRuntime.setActiveSessionId('new-session');
     });
     expect(screen.getByText('contacts.form.sessionChanged')).toBeTruthy();
+    const edit = screen.getByRole('button', {
+      name: 'ui.settings.contacts.edit:alice synthetic',
+    }) as HTMLButtonElement;
+    expect(edit.disabled).toBe(true);
+    fireEvent.click(edit);
     const save = screen.getByRole('button', {
       name:
         kind === 'create' ? 'ui.settings.contacts.addContact' : 'ui.settings.contacts.saveChanges',
@@ -967,6 +972,41 @@ it('accepts a draft made before null-to-id session projection recovery', async (
   fireEvent.click(screen.getByRole('button', { name: 'ui.settings.contacts.addContact' }));
   await waitFor(() => expect(mockToast.success).toHaveBeenCalledWith('contacts.toast.created'));
   expect(writes).toEqual(['POST']);
+  view.unmount();
+  client.clear();
+});
+
+it('does not clear an earlier-session draft after a current-session deletion', async () => {
+  globalThis.fetch = jest.fn(async (_url: string | URL | Request, init?: RequestInit) =>
+    init?.method === 'DELETE' ? response({}) : response(page('alice').pages[0]),
+  ) as never;
+  const client = createInboxQueryClient();
+  useEmailStore.getState()._initApi(mockOxy.http);
+  client.setQueryData(emailKeys.contacts.list(undefined), page('alice'));
+  const view = render(
+    <QueryClientProvider client={client}>
+      <ScopedContacts />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(
+    screen.getByRole('button', { name: 'ui.settings.contacts.edit:alice synthetic' }),
+  );
+  fireEvent.change(screen.getByLabelText('ui.settings.contacts.name'), {
+    target: { value: 'Draft to copy' },
+  });
+  act(() => {
+    mockOxy.session.setAccessToken(token('alice', 'new-session'));
+    mockRuntime.setActiveSessionId('new-session');
+  });
+  fireEvent.click(
+    screen.getByRole('button', { name: 'ui.settings.contacts.delete:alice synthetic' }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'common.delete' }));
+  await waitFor(() => expect(mockToast.success).toHaveBeenCalledWith('contacts.toast.deleted'));
+  expect((screen.getByLabelText('ui.settings.contacts.name') as HTMLInputElement).value).toBe(
+    'Draft to copy',
+  );
+  expect(screen.getByText('contacts.form.sessionChanged')).toBeTruthy();
   view.unmount();
   client.clear();
 });

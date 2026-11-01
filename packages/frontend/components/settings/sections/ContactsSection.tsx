@@ -75,6 +75,7 @@ export function ContactsSection() {
   const [form, setForm] = useState(emptyContactForm);
   const { editingId, name, email, company, notes, starred, binding } = form;
   const formUnavailable = Boolean(binding && !isCurrentEmailOwner(binding.owner));
+  const accountUnavailable = !isCurrentEmailOwner(contactOwner);
   const deleteConfirm = useDialogControl();
   const [pendingDelete, setPendingDelete] = useState<{
     id: string;
@@ -88,14 +89,25 @@ export function ContactsSection() {
   const startEdit = (
     contact: Pick<Contact, '_id' | 'name' | 'email' | 'company' | 'notes' | 'starred'>,
   ) => {
-    setForm({
-      editingId: contact._id,
-      name: contact.name,
-      email: contact.email,
-      company: contact.company ?? '',
-      notes: contact.notes ?? '',
-      starred: contact.starred,
-      binding: { owner: contactOwner, create: createContact.mutate, update: updateContact.mutate },
+    setForm((current) => {
+      if (
+        !isCurrentEmailOwner(contactOwner) ||
+        (current.binding && !isCurrentEmailOwner(current.binding.owner))
+      )
+        return current;
+      return {
+        editingId: contact._id,
+        name: contact.name,
+        email: contact.email,
+        company: contact.company ?? '',
+        notes: contact.notes ?? '',
+        starred: contact.starred,
+        binding: {
+          owner: contactOwner,
+          create: createContact.mutate,
+          update: updateContact.mutate,
+        },
+      };
     });
   };
 
@@ -141,7 +153,10 @@ export function ContactsSection() {
           toast.success(t('contacts.toast.deleted'));
           if (!isCurrentEmailOwner(target.owner)) return;
           setForm((current) =>
-            current === target.form && current.editingId === target.id
+            current === target.form &&
+            current.editingId === target.id &&
+            current.binding &&
+            isCurrentEmailOwner(current.binding.owner)
               ? emptyContactForm()
               : current,
           );
@@ -199,6 +214,7 @@ export function ContactsSection() {
                         name: contact.name,
                       })}
                       icon={<RiEditLine />}
+                      disabled={formUnavailable || accountUnavailable}
                       onPress={() => startEdit(contact)}
                     />
                     <IconButton
@@ -252,11 +268,15 @@ export function ContactsSection() {
               editingId ? 'ui.settings.contacts.editContact' : 'ui.settings.contacts.addContact',
             ),
             rows: [
-              ...(formUnavailable
+              ...(formUnavailable || accountUnavailable
                 ? [
                     {
                       key: 'owner-unavailable',
-                      label: t('contacts.form.sessionChanged'),
+                      label: t(
+                        formUnavailable
+                          ? 'contacts.form.sessionChanged'
+                          : 'contacts.toast.sessionUnavailable',
+                      ),
                       control: null,
                     },
                   ]

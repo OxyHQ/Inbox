@@ -1,4 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
+import {
+  assertMessageOwner,
+  ownsMessageOperation,
+  useGuardedMessageMutation,
+} from '@/hooks/mutations/guardedMessageMutation';
 import { toast } from '@oxy.so/bloom/toast';
 import { useTranslation } from '@/lib/i18n';
 import { useEmailStore } from '@/hooks/useEmail';
@@ -10,8 +16,10 @@ const BUNDLES_KEY = emailKeys.bundles;
 async function optimisticBundles(
   queryClient: ReturnType<typeof useQueryClient>,
   updater: (prev: Bundle[]) => Bundle[],
+  variables?: object,
 ): Promise<{ prev: Bundle[] | undefined }> {
   await queryClient.cancelQueries({ queryKey: BUNDLES_KEY });
+  if (variables) assertMessageOwner(variables);
   const prev = queryClient.getQueryData<Bundle[]>(BUNDLES_KEY);
   queryClient.setQueryData<Bundle[]>(BUNDLES_KEY, (old) => updater(old ?? []));
   return { prev };
@@ -28,34 +36,45 @@ export function useUpdateBundle() {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  return useMutation({
-    mutationFn: async ({
-      bundleId,
-      ...updates
-    }: {
-      bundleId: string;
-      enabled?: boolean;
-      collapsed?: boolean;
-      matchLabels?: string[];
-      order?: number;
-    }) => {
-      if (!api) throw new Error('Email API not initialized');
-      return api.updateBundle(bundleId, updates);
+  const onUnavailable = useCallback(
+    () => toast.error(t('ui.mutations.bundleSessionUnavailable')),
+    [t],
+  );
+  return useGuardedMessageMutation(
+    {
+      mutationFn: async ({
+        bundleId,
+        ...updates
+      }: {
+        bundleId: string;
+        enabled?: boolean;
+        collapsed?: boolean;
+        matchLabels?: string[];
+        order?: number;
+      }) => {
+        if (!api) throw new Error('Email API not initialized');
+        return api.updateBundle(bundleId, updates);
+      },
+      onMutate: async (variables) => {
+        const { bundleId, ...updates } = variables;
+        const { prev } = await optimisticBundles(
+          queryClient,
+          (bundles) => bundles.map((b) => (b._id === bundleId ? { ...b, ...updates } : b)),
+          variables,
+        );
+        return { prev };
+      },
+      onError: (_err, variables, context) => {
+        if (context?.prev && ownsMessageOperation(variables))
+          queryClient.setQueryData(BUNDLES_KEY, context.prev);
+        if (ownsMessageOperation(variables)) toast.error(t('ui.mutations.bundleUpdateFailed'));
+      },
+      onSettled: () => {
+        queryClient.invalidateQueries({ queryKey: BUNDLES_KEY });
+      },
     },
-    onMutate: async ({ bundleId, ...updates }) => {
-      const { prev } = await optimisticBundles(queryClient, (bundles) =>
-        bundles.map((b) => (b._id === bundleId ? { ...b, ...updates } : b)),
-      );
-      return { prev };
-    },
-    onError: (_err, _vars, context) => {
-      if (context?.prev) queryClient.setQueryData(BUNDLES_KEY, context.prev);
-      toast.error(t('ui.mutations.bundleUpdateFailed'));
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: BUNDLES_KEY });
-    },
-  });
+    onUnavailable,
+  );
 }
 
 /** The two `order` writes that move a bundle one place, or null at an end. */

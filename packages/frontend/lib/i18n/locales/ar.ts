@@ -1182,6 +1182,8 @@ const ar: LocaleDict = {
       bulkFailed: 'تعذّر تحديث الرسائل.',
       bulkUpdated: 'تم تحديث الرسائل.',
       moveFailed: 'تعذّر نقل الرسائل.',
+      bundleSessionUnavailable:
+        'حسابك غير جاهز بعد لتحديث المجموعات. يرجى المحاولة مجددًا بعد قليل.',
       bundleUpdateFailed: 'تعذّر تحديث المجموعة.',
       bundleReorderFailed: 'تعذّرت إعادة ترتيب المجموعة.',
       contactCreateFailed: 'تعذّر إنشاء جهة الاتصال',

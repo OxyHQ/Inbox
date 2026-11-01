@@ -1165,6 +1165,8 @@ const de: LocaleDict = {
       bulkFailed: 'Nachrichten konnten nicht aktualisiert werden.',
       bulkUpdated: 'Nachrichten aktualisiert.',
       moveFailed: 'Nachrichten konnten nicht verschoben werden.',
+      bundleSessionUnavailable:
+        'Dein Konto ist noch nicht bereit, Gruppen zu ändern. Versuche es gleich erneut.',
       bundleUpdateFailed: 'Bündel konnte nicht aktualisiert werden.',
       bundleReorderFailed: 'Bündel konnte nicht neu angeordnet werden.',
       contactCreateFailed: 'Kontakt konnte nicht erstellt werden',

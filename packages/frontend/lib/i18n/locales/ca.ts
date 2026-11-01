@@ -1152,6 +1152,8 @@ const ca: LocaleDict = {
       bulkFailed: "No s'han pogut actualitzar els missatges.",
       bulkUpdated: 'Missatges actualitzats.',
       moveFailed: "No s'han pogut moure els missatges.",
+      bundleSessionUnavailable:
+        'El teu compte encara no està preparat per modificar els grups. Torna-ho a provar en un moment.',
       bundleUpdateFailed: "No s'ha pogut actualitzar el grup.",
       bundleReorderFailed: "No s'ha pogut reordenar el grup.",
       contactCreateFailed: "No s'ha pogut crear el contacte",

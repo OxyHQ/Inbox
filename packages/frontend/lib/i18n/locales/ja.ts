@@ -1140,6 +1140,8 @@ const ja: LocaleDict = {
       bulkFailed: 'メッセージを更新できませんでした。',
       bulkUpdated: 'メッセージを更新しました。',
       moveFailed: 'メッセージを移動できませんでした。',
+      bundleSessionUnavailable:
+        'アカウントの準備ができていないため、グループを更新できません。しばらくしてからもう一度お試しください。',
       bundleUpdateFailed: 'まとめを更新できませんでした。',
       bundleReorderFailed: 'まとめを並べ替えできませんでした。',
       contactCreateFailed: '連絡先を作成できませんでした',

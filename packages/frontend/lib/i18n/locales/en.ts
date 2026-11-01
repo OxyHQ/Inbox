@@ -1154,6 +1154,8 @@ const en: LocaleDict = {
       bulkFailed: 'Failed to update messages.',
       bulkUpdated: 'Messages updated.',
       moveFailed: 'Failed to move messages.',
+      bundleSessionUnavailable:
+        'Your account is not ready to update bundles. Please try again shortly.',
       bundleUpdateFailed: 'Failed to update bundle.',
       bundleReorderFailed: 'Failed to reorder bundle.',
       contactCreateFailed: 'Failed to create contact',

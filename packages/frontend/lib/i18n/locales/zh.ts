@@ -1114,6 +1114,7 @@ const zh: LocaleDict = {
       bulkFailed: '无法更新邮件。',
       bulkUpdated: '已更新邮件。',
       moveFailed: '无法移动邮件。',
+      bundleSessionUnavailable: '你的账户尚未准备好更新分组，请稍后重试。',
       bundleUpdateFailed: '无法更新分组。',
       bundleReorderFailed: '无法调整分组顺序。',
       contactCreateFailed: '无法创建联系人',

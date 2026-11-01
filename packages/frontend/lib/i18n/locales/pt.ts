@@ -1155,6 +1155,8 @@ const pt: LocaleDict = {
       bulkFailed: 'Não foi possível atualizar as mensagens.',
       bulkUpdated: 'Mensagens atualizadas.',
       moveFailed: 'Não foi possível mover as mensagens.',
+      bundleSessionUnavailable:
+        'Sua conta ainda não está pronta para alterar os grupos. Tente novamente em instantes.',
       bundleUpdateFailed: 'Falha ao atualizar o grupo.',
       bundleReorderFailed: 'Falha ao reordenar o grupo.',
       contactCreateFailed: 'Falha ao criar o contacto',

@@ -11,7 +11,8 @@ import { Dialog } from '@oxy.so/bloom/dialog';
 import { RiBookmarkLine } from '@oxy.so/bloom/icons/RiBookmarkLine';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { Text } from '@oxy.so/bloom/typography';
-import { useCallback, useState } from 'react';
+import { onlineManager } from '@tanstack/react-query';
+import { useCallback, useState, useSyncExternalStore } from 'react';
 import { View } from 'react-native';
 
 interface SavedSearchBarProps {
@@ -23,7 +24,24 @@ interface SavedSearchBarProps {
 
 export function SavedSearchBar({ query, filters, enabled, onApply }: SavedSearchBarProps) {
   const { t } = useTranslation();
-  const { data: savedSearches = [] } = useSavedSearches();
+  const online = useSyncExternalStore(
+    onlineManager.subscribe,
+    () => onlineManager.isOnline(),
+    () => onlineManager.isOnline(),
+  );
+  const { data, isError, fetchStatus } = useSavedSearches();
+  const savedSearches = data ?? [];
+  const paused = fetchStatus === 'paused';
+  const showStatus = paused || isError;
+  const status = paused
+    ? online
+      ? t('search.saved.retryPaused')
+      : data === undefined
+        ? t('search.saved.offlineEmpty')
+        : t('search.saved.offlineCached')
+    : data === undefined
+      ? t('search.saved.loadFailed')
+      : t('search.saved.refreshFailed');
   const createSavedSearch = useCreateSavedSearch();
   const deleteSavedSearch = useDeleteSavedSearch();
   const [name, setName] = useState('');
@@ -44,10 +62,10 @@ export function SavedSearchBar({ query, filters, enabled, onApply }: SavedSearch
 
   return (
     <>
-      {(savedSearches.length > 0 || enabled) && (
+      {(savedSearches.length > 0 || enabled || showStatus) && (
         <View className="gap-2 px-4 pb-3">
           <View className="flex-row flex-wrap items-center justify-between gap-2">
-            {savedSearches.length > 0 && (
+            {(savedSearches.length > 0 || showStatus) && (
               <Text variant="caption-1-medium">{t('search.ui.savedSearches')}</Text>
             )}
             {enabled && (
@@ -74,6 +92,13 @@ export function SavedSearchBar({ query, filters, enabled, onApply }: SavedSearch
                   {saved.name}
                 </Chip>
               ))}
+            </View>
+          )}
+          {showStatus && (
+            <View className="flex-row items-center gap-2">
+              <View className="flex-1">
+                <Text accessibilityLiveRegion="polite">{status}</Text>
+              </View>
             </View>
           )}
         </View>

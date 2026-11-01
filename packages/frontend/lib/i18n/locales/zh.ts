@@ -347,6 +347,11 @@ const zh: LocaleDict = {
 
   search: {
     saved: {
+      retryPaused: '正在等待重试加载已保存的搜索。',
+      loadFailed: '无法加载已保存的搜索。',
+      refreshFailed: '无法刷新已保存的搜索，正在显示上次获取的列表。',
+      offlineEmpty: '正在等待连接以加载已保存的搜索。',
+      offlineCached: '正在等待连接。已保存的搜索可能不是最新的。',
       saveFailed: '无法保存搜索。',
       deleteFailed: '无法删除已保存的搜索。',
     },

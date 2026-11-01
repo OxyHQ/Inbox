@@ -350,6 +350,12 @@ const es: LocaleDict = {
 
   search: {
     saved: {
+      retryPaused: 'Esperando para reintentar cargar las búsquedas guardadas.',
+      loadFailed: 'No se pudieron cargar las búsquedas guardadas.',
+      refreshFailed:
+        'No se pudieron actualizar las búsquedas guardadas. Se muestra la última lista disponible.',
+      offlineEmpty: 'Esperando conexión para cargar las búsquedas guardadas.',
+      offlineCached: 'Esperando conexión. Las búsquedas guardadas podrían no estar actualizadas.',
       saveFailed: 'No se pudo guardar la búsqueda.',
       deleteFailed: 'No se pudo eliminar la búsqueda guardada.',
     },

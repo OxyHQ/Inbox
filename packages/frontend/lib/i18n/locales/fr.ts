@@ -509,6 +509,10 @@ const fr: LocaleDict = {
   },
 
   smartReply: {
+    failed: 'Impossible de générer des réponses rapides.',
+    offline: 'Vous semblez hors ligne. Connectez-vous pour réessayer.',
+    waiting: 'En attente de connexion.',
+    empty: 'Aucune réponse rapide disponible.',
     unavailable: 'Les réponses rapides seront disponibles lorsque votre compte sera prêt.',
     generate: "Générer des réponses rapides avec l'IA",
     notice:

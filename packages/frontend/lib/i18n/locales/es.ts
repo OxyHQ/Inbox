@@ -500,6 +500,10 @@ const es: LocaleDict = {
   },
 
   smartReply: {
+    failed: 'No se pudieron generar respuestas rápidas.',
+    offline: 'Parece que no tienes conexión. Conéctate para reintentar.',
+    waiting: 'Esperando conexión.',
+    empty: 'No hay respuestas rápidas disponibles.',
     unavailable: 'Las respuestas rápidas estarán disponibles cuando tu cuenta esté lista.',
     generate: 'Generar respuestas rápidas con IA',
     notice:

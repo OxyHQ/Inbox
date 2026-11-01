@@ -501,6 +501,10 @@ const ja: LocaleDict = {
   },
 
   smartReply: {
+    failed: 'クイック返信を生成できませんでした。',
+    offline: 'オフラインのようです。接続してから再試行してください。',
+    waiting: '接続を待っています。',
+    empty: '利用できるクイック返信はありません。',
     unavailable: 'アカウントの準備ができるとクイック返信を利用できます。',
     generate: 'AI でクイック返信を生成',
     notice:

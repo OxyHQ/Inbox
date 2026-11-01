@@ -829,6 +829,7 @@ const ca: LocaleDict = {
       header: 'Esdeveniment',
       addToCalendar: 'Afegeix al calendari',
       googleCalendar: 'Google Calendar',
+      exportUnavailable: 'No es pot exportar al calendari amb aquestes dates.',
       addToCalendarDialog: 'Afegeix al calendari',
       defaultTitle: 'Esdeveniment',
       summary: "Detalls de l'esdeveniment",

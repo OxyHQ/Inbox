@@ -9,7 +9,7 @@ jest.mock('@oxy.so/bloom/toast', () => ({ toast: { error: jest.fn() } }));
 
 import { planBundleSwap } from '@/hooks/mutations/useBundleMutations';
 import type { Bundle } from '@/services/emailApi';
-import { calendarTimes, generateIcs } from '@/utils/calendarEvent';
+import { calendarTimes, generateIcs, googleCalendarUrl } from '@/utils/calendarEvent';
 import { formatMoney, isPastDue, parseCardDate } from '@/utils/cardFormat';
 import { presetsThatMakeSense } from '@/utils/timePresets';
 import { parseByteSize } from '@/utils/byteSize';
@@ -87,6 +87,59 @@ describe('calendar export', () => {
     expect(ics).toContain('DTSTART;VALUE=DATE:20261225');
     expect(ics).toContain('DTEND;VALUE=DATE:20261226');
     expect(calendarTimes({ startTime: 'soon' })).toBeNull();
+  });
+
+  it('exports at least one day when an all-day start has a same-day timed end', () => {
+    const times = defined(
+      calendarTimes({ startTime: '2026-10-15', endTime: '2026-10-15T12:00:00' }),
+    );
+    const ics = generateIcs({ title: 'Holiday' } as never, times);
+    expect(ics).toContain('DTSTART;VALUE=DATE:20261015');
+    expect(ics).toContain('DTEND;VALUE=DATE:20261016');
+    expect(
+      new URL(googleCalendarUrl({ title: 'Holiday' } as never, times)).searchParams.get('dates'),
+    ).toBe('20261015/20261016');
+  });
+
+  it('preserves a later timed end for an all-day event', () => {
+    const times = defined(
+      calendarTimes({ startTime: '2026-10-15', endTime: '2026-10-17T12:00:00' }),
+    );
+    const ics = generateIcs({ title: 'Holiday' } as never, times);
+    expect(ics).toContain('DTSTART;VALUE=DATE:20261015');
+    expect(ics).toContain('DTEND;VALUE=DATE:20261017');
+  });
+
+  it.each([
+    ['0000-01-01', '00000101', '00000102'],
+    ['0099-12-31', '00991231', '01000101'],
+  ])('uses four-digit years and local following days for %s', (date, start, end) => {
+    const times = defined(calendarTimes({ startTime: date }));
+    const ics = generateIcs({ title: 'Holiday' } as never, times);
+    expect(ics).toContain(`DTSTART;VALUE=DATE:${start}`);
+    expect(ics).toContain(`DTEND;VALUE=DATE:${end}`);
+  });
+
+  it('does not export an unrepresentable all-day end', () => {
+    expect(calendarTimes({ startTime: '9999-12-31' })).toBeNull();
+    if (Intl.DateTimeFormat().resolvedOptions().timeZone === 'Pacific/Apia') {
+      expect(calendarTimes({ startTime: '2011-12-29' })).toBeNull();
+      expect(calendarTimes({ startTime: '2011-12-28', endTime: '2011-12-29' })).toBeNull();
+    }
+  });
+
+  it('uses a local calendar day across daylight-saving changes', () => {
+    const times = defined(
+      calendarTimes({ startTime: '2026-03-08', endTime: '2026-03-08T12:00:00' }),
+    );
+    const ics = generateIcs({ title: 'Holiday' } as never, times);
+    expect(ics).toContain('DTSTART;VALUE=DATE:20260308');
+    expect(ics).toContain('DTEND;VALUE=DATE:20260309');
+    if (Intl.DateTimeFormat().resolvedOptions().timeZone === 'America/Sao_Paulo') {
+      const midnightSkipped = defined(calendarTimes({ startTime: '2018-11-03' }));
+      const exportText = generateIcs({ title: 'Holiday' } as never, midnightSkipped);
+      expect(exportText).toContain('DTEND;VALUE=DATE:20181104');
+    }
   });
 });
 

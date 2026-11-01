@@ -811,6 +811,7 @@ const ko: LocaleDict = {
       header: '이벤트',
       addToCalendar: '캘린더에 추가',
       googleCalendar: 'Google 캘린더',
+      exportUnavailable: '이 날짜는 캘린더로 내보낼 수 없습니다.',
       addToCalendarDialog: '캘린더에 추가',
       defaultTitle: '이벤트',
       summary: '이벤트 상세',

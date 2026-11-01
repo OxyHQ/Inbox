@@ -9,7 +9,7 @@ import {
   googleCalendarUrl,
   type CalendarLabels,
 } from '@/utils/calendarEvent';
-import { formatCardDate } from '@/utils/cardFormat';
+import { formatCardDate, isDateOnly } from '@/utils/cardFormat';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { toast } from '@oxy.so/bloom/toast';
 import { Card, CardBody, CardHeader, CardTitle } from '@oxy.so/bloom/card';
@@ -26,24 +26,23 @@ export function EventCard({ data }: EventCardProps) {
   const { t, locale } = useTranslation();
 
   const times = useMemo(() => calendarTimes(data), [data]);
-  const startTime = times
-    ? formatCardDate(
-        locale,
-        data.startTime,
-        times.allDay
-          ? { weekday: 'short', month: 'short', day: 'numeric' }
-          : {
-              weekday: 'short',
-              month: 'short',
-              day: 'numeric',
-              hour: 'numeric',
-              minute: '2-digit',
-            },
-        true,
-      )
-    : null;
+  const allDay = isDateOnly(data.startTime);
+  const startTime = formatCardDate(
+    locale,
+    data.startTime,
+    allDay
+      ? { weekday: 'short', month: 'short', day: 'numeric' }
+      : {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+        },
+    true,
+  );
   const endTime =
-    times && !times.allDay
+    startTime && !allDay
       ? formatCardDate(locale, data.endTime, { hour: 'numeric', minute: '2-digit' }, true)
       : null;
 
@@ -146,7 +145,11 @@ export function EventCard({ data }: EventCardProps) {
             </View>
           )}
 
-          {/* Calendar action buttons — only for an event whose start is known. */}
+          {startTime && !times && (
+            <Text accessibilityLiveRegion="polite">{t('cards.event.exportUnavailable')}</Text>
+          )}
+
+          {/* Calendar actions require a representable interval. */}
           {times && (
             <View style={styles.actions}>
               <Button

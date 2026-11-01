@@ -14,19 +14,47 @@ export interface CalendarTimes {
   allDay: boolean;
 }
 
+/** Advance a local calendar day only when that civil day exists locally. */
+function followingLocalDay(date: Date): Date | null {
+  const next = new Date(date);
+  next.setDate(next.getDate() + 1);
+  const expected = new Date(0);
+  expected.setUTCHours(0, 0, 0, 0);
+  expected.setUTCFullYear(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+  if (
+    expected.getUTCFullYear() < 0 ||
+    expected.getUTCFullYear() > 9999 ||
+    next.getFullYear() !== expected.getUTCFullYear() ||
+    next.getMonth() !== expected.getUTCMonth() ||
+    next.getDate() !== expected.getUTCDate()
+  )
+    return null;
+  return next;
+}
+
 export function calendarTimes(data: Pick<CardData, 'startTime' | 'endTime'>): CalendarTimes | null {
   const start = parseCardDate(data.startTime);
   if (!start) return null;
   const allDay = isDateOnly(data.startTime);
   const parsedEnd = parseCardDate(data.endTime);
-  const end =
+  let end =
     parsedEnd && parsedEnd > start
       ? allDay && isDateOnly(data.endTime)
-        ? new Date(parsedEnd.getFullYear(), parsedEnd.getMonth(), parsedEnd.getDate() + 1)
+        ? followingLocalDay(parsedEnd)
         : parsedEnd
       : allDay
-        ? new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1)
+        ? followingLocalDay(start)
         : new Date(start.getTime() + 60 * 60 * 1000);
+  if (!end) return null;
+  if (
+    allDay &&
+    end.getFullYear() === start.getFullYear() &&
+    end.getMonth() === start.getMonth() &&
+    end.getDate() === start.getDate()
+  ) {
+    end = followingLocalDay(start);
+    if (!end) return null;
+  }
   return { start, end, allDay };
 }
 
@@ -34,7 +62,8 @@ const pad = (n: number) => String(n).padStart(2, '0');
 
 /** `20260415T090000Z`, or `20260415` for an all-day value. */
 function icsValue(date: Date, allDay: boolean): string {
-  if (allDay) return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}`;
+  if (allDay)
+    return `${String(date.getFullYear()).padStart(4, '0')}${pad(date.getMonth() + 1)}${pad(date.getDate())}`;
   return date
     .toISOString()
     .replace(/[-:]/g, '')

@@ -818,6 +818,7 @@ const es: LocaleDict = {
       header: 'Evento',
       addToCalendar: 'Añadir al calendario',
       googleCalendar: 'Google Calendar',
+      exportUnavailable: 'No se puede exportar al calendario con estas fechas.',
       addToCalendarDialog: 'Añadir al calendario',
       defaultTitle: 'Evento',
       summary: 'Detalles del evento',

@@ -386,6 +386,7 @@ const zh: LocaleDict = {
       hasAttachment: '带附件',
     },
     nl: {
+      aiUnavailable: 'AI 优化暂不可用，正在显示文本搜索结果。',
       usingOperators: '使用搜索运算符',
       searchingFor: '正在搜索“{{value}}”',
       inMailbox: '在 {{value}} 中',

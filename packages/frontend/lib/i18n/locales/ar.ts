@@ -427,6 +427,7 @@ const ar: LocaleDict = {
       hasAttachment: 'يحتوي على مرفق',
     },
     nl: {
+      aiUnavailable: 'تحسين البحث بالذكاء الاصطناعي غير متاح. يتم عرض نتائج النص.',
       usingOperators: 'باستخدام عوامل البحث',
       searchingFor: 'جارٍ البحث عن "{{value}}"',
       inMailbox: 'في {{value}}',

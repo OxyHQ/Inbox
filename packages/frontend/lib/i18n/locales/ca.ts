@@ -398,6 +398,7 @@ const ca: LocaleDict = {
       hasAttachment: 'Amb adjunt',
     },
     nl: {
+      aiUnavailable: 'El refinament amb IA no està disponible. Es mostren resultats de text.',
       usingOperators: 'Amb operadors de cerca',
       searchingFor: 'Cercant "{{value}}"',
       inMailbox: 'a {{value}}',

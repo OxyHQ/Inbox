@@ -394,6 +394,7 @@ const en: LocaleDict = {
       hasAttachment: 'Has attachment',
     },
     nl: {
+      aiUnavailable: 'AI refinement is unavailable. Showing text results.',
       beforeValue: 'before {{value}}',
       afterValue: 'after {{value}}',
       labelValue: 'label {{value}}',

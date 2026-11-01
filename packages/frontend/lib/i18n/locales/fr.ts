@@ -402,6 +402,7 @@ const fr: LocaleDict = {
       hasAttachment: 'Avec pièce jointe',
     },
     nl: {
+      aiUnavailable: 'L’affinage par IA est indisponible. Les résultats textuels sont affichés.',
       usingOperators: 'Avec des opérateurs de recherche',
       searchingFor: 'Recherche de « {{value}} »',
       inMailbox: 'dans {{value}}',

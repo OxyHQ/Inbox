@@ -96,7 +96,13 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   const searchRunIdRef = useRef(0);
 
   // Natural language search hook
-  const { parseQuery: parseNL, isLoading: nlParsing } = useNaturalLanguageSearch();
+  const {
+    parseQuery: parseNL,
+    isLoading: nlParsing,
+    isCurrent: isNaturalSearchCurrent,
+    isBindingCurrent: isNaturalSearchBindingCurrent,
+    isReady: naturalSearchReady,
+  } = useNaturalLanguageSearch();
 
   // Parse the submitted query for Gmail-style operators
   const parsedQuery = useMemo(() => parseSearchQuery(submittedQuery), [submittedQuery]);
@@ -211,6 +217,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
    */
   const runSearch = useCallback(
     async (rawText: string, { allowAI }: { allowAI: boolean } = { allowAI: true }) => {
+      if (!isNaturalSearchBindingCurrent()) return;
       const searchRunId = ++searchRunIdRef.current;
       const trimmed = rawText.trim();
       if (!trimmed) {
@@ -250,12 +257,16 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       setNlParsedOptions(null);
 
       if (!allowAI) return;
+      if (!naturalSearchReady) {
+        setNlInterpretation(t('search.nl.aiUnavailable'));
+        return;
+      }
 
       // Refine with AI in the background. Only switch from plain text to
       // structured filters if the AI returns something useful.
       try {
         const result = await parseNL(trimmed);
-        if (searchRunId !== searchRunIdRef.current) return;
+        if (searchRunId !== searchRunIdRef.current || !isNaturalSearchCurrent()) return;
         const parsed = result.query;
         const hasUsefulFilters =
           !!parsed.q?.trim() ||
@@ -280,13 +291,26 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           setSubmittedQuery('');
         }
       } catch (error) {
-        if (searchRunId === searchRunIdRef.current && error instanceof Error) {
+        if (
+          searchRunId === searchRunIdRef.current &&
+          isNaturalSearchCurrent() &&
+          error instanceof Error
+        ) {
           setNlInterpretation('');
         }
         // AI failed; plain text search is already in flight.
       }
     },
-    [parseNL, t, setSubmittedQuery, setNlInterpretation, setNlParsedOptions],
+    [
+      parseNL,
+      isNaturalSearchCurrent,
+      isNaturalSearchBindingCurrent,
+      naturalSearchReady,
+      t,
+      setSubmittedQuery,
+      setNlInterpretation,
+      setNlParsedOptions,
+    ],
   );
 
   // Debounced search-as-you-type. The user pressing Enter submits immediately.
@@ -303,6 +327,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
 
   const handleQueryChange = useCallback(
     (text: string) => {
+      if (!isNaturalSearchBindingCurrent()) return;
       searchRunIdRef.current += 1;
       setQuery(text);
       setNlParsedOptions(null);
@@ -321,10 +346,18 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         runSearch(text, { allowAI: false });
       }, 300);
     },
-    [runSearch, setQuery, setSubmittedQuery, setNlInterpretation, setNlParsedOptions],
+    [
+      isNaturalSearchBindingCurrent,
+      runSearch,
+      setQuery,
+      setSubmittedQuery,
+      setNlInterpretation,
+      setNlParsedOptions,
+    ],
   );
 
   const handleSubmit = useCallback(() => {
+    if (!isNaturalSearchBindingCurrent()) return;
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
       debounceRef.current = null;
@@ -337,7 +370,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       hasOperators: /\b(?:from|to|subject|in|is|has|label|after|before):/i.test(trimmed),
     });
     runSearch(query, { allowAI: true });
-  }, [rememberSearch, runSearch, query]);
+  }, [isNaturalSearchBindingCurrent, rememberSearch, runSearch, query]);
 
   const openConversation = useCallback(
     (messageId: string) => {
@@ -652,7 +685,11 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
                       style={styles.nlParsingRow}
                     />
                   ) : (
-                    <Text variant="body-2-regular" style={styles.nlText}>
+                    <Text
+                      variant="body-2-regular"
+                      style={styles.nlText}
+                      accessibilityLiveRegion="polite"
+                    >
                       {nlInterpretation}
                     </Text>
                   )}

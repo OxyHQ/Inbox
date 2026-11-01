@@ -9,7 +9,10 @@
  */
 
 import { useMutation } from '@tanstack/react-query';
+import { useLayoutEffect, useMemo, useRef } from 'react';
 import { useOxy } from '@oxy.so/services/ui/client';
+import { runObservedInference } from '@/hooks/queries/runObservedInference';
+import { useObservedInferenceOwner } from '@/hooks/queries/useObservedInferenceOwner';
 import { runInboxNaturalSearch } from '@/services/inboxInferenceApi';
 import { aiKeys } from '@/hooks/queries/queryKeys';
 import { useTranslation } from '@/lib/i18n';
@@ -32,28 +35,91 @@ export interface NaturalLanguageSearchResult {
   interpretation: string;
 }
 
+function obsoleteSearch(): Error {
+  const error = new Error('Search session changed.');
+  error.name = 'AbortError';
+  return error;
+}
+
+type SearchVariables = { text: string };
+type SearchOwner = {
+  binding: object;
+  owner: ReturnType<typeof useObservedInferenceOwner>;
+  controller: AbortController;
+};
+const searchOwners = new WeakMap<SearchVariables, SearchOwner>();
+
 export function useNaturalLanguageSearch() {
   const { t } = useTranslation();
   const { oxyServices } = useOxy();
+  const owner = useObservedInferenceOwner();
+  const binding = useMemo(
+    () => ({
+      identity: [
+        owner.binding,
+        owner.subject,
+        owner.sessionId,
+        owner.revision,
+        owner.epoch,
+        owner.knownSubject,
+        owner.authenticated,
+      ],
+      controllers: new Set<AbortController>(),
+    }),
+    [
+      owner.binding,
+      owner.subject,
+      owner.sessionId,
+      owner.revision,
+      owner.epoch,
+      owner.knownSubject,
+      owner.authenticated,
+    ],
+  );
+  const committed = useRef<typeof binding | null>(null);
+  useLayoutEffect(() => {
+    committed.current = binding;
+    return () => {
+      if (committed.current === binding) committed.current = null;
+      for (const controller of binding.controllers) controller.abort();
+      binding.controllers.clear();
+    };
+  }, [binding]);
+  const current = (record: SearchOwner) =>
+    committed.current === record.binding &&
+    record.owner.ready &&
+    record.owner.isCurrent() &&
+    !record.controller.signal.aborted;
+  const isCurrent = () => committed.current === binding && owner.ready && owner.isCurrent();
+  const isBindingCurrent = () => {
+    const projection = owner.runtime.getAccountSessionIdentity();
+    return (
+      committed.current === binding &&
+      projection.revision === owner.revision &&
+      projection.sessionId === owner.sessionId &&
+      owner.http.getSessionEpoch() === owner.epoch &&
+      oxyServices.session.userId === owner.knownSubject &&
+      oxyServices.session.isAuthenticated === owner.authenticated
+    );
+  };
 
-  const mutation = useMutation<NaturalLanguageSearchResult, Error, string>({
+  const mutation = useMutation<NaturalLanguageSearchResult, Error, SearchVariables>({
     mutationKey: aiKeys.naturalLanguageSearch,
-    mutationFn: async (naturalLanguage: string) => {
-      if (!naturalLanguage.trim()) {
-        return { query: {}, interpretation: '' };
-      }
-
-      // Quick check: if it looks like a standard Gmail-style operator, skip AI parsing
+    mutationFn: async (variables) => {
+      const record = searchOwners.get(variables);
+      if (!record || !current(record)) throw obsoleteSearch();
+      const naturalLanguage = variables.text;
+      if (!naturalLanguage.trim()) return { query: {}, interpretation: '' };
       const hasOperators = /(from:|to:|subject:|in:|is:|has:|label:)/i.test(naturalLanguage);
-      if (hasOperators) {
-        // Let the existing operator parser handle it downstream.
+      if (hasOperators)
         return { query: { q: naturalLanguage }, interpretation: t('search.nl.usingOperators') };
-      }
-
       try {
-        return await runInboxNaturalSearch(oxyServices.http, naturalLanguage);
+        return await runObservedInference(record.owner, record.controller.signal, (signal) =>
+          runInboxNaturalSearch(record.owner.http, naturalLanguage, signal),
+        );
       } catch (error: unknown) {
-        if (error instanceof Error && error.name === 'AbortError') throw error;
+        if (!current(record) || (error instanceof Error && error.name === 'AbortError'))
+          throw obsoleteSearch();
         return {
           query: { q: naturalLanguage },
           interpretation: t('search.nl.searchingFor', { value: naturalLanguage }),
@@ -61,14 +127,32 @@ export function useNaturalLanguageSearch() {
       }
     },
   });
-
-  const { mutateAsync } = mutation;
-
+  const visible = mutation.variables
+    ? searchOwners.get(mutation.variables)?.binding === binding
+    : true;
+  const parseQuery = async (text: string) => {
+    const controller = new AbortController();
+    const record = { binding, owner, controller };
+    if (!current(record)) throw obsoleteSearch();
+    const variables = { text };
+    searchOwners.set(variables, record);
+    binding.controllers.add(controller);
+    try {
+      const result = await mutation.mutateAsync(variables);
+      if (!current(record)) throw obsoleteSearch();
+      return result;
+    } finally {
+      binding.controllers.delete(controller);
+    }
+  };
   return {
-    parseQuery: mutateAsync,
-    lastResult: mutation.data ?? null,
-    isLoading: mutation.isPending,
-    error: mutation.error,
+    parseQuery,
+    isCurrent,
+    isBindingCurrent,
+    isReady: owner.ready,
+    lastResult: visible ? (mutation.data ?? null) : null,
+    isLoading: visible && mutation.isPending,
+    error: visible ? mutation.error : null,
   };
 }
 

@@ -105,6 +105,12 @@ export const aiKeys = {
   naturalLanguageSearch: ['inbox-ai', 'nl-search'] as const,
 } as const;
 
+/** Saved-search writes are tracked in memory but never replayed after restart. */
+export const SAVED_SEARCH_MUTATION_KEYS = {
+  create: ['inbox', 'saved-search', 'create'] as const,
+  delete: ['inbox', 'saved-search', 'delete'] as const,
+};
+
 /**
  * Query-key roots that should survive a cold restart (offline persistence),
  * per account, via `OxyProvider`'s `accountQueries`. AI keys are intentionally

@@ -164,9 +164,11 @@ it.each(['create', 'delete'] as const)(
   },
 );
 
-it('does not optimistically write or send if account changes while cancellation waits', async () => {
+it('does not invalidate the new account when reconciliation cancellation waits', async () => {
   let finishCancel!: () => void;
   const { client, wrapper } = setup();
+  mockApiA.createSavedSearch.mockResolvedValueOnce(search('created'));
+  const invalidate = jest.spyOn(client, 'invalidateQueries');
   jest.spyOn(client, 'cancelQueries').mockReturnValueOnce(
     new Promise((resolve) => {
       finishCancel = resolve;
@@ -185,8 +187,9 @@ it('does not optimistically write or send if account changes while cancellation 
     await pending;
   });
   expect(client.getQueryData(emailKeys.savedSearches)).toEqual([search('B private')]);
-  expect(mockApiA.createSavedSearch).not.toHaveBeenCalled();
+  expect(mockApiA.createSavedSearch).toHaveBeenCalledTimes(1);
   expect(mockApiB.createSavedSearch).not.toHaveBeenCalled();
+  expect(invalidate).not.toHaveBeenCalled();
   client.clear();
 });
 
@@ -253,16 +256,14 @@ it.each(['create', 'delete'] as const)(
   },
 );
 
-it('preserves the existing no-snapshot failure behavior when the cache was absent', async () => {
+it('does not create a cache entry when a create fails without a snapshot', async () => {
   mockApiA.createSavedSearch.mockRejectedValueOnce(new Error('network'));
   const { client, wrapper } = setup();
   const { result } = renderHook(() => useCreateSavedSearch(), { wrapper });
   await act(async () => {
     await expect(result.current.mutateAsync(input)).rejects.toThrow('network');
   });
-  expect(client.getQueryData(emailKeys.savedSearches)).toEqual([
-    expect.objectContaining({ name: 'new', query: 'private query' }),
-  ]);
+  expect(client.getQueryData(emailKeys.savedSearches)).toBeUndefined();
   client.clear();
 });
 

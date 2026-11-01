@@ -373,6 +373,8 @@ const pt: LocaleDict = {
       deleteFailed: 'Não foi possível eliminar a pesquisa guardada.',
     },
     ui: {
+      savedDraftUnavailable:
+        'A conta ou a sessão mudou. Feche este rascunho de pesquisa para começar de novo.',
       filterDraftUnavailable:
         'O contexto da conta ou da sessão mudou. Feche este rascunho de filtros para começar novamente.',
       filtersTitle: 'Filtros de pesquisa',

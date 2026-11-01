@@ -399,6 +399,7 @@ const ar: LocaleDict = {
       deleteFailed: 'تعذّر حذف البحث المحفوظ.',
     },
     ui: {
+      savedDraftUnavailable: 'تغيّر الحساب أو سياق الجلسة. أغلق مسودة البحث المحفوظ للبدء من جديد.',
       filterDraftUnavailable: 'تغيّر سياق الحساب أو الجلسة. أغلق مسودة المرشحات للبدء من جديد.',
       filtersTitle: 'عوامل تصفية البحث',
       filtersDescription: 'ضيّق البحث حسب الأشخاص أو التواريخ أو تفاصيل الرسائل.',

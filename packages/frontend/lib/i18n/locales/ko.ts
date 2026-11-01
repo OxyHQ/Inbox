@@ -859,6 +859,14 @@ const ko: LocaleDict = {
         keepCopy: 'Inbox에 사본 보관',
         keepCopyDescription: '전달한 메일의 기록을 남기려면 사용하는 것이 좋아요.',
         saveChanges: '변경사항 저장',
+        loadingSettings: '설정을 불러오는 중입니다. 변경 사항은 이 화면에 유지됩니다.',
+        settingsUnavailable:
+          '설정을 사용할 수 없습니다. 다시 연결하거나 이 화면을 다시 열기 전에 변경 사항을 복사하세요.',
+        sessionUnavailable:
+          '계정이 아직 준비되지 않아 설정을 저장할 수 없습니다. 잠시 후 다시 시도하세요.',
+        draftSessionChanged:
+          '세션이 변경되었거나 준비되지 않았습니다. 변경 사항을 버리기 전에 설정을 복사하세요.',
+        discardDraft: '변경 사항 버리기',
         saveFailed: '설정을 저장하지 못했습니다.',
         signature: '서명',
         signaturePlaceholder: '보내는 모든 메시지에 추가돼요',

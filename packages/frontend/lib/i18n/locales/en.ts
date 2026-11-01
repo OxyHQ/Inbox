@@ -881,6 +881,13 @@ const en: LocaleDict = {
         vacation: 'Vacation responder',
         signOutFailed: 'Failed to sign out.',
         title: 'Account',
+        loadingSettings: 'Loading settings. Your edits stay on this screen.',
+        settingsUnavailable:
+          'Settings are unavailable. Reconnect or copy your edits before reopening this screen.',
+        sessionUnavailable: 'Your account is not ready to save settings. Please try again shortly.',
+        draftSessionChanged:
+          'Your session changed or is not ready. Copy these settings before discarding your edits.',
+        discardDraft: 'Discard edits',
         saveFailed: 'Failed to save settings.',
         signature: 'Signature',
         signaturePlaceholder: 'Appended to every outgoing message',

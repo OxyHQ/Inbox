@@ -865,6 +865,14 @@ const ja: LocaleDict = {
         keepCopy: 'Inbox にコピーを残す',
         keepCopyDescription: '転送したメールの記録を残すためにおすすめします。',
         saveChanges: '変更を保存',
+        loadingSettings: '設定を読み込んでいます。変更はこの画面に残ります。',
+        settingsUnavailable:
+          '設定を利用できません。再接続するか、この画面を開き直す前に変更内容をコピーしてください。',
+        sessionUnavailable:
+          'アカウントの準備ができていないため、設定を保存できません。しばらくしてからもう一度お試しください。',
+        draftSessionChanged:
+          'セッションが変更されたか、準備ができていません。変更を破棄する前に設定をコピーしてください。',
+        discardDraft: '変更を破棄',
         saveFailed: '設定を保存できませんでした。',
         signature: '署名',
         signaturePlaceholder: '送信するすべてのメッセージに追加されます',

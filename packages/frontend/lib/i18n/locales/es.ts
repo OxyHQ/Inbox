@@ -866,6 +866,14 @@ const es: LocaleDict = {
         keepCopy: 'Guardar una copia en Inbox',
         keepCopyDescription: 'Recomendado para conservar un registro del correo reenviado.',
         saveChanges: 'Guardar cambios',
+        loadingSettings: 'Cargando los ajustes. Tus cambios permanecen en esta pantalla.',
+        settingsUnavailable:
+          'Los ajustes no están disponibles. Reconéctate o copia tus cambios antes de volver a abrir esta pantalla.',
+        sessionUnavailable:
+          'Tu cuenta aún no está lista para guardar los ajustes. Inténtalo de nuevo en un momento.',
+        draftSessionChanged:
+          'Tu sesión cambió o no está lista. Copia estos ajustes antes de descartar los cambios.',
+        discardDraft: 'Descartar cambios',
         saveFailed: 'No se pudieron guardar los ajustes.',
         signature: 'Firma',
         signaturePlaceholder: 'Se añade a todos los mensajes que envíes',

@@ -883,6 +883,15 @@ const de: LocaleDict = {
         keepCopy: 'Kopie im Posteingang behalten',
         keepCopyDescription: 'Empfohlen, damit weitergeleitete E-Mails nachvollziehbar bleiben.',
         saveChanges: 'Änderungen speichern',
+        loadingSettings:
+          'Einstellungen werden geladen. Deine Änderungen bleiben auf diesem Bildschirm.',
+        settingsUnavailable:
+          'Einstellungen sind nicht verfügbar. Stelle die Verbindung wieder her oder kopiere deine Änderungen, bevor du diesen Bildschirm erneut öffnest.',
+        sessionUnavailable:
+          'Dein Konto ist noch nicht bereit, Einstellungen zu speichern. Versuche es gleich erneut.',
+        draftSessionChanged:
+          'Deine Sitzung hat sich geändert oder ist nicht bereit. Kopiere die Einstellungen, bevor du Änderungen verwirfst.',
+        discardDraft: 'Änderungen verwerfen',
         saveFailed: 'Einstellungen konnten nicht gespeichert werden.',
         signature: 'Signatur',
         signaturePlaceholder: 'Wird an jede ausgehende Nachricht angehängt',

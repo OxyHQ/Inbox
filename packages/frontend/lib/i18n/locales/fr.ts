@@ -878,6 +878,14 @@ const fr: LocaleDict = {
         keepCopy: 'Conserver une copie dans la boîte de réception',
         keepCopyDescription: 'Recommandé pour garder une trace des courriels transférés.',
         saveChanges: 'Enregistrer les modifications',
+        loadingSettings: 'Chargement des paramètres. Vos modifications restent sur cet écran.',
+        settingsUnavailable:
+          'Les paramètres sont indisponibles. Reconnectez-vous ou copiez vos modifications avant de rouvrir cet écran.',
+        sessionUnavailable:
+          'Votre compte n’est pas encore prêt à enregistrer les paramètres. Réessayez dans un instant.',
+        draftSessionChanged:
+          'Votre session a changé ou n’est pas prête. Copiez ces paramètres avant d’abandonner les modifications.',
+        discardDraft: 'Abandonner les modifications',
         saveFailed: "Impossible d'enregistrer les paramètres.",
         signature: 'Signature',
         signaturePlaceholder: 'Ajoutée à chaque message envoyé',

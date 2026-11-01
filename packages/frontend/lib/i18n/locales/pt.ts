@@ -877,6 +877,14 @@ const pt: LocaleDict = {
         keepCopy: 'Manter uma cópia no Inbox',
         keepCopyDescription: 'Recomendado para manteres um registo do correio reencaminhado.',
         saveChanges: 'Guardar alterações',
+        loadingSettings: 'Carregando configurações. Suas alterações permanecem nesta tela.',
+        settingsUnavailable:
+          'As configurações estão indisponíveis. Reconecte-se ou copie suas alterações antes de reabrir esta tela.',
+        sessionUnavailable:
+          'Sua conta ainda não está pronta para salvar as configurações. Tente novamente em instantes.',
+        draftSessionChanged:
+          'Sua sessão mudou ou não está pronta. Copie as configurações antes de descartar as alterações.',
+        discardDraft: 'Descartar alterações',
         saveFailed: 'Não foi possível salvar as configurações.',
         signature: 'Assinatura',
         signaturePlaceholder: 'Adicionada a cada mensagem enviada',

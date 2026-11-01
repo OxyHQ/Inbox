@@ -515,6 +515,11 @@ const ca: LocaleDict = {
   },
 
   ai: {
+    subjectSuggestion: {
+      title: 'Assumpte suggerit',
+      apply: 'Aplica l’assumpte',
+      dismiss: 'Descarta',
+    },
     draftDialog: {
       preview: 'Previsualització de l’esborrany d’IA',
       title: 'Redacta amb IA',
@@ -523,6 +528,9 @@ const ca: LocaleDict = {
       placeholder: 'p. ex., declina la reunió amb educació i proposa la setmana vinent',
     },
     toast: {
+      subjectBlurBeforeApply: 'Tanca el camp de l’assumpte i torna a prémer Aplica l’assumpte.',
+      subjectSuggestionStale:
+        'El teu esborrany ha canviat. Demana un altre suggeriment d’assumpte.',
       failed: 'La IA no ho ha pogut fer ara. El teu text no ha canviat.',
       keptYourEdits: "Has continuat escrivint, així que el teu text s'ha deixat com estava.",
       applied: 'Reescrit amb IA.',

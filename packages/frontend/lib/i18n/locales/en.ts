@@ -509,6 +509,11 @@ const en: LocaleDict = {
   },
 
   ai: {
+    subjectSuggestion: {
+      title: 'Suggested subject',
+      apply: 'Apply subject',
+      dismiss: 'Dismiss',
+    },
     draftDialog: {
       preview: 'AI draft preview',
       placeholder: 'e.g. Decline the meeting politely, suggest next week instead',
@@ -517,6 +522,8 @@ const en: LocaleDict = {
       title: 'Draft with AI',
     },
     toast: {
+      subjectBlurBeforeApply: 'Close the subject field, then tap Apply subject again.',
+      subjectSuggestionStale: 'Your draft changed. Request a new subject suggestion.',
       failed: "AI couldn't do that right now. Your text is unchanged.",
       keptYourEdits: 'You kept typing, so your text was left as it is.',
       applied: 'Rewritten by AI.',

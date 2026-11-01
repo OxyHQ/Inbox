@@ -519,6 +519,11 @@ const de: LocaleDict = {
   },
 
   ai: {
+    subjectSuggestion: {
+      title: 'Vorgeschlagener Betreff',
+      apply: 'Betreff übernehmen',
+      dismiss: 'Verwerfen',
+    },
     draftDialog: {
       preview: 'Vorschau des KI-Entwurfs',
       title: 'Mit KI entwerfen',
@@ -527,6 +532,9 @@ const de: LocaleDict = {
       placeholder: 'z. B. Termin höflich absagen und stattdessen nächste Woche vorschlagen',
     },
     toast: {
+      subjectBlurBeforeApply: 'Schließe das Betrefffeld und tippe erneut auf Betreff übernehmen.',
+      subjectSuggestionStale:
+        'Dein Entwurf hat sich geändert. Fordere einen neuen Betreffvorschlag an.',
       failed: 'Die KI konnte das gerade nicht. Dein Text ist unverändert.',
       keptYourEdits: 'Du hast weitergeschrieben, daher wurde dein Text nicht geändert.',
       applied: 'Von KI umgeschrieben.',

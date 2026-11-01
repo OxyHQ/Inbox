@@ -517,6 +517,11 @@ const pt: LocaleDict = {
   },
 
   ai: {
+    subjectSuggestion: {
+      title: 'Assunto sugerido',
+      apply: 'Aplicar assunto',
+      dismiss: 'Dispensar',
+    },
     draftDialog: {
       preview: 'Prévia do rascunho de IA',
       title: 'Escrever rascunho com IA',
@@ -525,6 +530,8 @@ const pt: LocaleDict = {
       placeholder: 'ex. Recusa a reunião com educação e sugere a próxima semana',
     },
     toast: {
+      subjectBlurBeforeApply: 'Feche o campo de assunto e toque novamente em Aplicar assunto.',
+      subjectSuggestionStale: 'O rascunho mudou. Peça outra sugestão de assunto.',
       failed: 'A IA não conseguiu fazer isso agora. O teu texto não foi alterado.',
       keptYourEdits: 'Você continuou digitando, então seu texto foi mantido.',
       applied: 'Reescrito com IA.',

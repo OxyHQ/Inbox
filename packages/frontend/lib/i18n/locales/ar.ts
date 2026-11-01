@@ -541,6 +541,11 @@ const ar: LocaleDict = {
   },
 
   ai: {
+    subjectSuggestion: {
+      title: 'الموضوع المقترح',
+      apply: 'تطبيق الموضوع',
+      dismiss: 'تجاهل',
+    },
     draftDialog: {
       preview: 'معاينة مسودة الذكاء الاصطناعي',
       title: 'صياغة بالذكاء الاصطناعي',
@@ -549,6 +554,8 @@ const ar: LocaleDict = {
       placeholder: 'مثلًا: اعتذر عن الاجتماع بلطف واقترح الأسبوع القادم بدلًا منه',
     },
     toast: {
+      subjectBlurBeforeApply: 'أغلق حقل الموضوع ثم اضغط تطبيق الموضوع مرة أخرى.',
+      subjectSuggestionStale: 'تغيرت المسودة. اطلب اقتراح موضوع جديدًا.',
       failed: 'تعذّر على الذكاء الاصطناعي تنفيذ ذلك الآن. لم يتغيّر نصك.',
       keptYourEdits: 'واصلت الكتابة، لذا تُرك نصك كما هو.',
       applied: 'أُعيدت الكتابة بالذكاء الاصطناعي.',

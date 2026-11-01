@@ -211,7 +211,7 @@ describe.each(cases)('$name', ({ flag, key, useFlag }) => {
     let operation!: Promise<unknown>;
     act(() => {
       operation = result.current
-        .mutateAsync({ messageId: 'a', [flag]: true } as never)
+        .mutateAsync({ messageId: 'a', [flag]: true } as never, undefined, { quiet: true })
         .catch((e: unknown) => e);
     });
     await waitFor(() =>
@@ -354,4 +354,36 @@ describe.each(cases)('$name', ({ flag, key, useFlag }) => {
     unmount();
     client.clear();
   });
+});
+
+it('optimistically decrements the current unread badge when marking read', async () => {
+  useEmailStore.getState()._initApi(mockOxy.http);
+  const client = createInboxQueryClient();
+  const messageKey = emailKeys.message.detail('a', 'alice');
+  const mailboxKey = emailKeys.mailboxes.list('alice');
+  client.setQueryData(messageKey, wireMessage({ _id: 'a', userId: 'alice' }));
+  client.setQueryData(mailboxKey, [{ _id: 'inbox-1', unseenMessages: 2 }]);
+  let release!: (value: unknown) => void;
+  const responseInFlight = new Promise((resolve) => {
+    release = resolve;
+  });
+  jest.spyOn(mockOxy.http, 'put').mockImplementation(async () => await responseInFlight);
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  const { result, unmount } = renderHook(() => useToggleRead(), { wrapper });
+  let operation!: Promise<unknown>;
+  act(() => {
+    operation = result.current.mutateAsync({ messageId: 'a', seen: true });
+  });
+  await waitFor(() =>
+    expect(client.getQueryData(mailboxKey)).toEqual([{ _id: 'inbox-1', unseenMessages: 1 }]),
+  );
+  expect((client.getQueryData(messageKey) as ReturnType<typeof wireMessage>).flags.seen).toBe(true);
+  await act(async () => {
+    release(wireMessage({ _id: 'a' }));
+    await operation;
+  });
+  unmount();
+  client.clear();
 });

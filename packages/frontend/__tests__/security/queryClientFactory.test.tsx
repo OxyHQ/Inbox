@@ -26,14 +26,39 @@ it('creates independent clients with the singleton defaults and no extra app lis
   const b = createInboxQueryClient();
   expect(subscribe).toHaveBeenCalledTimes(1);
   expect(a).not.toBe(b);
-  expect(a.getDefaultOptions()).toEqual(queryClient.getDefaultOptions());
-  expect(b.getDefaultOptions()).toEqual(queryClient.getDefaultOptions());
+  const expectedDefaults = {
+    queries: {
+      staleTime: 60_000,
+      retry: 2,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      networkMode: 'offlineFirst',
+    },
+    mutations: { networkMode: 'offlineFirst', retry: 0 },
+  };
+  expect(INBOX_MUTATION_KEYS).toEqual({
+    toggleStar: ['inbox', 'message', 'toggle-star'],
+    toggleRead: ['inbox', 'message', 'toggle-read'],
+    archive: ['inbox', 'message', 'archive'],
+    delete: ['inbox', 'message', 'delete'],
+    togglePin: ['inbox', 'message', 'toggle-pin'],
+    updateLabels: ['inbox', 'message', 'labels'],
+    snooze: ['inbox', 'message', 'snooze'],
+    unsnooze: ['inbox', 'message', 'unsnooze'],
+    bulkFlags: ['inbox', 'messages', 'flags'],
+    bulkMove: ['inbox', 'messages', 'move'],
+  });
+  expect(a.getDefaultOptions()).toEqual(expectedDefaults);
+  expect(b.getDefaultOptions()).toEqual(expectedDefaults);
+  expect(queryClient.getDefaultOptions()).toEqual(expectedDefaults);
   for (const key of Object.values(INBOX_MUTATION_KEYS)) {
-    const expected = queryClient.getMutationDefaults(key);
-    for (const client of [a, b]) {
+    for (const client of [a, b, queryClient]) {
       const actual = client.getMutationDefaults(key);
-      expect({ ...actual, mutationFn: undefined }).toEqual({ ...expected, mutationFn: undefined });
-      expect(actual.mutationFn).toEqual(expect.any(Function));
+      expect(actual).toEqual({
+        networkMode: 'offlineFirst',
+        retry: 1,
+        mutationFn: expect.any(Function),
+      });
     }
   }
   a.clear();
@@ -43,36 +68,72 @@ it('creates independent clients with the singleton defaults and no extra app lis
   subscribe.mockRestore();
 });
 
-it('registers equivalent replay functions for every existing mutation type', async () => {
+it('registers the expected replay function for every existing mutation type', async () => {
   const {
     createInboxQueryClient,
     INBOX_MUTATION_KEYS: keys,
-    queryClient,
   } = require('@/hooks/queries/queryClient');
   const client = createInboxQueryClient();
   const cases = [
-    [keys.toggleStar, { messageId: 'm1', starred: true }],
-    [keys.toggleRead, { messageId: 'm1', seen: true }],
-    [keys.archive, { messageId: 'm1', archiveMailboxId: 'archive' }],
-    [keys.delete, { messageId: 'm1', isInTrash: true }],
-    [keys.delete, { messageId: 'm1', isInTrash: false, trashMailboxId: 'trash' }],
-    [keys.delete, { messageId: 'm1', isInTrash: false }],
-    [keys.togglePin, { messageId: 'm1', pinned: true }],
-    [keys.updateLabels, { messageId: 'm1', add: ['a'], remove: ['b'] }],
-    [keys.snooze, { messageIds: ['m1', 'm2'], until: '2030-01-01' }],
-    [keys.unsnooze, { messageId: 'm1' }],
-    [keys.bulkFlags, { messageIds: ['m1', 'm2'], flags: { seen: true } }],
-    [keys.bulkMove, { messageIds: ['m1', 'm2'], mailboxId: 'folder' }],
+    [
+      keys.toggleStar,
+      { messageId: 'm1', starred: true },
+      { updateFlags: [['m1', { starred: true }]] },
+    ],
+    [keys.toggleRead, { messageId: 'm1', seen: true }, { updateFlags: [['m1', { seen: true }]] }],
+    [
+      keys.archive,
+      { messageId: 'm1', archiveMailboxId: 'archive' },
+      { moveMessage: [['m1', 'archive']] },
+    ],
+    [keys.delete, { messageId: 'm1', isInTrash: true }, { deleteMessage: [['m1', true]] }],
+    [
+      keys.delete,
+      { messageId: 'm1', isInTrash: false, trashMailboxId: 'trash' },
+      { moveMessage: [['m1', 'trash']] },
+    ],
+    [keys.delete, { messageId: 'm1', isInTrash: false }, { deleteMessage: [['m1']] }],
+    [
+      keys.togglePin,
+      { messageId: 'm1', pinned: true },
+      { updateFlags: [['m1', { pinned: true }]] },
+    ],
+    [
+      keys.updateLabels,
+      { messageId: 'm1', add: ['a'], remove: ['b'] },
+      { updateLabels: [['m1', ['a'], ['b']]] },
+    ],
+    [
+      keys.snooze,
+      { messageIds: ['m1', 'm2'], until: '2030-01-01' },
+      {
+        snoozeMessage: [
+          ['m1', '2030-01-01'],
+          ['m2', '2030-01-01'],
+        ],
+      },
+    ],
+    [keys.unsnooze, { messageId: 'm1' }, { unsnoozeMessage: [['m1']] }],
+    [
+      keys.bulkFlags,
+      { messageIds: ['m1', 'm2'], flags: { seen: true } },
+      { bulkUpdateFlags: [[['m1', 'm2'], { seen: true }]] },
+    ],
+    [
+      keys.bulkMove,
+      { messageIds: ['m1', 'm2'], mailboxId: 'folder' },
+      { bulkMoveMessages: [[['m1', 'm2'], 'folder']] },
+    ],
   ] as const;
-  const calls = () =>
-    Object.fromEntries(Object.entries(mockApi).map(([name, fn]) => [name, fn.mock.calls]));
-  for (const [key, variables] of cases) {
-    jest.clearAllMocks();
-    await queryClient.getMutationDefaults(key).mutationFn(variables);
-    const expected = calls();
+  for (const [key, variables, expected] of cases) {
     jest.clearAllMocks();
     await client.getMutationDefaults(key).mutationFn(variables);
-    expect(calls()).toEqual(expected);
+    const calls = Object.fromEntries(
+      Object.entries(mockApi)
+        .filter(([, fn]) => fn.mock.calls.length > 0)
+        .map(([name, fn]) => [name, fn.mock.calls]),
+    );
+    expect(calls).toEqual(expected);
   }
   client.clear();
 });

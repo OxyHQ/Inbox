@@ -112,6 +112,10 @@ function activeEmailApi() {
   return api;
 }
 
+/**
+ * Creates an Inbox client with the existing replay defaults. Those mutations use
+ * the current global email API, so this factory does not isolate accounts.
+ */
 export function createInboxQueryClient(): QueryClient {
   const queryClient = new QueryClient({
     defaultOptions: {

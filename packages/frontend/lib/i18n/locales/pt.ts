@@ -1169,6 +1169,13 @@ const pt: LocaleDict = {
       reminderDeleteFailed: 'Falha ao eliminar o lembrete',
       reminderSessionUnavailable:
         'A tua conta ainda não está pronta para eliminar lembretes. Tenta novamente dentro de momentos.',
+      reminderUpdateUnavailable:
+        'A tua conta ainda não está pronta para alterar lembretes. Tenta novamente dentro de momentos.',
+      reminderPendingNotice: 'A guardar… Fechar este editor não cancela o pedido.',
+      reminderEditorUnavailable:
+        'A sessão mudou ou não está pronta. Copia o texto antes de fechar e voltar a abrir o lembrete.',
+      reminderSaveUnconfirmed:
+        'Não foi possível confirmar que o lembrete foi guardado. Verifica antes de tentar novamente.',
       templateCreateFailed: 'Falha ao criar o modelo',
       templateUpdateFailed: 'Falha ao atualizar o modelo',
       templateDeleteFailed: 'Falha ao eliminar o modelo',

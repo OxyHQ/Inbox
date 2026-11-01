@@ -211,7 +211,11 @@ jest.mock('@/components/SwipeableRow', () => ({
 jest.mock('@/components/BundleRow', () => ({ BundleRow: () => null }));
 jest.mock('@/components/EmptyStateSticker', () => ({ EmptyStateSticker: () => null }));
 jest.mock('@/components/UndeliveredBanner', () => ({ UndeliveredBanner: () => null }));
-jest.mock('@oxy.so/bloom/checkbox', () => ({ Checkbox: () => null }));
+jest.mock('@oxy.so/bloom/checkbox', () => ({
+  Checkbox: ({ onCheckedChange }: { onCheckedChange: (value: boolean) => void }) => (
+    <button type="button" aria-label="toggle reminder" onClick={() => onCheckedChange(true)} />
+  ),
+}));
 jest.mock('@oxy.so/bloom/item', () => ({
   Item: ({
     title,
@@ -259,7 +263,36 @@ jest.mock('@/components/SelectionToolbar', () => ({
   SelectionToolbar: () => <p>Private selection</p>,
 }));
 jest.mock('@/components/SnoozeSheet', () => ({ SnoozeSheet: () => null }));
-jest.mock('@/components/CreateReminderSheet', () => ({ CreateReminderSheet: () => null }));
+jest.mock('@/components/CreateReminderSheet', () => ({
+  CreateReminderSheet: ({
+    visible,
+    onClose,
+    onUpdate,
+    unavailableMessage,
+  }: {
+    visible: boolean;
+    onClose: () => void;
+    onUpdate: (text: string, at: Date) => Promise<void>;
+    unavailableMessage?: string;
+  }) =>
+    visible ? (
+      <section aria-label="synthetic editor">
+        <p>{unavailableMessage}</p>
+        <button type="button" onClick={onClose}>
+          close editor
+        </button>
+        <button
+          type="button"
+          disabled={!!unavailableMessage}
+          onClick={() => {
+            void onUpdate('Changed', new Date('2030-01-01T00:00:00.000Z')).catch(() => {});
+          }}
+        >
+          save editor
+        </button>
+      </section>
+    ) : null,
+}));
 jest.mock('@/components/InboxAlia', () => ({
   __esModule: true,
   default: () => <p>Private Alia</p>,
@@ -525,6 +558,98 @@ it('reports an unavailable current account and does not send', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'common.delete' }));
   await waitFor(() =>
     expect(mockToast.error).toHaveBeenCalledWith('ui.mutations.reminderSessionUnavailable'),
+  );
+  expect(globalThis.fetch).not.toHaveBeenCalled();
+  view.unmount();
+  client.clear();
+});
+
+it('retains the editor and blocks saving when the session changes after opening', async () => {
+  globalThis.fetch = jest.fn() as never;
+  const client = createInboxQueryClient();
+  useEmailStore.getState()._initApi(mockOxy.http);
+  const view = render(
+    <QueryClientProvider client={client}>
+      <InboxList />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Synthetic' }));
+  expect(screen.getByRole('region', { name: 'synthetic editor' })).toBeTruthy();
+  act(() => {
+    mockOxy.session.setAccessToken(token('alice', 'new-session'));
+    mockRuntime.setActiveSessionId('new-session');
+  });
+  await waitFor(() =>
+    expect(
+      (screen.getByRole('button', { name: 'save editor' }) as HTMLButtonElement).disabled,
+    ).toBe(true),
+  );
+  expect(screen.getByText('ui.mutations.reminderEditorUnavailable')).toBeTruthy();
+  expect(globalThis.fetch).not.toHaveBeenCalled();
+  view.unmount();
+  client.clear();
+});
+
+it('does not close a different reopened editor when an earlier save succeeds', async () => {
+  let release!: (value: ReturnType<typeof response>) => void, begin!: () => void;
+  const pending = new Promise<ReturnType<typeof response>>((r) => {
+    release = r;
+  });
+  const started = new Promise<void>((r) => {
+    begin = r;
+  });
+  globalThis.fetch = jest.fn(async () => {
+    begin();
+    return pending;
+  }) as never;
+  const client = createInboxQueryClient();
+  useEmailStore.getState()._initApi(mockOxy.http);
+  const view = render(
+    <QueryClientProvider client={client}>
+      <InboxList />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Synthetic' }));
+  fireEvent.click(screen.getByRole('button', { name: 'save editor' }));
+  await started;
+  fireEvent.click(screen.getByRole('button', { name: 'close editor' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Synthetic' }));
+  const at = '2030-01-01T00:00:00.000Z';
+  await act(async () =>
+    release(
+      response({
+        data: {
+          _id: 'synthetic-reminder',
+          userId: 'alice',
+          text: 'Changed',
+          remindAt: at,
+          completed: false,
+          pinned: false,
+          createdAt: at,
+          updatedAt: at,
+        },
+      }),
+    ),
+  );
+  await waitFor(() =>
+    expect(client.getMutationCache().getAll().at(-1)?.state.status).toBe('success'),
+  );
+  expect(screen.getByRole('region', { name: 'synthetic editor' })).toBeTruthy();
+  view.unmount();
+  client.clear();
+});
+
+it('reports an unavailable account for a completion toggle without mentioning editor text', async () => {
+  globalThis.fetch = jest.fn() as never;
+  const client = createInboxQueryClient();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <InboxList />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'toggle reminder' }));
+  await waitFor(() =>
+    expect(mockToast.error).toHaveBeenCalledWith('ui.mutations.reminderUpdateUnavailable'),
   );
   expect(globalThis.fetch).not.toHaveBeenCalled();
   view.unmount();

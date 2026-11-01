@@ -47,6 +47,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 
 import { CreateReminderSheet } from '@/components/CreateReminderSheet';
 import { useCreateReminder } from '@/hooks/mutations/useReminderMutations';
+import { isCurrentEmailOwner, useEmailMutationOwner } from '@/hooks/mutations/ownedEmailMutation';
 import { HtmlBody } from '@/components/HtmlBody';
 import { InlineReply } from '@/components/InlineReply';
 import { SnoozeSheet } from '@/components/SnoozeSheet';
@@ -197,16 +198,23 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const togglePin = useTogglePin();
 
   const createReminder = useCreateReminder();
-  const [reminderTargetId, setReminderTargetId] = useState<string | null>(null);
+  const reminderOwner = useEmailMutationOwner(true);
+  const reminderEditorId = useRef(0);
+  const [reminderTarget, setReminderTarget] = useState<{
+    id: string;
+    key: number;
+    owner: typeof reminderOwner;
+    mutate: typeof createReminder.mutateAsync;
+  } | null>(null);
   const handleCreateReminder = useCallback(
-    (text: string, remindAt: Date) => {
-      if (!reminderTargetId || createReminder.isPending) return;
-      createReminder.mutate(
-        { text, remindAt: remindAt.toISOString(), relatedMessageId: reminderTargetId },
-        { onSuccess: () => setReminderTargetId(null) },
-      );
+    async (text: string, remindAt: Date) => {
+      const target = reminderTarget;
+      if (!target || !isCurrentEmailOwner(target.owner))
+        throw new Error('Reminder session changed');
+      await target.mutate({ text, remindAt: remindAt.toISOString(), relatedMessageId: target.id });
+      setReminderTarget((current) => (current === target ? null : current));
     },
-    [createReminder, reminderTargetId],
+    [reminderTarget],
   );
 
   const [snoozeVisible, setSnoozeVisible] = useState(false);
@@ -812,7 +820,12 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
             leading={<RiCalendarLine />}
             onPress={() => {
               moreMenuControl.close();
-              setReminderTargetId(currentMessage._id);
+              setReminderTarget({
+                id: currentMessage._id,
+                key: ++reminderEditorId.current,
+                owner: reminderOwner,
+                mutate: createReminder.mutateAsync,
+              });
             }}
           >
             {t('reminder.create.title')}
@@ -967,11 +980,18 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
       </ScreenScrollView>
 
       <CreateReminderSheet
-        key={reminderTargetId ?? 'closed-reminder'}
-        visible={reminderTargetId === currentMessage._id}
-        onClose={() => setReminderTargetId(null)}
+        key={reminderTarget?.key ?? 'closed-reminder'}
+        visible={reminderTarget?.id === currentMessage._id}
+        onClose={() =>
+          setReminderTarget((current) => (current === reminderTarget ? null : current))
+        }
         onCreate={handleCreateReminder}
-        relatedMessageId={reminderTargetId ?? undefined}
+        relatedMessageId={reminderTarget?.id}
+        unavailableMessage={
+          reminderTarget && !isCurrentEmailOwner(reminderTarget.owner)
+            ? t('ui.mutations.reminderEditorUnavailable')
+            : undefined
+        }
       />
 
       {/* Snooze sheet */}

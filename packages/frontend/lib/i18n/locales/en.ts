@@ -1169,6 +1169,13 @@ const en: LocaleDict = {
       reminderDeleteFailed: 'Failed to delete reminder',
       reminderSessionUnavailable:
         'Your account is not ready to delete reminders. Please try again shortly.',
+      reminderUpdateUnavailable:
+        'Your account is not ready to update reminders. Please try again shortly.',
+      reminderPendingNotice: 'Saving… Closing this editor will not cancel the request.',
+      reminderEditorUnavailable:
+        'Your session changed or is not ready. Copy your text before closing and reopening this reminder.',
+      reminderSaveUnconfirmed:
+        'Couldn’t confirm the reminder was saved. Check before trying again.',
       templateCreateFailed: 'Failed to create template',
       templateUpdateFailed: 'Failed to update template',
       templateDeleteFailed: 'Failed to delete template',

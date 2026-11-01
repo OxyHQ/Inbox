@@ -1167,6 +1167,13 @@ const it: LocaleDict = {
       reminderDeleteFailed: 'Impossibile eliminare il promemoria',
       reminderSessionUnavailable:
         'Il tuo account non è ancora pronto per eliminare i promemoria. Riprova tra poco.',
+      reminderUpdateUnavailable:
+        'Il tuo account non è ancora pronto per modificare i promemoria. Riprova tra poco.',
+      reminderPendingNotice: 'Salvataggio… Chiudere questo editor non annullerà la richiesta.',
+      reminderEditorUnavailable:
+        'La sessione è cambiata o non è pronta. Copia il testo prima di chiudere e riaprire il promemoria.',
+      reminderSaveUnconfirmed:
+        'Impossibile confermare il salvataggio del promemoria. Controlla prima di riprovare.',
       templateCreateFailed: 'Impossibile creare il modello',
       templateUpdateFailed: 'Impossibile aggiornare il modello',
       templateDeleteFailed: 'Impossibile eliminare il modello',

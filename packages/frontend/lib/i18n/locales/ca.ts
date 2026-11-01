@@ -874,6 +874,15 @@ const ca: LocaleDict = {
         keepCopy: "Conserva'n una còpia a Inbox",
         keepCopyDescription: 'Recomanat per conservar un registre del correu reenviat.',
         saveChanges: 'Desa els canvis',
+        loadingSettings:
+          'S’està carregant la configuració. Els canvis es mantenen en aquesta pantalla.',
+        settingsUnavailable:
+          'La configuració no està disponible. Torna a connectar-te o copia els canvis abans de tornar a obrir aquesta pantalla.',
+        sessionUnavailable:
+          'El teu compte encara no està preparat per desar la configuració. Torna-ho a provar en un moment.',
+        draftSessionChanged:
+          'La sessió ha canviat o no està preparada. Copia la configuració abans de descartar els canvis.',
+        discardDraft: 'Descarta els canvis',
         saveFailed: "No s'han pogut desar els ajustos.",
         signature: 'Signatura',
         signaturePlaceholder: "S'afegeix a tots els missatges que envies",

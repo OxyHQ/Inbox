@@ -874,6 +874,15 @@ const it: LocaleDict = {
         keepCopy: 'Conserva una copia in Inbox',
         keepCopyDescription: 'Consigliato per conservare una traccia della posta inoltrata.',
         saveChanges: 'Salva modifiche',
+        loadingSettings:
+          'Caricamento delle impostazioni. Le modifiche restano su questa schermata.',
+        settingsUnavailable:
+          'Le impostazioni non sono disponibili. Riconnettiti o copia le modifiche prima di riaprire questa schermata.',
+        sessionUnavailable:
+          'Il tuo account non è ancora pronto per salvare le impostazioni. Riprova tra poco.',
+        draftSessionChanged:
+          'La sessione è cambiata o non è pronta. Copia le impostazioni prima di scartare le modifiche.',
+        discardDraft: 'Scarta modifiche',
         saveFailed: 'Impossibile salvare le impostazioni.',
         signature: 'Firma',
         signaturePlaceholder: 'Aggiunta a ogni messaggio in uscita',

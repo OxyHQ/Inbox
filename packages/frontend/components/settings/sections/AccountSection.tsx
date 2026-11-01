@@ -1,4 +1,5 @@
 import { useSettings, useUpdateSettings } from '@/hooks/queries/useSettings';
+import { isCurrentEmailOwner, useEmailMutationOwner } from '@/hooks/mutations/ownedEmailMutation';
 import { useTranslation } from '@/lib/i18n';
 import { isValidRecipientEmail } from '@/schemas/emailSchemas';
 import type { EmailSettings } from '@/services/emailApi';
@@ -43,36 +44,111 @@ function draftsEqual(a: SettingsDraft, b: SettingsDraft): boolean {
   );
 }
 
-/** React-docs derived-state pattern: re-sync the draft only when the server
- *  snapshot changes AND the user has no pending edits. No useEffect. */
-function useDirtySettings(settingsData: EmailSettings | undefined) {
-  const [serverSnapshot, setServerSnapshot] = useState<EmailSettings | undefined>(settingsData);
-  const [draft, setDraft] = useState<SettingsDraft>(() => toDraft(settingsData));
+/** Carry the user's changed fields forward while refreshing untouched fields. */
+function mergeSettingsDraft(
+  draft: SettingsDraft,
+  previous: SettingsDraft,
+  next: SettingsDraft,
+): SettingsDraft {
+  const field = <T,>(value: T, old: T, incoming: T): T =>
+    Object.is(value, old) ? incoming : value;
+  return {
+    signature: field(draft.signature, previous.signature, next.signature),
+    autoReplyEnabled: field(
+      draft.autoReplyEnabled,
+      previous.autoReplyEnabled,
+      next.autoReplyEnabled,
+    ),
+    autoReplySubject: field(
+      draft.autoReplySubject,
+      previous.autoReplySubject,
+      next.autoReplySubject,
+    ),
+    autoReplyBody: field(draft.autoReplyBody, previous.autoReplyBody, next.autoReplyBody),
+    autoForwardTo: field(draft.autoForwardTo, previous.autoForwardTo, next.autoForwardTo),
+    autoForwardKeepCopy: field(
+      draft.autoForwardKeepCopy,
+      previous.autoForwardKeepCopy,
+      next.autoForwardKeepCopy,
+    ),
+  };
+}
 
-  if (settingsData !== serverSnapshot) {
-    const isClean = draftsEqual(draft, toDraft(serverSnapshot));
-    setServerSnapshot(settingsData);
-    if (isClean) {
-      setDraft(toDraft(settingsData));
-    }
+type SettingsBinding = {
+  owner: ReturnType<typeof useEmailMutationOwner>;
+  mutate: ReturnType<typeof useUpdateSettings>['mutate'];
+};
+type SettingsForm = {
+  serverSnapshot: EmailSettings | undefined;
+  draft: SettingsDraft;
+  binding: SettingsBinding | null;
+};
+
+/** Keep edits while the server snapshot changes, binding them to their starting session. */
+function useDirtySettings(
+  settingsData: EmailSettings | undefined,
+  owner: SettingsBinding['owner'],
+  mutate: SettingsBinding['mutate'],
+) {
+  const [form, setForm] = useState<SettingsForm>(() => ({
+    serverSnapshot: settingsData,
+    draft: toDraft(settingsData),
+    binding: null,
+  }));
+
+  if (settingsData !== form.serverSnapshot) {
+    const draft = mergeSettingsDraft(
+      form.draft,
+      toDraft(form.serverSnapshot),
+      toDraft(settingsData),
+    );
+    setForm({
+      serverSnapshot: settingsData,
+      draft,
+      binding: draftsEqual(draft, toDraft(settingsData)) ? null : form.binding,
+    });
   }
 
-  const dirty = !draftsEqual(draft, toDraft(settingsData));
+  const setField = useCallback(
+    <K extends keyof SettingsDraft>(key: K, value: SettingsDraft[K]) => {
+      setForm((current) => {
+        const draft = { ...current.draft, [key]: value };
+        return {
+          ...current,
+          draft,
+          binding: draftsEqual(draft, toDraft(current.serverSnapshot))
+            ? null
+            : (current.binding ?? { owner, mutate }),
+        };
+      });
+    },
+    [owner, mutate],
+  );
+  const discard = useCallback(() => {
+    setForm({ serverSnapshot: settingsData, draft: toDraft(settingsData), binding: null });
+  }, [settingsData]);
 
-  const setField = useCallback(<K extends keyof SettingsDraft>(key: K, value: SettingsDraft[K]) => {
-    setDraft((prev) => ({ ...prev, [key]: value }));
-  }, []);
-
-  return { draft, setField, dirty };
+  return {
+    draft: form.draft,
+    setField,
+    discard,
+    binding: form.binding,
+    dirty: !draftsEqual(form.draft, toDraft(settingsData)),
+  };
 }
 
 export function AccountSection() {
   const { t } = useTranslation();
   const { user, logout } = useOxy();
-  const { data: settingsData } = useSettings();
+  const { data: settingsData, fetchStatus } = useSettings();
   const updateSettings = useUpdateSettings();
-
-  const { draft, setField, dirty } = useDirtySettings(settingsData);
+  const owner = useEmailMutationOwner(true);
+  const { draft, setField, discard, binding, dirty } = useDirtySettings(
+    settingsData,
+    owner,
+    updateSettings.mutate,
+  );
+  const draftUnavailable = Boolean(binding && !isCurrentEmailOwner(binding.owner));
   const {
     signature,
     autoReplyEnabled,
@@ -85,6 +161,7 @@ export function AccountSection() {
   const saving = updateSettings.isPending;
 
   const handleSave = useCallback(() => {
+    if (!settingsData) return;
     // Only what changed. Every save used to send the whole object: the
     // vacation window's dates (which this form does not show) were wiped, and a
     // draft seeded from a stale cache reverted changes made on another device.
@@ -98,7 +175,9 @@ export function AccountSection() {
       autoReplyEnabled !== saved.autoReplyEnabled ||
       autoReplySubject !== saved.autoReplySubject ||
       autoReplyBody !== saved.autoReplyBody;
-    updateSettings.mutate(
+    const captured = binding;
+    if (!captured || !isCurrentEmailOwner(captured.owner)) return;
+    captured.mutate(
       {
         ...(signature !== saved.signature ? { signature } : {}),
         ...(autoReplyChanged
@@ -132,7 +211,7 @@ export function AccountSection() {
     autoReplyBody,
     autoForwardTo,
     autoForwardKeepCopy,
-    updateSettings,
+    binding,
     t,
   ]);
 
@@ -271,6 +350,42 @@ export function AccountSection() {
                 : []),
             ],
           },
+          ...(!settingsData
+            ? [
+                {
+                  key: 'settings-unavailable',
+                  rows: [
+                    {
+                      key: 'settings-unavailable',
+                      label: t(
+                        fetchStatus === 'fetching'
+                          ? 'ui.settings.account.loadingSettings'
+                          : 'ui.settings.account.settingsUnavailable',
+                      ),
+                      control: null,
+                    },
+                  ],
+                },
+              ]
+            : []),
+          ...(draftUnavailable
+            ? [
+                {
+                  key: 'draft-unavailable',
+                  rows: [
+                    {
+                      key: 'draft-unavailable',
+                      label: t('ui.settings.account.draftSessionChanged'),
+                      control: (
+                        <Button appearance="subtle" onPress={discard}>
+                          {t('ui.settings.account.discardDraft')}
+                        </Button>
+                      ),
+                    },
+                  ],
+                },
+              ]
+            : []),
           ...(dirty
             ? [
                 {
@@ -280,7 +395,11 @@ export function AccountSection() {
                       key: 'save',
                       label: t('ui.settings.account.saveChanges'),
                       control: (
-                        <Button onPress={handleSave} disabled={saving} loading={saving}>
+                        <Button
+                          onPress={handleSave}
+                          disabled={saving || draftUnavailable || !settingsData}
+                          loading={saving}
+                        >
                           {t('ui.settings.account.saveChanges')}
                         </Button>
                       ),

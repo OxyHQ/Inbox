@@ -83,20 +83,24 @@ export function SearchFiltersBar({
     value: SearchFilters;
   } | null>(null);
   const pendingRef = useRef(pending);
+  const latestFilters = useRef(filters);
   useLayoutEffect(() => {
     pendingRef.current = pending;
   }, [pending]);
+  useLayoutEffect(() => {
+    latestFilters.current = filters;
+  }, [filters]);
   const draft = pending?.scope === scope ? pending.value : null;
   const open = () => {
-    if (!isScopeCurrent()) return;
-    const next = { id: {}, scope, isCurrent: isScopeCurrent, value: { ...filters } };
+    if (!isScopeCurrent() || pendingRef.current) return;
+    const next = { id: {}, scope, isCurrent: isScopeCurrent, value: { ...latestFilters.current } };
     pendingRef.current = next;
     setPending(next);
   };
   const updateDraft = (patch: Partial<SearchFilters>) => {
     if (!isScopeCurrent()) return;
     const current = pendingRef.current;
-    if (!current || current.scope !== scope) return;
+    if (!current || current.scope !== scope || current.id !== pending?.id) return;
     const next = { ...current, value: { ...current.value, ...patch } };
     pendingRef.current = next;
     setPending(next);
@@ -376,7 +380,7 @@ export function SearchFiltersBar({
               onPress={() => {
                 if (!isScopeCurrent()) return;
                 const current = pendingRef.current;
-                if (!current || current.scope !== scope) return;
+                if (!current || current.scope !== scope || current.id !== pending?.id) return;
                 const next = { ...current, value: {} };
                 pendingRef.current = next;
                 setPending(next);

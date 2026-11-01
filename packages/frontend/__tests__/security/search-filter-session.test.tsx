@@ -12,6 +12,7 @@ let mockApply: (() => void) | undefined;
 let mockClose: (() => void) | undefined;
 let mockFromChange: ((value: string) => void) | undefined;
 let mockQuick: ((checked: boolean) => void) | undefined;
+let mockClear: (() => void) | undefined;
 jest.mock('@oxy.so/services/ui/client', () => ({
   useOxy: () => ({ oxyServices: mockOxy, user: { id: 'alice' } }),
 }));
@@ -45,11 +46,14 @@ jest.mock('@oxy.so/bloom/screen', () => ({
 }));
 jest.mock('@oxy.so/bloom/divider', () => ({ Divider: () => null }));
 jest.mock('@oxy.so/bloom/button', () => ({
-  Button: ({ children, onPress }: { children: ReactNode; onPress?: () => void }) => (
-    <button type="button" onClick={onPress}>
-      {children}
-    </button>
-  ),
+  Button: ({ children, onPress }: { children: ReactNode; onPress?: () => void }) => {
+    if (children === 'search.ui.clearFilters') mockClear = onPress;
+    return (
+      <button type="button" onClick={onPress}>
+        {children}
+      </button>
+    );
+  },
   IconButton: () => null,
 }));
 jest.mock('@oxy.so/bloom/empty-state', () => ({ EmptyState: () => null }));
@@ -516,5 +520,25 @@ it('does not revive an old draft after runtime replacement A to B to A', async (
   expect(view.queryByDisplayValue('private@example.test')).toBeNull();
   act(() => oldApply?.());
   expect(mockOptions.from).toBeUndefined();
+  cleanup();
+});
+
+it('does not let an old input callback edit a later draft in the same session', async () => {
+  const { view, cleanup } = await setup();
+  fireEvent.click(view.getByText('search.ui.filtersTitle'));
+  const oldFrom = mockFromChange;
+  const oldClear = mockClear;
+  fireEvent.click(view.getByLabelText('close-filter'));
+  fireEvent.click(view.getByText('search.ui.filtersTitle'));
+  fireEvent.change(view.getByLabelText('search.filters.from'), {
+    target: { value: 'current@example.test' },
+  });
+  act(() => {
+    oldFrom?.('old@example.test');
+    oldClear?.();
+  });
+  expect((view.getByLabelText('search.filters.from') as HTMLInputElement).value).toBe(
+    'current@example.test',
+  );
   cleanup();
 });

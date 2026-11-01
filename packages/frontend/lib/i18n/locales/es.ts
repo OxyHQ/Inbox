@@ -1157,6 +1157,8 @@ const es: LocaleDict = {
       reminderCreateFailed: 'No se pudo crear el recordatorio',
       reminderUpdateFailed: 'No se pudo actualizar el recordatorio',
       reminderDeleteFailed: 'No se pudo eliminar el recordatorio',
+      reminderSessionUnavailable:
+        'Tu cuenta aún no está lista para eliminar recordatorios. Inténtalo de nuevo en un momento.',
       templateCreateFailed: 'No se pudo crear la plantilla',
       templateUpdateFailed: 'No se pudo actualizar la plantilla',
       templateDeleteFailed: 'No se pudo eliminar la plantilla',

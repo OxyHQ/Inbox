@@ -1167,6 +1167,8 @@ const pt: LocaleDict = {
       reminderCreateFailed: 'Falha ao criar o lembrete',
       reminderUpdateFailed: 'Falha ao atualizar o lembrete',
       reminderDeleteFailed: 'Falha ao eliminar o lembrete',
+      reminderSessionUnavailable:
+        'A tua conta ainda não está pronta para eliminar lembretes. Tenta novamente dentro de momentos.',
       templateCreateFailed: 'Falha ao criar o modelo',
       templateUpdateFailed: 'Falha ao atualizar o modelo',
       templateDeleteFailed: 'Falha ao eliminar o modelo',

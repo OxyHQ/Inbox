@@ -513,7 +513,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
 
   const handleDeleteReminder = useCallback(
     (reminderId: string) => {
-      deleteReminderMutation.mutate(reminderId);
+      deleteReminderMutation.mutate({ reminderId });
     },
     [deleteReminderMutation],
   );

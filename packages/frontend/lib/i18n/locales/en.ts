@@ -1167,6 +1167,8 @@ const en: LocaleDict = {
       reminderCreateFailed: 'Failed to create reminder',
       reminderUpdateFailed: 'Failed to update reminder',
       reminderDeleteFailed: 'Failed to delete reminder',
+      reminderSessionUnavailable:
+        'Your account is not ready to delete reminders. Please try again shortly.',
       templateCreateFailed: 'Failed to create template',
       templateUpdateFailed: 'Failed to update template',
       templateDeleteFailed: 'Failed to delete template',

@@ -1,4 +1,6 @@
+import { useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useGuardedMessageMutation } from '@/hooks/mutations/guardedMessageMutation';
 import { useEmailStore } from '@/hooks/useEmail';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import { toast } from '@oxy.so/bloom/toast';
@@ -56,17 +58,26 @@ export function useDeleteReminder() {
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const onUnavailable = useCallback(
+    () => toast.error(t('ui.mutations.reminderSessionUnavailable')),
+    [t],
+  );
 
-  return useMutation({
-    mutationFn: async (reminderId: string) => {
-      if (!api) throw new Error('Email API not initialized');
-      return api.deleteReminder(reminderId);
+  return useGuardedMessageMutation(
+    {
+      retry: 0,
+      onMutate: () => undefined,
+      mutationFn: async ({ reminderId }: { reminderId: string }) => {
+        if (!api) throw new Error('Email API not initialized');
+        return api.deleteReminder(reminderId);
+      },
+      onSuccess: () => {
+        void queryClient.invalidateQueries({ queryKey: emailKeys.reminders.root });
+      },
+      onError: () => {
+        toast.error(t('ui.mutations.reminderDeleteFailed'));
+      },
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: emailKeys.reminders.root });
-    },
-    onError: () => {
-      toast.error(t('ui.mutations.reminderDeleteFailed'));
-    },
-  });
+    onUnavailable,
+  );
 }

@@ -3,7 +3,7 @@ import { onlineManager, QueryClientProvider } from '@tanstack/react-query';
 import { OxyServices } from '@oxy.so/core';
 import type { ReactNode } from 'react';
 import { useEmailStore } from '@/hooks/useEmail';
-import { createInboxQueryClient } from '@/hooks/queries/queryClient';
+import { createInboxQueryClient, INBOX_ACCOUNT_QUERIES } from '@/hooks/queries/queryClient';
 
 let mockOxy: OxyServices;
 let mockUser: string | null = 'alice';
@@ -287,6 +287,146 @@ it('aborts a delayed auth preflight when the projected account changes', async (
   expect(outcome).toMatchObject({ name: 'AbortError' });
   expect(globalThis.fetch).not.toHaveBeenCalled();
   unmount();
+  client.clear();
+});
+
+it('aborts a rewrite during delayed auth preflight when projection changes', async () => {
+  let release!: () => void, begin!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const started = new Promise<void>((resolve) => {
+    begin = resolve;
+  });
+  const http = mockOxy.http as unknown as { getAuthHeader: () => Promise<string | null> };
+  const original = http.getAuthHeader.bind(http);
+  http.getAuthHeader = async () => {
+    begin();
+    await gate;
+    return original();
+  };
+  globalThis.fetch = jest.fn() as never;
+  const client = createInboxQueryClient();
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  const { result, unmount } = renderHook(() => useAiCompose(), { wrapper });
+  let operation!: Promise<unknown>;
+  const owner = result.current.captureOwner();
+  act(() => {
+    operation = result.current.polish('synthetic text', owner).catch((error) => error);
+  });
+  await started;
+  await act(async () => {
+    mockRuntime.setAccount({ id: 'bob' });
+    await operation;
+    release();
+  });
+  expect(owner.signal.aborted).toBe(true);
+  expect(globalThis.fetch).not.toHaveBeenCalled();
+  owner.dispose();
+  unmount();
+  client.clear();
+});
+
+it('keeps rewrite operations memory-only and suppresses an obsolete failure', async () => {
+  let reject!: (error: Error) => void;
+  const response = new Promise<never>((_resolve, fail) => {
+    reject = fail;
+  });
+  jest.spyOn(mockOxy.http, 'post').mockReturnValueOnce(response);
+  const client = createInboxQueryClient();
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  const { result, unmount } = renderHook(() => useAiCompose(), { wrapper });
+  const owner = result.current.captureOwner();
+  let operation!: Promise<unknown>;
+  act(() => {
+    operation = result.current.polish('synthetic text', owner).catch((error) => error);
+  });
+  await waitFor(() => expect(mockOxy.http.post).toHaveBeenCalled());
+  const mutation = client.getMutationCache().getAll()[0];
+  const { dirname, join } = require('node:path');
+  const directory = dirname(require.resolve('@oxy.so/services/package.json'));
+  const { accountQueryOwnership } = require(
+    join(directory, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
+  );
+  expect(accountQueryOwnership(INBOX_ACCOUNT_QUERIES).persistsMutation(mutation)).toBe(false);
+  await act(async () => {
+    mockRuntime.setAccount({ id: 'bob' });
+    reject(new Error('synthetic failure'));
+    await operation;
+  });
+  expect(require('@oxy.so/bloom/toast').toast.error).not.toHaveBeenCalled();
+  owner.dispose();
+  unmount();
+  client.clear();
+});
+
+it('retains a rewrite owner through null-to-ID recovery but invalidates committed user-only ABA', () => {
+  mockRuntime.setActiveSessionId(null);
+  const client = createInboxQueryClient();
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  const { result, rerender, unmount } = renderHook(() => useAiCompose(), { wrapper });
+  const owner = result.current.captureOwner();
+  act(() => mockRuntime.setActiveSessionId('a-session'));
+  expect(owner.isCurrent()).toBe(true);
+  expect(owner.signal.aborted).toBe(false);
+  act(() => {
+    mockUser = 'bob';
+    rerender();
+  });
+  expect(owner.signal.aborted).toBe(true);
+  act(() => {
+    mockUser = 'alice';
+    rerender();
+  });
+  expect(owner.isCurrent()).toBe(false);
+  owner.dispose();
+  unmount();
+  client.clear();
+});
+it('releases rewrite listeners immediately on owner change and unmount', () => {
+  let tokenListeners = 0;
+  let projectionListeners = 0;
+  const originalToken = mockOxy.http.addTokenChangeListener.bind(mockOxy.http);
+  const originalProjection = mockRuntime.subscribe.bind(mockRuntime);
+  jest.spyOn(mockOxy.http, 'addTokenChangeListener').mockImplementation((listener) => {
+    tokenListeners++;
+    const unsubscribe = originalToken(listener);
+    return () => {
+      tokenListeners--;
+      unsubscribe();
+    };
+  });
+  jest.spyOn(mockRuntime, 'subscribe').mockImplementation((listener) => {
+    projectionListeners++;
+    const unsubscribe = originalProjection(listener);
+    return () => {
+      projectionListeners--;
+      unsubscribe();
+    };
+  });
+  const client = createInboxQueryClient();
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  const { result, unmount } = renderHook(() => useAiCompose(), { wrapper });
+  const tokenBaseline = tokenListeners;
+  const projectionBaseline = projectionListeners;
+  const owner = result.current.captureOwner();
+  expect(tokenListeners).toBe(tokenBaseline + 1);
+  expect(projectionListeners).toBe(projectionBaseline + 1);
+  act(() => mockRuntime.setAccount({ id: 'bob' }));
+  expect(owner.signal.aborted).toBe(true);
+  expect(tokenListeners).toBe(tokenBaseline);
+  expect(projectionListeners).toBe(projectionBaseline);
+  unmount();
+  expect(tokenListeners).toBe(0);
+  expect(projectionListeners).toBe(0);
   client.clear();
 });
 
@@ -578,5 +718,43 @@ it('invalidates a retained completion guard when the hook unmounts', async () =>
   expect(guard?.()).toBe(true);
   unmount();
   expect(guard?.()).toBe(false);
+  client.clear();
+});
+it('keeps a retained completion guard invalid after a committed user-only ABA', async () => {
+  const stream = makeControlledStream();
+  const client = createInboxQueryClient();
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  const { result, rerender, unmount } = renderHook(() => useAiCompose(), { wrapper });
+  let guard: (() => boolean) | undefined;
+  let operation!: Promise<string>;
+  act(() => {
+    operation = result.current.streamDraft(
+      'synthetic prompt',
+      'friendly',
+      undefined,
+      (_text, current) => {
+        guard = current;
+      },
+    );
+  });
+  await waitFor(() => expect(stream.reader.read).toHaveBeenCalledTimes(2));
+  await act(async () => {
+    stream.finish();
+    await operation;
+  });
+  expect(guard?.()).toBe(true);
+  act(() => {
+    mockUser = 'bob';
+    rerender();
+  });
+  expect(guard?.()).toBe(false);
+  act(() => {
+    mockUser = 'alice';
+    rerender();
+  });
+  expect(guard?.()).toBe(false);
+  unmount();
   client.clear();
 });

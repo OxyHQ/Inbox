@@ -15,14 +15,7 @@ import { Text } from '@oxy.so/bloom/typography';
  */
 
 import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type ComponentProps,
-} from 'react';
+import { useCallback, useLayoutEffect, useRef, useState, type ComponentProps } from 'react';
 import { ScrollView, View } from 'react-native';
 
 import { useAiCompose, type ComposeTone } from '@/hooks/mutations/useAiCompose';
@@ -71,6 +64,7 @@ export function AiComposeToolbar({
   const { t } = useTranslation();
   const {
     streamDraft,
+    captureOwner,
     polish,
     changeTone,
     adjustLength,
@@ -96,34 +90,38 @@ export function AiComposeToolbar({
 
   const hasBody = body.trim().length > 0;
 
-  // The text as it is NOW, for an answer that arrives after the user typed on.
-  const latestText = useRef(body);
-  useEffect(() => {
-    latestText.current = body;
-  }, [body]);
-
   /**
-   * Run a rewrite of the current text. Its answer is applied only if the text
-   * is still what was sent: typing while it ran used to be overwritten.
+   * Preserve later editor changes even if the plain text returns to its former
+   * value or only the formatting changed.
    */
   const rewrite = useCallback(
-    async (run: (input: string) => Promise<string>) => {
+    async (run: (input: string, owner: ReturnType<typeof captureOwner>) => Promise<string>) => {
       const input = body;
+      const revision = getBodyRevision();
+      const owner = captureOwner();
+      const { isCurrent } = owner;
+      if (!isCurrent()) {
+        owner.dispose();
+        return;
+      }
       try {
-        const result = await run(input);
-        if (!mountedRef.current) return;
-        if (latestText.current !== input) {
+        const result = await run(input, owner);
+        if (!mountedRef.current || !isCurrent()) return;
+        if (getBodyRevision() !== revision || isBodyComposing()) {
           toast(t('ai.toast.keptYourEdits'));
           return;
         }
         onBegin();
-        onCommit(result);
+        if (isCurrent() && getBodyRevision() === revision && !isBodyComposing())
+          onCommit(result, isCurrent);
       } catch {
         // Errors are reported by the hook; an abort belongs to an unmounted or
         // superseded request.
+      } finally {
+        owner.dispose();
       }
     },
-    [body, onBegin, onCommit, t],
+    [body, getBodyRevision, isBodyComposing, captureOwner, onBegin, onCommit, t],
   );
 
   // Handler for "Draft for me" button
@@ -181,7 +179,7 @@ export function AiComposeToolbar({
 
   // Handler for "Shorter" button
   const handleShorter = useCallback(() => {
-    if (hasBody) void rewrite((input) => adjustLength(input, 'shorter'));
+    if (hasBody) void rewrite((input, owner) => adjustLength(input, 'shorter', owner));
   }, [hasBody, rewrite, adjustLength]);
 
   // Handler for tone change
@@ -189,7 +187,7 @@ export function AiComposeToolbar({
     (tone: ComposeTone) => {
       toneControl.close();
       setSelectedTone(tone);
-      if (hasBody) void rewrite((input) => changeTone(input, tone));
+      if (hasBody) void rewrite((input, owner) => changeTone(input, tone, owner));
     },
     [hasBody, rewrite, changeTone, toneControl],
   );

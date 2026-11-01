@@ -179,9 +179,9 @@ describe('preformatted plain-text boundaries', () => {
     const html = '<blockquote><pre>first  \n\n\nsecond</pre></blockquote>';
     expect(bodyParts(html, true).text).toBe('> first  \n>\n>\n> second');
   });
-  it('preserves meaningful leading and trailing newlines within pre', () => {
+  it('ignores the first newline immediately after pre and preserves trailing newlines', () => {
     const html = '<pre>\nfirst\n\n</pre>';
-    expect(bodyParts(html, true).text).toBe('\nfirst\n\n');
+    expect(bodyParts(html, true).text).toBe('first\n\n');
   });
 });
 
@@ -247,4 +247,24 @@ it('continues the ordinary sequence for item values that have no integer prefix'
   expect(bodyParts('<ol><li>A</li><li value="+ 3">B</li><li>C</li></ol>', true).text).toBe(
     '1. A\n2. B\n3. C',
   );
+});
+
+describe('HTML pre initial line-feed parsing', () => {
+  it.each([
+    ['<pre>\nA</pre>', 'A'],
+    ['<pre>\r\nA</pre>', 'A'],
+    ['<pre>\rA</pre>', 'A'],
+    ['<pre>&#10;A</pre>', 'A'],
+    ['<pre>\n\nA</pre>', '\nA'],
+    ['<pre><!--comment-->\nA</pre>', '\nA'],
+    ['<pre><code>\nA</code></pre>', '\nA'],
+    ['<pre>&#13;A</pre>', '\rA'],
+    ['<pre>\r&#10;A</pre>', '\nA'],
+    ['<pre>\r\n\nA</pre>', '\nA'],
+    ['<pre>&#13;&#10;A</pre>', '\r\nA'],
+    ['<pre>\n<code>\nA</code></pre>', '\nA'],
+  ])('converts %s to its parsed text', (html, expected) => {
+    expect(bodyParts(html, true).text).toBe(expected);
+    expect(draftToEditorContent({ html, text: null }, false)).toBe(expected);
+  });
 });

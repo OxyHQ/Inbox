@@ -185,16 +185,31 @@ function listOrdinals(
   return result;
 }
 
+/** Apply the HTML parser's initial-LF rule for a direct preformatted text node. */
+function afterPreStart(data: string, source: string, startIndex: number | null): string {
+  if (data.startsWith('\n')) return data.slice(1);
+  if (data.startsWith('\r') && startIndex !== null && source[startIndex] === '\r') {
+    return data.slice(source[startIndex + 1] === '\n' ? 2 : 1);
+  }
+  return data;
+}
+
 function render(
   nodes: ChildNode[],
   writer: TextWriter,
   pre: boolean,
   ordinals: WeakMap<object, Map<ChildNode, number>>,
+  source: string,
+  skipInitialPreLF = false,
 ): void {
-  for (const node of nodes) {
+  for (const [index, node] of nodes.entries()) {
     if (node.type === 'text') {
       if (pre) {
-        writer.write(node.data, true);
+        const data =
+          skipInitialPreLF && index === 0
+            ? afterPreStart(node.data, source, node.startIndex)
+            : node.data;
+        writer.write(data, true);
         continue;
       }
       const text = node.data.replace(/ /g, ' ');
@@ -213,7 +228,7 @@ function render(
       writer.write('---\n');
     } else if (name === 'blockquote') {
       const inner = new TextWriter();
-      render(node.children, inner, pre, ordinals);
+      render(node.children, inner, pre, ordinals, source);
       let end = inner.out.length;
       while (end > 0 && inner.out[end - 1] === '\n' && !inner.isPreserved(end - 1)) end--;
       writer.lineBreak();
@@ -245,21 +260,21 @@ function render(
       } else {
         writer.write('- ');
       }
-      render(node.children, writer, pre, ordinals);
+      render(node.children, writer, pre, ordinals, source);
       writer.lineBreak();
     } else if (name === 'td' || name === 'th') {
       // The cells of a row stay on one line.
       if (!writer.atLineStart) writer.write('\t');
-      render(node.children, writer, pre, ordinals);
+      render(node.children, writer, pre, ordinals, source);
     } else if (BLOCK_TAGS.has(name)) {
       const paragraph = PARAGRAPH_TAGS.has(name);
       if (paragraph) writer.paragraphBreak();
       else writer.lineBreak();
-      render(node.children, writer, pre || name === 'pre', ordinals);
+      render(node.children, writer, pre || name === 'pre', ordinals, source, name === 'pre');
       if (paragraph) writer.paragraphBreak();
       else writer.lineBreak();
     } else {
-      render(node.children, writer, pre, ordinals);
+      render(node.children, writer, pre, ordinals, source);
     }
   }
 }
@@ -267,6 +282,12 @@ function render(
 export function stripHtml(html: string): string {
   if (!html) return '';
   const writer = new TextWriter();
-  render(parseDocument(html).children, writer, false, new WeakMap());
+  render(
+    parseDocument(html, { withStartIndices: true }).children,
+    writer,
+    false,
+    new WeakMap(),
+    html,
+  );
   return writer.normalized();
 }

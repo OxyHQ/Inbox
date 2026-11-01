@@ -3,8 +3,7 @@ import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { useOxy } from '@oxy.so/services/ui/client';
 import { useOxyRuntime } from '@oxy.so/services/runtime';
 import { useQueryClient } from '@tanstack/react-query';
-
-let nextBinding = 0;
+import { reserveSmartReplyBinding } from '@/hooks/queries/smartReplyNamespace';
 
 export function useSmartReplyOwner() {
   const { oxyServices, user } = useOxy();
@@ -30,7 +29,7 @@ export function useSmartReplyOwner() {
   const revision = useSyncExternalStore(subscribeRuntime, getRevision, getRevision);
   const projection = runtime.getAccountSessionIdentity();
   const binding = useMemo(
-    () => ({ id: ++nextBinding, runtime, http, queryClient }),
+    () => ({ id: reserveSmartReplyBinding(), runtime, http, queryClient }),
     [runtime, http, queryClient],
   );
   // A decoded subject is only a local mismatch check, never proof of an actor.

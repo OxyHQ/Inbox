@@ -1,9 +1,10 @@
 /** Smart replies through Oxy's message-scoped Inbox inference route. */
 
 import { useMemo } from 'react';
-import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { aiKeys } from '@/hooks/queries/queryKeys';
 import type { SmartReplyOwner } from '@/hooks/queries/useSmartReplyOwner';
+import { reserveSmartReplyNamespace } from '@/hooks/queries/smartReplyNamespace';
 import { runInboxSmartReplies } from '@/services/inboxInferenceApi';
 import type { Message } from '@/services/emailApi';
 
@@ -12,17 +13,6 @@ interface SmartRepliesResult {
   isLoading: boolean;
   error: Error | null;
   refetch: () => void;
-}
-
-const MOUNT_COUNTER = Symbol.for('inbox.smartReply.mountCounter.v1');
-
-function nextMountNamespace(client: QueryClient): string {
-  // Keep allocation on the client so remounts and module reloads cannot reuse
-  // an earlier memory-only key while this QueryClient remains alive.
-  const scoped = client as QueryClient & { [MOUNT_COUNTER]?: bigint };
-  const next = (scoped[MOUNT_COUNTER] ?? 0n) + 1n;
-  Object.defineProperty(scoped, MOUNT_COUNTER, { value: next, writable: true, enumerable: false });
-  return next.toString();
 }
 
 function aborted(): Error {
@@ -38,7 +28,7 @@ export function useSmartReplies(
   // The namespace prevents a later mount from attaching to an earlier mount's
   // in-memory query. The query root remains private and is excluded from disk.
   const client = useQueryClient();
-  const mount = useMemo(() => nextMountNamespace(client), [client]);
+  const mount = useMemo(() => reserveSmartReplyNamespace(client), [client]);
   const query = useQuery({
     queryKey: [...aiKeys.smartReplies(message?._id), owner.binding, mount],
     queryFn: async ({ signal }) => {

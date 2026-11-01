@@ -560,3 +560,30 @@ it('retains compatibility with an opaque bearer while documenting that its actor
   view.unmount();
   client.clear();
 });
+
+it('allocates non-enumerable decimal namespaces beyond integer precision', () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const counter = Symbol.for('inbox.smartReply.mountCounter.v1');
+  Object.defineProperty(client, counter, {
+    value: '9999999999999999999999999999999',
+    writable: true,
+    enumerable: false,
+  });
+  const wrap = () => (
+    <QueryClientProvider client={client}>
+      <SmartReplyChips message={{ _id: 'same' } as Message} onSelectReply={() => {}} />
+    </QueryClientProvider>
+  );
+  const first = render(wrap());
+  expect(Object.getOwnPropertyDescriptor(client, counter)?.value).toBe(
+    '10000000000000000000000000000000',
+  );
+  expect(Object.getOwnPropertyDescriptor(client, counter)?.enumerable).toBe(false);
+  first.unmount();
+  const second = render(wrap());
+  expect(Object.getOwnPropertyDescriptor(client, counter)?.value).toBe(
+    '10000000000000000000000000000001',
+  );
+  second.unmount();
+  client.clear();
+});

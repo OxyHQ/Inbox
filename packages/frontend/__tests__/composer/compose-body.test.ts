@@ -158,3 +158,44 @@ describe('what is sent', () => {
     expect(bodyParts('', true)).toEqual({ text: undefined, html: undefined });
   });
 });
+
+describe('preformatted content in outgoing plain text', () => {
+  it('preserves spaces and consecutive blank lines in the preformatted body', () => {
+    const html = '<pre>first  \n\n\n  second\t\nthird</pre>';
+    expect(bodyParts(html, true)).toEqual({ text: 'first  \n\n\n  second\t\nthird', html });
+  });
+});
+
+describe('preformatted plain-text boundaries', () => {
+  it('preserves whitespace across inline tags and explicit line breaks', () => {
+    const html = '<pre><code>first  </code><br><br><br>  second\t</pre>';
+    expect(bodyParts(html, true).text).toBe('first  \n\n\n  second\t');
+  });
+  it('keeps surrounding paragraph formatting and text from a pre block', () => {
+    const html = '<p>Before</p><pre>one\n\n\ntwo</pre><p>After</p>';
+    expect(bodyParts(html, true).text).toBe('Before\n\none\n\n\ntwo\n\nAfter');
+  });
+  it('preserves preformatted spacing inside a quoted block', () => {
+    const html = '<blockquote><pre>first  \n\n\nsecond</pre></blockquote>';
+    expect(bodyParts(html, true).text).toBe('> first  \n>\n>\n> second');
+  });
+  it('preserves meaningful leading and trailing newlines within pre', () => {
+    const html = '<pre>\nfirst\n\n</pre>';
+    expect(bodyParts(html, true).text).toBe('\nfirst\n\n');
+  });
+});
+
+it('keeps non-breaking spaces and tabs inside preformatted text', () => {
+  expect(bodyParts('<pre>a&nbsp;\tb</pre>', true).text).toBe('a\u00a0\tb');
+});
+
+it('keeps preformatted text when reopening an HTML-only native draft', () => {
+  expect(draftToEditorContent({ html: '<pre>one  \n\n\ntwo</pre>', text: null }, false)).toBe(
+    'one  \n\n\ntwo',
+  );
+});
+
+it('handles long preformatted whitespace followed by text without changing it', () => {
+  const text = `${' '.repeat(200_000)}x`;
+  expect(bodyParts(`<pre>${text}</pre>`, true).text).toBe(text);
+});

@@ -59,6 +59,7 @@ const SKIPPED_TAGS = new Set(['head', 'noscript', 'script', 'style', 'template',
 
 class TextWriter {
   out = '';
+  private preserved: { start: number; end: number }[] = [];
 
   get atLineStart(): boolean {
     return this.out === '' || this.out.endsWith('\n');
@@ -76,8 +77,79 @@ class TextWriter {
     if (!this.out.endsWith('\n\n')) this.out += '\n';
   }
 
-  write(text: string): void {
+  write(text: string, preserve = false): void {
+    if (preserve && text)
+      this.preserved.push({ start: this.out.length, end: this.out.length + text.length });
     this.out += text;
+  }
+
+  /** Find the first preserved range that ends after the given offset. */
+  private firstAfter(offset: number): number {
+    let low = 0;
+    let high = this.preserved.length;
+    while (low < high) {
+      const middle = (low + high) >>> 1;
+      if (this.preserved[middle].end <= offset) low = middle + 1;
+      else high = middle;
+    }
+    return low;
+  }
+
+  isPreserved(offset: number): boolean {
+    const range = this.preserved[this.firstAfter(offset)];
+    return !!range && range.start <= offset;
+  }
+
+  /** Copy a slice and its preformatted ranges without inventing sentinels. */
+  copyTo(other: TextWriter, start: number, end: number): void {
+    let cursor = start;
+    for (let i = this.firstAfter(start); i < this.preserved.length; i++) {
+      const range = this.preserved[i];
+      if (range.start >= end) break;
+      const from = Math.max(cursor, range.start);
+      const to = Math.min(end, range.end);
+      if (cursor < from) other.write(this.out.slice(cursor, from));
+      if (from < to) other.write(this.out.slice(from, to), true);
+      cursor = to;
+    }
+    if (cursor < end) other.write(this.out.slice(cursor, end));
+  }
+
+  /** Apply normal whitespace cleanup only where it cannot remove preformatted text. */
+  normalized(): string {
+    const removals: { start: number; end: number }[] = [];
+    for (const match of this.out.matchAll(/[ \t]+/g)) {
+      const end = match.index + match[0].length;
+      if (end < this.out.length && this.out[end] !== '\n') continue;
+      let keepThrough = match.index;
+      for (let i = this.firstAfter(match.index); i < this.preserved.length; i++) {
+        const range = this.preserved[i];
+        if (range.start >= end) break;
+        keepThrough = Math.max(keepThrough, Math.min(range.end, end));
+      }
+      if (keepThrough < end) removals.push({ start: keepThrough, end });
+    }
+    for (const match of this.out.matchAll(/\n{3,}/g)) {
+      const end = match.index + match[0].length;
+      const range = this.preserved[this.firstAfter(match.index)];
+      if (!range || range.start >= end) removals.push({ start: match.index + 2, end });
+    }
+    let leading = 0;
+    while (this.out[leading] === '\n' && !this.isPreserved(leading)) leading++;
+    if (leading) removals.push({ start: 0, end: leading });
+    let trailing = this.out.length;
+    while (trailing > leading && this.out[trailing - 1] === '\n' && !this.isPreserved(trailing - 1))
+      trailing--;
+    if (trailing < this.out.length) removals.push({ start: trailing, end: this.out.length });
+    removals.sort((a, b) => a.start - b.start);
+    const result: string[] = [];
+    let cursor = 0;
+    for (const removal of removals) {
+      if (removal.start > cursor) result.push(this.out.slice(cursor, removal.start));
+      cursor = Math.max(cursor, removal.end);
+    }
+    result.push(this.out.slice(cursor));
+    return result.join('');
   }
 }
 
@@ -90,11 +162,11 @@ function tagName(node: ChildNode): string | null {
 function render(nodes: ChildNode[], writer: TextWriter, pre: boolean): void {
   for (const node of nodes) {
     if (node.type === 'text') {
-      const text = node.data.replace(/ /g, ' ');
       if (pre) {
-        writer.write(text);
+        writer.write(node.data, true);
         continue;
       }
+      const text = node.data.replace(/ /g, ' ');
       const collapsed = text.replace(/[ \t\r\n\f]+/g, ' ');
       // Whitespace at the start of a line is source formatting, not text.
       writer.write(writer.atLineStart ? collapsed.replace(/^ /, '') : collapsed);
@@ -104,22 +176,30 @@ function render(nodes: ChildNode[], writer: TextWriter, pre: boolean): void {
     if (!name || SKIPPED_TAGS.has(name) || !('children' in node)) continue;
 
     if (name === 'br') {
-      writer.write('\n');
+      writer.write('\n', pre);
     } else if (name === 'hr') {
       writer.lineBreak();
       writer.write('---\n');
     } else if (name === 'blockquote') {
       const inner = new TextWriter();
       render(node.children, inner, pre);
-      const body = inner.out.replace(/\n+$/, '');
+      let end = inner.out.length;
+      while (end > 0 && inner.out[end - 1] === '\n' && !inner.isPreserved(end - 1)) end--;
       writer.lineBreak();
-      if (body) {
-        writer.write(
-          `${body
-            .split('\n')
-            .map((line) => (line ? `> ${line}` : '>'))
-            .join('\n')}\n`,
-        );
+      if (end > 0) {
+        let start = 0;
+        while (start <= end) {
+          const lineEnd = inner.out.indexOf('\n', start);
+          const stop = lineEnd < 0 || lineEnd >= end ? end : lineEnd;
+          writer.write(start < stop ? '> ' : '>');
+          inner.copyTo(writer, start, stop);
+          if (stop === end) {
+            writer.write('\n');
+            break;
+          }
+          inner.copyTo(writer, stop, stop + 1);
+          start = stop + 1;
+        }
       }
     } else if (name === 'li') {
       writer.lineBreak();
@@ -153,10 +233,5 @@ export function stripHtml(html: string): string {
   if (!html) return '';
   const writer = new TextWriter();
   render(parseDocument(html).children, writer, false);
-  return writer.out
-    .split('\n')
-    .map((line) => line.replace(/[ \t]+$/, ''))
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .replace(/^\n+|\n+$/g, '');
+  return writer.normalized();
 }

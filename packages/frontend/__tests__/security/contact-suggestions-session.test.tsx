@@ -1,13 +1,21 @@
-import { act, fireEvent, render, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, waitFor, within } from '@testing-library/react';
 import { onlineManager, QueryClientProvider } from '@tanstack/react-query';
 import { OxyServices } from '@oxy.so/core';
-import { type ReactNode, useState } from 'react';
+import {
+  createContext,
+  type ReactNode,
+  startTransition,
+  StrictMode,
+  Suspense,
+  useState,
+} from 'react';
 import { createInboxQueryClient, INBOX_ACCOUNT_QUERIES } from '@/hooks/queries/queryClient';
 import { useEmailStore } from '@/hooks/useEmail';
 
 type Suggestion = { id: string; address: string };
 let mockOxy: OxyServices;
 let mockRuntime: ReturnType<typeof import('@oxy.so/services/runtime').useOxyRuntime>;
+const mockRuntimeContext = createContext<typeof mockRuntime | null>(null);
 let mockPick: ((item: Suggestion) => void) | undefined;
 jest.mock('@oxy.so/services/ui/client', () => ({
   useOxy: () => ({
@@ -17,7 +25,9 @@ jest.mock('@oxy.so/services/ui/client', () => ({
     isAccountCacheReady: true,
   }),
 }));
-jest.mock('@oxy.so/services/runtime', () => ({ useOxyRuntime: () => mockRuntime }));
+jest.mock('@oxy.so/services/runtime', () => ({
+  useOxyRuntime: () => require('react').useContext(mockRuntimeContext) ?? mockRuntime,
+}));
 jest.mock('@/lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 jest.mock('react-native', () => ({
   View: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -321,4 +331,316 @@ it.skip('does not offer a cached A contact after only the projected session chan
     cleanup();
     globalThis.fetch = savedFetch;
   }
+});
+
+it('rejects a retained suggestion after runtime replacement A to B to A', async () => {
+  const { view, client, cleanup } = await setup();
+  await waitFor(() => expect(view.getByText(suggestionA.address)).toBeTruthy());
+  const retained = mockPick;
+  const oldRuntime = mockRuntime;
+  const { dirname, join } = require('node:path');
+  const dir = dirname(require.resolve('@oxy.so/services/package.json'));
+  const { createOxyRuntime } = require(join(dir, 'lib/commonjs/ui/runtime/createOxyRuntime.js'));
+  mockRuntime = createOxyRuntime({
+    oxyServices: mockOxy,
+    sessionClient: { getState: () => null, getDirectory: () => null, subscribe: () => () => {} },
+    sessionClientHost: { setCurrentAccountId: () => {} },
+    identity: null,
+    onDeviceEmpty: async () => {},
+    logger: () => {},
+  });
+  mockRuntime.batch(() => {
+    mockRuntime.setAccount({ id: 'alice' });
+    mockRuntime.setActiveSessionId('session-a');
+  });
+  view.rerender(
+    <QueryClientProvider client={client}>
+      <Fields />
+    </QueryClientProvider>,
+  );
+  act(() => retained?.(suggestionA));
+  expect(view.getByText('al')).toBeTruthy();
+  mockRuntime = oldRuntime;
+  view.rerender(
+    <QueryClientProvider client={client}>
+      <Fields />
+    </QueryClientProvider>,
+  );
+  act(() => retained?.(suggestionA));
+  expect(view.getByText('al')).toBeTruthy();
+  await waitFor(() => expect(view.getByText(suggestionA.address)).toBeTruthy());
+  fireEvent.click(view.getByText(suggestionA.address));
+  expect(view.container.querySelector('output')?.textContent).toBe(`${suggestionA.address}, `);
+  cleanup();
+});
+
+it('does not publish a pending response from a replaced runtime', async () => {
+  const resolves: ((value: unknown) => void)[] = [];
+  const { view, client, cleanup, get } = await setup(true, () => {
+    jest.spyOn(mockOxy.http, 'get').mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolves.push(resolve);
+        }),
+    );
+  });
+  await waitFor(() => expect(get).toHaveBeenCalledTimes(1));
+  const oldRuntime = mockRuntime;
+  const { dirname, join } = require('node:path');
+  const dir = dirname(require.resolve('@oxy.so/services/package.json'));
+  const { createOxyRuntime } = require(join(dir, 'lib/commonjs/ui/runtime/createOxyRuntime.js'));
+  mockRuntime = createOxyRuntime({
+    oxyServices: mockOxy,
+    sessionClient: { getState: () => null, getDirectory: () => null, subscribe: () => () => {} },
+    sessionClientHost: { setCurrentAccountId: () => {} },
+    identity: null,
+    onDeviceEmpty: async () => {},
+    logger: () => {},
+  });
+  mockRuntime.batch(() => {
+    mockRuntime.setAccount({ id: 'alice' });
+    mockRuntime.setActiveSessionId('session-a');
+  });
+  view.rerender(
+    <QueryClientProvider client={client}>
+      <Fields />
+    </QueryClientProvider>,
+  );
+  await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
+  await act(async () => {
+    resolves[0]({ data: [{ address: suggestionA.address }] });
+  });
+  expect(view.queryByText(suggestionA.address)).toBeNull();
+  expect(
+    client
+      .getQueryCache()
+      .getAll()
+      .every((q) => q.state.data === undefined),
+  ).toBe(true);
+  mockRuntime = oldRuntime;
+  cleanup();
+});
+
+it('keeps the committed runtime active during a suspended replacement render', async () => {
+  const { view, client, cleanup } = await setup();
+  await waitFor(() => expect(view.getByText(suggestionA.address)).toBeTruthy());
+  view.unmount();
+  const never = new Promise(() => {});
+  function Gate({ waiting }: { waiting: boolean }) {
+    if (waiting) throw never;
+    return null;
+  }
+  const tree = (waiting: boolean) => (
+    <QueryClientProvider client={client}>
+      <Suspense fallback={<div>loading</div>}>
+        <Fields />
+        <Gate waiting={waiting} />
+      </Suspense>
+    </QueryClientProvider>
+  );
+  const current = render(tree(false));
+  await waitFor(() => expect(current.getByText(suggestionA.address)).toBeTruthy());
+  const retained = mockPick;
+  const oldRuntime = mockRuntime;
+  const { dirname, join } = require('node:path');
+  const dir = dirname(require.resolve('@oxy.so/services/package.json'));
+  const { createOxyRuntime } = require(join(dir, 'lib/commonjs/ui/runtime/createOxyRuntime.js'));
+  mockRuntime = createOxyRuntime({
+    oxyServices: mockOxy,
+    sessionClient: { getState: () => null, getDirectory: () => null, subscribe: () => () => {} },
+    sessionClientHost: { setCurrentAccountId: () => {} },
+    identity: null,
+    onDeviceEmpty: async () => {},
+    logger: () => {},
+  });
+  mockRuntime.batch(() => {
+    mockRuntime.setAccount({ id: 'alice' });
+    mockRuntime.setActiveSessionId('session-a');
+  });
+  act(() => startTransition(() => current.rerender(tree(true))));
+  expect(current.queryByText('loading')).toBeNull();
+  act(() => retained?.(suggestionA));
+  expect(current.container.querySelector('output')?.textContent).toBe(`${suggestionA.address}, `);
+  current.unmount();
+  mockRuntime = oldRuntime;
+  cleanup();
+});
+
+it('allows a suggestion after StrictMode effect replay', async () => {
+  const { view, client, cleanup } = await setup();
+  await waitFor(() => expect(view.getByText(suggestionA.address)).toBeTruthy());
+  view.unmount();
+  const current = render(
+    <StrictMode>
+      <QueryClientProvider client={client}>
+        <Fields />
+      </QueryClientProvider>
+    </StrictMode>,
+  );
+  await waitFor(() => expect(current.getByText(suggestionA.address)).toBeTruthy());
+  fireEvent.click(current.getByText(suggestionA.address));
+  expect(current.container.querySelector('output')?.textContent).toBe(`${suggestionA.address}, `);
+  current.unmount();
+  cleanup();
+});
+
+it('keeps a shared same-session lookup usable when one observer unmounts', async () => {
+  let finish: (value: unknown) => void = () => {};
+  const { view, client, cleanup, get } = await setup(true, () => {
+    jest.spyOn(mockOxy.http, 'get').mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+  });
+  const other = render(
+    <QueryClientProvider client={client}>
+      <Fields />
+    </QueryClientProvider>,
+  );
+  await waitFor(() => expect(get).toHaveBeenCalledTimes(1));
+  view.unmount();
+  await act(async () => {
+    finish({ data: [{ address: suggestionA.address }] });
+  });
+  await waitFor(() => expect(other.getByText(suggestionA.address)).toBeTruthy());
+  other.unmount();
+  cleanup();
+});
+
+it('allows a new current lookup after a pending runtime A to B to A transition', async () => {
+  const pending: ((value: unknown) => void)[] = [];
+  const { view, client, cleanup, get } = await setup(true, () => {
+    jest.spyOn(mockOxy.http, 'get').mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          pending.push(resolve);
+        }),
+    );
+  });
+  await waitFor(() => expect(get).toHaveBeenCalledTimes(1));
+  const oldRuntime = mockRuntime;
+  const { dirname, join } = require('node:path');
+  const dir = dirname(require.resolve('@oxy.so/services/package.json'));
+  const { createOxyRuntime } = require(join(dir, 'lib/commonjs/ui/runtime/createOxyRuntime.js'));
+  mockRuntime = createOxyRuntime({
+    oxyServices: mockOxy,
+    sessionClient: { getState: () => null, getDirectory: () => null, subscribe: () => () => {} },
+    sessionClientHost: { setCurrentAccountId: () => {} },
+    identity: null,
+    onDeviceEmpty: async () => {},
+    logger: () => {},
+  });
+  mockRuntime.batch(() => {
+    mockRuntime.setAccount({ id: 'alice' });
+    mockRuntime.setActiveSessionId('session-a');
+  });
+  view.rerender(
+    <QueryClientProvider client={client}>
+      <Fields />
+    </QueryClientProvider>,
+  );
+  await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
+  mockRuntime = oldRuntime;
+  view.rerender(
+    <QueryClientProvider client={client}>
+      <Fields />
+    </QueryClientProvider>,
+  );
+  await act(async () => {
+    pending[0]({ data: [{ address: 'old@example.test' }] });
+  });
+  expect(view.queryByText('old@example.test')).toBeNull();
+  await waitFor(() => expect(get).toHaveBeenCalledTimes(3));
+  await act(async () => {
+    pending[2]({ data: [{ address: 'new@example.test' }] });
+  });
+  await waitFor(() => expect(view.getByText('new@example.test')).toBeTruthy());
+  cleanup();
+});
+
+it('lets another committed observer finish the shared request while the first switches runtimes', async () => {
+  const pending: ((value: unknown) => void)[] = [];
+  const { view, client, cleanup, get } = await setup(true, () => {
+    jest.spyOn(mockOxy.http, 'get').mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          pending.push(resolve);
+        }),
+    );
+  });
+  const oldRuntime = mockRuntime;
+  const other = render(
+    <mockRuntimeContext.Provider value={oldRuntime}>
+      <QueryClientProvider client={client}>
+        <Fields />
+      </QueryClientProvider>
+    </mockRuntimeContext.Provider>,
+  );
+  await waitFor(() => expect(get).toHaveBeenCalledTimes(1));
+  const { dirname, join } = require('node:path');
+  const dir = dirname(require.resolve('@oxy.so/services/package.json'));
+  const { createOxyRuntime } = require(join(dir, 'lib/commonjs/ui/runtime/createOxyRuntime.js'));
+  mockRuntime = createOxyRuntime({
+    oxyServices: mockOxy,
+    sessionClient: { getState: () => null, getDirectory: () => null, subscribe: () => () => {} },
+    sessionClientHost: { setCurrentAccountId: () => {} },
+    identity: null,
+    onDeviceEmpty: async () => {},
+    logger: () => {},
+  });
+  mockRuntime.batch(() => {
+    mockRuntime.setAccount({ id: 'alice' });
+    mockRuntime.setActiveSessionId('session-a');
+  });
+  view.rerender(
+    <QueryClientProvider client={client}>
+      <Fields />
+    </QueryClientProvider>,
+  );
+  await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
+  await act(async () => {
+    pending[0]({ data: [{ address: 'one@example.test' }] });
+  });
+  await waitFor(() => expect(other.getByText('one@example.test')).toBeTruthy());
+  expect(within(view.container).queryByText('one@example.test')).toBeNull();
+  await act(async () => {
+    pending[1]({ data: [{ address: 'two@example.test' }] });
+  });
+  await waitFor(() => expect(view.getByText('two@example.test')).toBeTruthy());
+  expect(within(other.container).queryByText('two@example.test')).toBeNull();
+  other.unmount();
+  mockRuntime = oldRuntime;
+  cleanup();
+});
+
+it('ignores an abort-ignoring old GET after the last observer unmounts and the same scope remounts', async () => {
+  const pending: ((value: unknown) => void)[] = [];
+  const { view, client, cleanup, get } = await setup(true, () => {
+    jest.spyOn(mockOxy.http, 'get').mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          pending.push(resolve);
+        }),
+    );
+  });
+  await waitFor(() => expect(get).toHaveBeenCalledTimes(1));
+  view.unmount();
+  const other = render(
+    <QueryClientProvider client={client}>
+      <Fields />
+    </QueryClientProvider>,
+  );
+  await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
+  await act(async () => {
+    pending[0]({ data: [{ address: 'old@example.test' }] });
+  });
+  expect(other.queryByText('old@example.test')).toBeNull();
+  await act(async () => {
+    pending[1]({ data: [{ address: 'new@example.test' }] });
+  });
+  await waitFor(() => expect(other.getByText('new@example.test')).toBeTruthy());
+  other.unmount();
+  cleanup();
 });

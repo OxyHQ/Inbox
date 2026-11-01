@@ -515,6 +515,11 @@ const it: LocaleDict = {
   },
 
   ai: {
+    subjectSuggestion: {
+      title: 'Oggetto suggerito',
+      apply: 'Applica oggetto',
+      dismiss: 'Ignora',
+    },
     draftDialog: {
       preview: 'Anteprima della bozza IA',
       title: "Scrivi una bozza con l'IA",
@@ -523,6 +528,8 @@ const it: LocaleDict = {
       placeholder: 'es. Rifiuta cortesemente la riunione e proponi la settimana prossima',
     },
     toast: {
+      subjectBlurBeforeApply: 'Chiudi il campo oggetto, poi premi di nuovo Applica oggetto.',
+      subjectSuggestionStale: 'La bozza è cambiata. Richiedi un nuovo suggerimento per l’oggetto.',
       failed: "L'IA non è riuscita a farlo ora. Il tuo testo non è cambiato.",
       keptYourEdits: "Hai continuato a scrivere, quindi il tuo testo è rimasto com'era.",
       applied: "Riscritto con l'IA.",

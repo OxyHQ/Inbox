@@ -312,13 +312,28 @@ export function useComposeSession({
   const [to, setTo] = useState(seed.to);
   const [cc, setCc] = useState(seed.cc);
   const [bcc, setBcc] = useState(seed.bcc);
-  const [subject, setSubject] = useState(seed.subject);
+  const [subject, setSubjectState] = useState(seed.subject);
   const [body, setBody] = useState(seed.body);
   const [attachments, setAttachments] = useState<ComposerAttachment[]>(seed.attachments);
   const [recoveryLoaded, setRecoveryLoaded] = useState(false);
   const [draftSaveState, setDraftSaveState] = useState<ComposeDraftSaveState>('idle');
   const [abandonedSendVersion, setAbandonedSendVersion] = useState(0);
   const [draftSaveQueue] = useState(createDraftSaveQueue);
+
+  const subjectValueRef = useRef(seed.subject);
+  const subjectRevisionRef = useRef(0);
+  const setSubject = useCallback((next: string) => {
+    if (subjectValueRef.current !== next) subjectRevisionRef.current += 1;
+    subjectValueRef.current = next;
+    setSubjectState(next);
+  }, []);
+  const getSubjectSnapshot = useCallback(
+    () => ({
+      value: subjectValueRef.current,
+      revision: subjectRevisionRef.current,
+    }),
+    [],
+  );
 
   const bodyValueRef = useRef(seed.body);
   const bodyRevisionRef = useRef(0);
@@ -1170,6 +1185,7 @@ export function useComposeSession({
     setBcc,
     subject,
     setSubject,
+    getSubjectSnapshot,
     body,
     updateBody,
     getBodyRevision,

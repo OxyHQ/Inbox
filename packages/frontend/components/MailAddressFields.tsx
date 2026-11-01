@@ -5,7 +5,7 @@ import { Button } from '@oxy.so/bloom/button';
 import { MailRecipientField, type MailRecipient } from '@oxy.so/bloom/mail-compose';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { type TextInput, View } from 'react-native';
 
 /** Retain the unfinished address in the draft on every keystroke, including send/blur. */
 export function splitRecipientInput(value: string) {
@@ -73,6 +73,10 @@ interface MailAddressFieldsProps {
   onBccChange: (value: string) => void;
   subject?: string;
   onSubjectChange?: (value: string) => void;
+  subjectInputRef?: React.RefObject<React.ComponentRef<typeof TextInput> | null>;
+  onSubjectFocus?: () => void;
+  onSubjectBlur?: (value: string | undefined) => void;
+  onSubjectEndEditing?: (value: string) => void;
 }
 /** The three controlled fields share draft state, never an unfinished query. */
 export function MailAddressFields(props: MailAddressFieldsProps) {
@@ -113,7 +117,14 @@ export function MailAddressFields(props: MailAddressFieldsProps) {
           <TextFieldInput
             label={t('compose.placeholders.subject')}
             value={props.subject}
+            inputRef={props.subjectInputRef}
             onChangeText={props.onSubjectChange}
+            onFocus={props.onSubjectFocus}
+            onBlur={(event) => {
+              const text = (event.nativeEvent as { text?: unknown }).text;
+              props.onSubjectBlur?.(typeof text === 'string' ? text : undefined);
+            }}
+            onEndEditing={(event) => props.onSubjectEndEditing?.(event.nativeEvent.text)}
           />
         </View>
       )}

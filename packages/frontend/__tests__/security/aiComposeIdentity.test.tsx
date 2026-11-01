@@ -328,6 +328,44 @@ it('aborts a rewrite during delayed auth preflight when projection changes', asy
   unmount();
   client.clear();
 });
+it('aborts a subject suggestion during delayed auth preflight when projection changes', async () => {
+  let release!: () => void, begin!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const started = new Promise<void>((resolve) => {
+    begin = resolve;
+  });
+  const http = mockOxy.http as unknown as { getAuthHeader: () => Promise<string | null> };
+  const original = http.getAuthHeader.bind(http);
+  http.getAuthHeader = async () => {
+    begin();
+    await gate;
+    return original();
+  };
+  globalThis.fetch = jest.fn() as never;
+  const client = createInboxQueryClient();
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  const { result, unmount } = renderHook(() => useAiCompose(), { wrapper });
+  const owner = result.current.captureOwner();
+  let operation!: Promise<unknown>;
+  act(() => {
+    operation = result.current.suggestSubject('synthetic text', owner).catch((error) => error);
+  });
+  await started;
+  await act(async () => {
+    mockRuntime.setAccount({ id: 'bob' });
+    await operation;
+    release();
+  });
+  expect(owner.signal.aborted).toBe(true);
+  expect(globalThis.fetch).not.toHaveBeenCalled();
+  owner.dispose();
+  unmount();
+  client.clear();
+});
 
 it('keeps rewrite operations memory-only and suppresses an obsolete failure', async () => {
   let reject!: (error: Error) => void;

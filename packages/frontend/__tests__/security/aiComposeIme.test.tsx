@@ -157,6 +157,7 @@ function ComposeHarness() {
     setBodyComposing,
     replaceOwnText: updateBody,
     subject: '',
+    getSubjectSnapshot: () => ({ value: '', revision: 0 }),
     attachments: [],
     hasUnsavedWork: true,
     sending: false,

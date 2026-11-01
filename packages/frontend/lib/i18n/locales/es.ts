@@ -508,6 +508,11 @@ const es: LocaleDict = {
   },
 
   ai: {
+    subjectSuggestion: {
+      title: 'Asunto sugerido',
+      apply: 'Aplicar asunto',
+      dismiss: 'Descartar',
+    },
     draftDialog: {
       preview: 'Vista previa del borrador de IA',
       title: 'Redactar con IA',
@@ -516,6 +521,8 @@ const es: LocaleDict = {
       placeholder: 'p. ej., rechaza la reunión con educación y propón la semana que viene',
     },
     toast: {
+      subjectBlurBeforeApply: 'Cierra el campo de asunto y vuelve a pulsar Aplicar asunto.',
+      subjectSuggestionStale: 'Tu borrador cambió. Solicita otra sugerencia de asunto.',
       failed: 'La IA no ha podido hacerlo ahora. Tu texto no ha cambiado.',
       keptYourEdits: 'Seguiste escribiendo, así que tu texto se ha dejado como estaba.',
       applied: 'Reescrito con IA.',

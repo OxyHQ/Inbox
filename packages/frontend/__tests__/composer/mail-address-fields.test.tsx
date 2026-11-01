@@ -81,7 +81,39 @@ jest.mock('@oxy.so/bloom/button', () => ({
     </button>
   ),
 }));
-jest.mock('@oxy.so/bloom/text-field', () => ({ TextFieldInput: () => null }));
+jest.mock('@oxy.so/bloom/text-field', () => ({
+  TextFieldInput: ({
+    label,
+    value,
+    onChangeText,
+    onFocus,
+    onBlur,
+    onEndEditing,
+    inputRef,
+  }: {
+    label: string;
+    value: string;
+    onChangeText: (value: string) => void;
+    onFocus: () => void;
+    onBlur: (event: { nativeEvent: { text?: string } }) => void;
+    onEndEditing: (event: { nativeEvent: { text: string } }) => void;
+    inputRef: React.RefObject<HTMLInputElement | null>;
+  }) => (
+    <>
+      <input
+        ref={inputRef}
+        aria-label={label}
+        value={value}
+        onChange={(event) => onChangeText(event.target.value)}
+        onFocus={onFocus}
+        onBlur={() => onBlur({ nativeEvent: {} })}
+      />
+      <button type="button" onClick={() => onEndEditing({ nativeEvent: { text: 'final input' } })}>
+        end subject editing
+      </button>
+    </>
+  ),
+}));
 function Fixture() {
   const [to, setTo] = useState('first@example.com, ');
   const [cc, setCc] = useState('copy@example.com');
@@ -130,4 +162,36 @@ it('selecting a suggestion replaces only the unfinished address, and chip remova
   fireEvent.click(screen.getByText('first@example.com'));
   expect(draft().to).toBe('suggested@example.com, unfinished');
   expect(draft().cc).toBe('copy@example.com');
+});
+it('forwards subject focus, blur, end-editing and input ref to the field', () => {
+  const onFocus = jest.fn();
+  const onBlur = jest.fn();
+  const onEndEditing = jest.fn();
+  const inputRef = { current: null } as React.RefObject<React.ComponentRef<
+    typeof import('react-native').TextInput
+  > | null>;
+  render(
+    <MailAddressFields
+      to=""
+      cc=""
+      bcc=""
+      onToChange={() => {}}
+      onCcChange={() => {}}
+      onBccChange={() => {}}
+      subject=""
+      onSubjectChange={() => {}}
+      onSubjectFocus={onFocus}
+      onSubjectBlur={onBlur}
+      onSubjectEndEditing={onEndEditing}
+      subjectInputRef={inputRef}
+    />,
+  );
+  const input = screen.getByLabelText('compose.placeholders.subject');
+  expect(inputRef.current).toBe(input);
+  fireEvent.focus(input);
+  fireEvent.blur(input);
+  fireEvent.click(screen.getByRole('button', { name: 'end subject editing' }));
+  expect(onFocus).toHaveBeenCalledTimes(1);
+  expect(onBlur).toHaveBeenCalledWith(undefined);
+  expect(onEndEditing).toHaveBeenCalledWith('final input');
 });

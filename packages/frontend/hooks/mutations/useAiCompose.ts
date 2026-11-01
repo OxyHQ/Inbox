@@ -46,7 +46,7 @@ type ComposeOperation =
       direction: 'shorter' | 'longer';
       owner?: RewriteOwner;
     }
-  | { kind: 'suggestSubject'; body: string };
+  | { kind: 'suggestSubject'; body: string; owner?: RewriteOwner };
 
 interface UseAiComposeReturn {
   draft: (prompt: string, tone?: ComposeTone) => Promise<string>;
@@ -58,7 +58,8 @@ interface UseAiComposeReturn {
     owner?: RewriteOwner,
   ) => Promise<string>;
   captureOwner: () => RewriteOwner;
-  suggestSubject: (body: string) => Promise<string>;
+  isOwnerVisible: (owner: RewriteOwner) => boolean;
+  suggestSubject: (body: string, owner?: RewriteOwner) => Promise<string>;
   streamDraft: (
     prompt: string,
     tone?: ComposeTone,
@@ -220,14 +221,17 @@ export function useAiCompose(): UseAiComposeReturn {
             ).text.trim(),
           );
         case 'suggestSubject':
-          return (
-            await runInboxCompose(http, {
-              operation: 'suggest_subject',
-              body: operation.body,
-            })
-          ).text
-            .trim()
-            .replace(/^["']|["']$/g, '');
+          return requireCurrent(
+            (
+              await runInboxCompose(
+                http,
+                { operation: 'suggest_subject', body: operation.body },
+                owner?.signal,
+              )
+            ).text
+              .trim()
+              .replace(/^["']|["']$/g, ''),
+          );
       }
     },
     // The toolbar leaves the text as it was on failure; this says why nothing
@@ -462,7 +466,7 @@ export function useAiCompose(): UseAiComposeReturn {
     [mutateAsync],
   );
   const suggestSubject = useCallback(
-    (body: string) => mutateAsync({ kind: 'suggestSubject', body }),
+    (body: string, owner?: RewriteOwner) => mutateAsync({ kind: 'suggestSubject', body, owner }),
     [mutateAsync],
   );
 
@@ -489,27 +493,26 @@ export function useAiCompose(): UseAiComposeReturn {
   );
   const mutationOwner =
     mutation.variables && 'owner' in mutation.variables ? mutation.variables.owner : undefined;
-  const isCurrentRewrite =
-    !mutationOwner ||
+  const isOwnerVisible = (owner: RewriteOwner) =>
     Boolean(
-      !mutationOwner.signal.aborted &&
-        mutationOwner.accountId !== null &&
-        mutationOwner.accountId === subjectId &&
-        mutationOwner.bindingId === renderBinding.id &&
-        mutationOwner.epoch === epoch &&
-        projection.accountId === mutationOwner.accountId &&
-        ((projection.revision === mutationOwner.revision &&
-          projection.sessionId === mutationOwner.sessionId) ||
-          (mutationOwner.sessionId === null &&
+      !owner.signal.aborted &&
+        owner.accountId !== null &&
+        owner.accountId === subjectId &&
+        owner.bindingId === renderBinding.id &&
+        owner.epoch === epoch &&
+        projection.accountId === owner.accountId &&
+        ((projection.revision === owner.revision && projection.sessionId === owner.sessionId) ||
+          (owner.sessionId === null &&
             projection.sessionId !== null &&
-            projection.revision === mutationOwner.revision + 1)) &&
+            projection.revision === owner.revision + 1)) &&
         oxyServices.session.isAuthenticated &&
-        (oxyServices.session.userId === null ||
-          oxyServices.session.userId === mutationOwner.accountId),
+        (oxyServices.session.userId === null || oxyServices.session.userId === owner.accountId),
     );
+  const isCurrentRewrite = !mutationOwner || isOwnerVisible(mutationOwner);
   return {
     draft,
     captureOwner,
+    isOwnerVisible,
     streamDraft,
     polish,
     changeTone,

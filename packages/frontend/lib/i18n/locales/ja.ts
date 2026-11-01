@@ -509,6 +509,11 @@ const ja: LocaleDict = {
   },
 
   ai: {
+    subjectSuggestion: {
+      title: '件名の候補',
+      apply: '件名を適用',
+      dismiss: '閉じる',
+    },
     draftDialog: {
       preview: 'AI 下書きのプレビュー',
       title: 'AI で下書き',
@@ -517,6 +522,9 @@ const ja: LocaleDict = {
       placeholder: '例: 会議を丁寧に断り、代わりに来週を提案する',
     },
     toast: {
+      subjectBlurBeforeApply: '件名欄を閉じてから、もう一度「件名を適用」を押してください。',
+      subjectSuggestionStale:
+        '下書きが変更されました。件名の候補をもう一度リクエストしてください。',
       failed: 'AI は今これを実行できませんでした。テキストは変更されていません。',
       keptYourEdits: '入力が続いたため、テキストはそのままにしました。',
       applied: 'AI で書き直しました。',

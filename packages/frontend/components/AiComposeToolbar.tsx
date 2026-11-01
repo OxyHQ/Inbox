@@ -35,6 +35,9 @@ interface AiComposeToolbarProps {
   getBodyRevision: () => number;
   /** Raw body, plain text and revision from the same editor state. */
   getAiBodySnapshot: () => { body: string; text: string; revision: number };
+  getSubjectSnapshot: () => { value: string; revision: number };
+  isSubjectFocused: () => boolean;
+  requestSubjectBlur: () => void;
   /** Whether web input is in an uncommitted IME composition. */
   isBodyComposing: () => boolean;
   /** An operation is committing; remember the body as it is. */
@@ -59,6 +62,9 @@ export function AiComposeToolbar({
   text: body,
   getBodyRevision,
   getAiBodySnapshot,
+  getSubjectSnapshot,
+  isSubjectFocused,
+  requestSubjectBlur,
   isBodyComposing,
   onBegin,
   onCommit,
@@ -68,6 +74,7 @@ export function AiComposeToolbar({
   const {
     streamDraft,
     captureOwner,
+    isOwnerVisible,
     polish,
     changeTone,
     adjustLength,
@@ -81,6 +88,14 @@ export function AiComposeToolbar({
   const toneControl = useDialogControl();
   const [draftPrompt, setDraftPrompt] = useState('');
   const [draftPreview, setDraftPreview] = useState<string | null>(null);
+  const [subjectSuggestion, setSubjectSuggestion] = useState<{
+    text: string;
+    owner: ReturnType<typeof captureOwner>;
+    bodyRevision: number;
+    subjectRevision: number;
+    sequence: number;
+  } | null>(null);
+  const subjectSequence = useRef(0);
   const draftSequence = useRef(0);
   const [selectedTone, setSelectedTone] = useState<ComposeTone>('professional');
 
@@ -197,14 +212,70 @@ export function AiComposeToolbar({
   // Handler for subject suggestion
   const handleSuggestSubject = useCallback(async () => {
     if (!hasBody || !onSubjectSuggested) return;
+    const { text, revision: bodyRevision } = getAiBodySnapshot();
+    const { value, revision: subjectRevision } = getSubjectSnapshot();
+    if (!text || value.trim() || isBodyComposing()) return;
+    const owner = captureOwner();
+    if (!owner.isCurrent()) {
+      owner.dispose();
+      return;
+    }
+    const sequence = ++subjectSequence.current;
+    setSubjectSuggestion(null);
     try {
-      const subject = await suggestSubject(body);
-      onSubjectSuggested(subject);
+      const subject = await suggestSubject(text, owner);
+      if (mountedRef.current && sequence === subjectSequence.current && owner.isCurrent())
+        setSubjectSuggestion({ text: subject, owner, bodyRevision, subjectRevision, sequence });
     } catch (error: unknown) {
       if (error instanceof Error && error.name === 'AbortError') return;
       // Error handled by hook
+    } finally {
+      owner.dispose();
     }
-  }, [body, hasBody, suggestSubject, onSubjectSuggested]);
+  }, [
+    hasBody,
+    onSubjectSuggested,
+    getAiBodySnapshot,
+    getSubjectSnapshot,
+    isBodyComposing,
+    captureOwner,
+    suggestSubject,
+  ]);
+
+  const applySubjectSuggestion = useCallback(() => {
+    const suggestion = subjectSuggestion;
+    if (!suggestion?.owner.isCurrent() || suggestion.sequence !== subjectSequence.current) return;
+    if (isSubjectFocused()) {
+      requestSubjectBlur();
+      toast(t('ai.toast.subjectBlurBeforeApply'));
+      return;
+    }
+    const subject = getSubjectSnapshot();
+    if (
+      !onSubjectSuggested ||
+      subject.value.trim() ||
+      subject.revision !== suggestion.subjectRevision ||
+      getBodyRevision() !== suggestion.bodyRevision ||
+      isBodyComposing()
+    ) {
+      toast(t('ai.toast.subjectSuggestionStale'));
+      return;
+    }
+    if (suggestion.owner.isCurrent()) {
+      onSubjectSuggested(suggestion.text);
+      subjectSequence.current += 1;
+      setSubjectSuggestion(null);
+    }
+  }, [
+    subjectSuggestion,
+    isSubjectFocused,
+    requestSubjectBlur,
+    getSubjectSnapshot,
+    getBodyRevision,
+    isBodyComposing,
+    onSubjectSuggested,
+    t,
+  ]);
 
   return (
     <View className="gap-2 px-4 py-2">
@@ -233,6 +304,24 @@ export function AiComposeToolbar({
           <ScrollView style={{ maxHeight: 160 }} nestedScrollEnabled>
             <Text selectable>{draftPreview}</Text>
           </ScrollView>
+        </View>
+      ) : null}
+      {subjectSuggestion && isOwnerVisible(subjectSuggestion.owner) ? (
+        <View>
+          <Text>{t('ai.subjectSuggestion.title')}</Text>
+          <Text selectable>{subjectSuggestion.text}</Text>
+          <Button appearance="subtle" onPress={applySubjectSuggestion}>
+            {t('ai.subjectSuggestion.apply')}
+          </Button>
+          <Button
+            appearance="subtle"
+            onPress={() => {
+              subjectSequence.current += 1;
+              setSubjectSuggestion(null);
+            }}
+          >
+            {t('ai.subjectSuggestion.dismiss')}
+          </Button>
         </View>
       ) : null}
       <Dialog

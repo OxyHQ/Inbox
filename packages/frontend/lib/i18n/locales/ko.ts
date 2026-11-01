@@ -505,6 +505,11 @@ const ko: LocaleDict = {
   },
 
   ai: {
+    subjectSuggestion: {
+      title: '추천 제목',
+      apply: '제목 적용',
+      dismiss: '닫기',
+    },
     draftDialog: {
       preview: 'AI 초안 미리보기',
       title: 'AI로 초안 작성',
@@ -513,6 +518,8 @@ const ko: LocaleDict = {
       placeholder: '예: 회의를 정중히 거절하고 대신 다음 주를 제안',
     },
     toast: {
+      subjectBlurBeforeApply: '제목 입력란을 닫은 다음 제목 적용을 다시 누르세요.',
+      subjectSuggestionStale: '초안이 변경되었습니다. 제목 추천을 다시 요청하세요.',
       failed: '지금은 AI가 이 작업을 할 수 없습니다. 텍스트는 그대로입니다.',
       keptYourEdits: '계속 입력하셔서 텍스트를 그대로 두었습니다.',
       applied: 'AI로 다시 작성했습니다.',

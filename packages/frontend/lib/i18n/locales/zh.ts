@@ -499,6 +499,11 @@ const zh: LocaleDict = {
   },
 
   ai: {
+    subjectSuggestion: {
+      title: '建议的主题',
+      apply: '应用主题',
+      dismiss: '关闭',
+    },
     draftDialog: {
       preview: 'AI 草稿预览',
       title: '用 AI 起草',
@@ -507,6 +512,8 @@ const zh: LocaleDict = {
       placeholder: '例如：礼貌地拒绝会议，建议改到下周',
     },
     toast: {
+      subjectBlurBeforeApply: '关闭主题输入框，然后再次点击应用主题。',
+      subjectSuggestionStale: '草稿已更改，请重新请求主题建议。',
       failed: 'AI 暂时无法完成此操作。你的文本未更改。',
       keptYourEdits: '你仍在输入，因此保留了你的文本。',
       applied: '已由 AI 改写。',

@@ -23,7 +23,14 @@ import { Text } from '@oxy.so/bloom/typography';
 import type { FileMetadata } from '@oxy.so/core';
 import { useOxy } from '@oxy.so/services/ui/client';
 import { type ReactNode, useCallback, useRef, useState } from 'react';
-import { Platform, ScrollView, type StyleProp, View, type ViewStyle } from 'react-native';
+import {
+  Platform,
+  ScrollView,
+  type StyleProp,
+  type TextInput,
+  View,
+  type ViewStyle,
+} from 'react-native';
 
 import { AiComposeToolbar } from '@/components/AiComposeToolbar';
 import { MailAddressFields } from '@/components/MailAddressFields';
@@ -71,6 +78,8 @@ export function MailComposer({
   const colors = useColors();
   const { t } = useTranslation();
   const { user, showBottomSheet } = useOxy();
+  const subjectInputRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
+  const subjectFocusedRef = useRef(false);
   const fromAddress = user?.username ? `${user.username}@oxy.so` : '';
 
   const handleAttachFile = useCallback(() => {
@@ -131,6 +140,18 @@ export function MailComposer({
         onBccChange={session.setBcc}
         subject={session.subject}
         onSubjectChange={session.setSubject}
+        subjectInputRef={subjectInputRef}
+        onSubjectFocus={() => {
+          subjectFocusedRef.current = true;
+        }}
+        onSubjectBlur={(value) => {
+          if (value === undefined || value !== session.getSubjectSnapshot().value) return;
+          subjectFocusedRef.current = false;
+        }}
+        onSubjectEndEditing={(value) => {
+          if (value !== session.getSubjectSnapshot().value) return;
+          subjectFocusedRef.current = false;
+        }}
       />
       {session.draftStatusLabel && (
         <Text
@@ -145,6 +166,17 @@ export function MailComposer({
         text={session.ownText}
         getBodyRevision={session.getBodyRevision}
         getAiBodySnapshot={session.getAiBodySnapshot}
+        getSubjectSnapshot={session.getSubjectSnapshot}
+        isSubjectFocused={() => {
+          if (subjectFocusedRef.current) return true;
+          const input = subjectInputRef.current;
+          if (!input) return true;
+          if (typeof input.isFocused === 'function') return input.isFocused();
+          if (isWeb && typeof document !== 'undefined')
+            return document.activeElement === (input as unknown as Element);
+          return true;
+        }}
+        requestSubjectBlur={() => subjectInputRef.current?.blur()}
         isBodyComposing={session.isBodyComposing}
         onBegin={() => {
           aiOriginal.current = session.getAiBodySnapshot().body;

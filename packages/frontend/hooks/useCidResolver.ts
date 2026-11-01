@@ -1,23 +1,67 @@
-/**
- * Hook to resolve CID inline image references in email HTML.
- *
- * Fetches signed File Manager URLs for inline attachments and replaces cid:
- * references in the HTML with the actual URLs. Returns a stable map of
- * messageId → resolvedHtml.
- */
-
-import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useRef, useState } from 'react';
+/** Resolve inline images without publishing a previous observed session's URLs. */
+import { onlineManager, type QueryClient, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { OxyServices } from '@oxy.so/core';
 import { ATTACHMENT_URL_STALE_MS } from '@/hooks/queries/useAttachmentUrl';
+import { reserveInferenceNamespace } from '@/hooks/queries/inferenceNamespace';
+import { useObservedInferenceOwner } from '@/hooks/queries/useObservedInferenceOwner';
 import { emailKeys } from '@/hooks/queries/queryKeys';
 import type { Message } from '@/services/emailApi';
 import { normalizeContentId, resolveCidImages } from '@/utils/htmlTransform';
 
 type CidMaps = Record<string, Record<string, string>>;
-
-/** What a message that has not resolved yet reads: one object, so memos stay put. */
+type FailureEpochs = Record<string, number>;
 const NO_MAPS: CidMaps = {};
+const NO_FAILURES: FailureEpochs = {};
+const serviceScopes = new WeakMap<QueryClient, WeakMap<OxyServices, WeakMap<object, string>>>();
+type Lease = { id: string; observers: number };
+const activeScopes = new WeakMap<QueryClient, Map<string, Lease>>();
+
+/** Keep the confirmed cache local to a client, service and runtime, without retaining them. */
+function serviceScope(client: QueryClient, service: OxyServices, runtime: object) {
+  let services = serviceScopes.get(client);
+  if (!services) {
+    services = new WeakMap();
+    serviceScopes.set(client, services);
+  }
+  let runtimes = services.get(service);
+  if (!runtimes) {
+    runtimes = new WeakMap();
+    services.set(service, runtimes);
+  }
+  let namespace = runtimes.get(runtime);
+  if (!namespace) {
+    namespace = reserveInferenceNamespace(client);
+    runtimes.set(runtime, namespace);
+  }
+  return namespace;
+}
+
+/** A retired lease cannot publish a request after the last observer leaves. */
+function acquireScope(client: QueryClient, key: string) {
+  let entries = activeScopes.get(client);
+  if (!entries) {
+    entries = new Map();
+    activeScopes.set(client, entries);
+  }
+  let lease = entries.get(key);
+  if (!lease) {
+    lease = { id: reserveInferenceNamespace(client), observers: 0 };
+    entries.set(key, lease);
+  }
+  lease.observers++;
+  const current = lease;
+  let released = false;
+  return {
+    lease: current,
+    release: () => {
+      if (released) return;
+      released = true;
+      current.observers--;
+      if (current.observers === 0 && entries?.get(key) === current) entries.delete(key);
+    },
+  };
+}
 
 export function useCidResolver(
   messages: Message[],
@@ -25,79 +69,168 @@ export function useCidResolver(
   resetKey: string,
 ): Record<string, string> {
   const queryClient = useQueryClient();
-  // The maps belong to the message they were resolved for. When the displayed
-  // message changes they are simply not read any more — derived during render,
-  // so the first render of the new message already has none. Clearing them in
-  // an effect instead rendered the new message once with the old maps, then
-  // again without them.
-  const [store, setStore] = useState<{ key: string; maps: CidMaps }>(() => ({
-    key: resetKey,
-    maps: NO_MAPS,
-  }));
-  const cidMaps = store.key === resetKey ? store.maps : NO_MAPS;
-  // The message on screen as of the last commit. A lookup that finishes after
-  // the user moved to another message is dropped.
-  const shownKey = useRef(resetKey);
-  // Messages whose lookup is under way, for the message they belong to. A
-  // message counts as resolved only once its map is stored: marking it before
-  // the lookup finished meant a lookup cancelled by a thread refetch was never
-  // retried, and the images of the message the user opened stayed broken.
-  const inFlight = useRef({ key: resetKey, ids: new Set<string>() });
-
+  const owner = useObservedInferenceOwner();
+  const online = useSyncExternalStore(
+    onlineManager.subscribe,
+    () => onlineManager.isOnline(),
+    () => true,
+  );
+  const wasOnline = useRef(online);
+  const [reconnectEpoch, setReconnectEpoch] = useState(0);
   useEffect(() => {
+    if (online && !wasOnline.current) setReconnectEpoch((previous) => previous + 1);
+    wasOnline.current = online;
+  }, [online]);
+  const scope = useMemo(
+    () => ({
+      service: oxyServices,
+      identity: [
+        oxyServices ? serviceScope(queryClient, oxyServices, owner.runtime) : null,
+        owner.subject,
+        owner.sessionId,
+        owner.revision,
+        owner.epoch,
+        owner.knownSubject,
+        owner.authenticated,
+      ],
+    }),
+    [
+      queryClient,
+      oxyServices,
+      owner.runtime,
+      owner.subject,
+      owner.sessionId,
+      owner.revision,
+      owner.epoch,
+      owner.knownSubject,
+      owner.authenticated,
+    ],
+  );
+  const scopeKey = JSON.stringify(scope.identity);
+  const committed = useRef<{ scope: typeof scope; lease: Lease } | null>(null);
+  const shownKey = useRef(resetKey);
+  useLayoutEffect(() => {
+    const { lease, release } = acquireScope(queryClient, scopeKey);
+    committed.current = { scope, lease };
+    return () => {
+      if (committed.current?.scope === scope) committed.current = null;
+      release();
+    };
+  }, [scope, scopeKey, queryClient]);
+  useLayoutEffect(() => {
     shownKey.current = resetKey;
   }, [resetKey]);
+  const [store, setStore] = useState<{
+    scope: typeof scope;
+    key: string;
+    maps: CidMaps;
+    failures: FailureEpochs;
+  }>(() => ({ scope, key: resetKey, maps: NO_MAPS, failures: NO_FAILURES }));
+  const sameStore =
+    owner.ready &&
+    oxyServices &&
+    oxyServices.http === owner.http &&
+    store.scope === scope &&
+    store.key === resetKey;
+  const cidMaps = sameStore ? store.maps : NO_MAPS;
+  const failures = sameStore ? store.failures : NO_FAILURES;
+  const inFlight = useRef({ scope, key: resetKey, ids: new Set<string>() });
 
-  // Fetch signed File Manager URLs for inline CID attachments
   useEffect(() => {
-    if (!oxyServices) return;
+    if (!oxyServices || !owner.ready || oxyServices.http !== owner.http) return;
     const key = resetKey;
-    if (inFlight.current.key !== key) inFlight.current = { key, ids: new Set() };
+    const lease = committed.current?.scope === scope ? committed.current.lease : null;
+    const ownerCurrent = () => !!lease && lease.observers > 0 && owner.isCurrent();
+    const current = () =>
+      committed.current?.scope === scope && shownKey.current === key && ownerCurrent();
+    if (!current()) return;
+    if (inFlight.current.scope !== scope || inFlight.current.key !== key)
+      inFlight.current = { scope, key, ids: new Set() };
     const ids = inFlight.current.ids;
     const pending = messages.filter(
       (msg) =>
-        !(msg._id in cidMaps) &&
+        (!(msg._id in cidMaps) ||
+          (failures[msg._id] !== undefined && failures[msg._id] < reconnectEpoch)) &&
         !ids.has(msg._id) &&
-        // Referenced by Content-ID, whatever its disposition says.
         msg.attachments.some((a) => a.contentId),
     );
     if (pending.length === 0) return;
     for (const msg of pending) ids.add(msg._id);
 
     (async () => {
-      const newEntries: [string, Record<string, string>][] = [];
+      const newEntries: [string, Record<string, string>, boolean][] = [];
       for (const msg of pending) {
+        if (!current()) break;
         const cidMap: Record<string, string> = {};
+        let failed = false;
         await Promise.all(
           msg.attachments.map(async (att) => {
-            if (!att.contentId) return;
+            if (!att.contentId || !current()) return;
             try {
-              // Through the same query as `useAttachmentUrl`: the signed URL of
-              // an image is asked for once while it is fresh, not again every
-              // time the message is opened or its thread refetched.
-              cidMap[normalizeContentId(att.contentId)] = await queryClient.fetchQuery({
-                queryKey: emailKeys.attachmentUrl(att.fileId),
-                queryFn: () => oxyServices.assets.url(att.fileId),
-                staleTime: ATTACHMENT_URL_STALE_MS,
-              });
+              // The old unscoped cache has no reliable owner. Keep completed
+              // URLs separate from each lease's in-flight request instead.
+              const cacheKey = [
+                ...emailKeys.attachmentUrl(att.fileId),
+                'cid-scoped-v1',
+                ...scope.identity,
+              ];
+              const cached = queryClient.getQueryState<string>(cacheKey);
+              let url =
+                cached?.status === 'success' &&
+                !cached.isInvalidated &&
+                Date.now() - cached.dataUpdatedAt < ATTACHMENT_URL_STALE_MS
+                  ? cached.data
+                  : undefined;
+              if (!url) {
+                url = await queryClient.fetchQuery({
+                  queryKey: [...cacheKey, 'pending', lease?.id],
+                  queryFn: async () => {
+                    if (!ownerCurrent()) throw new Error('Email account changed');
+                    const resolved = await oxyServices.assets.url(att.fileId);
+                    if (!ownerCurrent()) throw new Error('Email account changed');
+                    return resolved;
+                  },
+                  staleTime: 0,
+                });
+                if (!ownerCurrent()) return;
+                queryClient.setQueryData(cacheKey, url);
+              }
+              if (url && current()) cidMap[normalizeContentId(att.contentId)] = url;
             } catch {
-              /* that image stays a cid: reference */
+              failed = true;
             }
           }),
         );
-        newEntries.push([msg._id, cidMap]);
+        if (current()) newEntries.push([msg._id, cidMap, failed]);
       }
       for (const msg of pending) ids.delete(msg._id);
-      if (shownKey.current !== key) return;
+      if (!current()) return;
       setStore((prev) => {
-        const next = { ...(prev.key === key ? prev.maps : NO_MAPS) };
-        for (const [id, map] of newEntries) next[id] = map;
-        return { key, maps: next };
+        if (!current()) return prev;
+        const next = { ...(prev.scope === scope && prev.key === key ? prev.maps : NO_MAPS) };
+        const nextFailures = {
+          ...(prev.scope === scope && prev.key === key ? prev.failures : NO_FAILURES),
+        };
+        for (const [id, map, failed] of newEntries) {
+          next[id] = map;
+          if (failed) nextFailures[id] = reconnectEpoch;
+          else delete nextFailures[id];
+        }
+        return { scope, key, maps: next, failures: nextFailures };
       });
     })();
-  }, [messages, oxyServices, cidMaps, resetKey, queryClient]);
+  }, [
+    messages,
+    oxyServices,
+    cidMaps,
+    failures,
+    reconnectEpoch,
+    resetKey,
+    queryClient,
+    owner,
+    scope,
+  ]);
 
-  // Pre-compute resolved HTML per message — stable references
   return useMemo(() => {
     const map: Record<string, string> = {};
     for (const msg of messages) {

@@ -1,7 +1,12 @@
 import { Field } from '@oxy.so/bloom/field';
 import { useTranslation } from '@/lib/i18n';
 import type { Mailbox } from '@/services/emailApi';
-import { dateRangeFilters, filtersDateRange, type SearchFilters } from '@/utils/searchFilters';
+import {
+  dateRangeFilters,
+  filtersDateRange,
+  isInvalidSearchDate,
+  type SearchFilters,
+} from '@/utils/searchFilters';
 import { Button } from '@oxy.so/bloom/button';
 import { Chip } from '@oxy.so/bloom/chip';
 import { DateRangePicker } from '@oxy.so/bloom/date-picker';
@@ -115,6 +120,7 @@ export function SearchFiltersBar({
   );
   const activeCount = active.length - (filters.dateAfter && filters.dateBefore ? 1 : 0);
   const dateLabel = (value: string) => {
+    if (isInvalidSearchDate(value)) return value;
     const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00` : value);
     return Number.isFinite(date.getTime())
       ? date.toLocaleDateString(locale, {

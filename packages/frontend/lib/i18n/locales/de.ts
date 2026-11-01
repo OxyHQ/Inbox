@@ -378,6 +378,8 @@ const de: LocaleDict = {
         'Das Konto oder die Sitzung hat sich geändert. Schließe diesen Suchentwurf, um neu zu beginnen.',
       filterDraftUnavailable:
         'Der Konto- oder Sitzungskontext hat sich geändert. Schließe diesen Filterentwurf, um neu zu beginnen.',
+      invalidDate:
+        'Dieses Datum ist ungültig. Korrigiere es oder entferne den Datumsfilter, um zu suchen.',
       filtersTitle: 'Suchfilter',
       filtersDescription: 'Grenze die Suche nach Personen, Datum oder Nachrichtendetails ein.',
       clearFilters: 'Filter löschen',

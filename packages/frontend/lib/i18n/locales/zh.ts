@@ -360,6 +360,7 @@ const zh: LocaleDict = {
     ui: {
       savedDraftUnavailable: '账户或会话状态已更改。请关闭此保存搜索草稿后重新开始。',
       filterDraftUnavailable: '账户或会话状态已更改。请关闭此筛选草稿后重新开始。',
+      invalidDate: '日期无效。请更正日期或移除日期筛选条件后再搜索。',
       filtersTitle: '搜索筛选',
       filtersDescription: '按联系人、日期或邮件详情缩小搜索范围。',
       clearFilters: '清除筛选',

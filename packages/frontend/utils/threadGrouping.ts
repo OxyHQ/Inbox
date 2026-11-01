@@ -9,6 +9,7 @@
 
 import type { Message } from '@/services/emailApi';
 import type { TranslateFn } from '@/lib/i18n';
+import { isInvalidSearchDate } from '@/utils/searchFilters';
 
 export interface ParsedSearchQuery {
   text: string;
@@ -80,6 +81,14 @@ function unquoteSearchValue(value: string): string {
 
 function isIsoDate(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+/** Detect every date-only operator, including one followed by another operator. */
+export function hasInvalidSearchDate(query: string): boolean {
+  return tokenizeSearchQuery(query).some((token) => {
+    const operator = /^(after|before):(.*)$/i.exec(token);
+    return operator ? isInvalidSearchDate(unquoteSearchValue(operator[2])) : false;
+  });
 }
 
 /** Parse the supported Gmail-style operators without dropping unknown input. */

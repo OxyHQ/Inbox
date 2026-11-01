@@ -2,6 +2,7 @@ import { Screen } from '@oxy.so/bloom/screen';
 import { SearchFiltersBar } from '@/components/SearchFiltersBar';
 import {
   hasSearchCriteria,
+  isInvalidSearchDate,
   pickSearchFilters,
   searchDateBound,
   type SearchFilters,
@@ -52,6 +53,7 @@ import { buildSearchItems, collectUnreadable, type SearchItem } from '@/utils/se
 import {
   collapseThreads,
   formatSearchInterpretation,
+  hasInvalidSearchDate,
   parseSearchQuery,
 } from '@/utils/threadGrouping';
 import { useOxy } from '@oxy.so/services/ui/client';
@@ -107,6 +109,11 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
 
   // Parse the submitted query for Gmail-style operators
   const parsedQuery = useMemo(() => parseSearchQuery(submittedQuery), [submittedQuery]);
+  const invalidDate =
+    (!nlParsedOptions && hasInvalidSearchDate(query)) ||
+    hasInvalidSearchDate(submittedQuery) ||
+    isInvalidSearchDate(nlParsedOptions?.after ?? parsedQuery.after ?? filters.dateAfter) ||
+    isInvalidSearchDate(nlParsedOptions?.before ?? parsedQuery.before ?? filters.dateBefore);
   const requestedMailbox = nlParsedOptions?.mailbox ?? parsedQuery.mailbox ?? filters.mailbox;
 
   // Map mailbox name to mailbox ID
@@ -182,10 +189,10 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   } = useSearchMessages(searchOptions, {
     // `in:<folder>` that names no folder is not "every folder": the search
     // used to run across all mail as if the operator were not there.
-    enabled: !mailboxUnresolved,
+    enabled: !mailboxUnresolved && !invalidDate,
   });
   const messages = useMemo(() => {
-    if (mailboxUnresolved) return [];
+    if (mailboxUnresolved || invalidDate) return [];
     const seen = new Set<string>();
     return (
       searchData?.pages
@@ -196,13 +203,16 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           return true;
         }) ?? []
     );
-  }, [searchData, mailboxUnresolved]);
+  }, [searchData, mailboxUnresolved, invalidDate]);
   // Search pages are grouped only after they are merged. This avoids one row
   // per page and lets a related message loaded later update the same row.
   // The API still needs a server-side threadId for authoritative cross-page
   // grouping when a result set is incomplete.
   const results = useMemo(() => collapseThreads(messages), [messages]);
-  const unreadable = useMemo(() => collectUnreadable(searchData?.pages ?? []), [searchData]);
+  const unreadable = useMemo(
+    () => (invalidDate ? [] : collectUnreadable(searchData?.pages ?? [])),
+    [invalidDate, searchData],
+  );
   const items = useMemo(() => buildSearchItems(results, unreadable), [results, unreadable]);
   const total = searchData?.pages[0]?.pagination.total ?? 0;
   const hasSearched = hasSearchCriteria(searchOptions);
@@ -229,6 +239,17 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       }
 
       const parsedOperators = parseSearchQuery(trimmed);
+      if (
+        hasInvalidSearchDate(trimmed) ||
+        isInvalidSearchDate(parsedOperators.after ?? filters.dateAfter) ||
+        isInvalidSearchDate(parsedOperators.before ?? filters.dateBefore)
+      ) {
+        setSubmittedQuery(trimmed);
+        setNlInterpretation('');
+        setNlParsedOptions(null);
+        return;
+      }
+
       const hasOperators = Object.entries(parsedOperators).some(
         ([key, value]) => key !== 'text' && value !== undefined,
       );
@@ -307,6 +328,8 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       isNaturalSearchCurrent,
       isNaturalSearchBindingCurrent,
       naturalSearchReady,
+      filters.dateAfter,
+      filters.dateBefore,
       t,
       setSubmittedQuery,
       setNlInterpretation,
@@ -523,15 +546,17 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   );
 
   const handleEndReached = useCallback(() => {
-    if (!hasNextPage || isFetchingNextPage || searching) return;
+    if (invalidDate || !hasNextPage || isFetchingNextPage || searching) return;
     void fetchNextPage();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage, searching]);
+  }, [fetchNextPage, hasNextPage, invalidDate, isFetchingNextPage, searching]);
 
   const handleRetry = useCallback(() => {
+    if (invalidDate) return;
     void refetch();
-  }, [refetch]);
+  }, [invalidDate, refetch]);
 
   const renderEmpty = useCallback(() => {
+    if (invalidDate) return null;
     if (searching) {
       return (
         <Loading
@@ -597,6 +622,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     handleRetry,
     handleClear,
     hasSearched,
+    invalidDate,
     recentSearches,
     runSearch,
     searchFailed,
@@ -606,6 +632,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
   ]);
 
   const renderFooter = useCallback(() => {
+    if (invalidDate) return null;
     if (isFetchingNextPage) {
       return (
         <Loading size="sm" accessibilityLabel={t('common.loading')} style={styles.footerLoading} />
@@ -623,7 +650,7 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       );
     }
     return null;
-  }, [handleRetry, isFetchingNextPage, items.length, searchFailed, t]);
+  }, [handleRetry, invalidDate, isFetchingNextPage, items.length, searchFailed, t]);
 
   const listRef = useRef<FlatList<SearchItem>>(null);
   const focused = useIsFocused();
@@ -672,12 +699,21 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
               filters={searchOptions}
               enabled={
                 hasSearched &&
+                !invalidDate &&
                 !searching &&
                 !nlParsing &&
                 (query.trim() === submittedQuery.trim() || Boolean(nlParsedOptions))
               }
               onApply={handleApplySavedSearch}
             />
+
+            {invalidDate && (
+              <View className="px-4 pb-3">
+                <Text accessibilityLiveRegion="polite" variant="body-2-regular">
+                  {t('search.ui.invalidDate')}
+                </Text>
+              </View>
+            )}
 
             {/* Explain AI interpretation after explicit submit; filters are already chips. */}
             {(nlInterpretation || nlParsing) && (

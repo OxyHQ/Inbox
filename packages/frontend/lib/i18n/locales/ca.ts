@@ -374,6 +374,8 @@ const ca: LocaleDict = {
         'El compte o la sessió han canviat. Tanca aquest esborrany de cerca desada per tornar a començar.',
       filterDraftUnavailable:
         'El context del compte o de la sessió ha canviat. Tanca aquest esborrany de filtres per començar de nou.',
+      invalidDate:
+        'Aquesta data no és vàlida. Corregeix-la o elimina el filtre de data per cercar.',
       filtersTitle: 'Filtres de cerca',
       filtersDescription: 'Acota la cerca per persones, dates o detalls del missatge.',
       clearFilters: 'Neteja els filtres',

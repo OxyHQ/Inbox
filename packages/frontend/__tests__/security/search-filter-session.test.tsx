@@ -8,11 +8,18 @@ let mockOxy: OxyServices;
 let mockRuntime: ReturnType<typeof import('@oxy.so/services/runtime').useOxyRuntime>;
 const mockRuntimeContext = createContext<typeof mockRuntime | null>(null);
 let mockOptions: Record<string, unknown>;
+let mockSearchEnabled = false;
+let mockUseRealSearch = false;
+let mockSearchData: unknown;
+let mockRenderedItems: unknown[] = [];
 let mockApply: (() => void) | undefined;
 let mockClose: (() => void) | undefined;
 let mockFromChange: ((value: string) => void) | undefined;
 let mockQuick: ((checked: boolean) => void) | undefined;
 let mockClear: (() => void) | undefined;
+let mockApplySaved:
+  | ((value: { query: string; filters: { dateAfter?: string } }) => void)
+  | undefined;
 jest.mock('@oxy.so/services/ui/client', () => ({
   useOxy: () => ({ oxyServices: mockOxy, user: { id: 'alice' } }),
 }));
@@ -27,9 +34,16 @@ jest.mock('react-native', () => ({
 jest.mock('react-native-reanimated', () => ({
   __esModule: true,
   default: {
-    FlatList: ({ ListHeaderComponent }: { ListHeaderComponent: ReactNode }) => (
-      <div>{ListHeaderComponent}</div>
-    ),
+    FlatList: ({
+      ListHeaderComponent,
+      data,
+    }: {
+      ListHeaderComponent: ReactNode;
+      data: unknown[];
+    }) => {
+      mockRenderedItems = data;
+      return <div>{ListHeaderComponent}</div>;
+    },
   },
 }));
 jest.mock('expo-router', () => ({
@@ -99,12 +113,19 @@ jest.mock('@oxy.so/bloom/chip', () => ({
   Chip: ({
     children,
     onCheckedChange,
+    onClose,
   }: {
     children: ReactNode;
     onCheckedChange?: (checked: boolean) => void;
+    onClose?: () => void;
   }) => {
     if (children === 'search.filters.hasAttachment') mockQuick = onCheckedChange;
-    return <span>{children}</span>;
+    return (
+      <span>
+        {children}
+        {onClose && <button type="button" aria-label="remove-chip" onClick={onClose} />}
+      </span>
+    );
   },
 }));
 jest.mock('@oxy.so/bloom/date-picker', () => ({ DateRangePicker: () => null }));
@@ -171,7 +192,12 @@ jest.mock('@oxy.so/bloom/icons/RiAttachmentLine', () => ({ RiAttachmentLine: () 
 jest.mock('@oxy.so/bloom/icons/RiFilterLine', () => ({ RiFilterLine: () => null }));
 jest.mock('@oxy.so/bloom/icons/RiMailLine', () => ({ RiMailLine: () => null }));
 jest.mock('@oxy.so/bloom/icons/RiStarLine', () => ({ RiStarLine: () => null }));
-jest.mock('@/components/SavedSearchBar', () => ({ SavedSearchBar: () => null }));
+jest.mock('@/components/SavedSearchBar', () => ({
+  SavedSearchBar: ({ onApply }: { onApply: typeof mockApplySaved }) => {
+    mockApplySaved = onApply;
+    return null;
+  },
+}));
 jest.mock('@/components/EmptyStateSticker', () => ({ EmptyStateSticker: () => null }));
 jest.mock('@/components/MessageRow', () => ({ MessageRow: () => null }));
 jest.mock('@/components/UnreadableMessageRow', () => ({ UnreadableMessageRow: () => null }));
@@ -185,10 +211,16 @@ jest.mock('@/hooks/useMailboxScrollRestoration', () => ({
 jest.mock('@/hooks/queries/useLabels', () => ({ useLabels: () => ({ data: [] }) }));
 jest.mock('@/hooks/queries/useMailboxes', () => ({ useMailboxes: () => ({ data: [] }) }));
 jest.mock('@/hooks/queries/useSearchMessages', () => ({
-  useSearchMessages: (options: Record<string, unknown>) => {
+  useSearchMessages: (options: Record<string, unknown>, { enabled }: { enabled: boolean }) => {
     mockOptions = options;
+    mockSearchEnabled = enabled;
+    if (mockUseRealSearch) {
+      return jest.requireActual('@/hooks/queries/useSearchMessages').useSearchMessages(options, {
+        enabled,
+      });
+    }
     return {
-      data: undefined,
+      data: mockSearchData,
       isLoading: false,
       isError: false,
       isFetchingNextPage: false,
@@ -213,11 +245,14 @@ jest.mock('@/constants/theme', () => ({
 jest.mock('@/utils/inboxTelemetry', () => ({ recordInboxMetric: () => {} }));
 import { SearchList } from '@/components/SearchList';
 import { SearchSessionProvider } from '@/contexts/search-session-context';
+import { useEmailStore } from '@/hooks/useEmail';
 
 function token(session: string) {
   return `e30.${Buffer.from(JSON.stringify({ userId: 'alice', sessionId: session, exp: 2000000000 })).toString('base64url')}.fixture`;
 }
 async function setup(strict = false) {
+  mockSearchData = undefined;
+  mockRenderedItems = [];
   mockOxy = new OxyServices({
     baseURL: 'https://api.test',
     enableRetry: false,
@@ -272,6 +307,8 @@ async function setup(strict = false) {
     view.unmount();
     client.clear();
     mockOxy.dispose();
+    useEmailStore.setState({ _api: null });
+    mockUseRealSearch = false;
     jest.restoreAllMocks();
   };
   return { view, input, client, post, pending, tree, submit, change, cleanup };
@@ -540,5 +577,138 @@ it('does not let an old input callback edit a later draft in the same session', 
   expect((view.getByLabelText('search.filters.from') as HTMLInputElement).value).toBe(
     'current@example.test',
   );
+  cleanup();
+});
+
+it('blocks an invalid typed calendar date until corrected', async () => {
+  const { input, view, cleanup } = await setup();
+  fireEvent.change(input, { target: { value: 'after:2026-02-30' } });
+  expect(mockSearchEnabled).toBe(false);
+  expect(view.getByText('search.ui.invalidDate')).toBeTruthy();
+  fireEvent.keyDown(input, { key: 'Enter' });
+  expect(mockOptions.dateAfter).toBe('2026-02-30');
+  fireEvent.change(input, { target: { value: 'after:2026-02-28' } });
+  fireEvent.keyDown(input, { key: 'Enter' });
+  await waitFor(() => expect(mockSearchEnabled).toBe(true));
+  expect(mockOptions.dateAfter).toBe(new Date(2026, 1, 28).toISOString());
+  cleanup();
+});
+
+it('rejects an invalid calendar date from the AI response', async () => {
+  const { view, pending, submit, cleanup } = await setup();
+  await submit();
+  await act(async () => {
+    pending[0]({ query: { after: '2026-02-30' }, interpretation: 'AI date' });
+  });
+  await waitFor(() => expect(view.getByText('search.nl.searchingFor')).toBeTruthy());
+  expect(mockOptions.q).toBe('project discussion');
+  expect(mockOptions.dateAfter).toBeUndefined();
+  cleanup();
+});
+
+it('preserves a valid year below 100 from the AI response', async () => {
+  const { pending, submit, cleanup } = await setup();
+  await submit();
+  await act(async () => {
+    pending[0]({ query: { after: '0099-02-28' }, interpretation: 'AI date' });
+  });
+  const local = new Date(0);
+  local.setHours(0, 0, 0, 0);
+  local.setFullYear(99, 1, 28);
+  await waitFor(() => expect(mockOptions.dateAfter).toBe(local.toISOString()));
+  cleanup();
+});
+
+it('blocks an invalid saved filter while keeping the original value', async () => {
+  const { view, cleanup } = await setup();
+  act(() => mockApplySaved?.({ query: '', filters: { dateAfter: '2026-02-30' } }));
+  expect(mockOptions.dateAfter).toBe('2026-02-30');
+  expect(mockSearchEnabled).toBe(false);
+  expect(view.getByText('search.ui.invalidDate')).toBeTruthy();
+  expect(view.getByText(/2026-02-30/)).toBeTruthy();
+  fireEvent.click(view.getByLabelText('remove-chip'));
+  expect(view.queryByText('search.ui.invalidDate')).toBeNull();
+  cleanup();
+});
+
+it('uses executed saved filters instead of an old invalid date in its label', async () => {
+  const { view, cleanup } = await setup();
+  act(() => mockApplySaved?.({ query: 'after:2026-02-30', filters: { dateAfter: '2026-02-28' } }));
+  expect(mockSearchEnabled).toBe(true);
+  expect(view.queryByText('search.ui.invalidDate')).toBeNull();
+  expect(mockOptions.dateAfter).toBe(new Date(2026, 1, 28).toISOString());
+  const input = view.getByLabelText('search');
+  fireEvent.change(input, { target: { value: 'after:2026-02-30 from:alice' } });
+  expect(mockSearchEnabled).toBe(false);
+  fireEvent.keyDown(input, { key: 'Enter' });
+  expect(mockSearchEnabled).toBe(false);
+  expect(view.getByText('search.ui.invalidDate')).toBeTruthy();
+  cleanup();
+});
+
+it('does not start AI interpretation while an invalid saved date is active', async () => {
+  const { input, post, cleanup } = await setup();
+  act(() => mockApplySaved?.({ query: '', filters: { dateAfter: '2026-02-30' } }));
+  fireEvent.change(input, { target: { value: 'project discussion' } });
+  fireEvent.keyDown(input, { key: 'Enter' });
+  expect(post).not.toHaveBeenCalled();
+  expect(mockSearchEnabled).toBe(false);
+  cleanup();
+});
+
+it('does not apply an older AI interpretation after an invalid saved date is applied', async () => {
+  const { view, pending, submit, cleanup } = await setup();
+  await submit();
+  act(() => mockApplySaved?.({ query: '', filters: { dateAfter: '2026-02-30' } }));
+  await act(async () => {
+    pending[0]({ query: { from: 'old@example.test' }, interpretation: 'old result' });
+  });
+  expect(view.queryByText('old result')).toBeNull();
+  expect(mockOptions.from).toBeUndefined();
+  expect(mockOptions.dateAfter).toBe('2026-02-30');
+  expect(mockSearchEnabled).toBe(false);
+  cleanup();
+});
+
+it('hides prior results immediately during the invalid input debounce', async () => {
+  const { view, input, tree, cleanup } = await setup();
+  mockSearchData = {
+    pages: [{ data: [], unreadable: [{ _id: 'old' }], pagination: { total: 1 } }],
+  };
+  view.rerender(tree());
+  expect(mockRenderedItems).toHaveLength(1);
+  fireEvent.change(input, { target: { value: 'after:2026-02-30' } });
+  expect(mockSearchEnabled).toBe(false);
+  expect(mockRenderedItems).toHaveLength(0);
+  mockSearchData = {
+    pages: [{ data: [], unreadable: [{ _id: 'late' }], pagination: { total: 1 } }],
+  };
+  view.rerender(tree());
+  expect(mockRenderedItems).toHaveLength(0);
+  cleanup();
+});
+
+it('does not start a search for an invalid date and hides an older late response', async () => {
+  mockUseRealSearch = true;
+  const requests: ((value: unknown) => void)[] = [];
+  const search = jest.fn(() => new Promise((resolve) => requests.push(resolve)));
+  useEmailStore.setState({ _api: { search } as never });
+  const { input, cleanup } = await setup();
+  fireEvent.change(input, { target: { value: 'from:alice' } });
+  fireEvent.keyDown(input, { key: 'Enter' });
+  await waitFor(() => expect(search).toHaveBeenCalledTimes(1));
+  fireEvent.change(input, { target: { value: 'from:alice after:2026-02-30' } });
+  expect(mockSearchEnabled).toBe(false);
+  await act(() => new Promise((resolve) => setTimeout(resolve, 350)));
+  expect(search).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    requests[0]({ data: [], unreadable: [{ _id: 'late' }], pagination: { total: 1 } });
+  });
+  expect(mockRenderedItems).toHaveLength(0);
+  fireEvent.keyDown(input, { key: 'Enter' });
+  expect(search).toHaveBeenCalledTimes(1);
+  fireEvent.change(input, { target: { value: 'from:alice after:2026-02-28' } });
+  fireEvent.keyDown(input, { key: 'Enter' });
+  await waitFor(() => expect(search).toHaveBeenCalledTimes(2));
   cleanup();
 });

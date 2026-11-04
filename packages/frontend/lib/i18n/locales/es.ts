@@ -250,8 +250,6 @@ const es: LocaleDict = {
     toast: {
       archiveUnavailable: 'La carpeta Archivo no está disponible.',
       trashUnavailable: 'La carpeta Papelera no está disponible.',
-      offlineSync_one: 'Sincronizada {{count}} acción sin conexión.',
-      offlineSync_other: 'Sincronizadas {{count}} acciones sin conexión.',
       newVersionAvailable: 'Hay una versión nueva — recarga para actualizar.',
       newEmail: 'Nuevo email de {{sender}}',
     },

@@ -259,8 +259,6 @@ const de: LocaleDict = {
     toast: {
       archiveUnavailable: 'Archiv-Ordner nicht verfügbar.',
       trashUnavailable: 'Papierkorb-Ordner nicht verfügbar.',
-      offlineSync_one: '{{count}} Offline-Aktion synchronisiert.',
-      offlineSync_other: '{{count}} Offline-Aktionen synchronisiert.',
       newVersionAvailable: 'Neue Version verfügbar — neu laden zum Aktualisieren.',
       newEmail: 'Neue E-Mail von {{sender}}',
     },

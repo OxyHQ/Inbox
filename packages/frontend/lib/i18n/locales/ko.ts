@@ -256,8 +256,6 @@ const ko: LocaleDict = {
     toast: {
       archiveUnavailable: '보관함 폴더를 사용할 수 없어요.',
       trashUnavailable: '휴지통 폴더를 사용할 수 없어요.',
-      offlineSync_one: '오프라인 작업 {{count}}개를 동기화했어요.',
-      offlineSync_other: '오프라인 작업 {{count}}개를 동기화했어요.',
       newVersionAvailable: '새 버전이 있어요 — 새로고침해서 업데이트하세요.',
       newEmail: '{{sender}}님의 새 메일',
     },

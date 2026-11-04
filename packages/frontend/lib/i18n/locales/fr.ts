@@ -259,8 +259,6 @@ const fr: LocaleDict = {
     toast: {
       archiveUnavailable: 'Dossier Archives indisponible.',
       trashUnavailable: 'Dossier Corbeille indisponible.',
-      offlineSync_one: '{{count}} action hors ligne synchronisée.',
-      offlineSync_other: '{{count}} actions hors ligne synchronisées.',
       newVersionAvailable: 'Nouvelle version disponible — actualise pour mettre à jour.',
       newEmail: 'Nouvel e-mail de {{sender}}',
     },

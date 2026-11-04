@@ -72,7 +72,7 @@ export function useToggleStar() {
       // Offline-first: when the device is offline this mutation is queued
       // (status "paused") and auto-resumes when connectivity returns. The
       // mutationFn re-runs through the SDK `httpService`, so auth + CSRF are
-      // preserved on replay (see utils/offlineQueue.ts for the full rationale).
+      // preserved on replay (`hooks/queries/queryClient.ts`).
       networkMode: 'offlineFirst',
       mutationFn: async ({ messageId, starred }: { messageId: string; starred: boolean }) => {
         if (!api) throw new Error('Email API not initialized');

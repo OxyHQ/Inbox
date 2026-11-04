@@ -258,8 +258,6 @@ const pt: LocaleDict = {
     toast: {
       archiveUnavailable: 'Pasta Arquivo não disponível.',
       trashUnavailable: 'Pasta Lixo não disponível.',
-      offlineSync_one: 'Sincronizada {{count}} ação offline.',
-      offlineSync_other: 'Sincronizadas {{count}} ações offline.',
       newVersionAvailable: 'Nova versão disponível — atualiza a página.',
       newEmail: 'Novo email de {{sender}}',
     },

@@ -256,8 +256,6 @@ const en: LocaleDict = {
     toast: {
       archiveUnavailable: 'Archive folder not available.',
       trashUnavailable: 'Trash folder not available.',
-      offlineSync_one: 'Synced {{count}} offline action.',
-      offlineSync_other: 'Synced {{count}} offline actions.',
       newVersionAvailable: 'New version available — refresh to update.',
       newEmail: 'New email from {{sender}}',
     },

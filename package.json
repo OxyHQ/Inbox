@@ -36,7 +36,7 @@
     "node": ">=20"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.15",
+    "@biomejs/biome": "2.6.3",
     "@oxy.so/doctor": "1.5.0",
     "semver": "7.8.5"
   }

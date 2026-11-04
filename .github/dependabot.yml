@@ -14,6 +14,20 @@ updates:
       timezone: "Europe/Bucharest"
     open-pull-requests-limit: 5
     versioning-strategy: increase
+    # bunfig.toml's `minimumReleaseAge = 604800` makes bun refuse to RESOLVE any
+    # version published in the last 7 days, and Dependabot runs bun to write the
+    # lockfile. Without a cooldown at least that long, Dependabot proposed
+    # versions bun then refused ("blocked by minimum-release-age: 604800
+    # seconds"), and every run of the group failed. 8 days, not 7, so whatever
+    # Dependabot picks is past bun's window too. The excludes mirror bunfig's
+    # `minimumReleaseAgeExcludes`: first-party packages skip both.
+    cooldown:
+      default-days: 8
+      exclude:
+        - "@oxy.so/*"
+        - "@alia.onl/*"
+        - "@clarity.surf/*"
+        - "@peable.to/*"
     groups:
       # First-party SDKs get their own PR, and it is the one that auto-merges
       # (.github/workflows/automerge-first-party.yml). Listed BEFORE `minor-and-patch`: a

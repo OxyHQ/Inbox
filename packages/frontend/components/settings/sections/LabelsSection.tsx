@@ -11,12 +11,15 @@ import { Button, IconButton } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
 import { RiDeleteBin6Line } from '@oxy.so/bloom/icons/RiDeleteBin6Line';
 import { RiEditLine } from '@oxy.so/bloom/icons/RiEditLine';
-import { SettingsValueField, SettingsProfilePage } from '@oxy.so/bloom/settings-modal';
+import {
+  SettingsProfilePage,
+  SettingsSelect,
+  SettingsValueField,
+} from '@oxy.so/bloom/settings-modal';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { toast } from '@oxy.so/bloom/toast';
 import { useCallback, useState } from 'react';
 import { View } from 'react-native';
-import { SettingsPreferenceSelect } from '../SettingsPreferenceSelect';
 const LABEL_COLORS = [
   '#4285f4',
   '#ea4335',
@@ -208,7 +211,7 @@ export function LabelsSection() {
                 key: 'color',
                 label: t('ui.settings.labels.color'),
                 control: (
-                  <SettingsPreferenceSelect
+                  <SettingsSelect
                     label={t('ui.settings.labels.colorLabel')}
                     value={newLabelColor}
                     onChange={setNewLabelColor}

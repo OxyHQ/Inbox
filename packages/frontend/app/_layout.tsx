@@ -32,9 +32,8 @@ import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { useEmailPushNotifications } from '@/hooks/notifications/useEmailPushNotifications';
 import { useForegroundNotificationHandler } from '@/hooks/notifications/useForegroundNotificationHandler';
 import { useEmailStore } from '@/hooks/useEmail';
-import { removeLegacyQueryCache } from '@/utils/removeLegacyQueryCache';
+import { removeLegacyStorage } from '@/utils/removeLegacyStorage';
 import { registerServiceWorker } from '@/utils/registerServiceWorker';
-import { clearQueue } from '@/utils/offlineQueue';
 import { OXY_CLIENT_ID, OXY_AUTH_REDIRECT_URI } from '@/constants/oxy';
 import { configureLottieWeb } from '@/lib/lottieWeb';
 import * as SplashScreen from 'expo-splash-screen';
@@ -166,7 +165,7 @@ function RootEffects() {
   usePushRegistration();
   useEmailPushNotifications(canUsePrivateApi);
   useEffect(() => {
-    void removeLegacyQueryCache();
+    void removeLegacyStorage();
   }, []);
   // Read at the moment an update is found, so the toast is in the language
   // the user has by then — without re-running the registration for it.
@@ -180,8 +179,6 @@ function RootEffects() {
     registerServiceWorker(() => {
       toast.info(tRef.current('inbox.toast.newVersionAvailable'));
     });
-
-    void clearQueue();
   }, []);
 
   return null;

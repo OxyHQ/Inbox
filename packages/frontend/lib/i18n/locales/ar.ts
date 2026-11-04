@@ -279,14 +279,8 @@ const ar: LocaleDict = {
     aliaClientContext:
       'User is in the Inbox app viewing their email. Use oxy_inbox tools to access their emails.',
     toast: {
-      offlineSync_many: 'تمت مزامنة {{count}} إجراءً دون اتصال.',
-      offlineSync_few: 'تمت مزامنة {{count}} إجراءات دون اتصال.',
-      offlineSync_two: 'تمت مزامنة إجراءين دون اتصال.',
-      offlineSync_zero: 'تمت مزامنة {{count}} إجراء دون اتصال.',
       archiveUnavailable: 'مجلد الأرشيف غير متاح.',
       trashUnavailable: 'مجلد المهملات غير متاح.',
-      offlineSync_one: 'تمت مزامنة {{count}} إجراء دون اتصال.',
-      offlineSync_other: 'تمت مزامنة {{count}} إجراء دون اتصال.',
       newVersionAvailable: 'تتوفّر نسخة جديدة — أعد التحميل للتحديث.',
       newEmail: 'رسالة جديدة من {{sender}}',
     },

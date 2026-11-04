@@ -254,8 +254,6 @@ const zh: LocaleDict = {
     toast: {
       archiveUnavailable: '存档文件夹不可用。',
       trashUnavailable: '回收站文件夹不可用。',
-      offlineSync_one: '已同步 {{count}} 条离线操作。',
-      offlineSync_other: '已同步 {{count}} 条离线操作。',
       newVersionAvailable: '有新版本 — 请刷新以更新。',
       newEmail: '来自 {{sender}} 的新邮件',
     },

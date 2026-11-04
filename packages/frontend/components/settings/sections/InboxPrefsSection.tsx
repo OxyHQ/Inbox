@@ -4,9 +4,8 @@ import {
   type SwipeAction,
 } from '@/contexts/inbox-prefs-context';
 import { useTranslation } from '@/lib/i18n';
-import { SettingsGeneralPage } from '@oxy.so/bloom/settings-modal';
+import { SettingsGeneralPage, SettingsSelect } from '@oxy.so/bloom/settings-modal';
 import { Switch } from '@oxy.so/bloom/switch';
-import { SettingsPreferenceSelect } from '../SettingsPreferenceSelect';
 const DENSITY_OPTIONS: readonly { value: MessageDensity; labelKey: string }[] = [
   { value: 'compact', labelKey: 'ui.settings.inbox.compact' },
   { value: 'comfortable', labelKey: 'ui.settings.inbox.comfortable' },
@@ -39,7 +38,7 @@ export function InboxPrefsSection() {
               label: t('ui.settings.inbox.density'),
               description: t('ui.settings.inbox.densityHint'),
               control: (
-                <SettingsPreferenceSelect
+                <SettingsSelect
                   label={t('ui.settings.inbox.density')}
                   value={prefs.density}
                   onChange={(v) => setPref('density', v)}
@@ -81,7 +80,7 @@ export function InboxPrefsSection() {
             key,
             label: t(`ui.settings.inbox.${label}`),
             control: (
-              <SettingsPreferenceSelect
+              <SettingsSelect
                 label={t(`ui.settings.inbox.${label}`)}
                 value={prefs[key]}
                 onChange={(v) => setPref(key, v)}

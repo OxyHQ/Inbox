@@ -2,20 +2,10 @@ import { useAccountColorSave, useOxy } from '@oxy.so/services/ui/client';
 import { toast } from '@oxy.so/bloom/toast';
 import { useThemeContext } from '@/contexts/theme-context';
 import { useTranslation } from '@/lib/i18n';
-import {
-  Select,
-  SelectContent,
-  SelectIcon,
-  SelectItem,
-  SelectItemIndicator,
-  SelectItemText,
-  SelectTrigger,
-  SelectValue,
-} from '@oxy.so/bloom/select';
-import { SettingsGeneralPage } from '@oxy.so/bloom/settings-modal';
+import { SettingsGeneralPage, SettingsSelect } from '@oxy.so/bloom/settings-modal';
 import { COLOR_PRESET_REGISTRY } from '@oxy.so/bloom/theme';
 
-/** The same General page and compact Select composition used by Bloom's settings template. */
+/** Bloom's General page with its compact settings selects. */
 export function AppearanceSection() {
   const { t } = useTranslation();
   const { themePreference, setThemePreference } = useThemeContext();
@@ -40,34 +30,12 @@ export function AppearanceSection() {
               label: t('ui.settings.appearance.theme'),
               description: t('ui.settings.appearance.systemHint'),
               control: (
-                <Select
+                <SettingsSelect
+                  label={t('ui.settings.appearance.theme')}
                   value={themePreference}
-                  onValueChange={(value) => {
-                    const mode = modes.find((item) => item.value === value);
-                    if (mode) setThemePreference(mode.value);
-                  }}
-                >
-                  <SelectTrigger
-                    label={t('ui.settings.appearance.theme')}
-                    className="h-8 gap-1 px-2 py-1.5"
-                  >
-                    <SelectValue>
-                      {() => modes.find((mode) => mode.value === themePreference)?.label}
-                    </SelectValue>
-                    <SelectIcon />
-                  </SelectTrigger>
-                  <SelectContent
-                    label={t('ui.settings.appearance.theme')}
-                    items={modes}
-                    valueExtractor={(item) => item.value}
-                    renderItem={(item) => (
-                      <SelectItem value={item.value} label={item.label}>
-                        <SelectItemIndicator />
-                        <SelectItemText>{item.label}</SelectItemText>
-                      </SelectItem>
-                    )}
-                  />
-                </Select>
+                  onChange={setThemePreference}
+                  items={modes}
+                />
               ),
             },
             ...(isAuthenticated
@@ -76,40 +44,19 @@ export function AppearanceSection() {
                     key: 'color',
                     label: t('ui.settings.appearance.accentColor'),
                     control: (
-                      <Select
+                      <SettingsSelect
+                        label={t('ui.settings.appearance.accentColor')}
                         value={colorValue}
-                        onValueChange={(value) => {
-                          const preset = presets.find((item) => item.name === value);
-                          if (!preset) return;
-                          saveColor(preset.name).catch(() => {
+                        onChange={(name) => {
+                          saveColor(name).catch(() => {
                             toast.error(t('ui.settings.appearance.accentColorFailed'));
                           });
                         }}
-                      >
-                        <SelectTrigger
-                          label={t('ui.settings.appearance.accentColor')}
-                          className="h-8 gap-1 px-2 py-1.5"
-                        >
-                          <SelectValue>
-                            {() =>
-                              COLOR_PRESET_REGISTRY.find((preset) => preset.name === colorValue)
-                                ?.displayName
-                            }
-                          </SelectValue>
-                          <SelectIcon />
-                        </SelectTrigger>
-                        <SelectContent
-                          label={t('ui.settings.appearance.accentColor')}
-                          items={presets}
-                          valueExtractor={(item) => item.name}
-                          renderItem={(item) => (
-                            <SelectItem value={item.name} label={item.displayName}>
-                              <SelectItemIndicator />
-                              <SelectItemText>{item.displayName}</SelectItemText>
-                            </SelectItem>
-                          )}
-                        />
-                      </Select>
+                        items={presets.map((preset) => ({
+                          value: preset.name,
+                          label: preset.displayName,
+                        }))}
+                      />
                     ),
                   },
                 ]

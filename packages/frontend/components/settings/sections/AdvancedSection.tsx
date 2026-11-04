@@ -24,14 +24,13 @@ import { RiArrowDownSLine } from '@oxy.so/bloom/icons/RiArrowDownSLine';
 import { RiArrowUpSLine } from '@oxy.so/bloom/icons/RiArrowUpSLine';
 import { RiDeleteBin6Line } from '@oxy.so/bloom/icons/RiDeleteBin6Line';
 import { RiEditLine } from '@oxy.so/bloom/icons/RiEditLine';
-import { SettingsProfilePage } from '@oxy.so/bloom/settings-modal';
+import { SettingsProfilePage, SettingsSelect } from '@oxy.so/bloom/settings-modal';
 import { Switch } from '@oxy.so/bloom/switch';
 import { Textarea } from '@oxy.so/bloom/textarea';
 import { toast } from '@oxy.so/bloom/toast';
 import { EMAIL_FILTER_CONDITION_FIELDS, EMAIL_FILTER_CONDITION_OPERATORS } from '@oxy.so/contracts';
 import { useCallback, useMemo, useState } from 'react';
 import { Platform, View } from 'react-native';
-import { SettingsPreferenceSelect } from '../SettingsPreferenceSelect';
 
 type FilterField = EmailFilterCondition['field'];
 type FilterOperator = EmailFilterCondition['operator'];
@@ -404,7 +403,7 @@ export function AdvancedSection() {
                 key: 'field',
                 label: t('ui.settings.advanced.whenMessage'),
                 control: (
-                  <SettingsPreferenceSelect
+                  <SettingsSelect
                     label={t('ui.settings.advanced.whenMessage')}
                     value={filterField}
                     onChange={handleFieldChange}
@@ -418,7 +417,7 @@ export function AdvancedSection() {
                       key: 'operator',
                       label: t('ui.settings.advanced.condition'),
                       control: (
-                        <SettingsPreferenceSelect
+                        <SettingsSelect
                           label={t('ui.settings.advanced.condition')}
                           value={filterOperator}
                           onChange={setFilterOperator}
@@ -448,7 +447,7 @@ export function AdvancedSection() {
                 key: 'action',
                 label: t('ui.settings.advanced.thenAction'),
                 control: (
-                  <SettingsPreferenceSelect
+                  <SettingsSelect
                     label={t('ui.settings.advanced.thenAction')}
                     value={filterAction}
                     onChange={setFilterAction}

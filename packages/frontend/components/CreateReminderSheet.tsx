@@ -227,6 +227,7 @@ export function CreateReminderSheet({
                 disabled={submitting}
                 onPress={() => handleTimeChange(preset.date)}
               >
+                {/* biome-ignore lint/correctness/noReactNativeRawText: Bloom Button wraps string children in Text (renderTextContent) */}
                 {`${t(preset.label)} · ${preset.date.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' })}`}
               </Button>
             );

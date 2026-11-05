@@ -49,12 +49,12 @@ time, so all four are public by construction. The committed defaults are
 correct for production; override in `packages/frontend/.env` for a local or
 staging target.
 
-| Variable | Default |
-|---|---|
-| `EXPO_PUBLIC_API_URL` | `https://api.oxy.so` |
-| `EXPO_PUBLIC_ALIA_API_URL` | `https://api.alia.onl` (owned by `@alia.onl/sdk`) |
-| `EXPO_PUBLIC_OXY_CLIENT_ID` | the registered production client id (`packages/frontend/constants/oxy.ts`) |
-| `EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI` | `https://inbox.oxy.so` |
+| Variable                            | Default                                                                    |
+| ----------------------------------- | -------------------------------------------------------------------------- |
+| `EXPO_PUBLIC_API_URL`               | `https://api.oxy.so`                                                       |
+| `EXPO_PUBLIC_ALIA_API_URL`          | `https://api.alia.onl` (owned by `@alia.onl/sdk`)                          |
+| `EXPO_PUBLIC_OXY_CLIENT_ID`         | the registered production client id (`packages/frontend/constants/oxy.ts`) |
+| `EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI` | `https://inbox.oxy.so`                                                     |
 
 ## Layout
 

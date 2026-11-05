@@ -9,6 +9,7 @@ interface MailActionIconProps extends Omit<SvgProps, 'width' | 'height'> {
 }
 
 function createMailActionIcon(path: string) {
+  // biome-ignore lint/correctness/noComponentHookFactories: each icon is created once at module load and is a stable component
   return forwardRef<Svg, MailActionIconProps>(function MailActionIcon(
     { size = 24, fill, ...props },
     ref,

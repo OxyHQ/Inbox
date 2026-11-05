@@ -35,7 +35,7 @@ jobs:
       # image's default Node.
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: "24"
 
       # No build prelude. In OxyHQ/oxy this job first built @oxy.so/contracts,
       # protocol, core, services and expo-splash from workspace source; here all
@@ -120,7 +120,7 @@ jobs:
       # appears in bun's `bun test v1.3.x` banner, so grepping for it would pass
       # identically whether or not the guard ever loaded. Exit code alone is no
       # better: a half-run suite also exits non-zero.
-      - name: '`bun test` is refused at both entry points'
+      - name: "`bun test` is refused at both entry points"
         run: |
           # `set +e` is REQUIRED, not tidiness: GitHub runs this with
           # `bash -e {0}`, so the failing command substitution below aborts the

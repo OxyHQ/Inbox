@@ -20,14 +20,14 @@ allows WASM compilation without enabling JavaScript `unsafe-eval`.
 
 ## Component ownership
 
-| Surface | Shared Bloom primitives | Inbox responsibilities |
-| --- | --- | --- |
-| Workspace | AppShell, ContentPanel, AppShellSplitPanes, Sidebar, BottomBar, Fab | Mailbox/label destinations and SDK account actions |
-| Mail list | MailRow, MailSelectionBar, SwipeRow | Virtualization, grouping, unreadable rows, bulk mutations and preferences |
-| Conversation | PageHeader, PageFooter, MailThread, MailMessage | Safe HTML/CID resolution, unreadable entries, downloads, reply targets |
-| Composer | MailComposeSurface, MailRecipientField, TextFieldInput | Recipient validation/suggestions, editor, draft recovery, RFC reply headers and outbound queue |
-| Settings | SettingsModal and its page/row templates | Existing preferences, forms, mutations and bookmarked route compatibility |
-| Search | Search, Dialog, Field, Select, DateRangePicker, Chip, EmptyState, Loading | Local operators, opt-in inference, saved/recent searches and pagination |
+| Surface      | Shared Bloom primitives                                                   | Inbox responsibilities                                                                         |
+| ------------ | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Workspace    | AppShell, ContentPanel, AppShellSplitPanes, Sidebar, BottomBar, Fab       | Mailbox/label destinations and SDK account actions                                             |
+| Mail list    | MailRow, MailSelectionBar, SwipeRow                                       | Virtualization, grouping, unreadable rows, bulk mutations and preferences                      |
+| Conversation | PageHeader, PageFooter, MailThread, MailMessage                           | Safe HTML/CID resolution, unreadable entries, downloads, reply targets                         |
+| Composer     | MailComposeSurface, MailRecipientField, TextFieldInput                    | Recipient validation/suggestions, editor, draft recovery, RFC reply headers and outbound queue |
+| Settings     | SettingsModal and its page/row templates                                  | Existing preferences, forms, mutations and bookmarked route compatibility                      |
+| Search       | Search, Dialog, Field, Select, DateRangePicker, Chip, EmptyState, Loading | Local operators, opt-in inference, saved/recent searches and pagination                        |
 
 The custom drawer, tab bar, settings navigation, floating-header hook, row
 density geometry and independent color palette are removed. Structured mail

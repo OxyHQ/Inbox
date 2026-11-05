@@ -80,7 +80,7 @@ jobs:
         working-directory: ${{ env.APP_DIR }}
         env:
           # Inbox's PUBLIC production client id, the one withOxyUpdates bakes into
-          # the binary's manifest URL (app.json). Not a secret.
+          # the binary's manifest URL (app.config.js). Not a secret.
           OXY_SHIP_CLIENT_ID: oxy_dk_7eea1de1d919060dcf9f2d65aeee84c98dddfeab8fd03582
           OXY_API_URL: https://api.oxy.so
           SHIP_MESSAGE: ${{ github.event.head_commit.message }}

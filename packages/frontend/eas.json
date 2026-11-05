@@ -1,0 +1,15 @@
+{
+  "cli": {
+    "appVersionSource": "local"
+  },
+  "build": {
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.oxy.so",
+        "EXPO_PUBLIC_ALIA_API_URL": "https://api.alia.onl",
+        "EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI": "https://inbox.oxy.so",
+        "EXPO_PUBLIC_OXY_CLIENT_ID": "oxy_dk_7eea1de1d919060dcf9f2d65aeee84c98dddfeab8fd03582"
+      }
+    }
+  }
+}

@@ -66,7 +66,11 @@
         }
       ],
       "expo-status-bar",
-      "@oxy.so/services/plugins/withOxySharedPermissions"
+      "@oxy.so/services/plugins/withOxySharedPermissions",
+      [
+        "@oxy.so/app-preset/plugin/withOxyUpdates",
+        { "clientId": "oxy_dk_7eea1de1d919060dcf9f2d65aeee84c98dddfeab8fd03582" }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

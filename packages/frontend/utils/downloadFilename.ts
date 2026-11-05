@@ -6,7 +6,20 @@ export function safeDownloadFilename(filename: string, fallback = 'attachment'):
   const basename = filename.split(/[\\/]/).pop()?.trim() ?? '';
   const cleaned = basename.replace(INVALID_FILENAME_CHARACTERS, '_').replace(/\s+/g, ' ').trim();
   if (!cleaned || cleaned === '.' || cleaned === '..') return fallback;
-  return cleaned.slice(0, 180);
+  if (cleaned.length <= 180) return cleaned;
+
+  const suffix =
+    /\.tar\.(?:gz|bz2|xz|zst)$/i.exec(cleaned)?.[0] ??
+    /\.[a-z0-9]{1,16}$/i.exec(cleaned)?.[0] ??
+    '';
+  const end = 180 - suffix.length;
+  let prefix = cleaned.slice(0, end);
+  const last = prefix.charCodeAt(prefix.length - 1);
+  const next = cleaned.charCodeAt(end);
+  if (last >= 0xd800 && last <= 0xdbff && next >= 0xdc00 && next <= 0xdfff) {
+    prefix = prefix.slice(0, -1);
+  }
+  return prefix + suffix;
 }
 
 /** Encode one filename as a file-URI path segment, including malformed UTF-16. */

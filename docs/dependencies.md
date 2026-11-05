@@ -16,7 +16,7 @@ not), so the direct dependency went with it.
 **A zero-import census cannot justify pruning a dependency here.** Measured:
 48 of this package's deps have zero source references, including `nativewind`,
 `tailwindcss`, `typescript`, `react-dom`, `react-native-web` and `expo-font`.
-Build tooling, `app.json` plugins and peers are all invisible to it.
+Build tooling, `app.config.js` plugins and peers are all invisible to it.
 
 `babel-plugin-module-resolver` is gone. `@oxy.so/app-preset` 4 dropped it from
 the Babel factory, and `@/*` now resolves from `tsconfig.json`'s `paths`, which

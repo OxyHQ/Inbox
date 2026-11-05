@@ -33,7 +33,7 @@ binding = "ASSETS"
 run_worker_first = true
 directory = "./dist"
 # Replaces `public/_redirects` (`/*  /index.html  200`), deleted in the same
-# change. `app.json` sets `web.output: "static"`, so `expo export` writes real
+# change. `app.config.js` sets `web.output: "static"`, so `expo export` writes real
 # HTML for every static route (`settings/about.html`, `search/index.html`, …)
 # and those are served as files; the fallback is only reached by the dynamic
 # routes that have no static page — `/conversation/<id>`, `/label/<name>`,

@@ -15,7 +15,7 @@ Mailboxes, threads, labels, filters, federation, SMTP and webhook ingest are all
 Things that stay in OxyHQ/oxy and name this origin — **do not "clean them up"
 from there**: the API's CORS allowlist (`dynamicOriginRegistry.ts`),
 `@oxy.so/core`'s official-origin allowlists (`server/cors.ts`,
-`utils/oauthPkce.ts`) *and the tests asserting them*, the seeded Oxy
+`utils/oauthPkce.ts`) _and the tests asserting them_, the seeded Oxy
 application's `redirectUris`, and SMTP's ARF `reportingUA`. Deleting the first
 is a total outage; deleting the fourth silently degrades outbound
 deliverability. **`packages/inbox` was code that moved; `inbox.oxy.so` is an
@@ -29,7 +29,7 @@ only in a hoisted `node_modules`. Under bun's default isolated linker they match
 nothing, Tailwind emits a stylesheet with no SDK utilities in it, and web layout
 silently falls back to react-native-web's base reset. Nothing errors. The gate is
 a byte floor on `dist/_expo/static/css/global-*.css` (≥20 KB) — a screenshot
-cannot see it, because Bloom sets colours inline and only *layout* breaks.
+cannot see it, because Bloom sets colours inline and only _layout_ breaks.
 
 ## `expo export` bundles through type errors
 

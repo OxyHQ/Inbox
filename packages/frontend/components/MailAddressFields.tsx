@@ -107,10 +107,10 @@ export function MailAddressFields(props: MailAddressFieldsProps) {
         onChange={props.onToChange}
         trailing={
           !copies ? (
-            <Button
-              appearance="plain"
-              onPress={() => setRevealed(true)}
-            >{`${t('compose.fields.cc')} / ${t('compose.fields.bcc')}`}</Button>
+            <Button appearance="plain" onPress={() => setRevealed(true)}>
+              {/* biome-ignore lint/correctness/noReactNativeRawText: Bloom Button wraps string children in Text (renderTextContent) */}
+              {`${t('compose.fields.cc')} / ${t('compose.fields.bcc')}`}
+            </Button>
           ) : undefined
         }
       />

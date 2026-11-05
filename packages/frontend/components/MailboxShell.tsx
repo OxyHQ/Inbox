@@ -531,6 +531,7 @@ export function MailboxShell({ children }: { children: ReactNode }) {
                     deleteFolderControl.open();
                   }}
                 >
+                  {/* biome-ignore lint/correctness/noReactNativeRawText: Bloom Button wraps string children in Text (renderTextContent) */}
                   {t('common.delete')} · {folder.name}
                 </Button>
               ))}

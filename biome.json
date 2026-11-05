@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.3/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -63,6 +63,17 @@
     }
   },
   "overrides": [
+    {
+      "includes": ["packages/frontend/__tests__/**", "packages/frontend/__mocks__/**"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noReactNativeRawText": "off",
+            "noComponentHookFactories": "off"
+          }
+        }
+      }
+    },
     {
       "includes": ["packages/frontend/**"],
       "linter": {

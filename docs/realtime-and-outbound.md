@@ -30,10 +30,10 @@ its listeners when the socket is recreated, and is gated on the right thing.
 
 The server sends both, and they are different:
 
-| field | what it is |
-|---|---|
-| `id` | the stored row's primary key — stable, and what dedupe compares |
-| `messageId` | the RFC 5322 `Message-Id` header, as the sender wrote it |
+| field       | what it is                                                      |
+| ----------- | --------------------------------------------------------------- |
+| `id`        | the stored row's primary key — stable, and what dedupe compares |
+| `messageId` | the RFC 5322 `Message-Id` header, as the sender wrote it        |
 
 They were once one field named `messageId` carrying the row id. A client
 deduping an optimistic insert compared that against a persisted row's

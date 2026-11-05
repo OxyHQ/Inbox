@@ -118,11 +118,10 @@ export function ScheduleSendSheet({ visible, onClose, onSchedule }: ScheduleSend
       <View className="gap-2 p-4">
         <BloomText variant="body-semibold">{t('schedule.title')}</BloomText>
         {options.map((option) => (
-          <Button
-            key={option.label}
-            appearance="subtle"
-            onPress={() => handleSelect(option)}
-          >{`${t(option.label)} · ${option.sublabel}`}</Button>
+          <Button key={option.label} appearance="subtle" onPress={() => handleSelect(option)}>
+            {/* biome-ignore lint/correctness/noReactNativeRawText: Bloom Button wraps string children in Text (renderTextContent) */}
+            {`${t(option.label)} · ${option.sublabel}`}
+          </Button>
         ))}
       </View>
     </BottomSheet>

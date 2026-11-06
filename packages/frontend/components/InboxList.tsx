@@ -1,4 +1,5 @@
 import { Screen } from '@oxy.so/bloom/screen';
+import { ScrollBar } from '@oxy.so/bloom/layout';
 import { EmptyState } from '@oxy.so/bloom/empty-state';
 import { Text } from '@oxy.so/bloom/typography';
 import { useMailboxScrollRestoration } from '@/hooks/useMailboxScrollRestoration';
@@ -1009,8 +1010,8 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
               paddingTop: 0,
               paddingBottom: 0,
             }}
-            showsVerticalScrollIndicator={false}
           />
+          <ScrollBar target={listRef} />
         </View>
 
         {/* Alia remains available from the inline header action. */}

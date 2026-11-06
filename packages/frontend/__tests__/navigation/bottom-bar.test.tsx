@@ -135,16 +135,17 @@ it('keeps public navigation while the token and account cache resolve, without e
   expect(mockBarProps().action).toBeUndefined();
 });
 
-it('hydrates an index fallback before selecting a deep search route without stale ARIA or replacing navigation', async () => {
+it('hydrates a search conversation document with the correct tab selected from first paint', async () => {
   mockAuthenticated = false;
-  mockPathname = '/';
+  mockPathname = '/search/conversation/[id]';
   const container = document.createElement('div');
   container.innerHTML = renderToString(<InboxBottomBar />);
   document.body.appendChild(container);
   const bar = container.querySelector('[role=tablist]');
   const inbox = defined(container.querySelectorAll('[role=tab]')[0], 'inbox tab');
   const search = defined(container.querySelectorAll('[role=tab]')[1], 'search tab');
-  expect(inbox.getAttribute('aria-selected')).toBe('true');
+  expect(inbox.getAttribute('aria-selected')).toBe('false');
+  expect(search.getAttribute('aria-selected')).toBe('true');
   mockPathname = '/search/conversation/thread';
   const onRecoverableError = jest.fn();
   const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});

@@ -20,8 +20,8 @@ compatibility_date = "2026-09-09"
 
 workers_dev = false
 
-# The Worker passes every request straight to the ASSETS binding. 176 files, 21 MB, largest 14.5 MB — inside the
-# 20,000-file and 25 MiB-per-file limits.
+# The Worker selects public conversation templates for dynamic message URLs;
+# other requests pass through to the ASSETS binding.
 #
 # `_headers` travels in this directory and still carries the CSP: it is written
 # into `public/` by `scripts/write-pages-headers.ts` from
@@ -36,8 +36,8 @@ directory = "./dist"
 # change. `app.json` sets `web.output: "static"`, so `expo export` writes real
 # HTML for every static route (`settings/about.html`, `search/index.html`, …)
 # and those are served as files; the fallback is only reached by the dynamic
-# routes that have no static page — `/conversation/<id>`, `/label/<name>`,
-# `/<view>` — which is exactly what the `_redirects` rule was catching.
+# mailbox and label routes still using the index document — `/label/<name>`
+# and `/<view>`. Conversation routes select their exported templates in the Worker.
 not_found_handling = "single-page-application"
 
 # The only way in. Cloudflare writes the DNS record for a custom domain itself,

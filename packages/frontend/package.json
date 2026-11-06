@@ -4,14 +4,14 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "EXPO_WEB_DEV_HYDRATE=1 RCT_METRO_PORT=8103 expo start",
-    "build": "bun scripts/write-pages-headers.ts public && CI=1 expo export --platform web && bun scripts/write-pages-headers.ts dist",
-    "web": "EXPO_WEB_DEV_HYDRATE=1 RCT_METRO_PORT=8103 expo start --web",
+    "start": "bun scripts/build-service-worker.mjs && EXPO_WEB_DEV_HYDRATE=1 RCT_METRO_PORT=8103 expo start",
+    "build": "bun scripts/build-service-worker.mjs && bun scripts/write-pages-headers.ts public && CI=1 expo export --platform web && bun scripts/check-shell-documents.mjs && bun scripts/write-pages-headers.ts dist",
+    "web": "bun scripts/build-service-worker.mjs && EXPO_WEB_DEV_HYDRATE=1 RCT_METRO_PORT=8103 expo start --web",
     "android": "RCT_METRO_PORT=8103 expo run:android",
     "ios": "RCT_METRO_PORT=8103 expo run:ios",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint .",
-    "test": "node --test ../../scripts/worker.test.mjs && jest",
+    "test": "bun scripts/build-service-worker.mjs && node --test ../../scripts/worker.test.mjs ../../scripts/service-worker.test.mjs && jest",
     "test:watch": "jest --watch"
   },
   "dependencies": {
@@ -26,7 +26,7 @@
     "@lottiefiles/dotlottie-react-native": "^0.12.1",
     "@lottiefiles/dotlottie-web": "0.81.0",
     "@oxy.so/app-preset": "3.6.1",
-    "@oxy.so/bloom": "15.16.0",
+    "@oxy.so/bloom": "file:/tmp/preset-first-paint/bloom-15.18.0-d82df03d-v6.tgz",
     "@oxy.so/contracts": "^5.7.0",
     "@oxy.so/core": "6.14.0",
     "@oxy.so/services": "^12.12.0",

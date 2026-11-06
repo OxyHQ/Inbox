@@ -84,7 +84,11 @@ jest.mock('expo-router', () => ({
 }));
 jest.mock('@tanstack/react-query', () => ({ useQueryClient: () => mockQueryClient }));
 jest.mock('@oxy.so/bloom/app-shell', () => ({
-  useAppShell: () => ({ drawerAvailable: true, openDrawer: mockNoop }),
+  AppShellMenuButton: () => (
+    <button type="button" onClick={mockNoop}>
+      Menu
+    </button>
+  ),
 }));
 jest.mock('@oxy.so/bloom/screen', () => ({
   Screen: ({ header, children }: Children & { header?: ReactNode }) => (

@@ -1,283 +1,238 @@
-/**
- * Service Worker for Inbox by Oxy
- *
- * Caching strategies (chosen for an email client that has to feel instant
- * but also stay fresh):
- *
- * - App shell (HTML, navigation): network-first
- *   Always try the network so a deploy is visible on the next page load.
- *   Fall back to the cached `/index.html` shell when offline so the SPA
- *   can still mount and surface the offline state instead of a browser
- *   error page.
- *
- * - Static assets (.js, .css, fonts, images): stale-while-revalidate
- *   Serve from cache for instant paint, then update the cache in the
- *   background. Versioned filenames (hash-suffixed by Metro) make a
- *   change safe to pick up on the next reload without manual cache
- *   busting.
- *
- * - Everything cross-origin, and any request carrying credentials: network-only
- *   Private responses are never stored or served by this worker. TanStack
- *   Query owns the authenticated offline cache and the SDK owns auth on
- *   replay; this worker must not capture bearer or CSRF headers. Excluding
- *   only api.oxy.so was not enough: the Alia catalogue (api.alia.onl, with a
- *   Bearer header) was cached and served by URL to whoever was signed in next.
- *
- * Bumping `CACHE_NAME` invalidates old caches on the next `activate` event.
- * The cache is also bounded (`MAX_ENTRIES`): hashed bundles from earlier
- * deploys are dropped oldest-first instead of accumulating forever.
- */
+(() => {
+  // constants/shell-routes.js
+  var INBOX = { pathname: "/", asset: "/index.html", renderRoute: false, emptyDetail: true };
+  var COMPOSE = { pathname: "/compose", asset: "/compose", renderRoute: true, emptyDetail: false };
+  var SEARCH = { pathname: "/search", asset: "/search/", renderRoute: true, emptyDetail: true };
+  var CONVERSATION = {
+    pathname: "/conversation/[id]",
+    asset: "/conversation/[id]",
+    renderRoute: true,
+    emptyDetail: false
+  };
+  var SEARCH_CONVERSATION = {
+    pathname: "/search/conversation/[id]",
+    asset: "/search/conversation/[id]",
+    renderRoute: true,
+    emptyDetail: false
+  };
+  var SUBSCRIPTIONS = {
+    pathname: "/",
+    asset: "/subscriptions",
+    renderRoute: false,
+    emptyDetail: false
+  };
+  var SHELL_DOCUMENT_ASSETS = [
+    INBOX,
+    COMPOSE,
+    SEARCH,
+    CONVERSATION,
+    SEARCH_CONVERSATION,
+    SUBSCRIPTIONS
+  ].map((route) => route.asset);
+  function getShellRoute(pathname) {
+    const parts = pathname.split("/").filter(Boolean);
+    if (parts.length === 1 && parts[0] === "subscriptions")
+      return SUBSCRIPTIONS;
+    if (parts.length === 1 && parts[0] === "compose")
+      return COMPOSE;
+    if (parts.length === 1 && parts[0] === "search")
+      return SEARCH;
+    if (parts.length === 2 && parts[0] === "conversation")
+      return CONVERSATION;
+    if (parts.length === 3 && parts[0] === "search" && parts[1] === "conversation") {
+      return SEARCH_CONVERSATION;
+    }
+    return INBOX;
+  }
+  function getShellCacheKey(pathname) {
+    if (pathname.endsWith(".html") && pathname !== "/index.html")
+      return null;
+    let parts;
+    try {
+      parts = pathname.split("/").filter(Boolean).map(decodeURIComponent);
+    } catch {
+      return null;
+    }
+    if (parts.some((part) => part.startsWith("(")))
+      return null;
+    if (pathname === "/settings" || pathname.startsWith("/settings/"))
+      return pathname;
+    const route = getShellRoute(pathname);
+    if (route === INBOX && parts.length > 1 && !(parts.length === 2 && parts[0] === "label"))
+      return null;
+    return route.asset;
+  }
 
-const CACHE_NAME = 'inbox-v3';
-const SHELL_KEY = '/index.html';
-const MAX_ENTRIES = 150;
-
-// App shell files cached on install. Keep this list short — large entries
-// here block the install step. Anything else gets cached on first fetch.
-const APP_SHELL = ['/', '/index.html', '/manifest.json'];
-
-// ─── Install ────────────────────────────────────────────────────────
-
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
+  // worker/service-worker.js
+  var CACHE_NAME = "inbox-v4";
+  var SHELL_KEY = "/index.html";
+  var MAX_ENTRIES = 150;
+  var APP_SHELL = ["/", "/index.html", "/manifest.json"];
+  self.addEventListener("install", (event) => {
+    event.waitUntil(caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(APP_SHELL).catch((err) => {
-        // Non-fatal: shell will be cached on first fetch instead
-        console.warn('[SW] Failed to pre-cache app shell:', err);
+        console.warn("[SW] Failed to pre-cache app shell:", err);
       });
-    }),
-  );
-  // Activate immediately without waiting for existing clients
-  self.skipWaiting();
-});
-
-// ─── Activate ───────────────────────────────────────────────────────
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => {
+    }));
+    self.skipWaiting();
+  });
+  self.addEventListener("activate", (event) => {
+    event.waitUntil(caches.keys().then((keys) => {
       return Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)));
-    }),
-  );
-  // Take control of all open clients immediately
-  self.clients.claim();
-});
-
-// ─── Fetch Strategies ───────────────────────────────────────────────
-
-/**
- * Determine the caching strategy for a request.
- *
- * Returns one of:
- *  - `'network-only'` — let the browser handle it (private API requests and
- *    mutations)
- *  - `'stale-while-revalidate'` — serve cache immediately, refresh in
- *    background. Best for versioned static assets.
- *  - `'network-first'` — try network, fall back to cache.
- */
-function getStrategy(request) {
-  const url = new URL(request.url);
-
-  // Skip non-GET requests; authenticated mutations stay in the SDK/TanStack
-  // flow and are never replayed by this worker.
-  if (request.method !== 'GET') return 'network-only';
-
-  // Only this origin's public files are ever cached. Anything else — the Oxy
-  // and Alia APIs, the image proxy, fonts — is left to the browser.
-  if (url.origin !== self.location.origin) return 'network-only';
-  if (request.headers.has('authorization')) return 'network-only';
-  if (url.pathname.startsWith('/api/')) return 'network-only';
-
-  // Static assets: stale-while-revalidate. Metro hashes filenames so old
-  // entries are safe to keep until a new fetch replaces them.
-  if (
-    url.pathname.match(/\.(js|css|woff2?|ttf|otf|png|jpg|jpeg|gif|svg|ico|webp)$/) ||
-    url.pathname.startsWith('/_expo/') ||
-    url.pathname.startsWith('/assets/')
-  ) {
-    return 'stale-while-revalidate';
-  }
-
-  // Navigation: network-first, falling back to the one cached shell.
-  if (request.mode === 'navigate') return 'navigation';
-
-  return 'network-first';
-}
-
-/** Drop the oldest entries beyond `MAX_ENTRIES` (keys are in insertion order). */
-async function trimCache(cache) {
-  const keys = await cache.keys();
-  const excess = keys.length - MAX_ENTRIES;
-  for (let i = 0; i < excess; i++) {
-    if (new URL(keys[i].url).pathname !== SHELL_KEY) await cache.delete(keys[i]);
-  }
-}
-
-/**
- * Navigation: the network, else the cached shell. Every route is the same SPA
- * shell, so it is stored ONCE under `/index.html` — storing each
- * `/conversation/<id>` visited kept a copy of the shell per message opened.
- */
-async function navigation(request) {
-  try {
-    const response = await fetch(request);
-    if (response.ok && response.headers.get('content-type')?.includes('text/html')) {
-      const cache = await caches.open(CACHE_NAME);
-      await cache.put(SHELL_KEY, response.clone());
+    }));
+    self.clients.claim();
+  });
+  function getStrategy(request) {
+    const url = new URL(request.url);
+    if (request.method !== "GET")
+      return "network-only";
+    if (url.origin !== self.location.origin)
+      return "network-only";
+    if (request.headers.has("authorization"))
+      return "network-only";
+    if (url.pathname.startsWith("/api/"))
+      return "network-only";
+    if (url.pathname.match(/\.(js|css|woff2?|ttf|otf|png|jpg|jpeg|gif|svg|ico|webp)$/) || url.pathname.startsWith("/_expo/") || url.pathname.startsWith("/assets/")) {
+      return "stale-while-revalidate";
     }
-    return response;
-  } catch {
-    const shell = await caches.match(SHELL_KEY);
-    if (shell) return shell;
-    return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
+    if (request.mode === "navigate")
+      return "navigation";
+    return "network-first";
   }
-}
-
-/**
- * Network-first: try network, fall back to cache.
- */
-async function networkFirst(request, cacheName) {
-  try {
-    const response = await fetch(request);
-    if (response.ok) {
-      const cache = await caches.open(cacheName);
-      await cache.put(request, response.clone());
-      void trimCache(cache);
+  async function trimCache(cache) {
+    const keys = await cache.keys();
+    const excess = keys.length - MAX_ENTRIES;
+    for (let i = 0;i < excess; i++) {
+      if (new URL(keys[i].url).pathname !== SHELL_KEY)
+        await cache.delete(keys[i]);
     }
-    return response;
-  } catch {
-    const cached = await caches.match(request);
-    if (cached) return cached;
-    return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
   }
-}
-
-/**
- * Stale-while-revalidate: respond with the cached value immediately (if any)
- * while kicking off a background fetch that refreshes the cache for next time.
- */
-async function staleWhileRevalidate(request) {
-  const cache = await caches.open(CACHE_NAME);
-  const cached = await cache.match(request);
-
-  const fetchPromise = fetch(request)
-    .then((response) => {
-      if (response.ok) {
-        void cache.put(request, response.clone()).then(() => trimCache(cache));
+  async function navigation(request) {
+    const shellKey = getShellCacheKey(new URL(request.url).pathname);
+    try {
+      const response = await fetch(request);
+      const finalUrl = new URL(response.url || request.url);
+      const finalKey = finalUrl.origin === self.location.origin ? getShellCacheKey(finalUrl.pathname) : null;
+      if (finalKey && response.ok && response.headers.get("content-type")?.includes("text/html")) {
+        const cache = await caches.open(CACHE_NAME);
+        await cache.put(finalKey, response.clone());
+        trimCache(cache);
       }
       return response;
-    })
-    .catch(() => null);
-
-  if (cached) return cached;
-  const fresh = await fetchPromise;
-  if (fresh) return fresh;
-  return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
-}
-
-self.addEventListener('fetch', (event) => {
-  const strategy = getStrategy(event.request);
-
-  if (strategy === 'network-only') return; // Let the browser handle it
-
-  if (strategy === 'stale-while-revalidate') {
-    event.respondWith(staleWhileRevalidate(event.request));
-    return;
+    } catch {
+      const shell = shellKey ? await caches.match(shellKey) : null;
+      if (shell)
+        return shell;
+      return new Response("Offline", { status: 503, statusText: "Service Unavailable" });
+    }
   }
-
-  if (strategy === 'navigation') {
-    event.respondWith(navigation(event.request));
-    return;
+  async function networkFirst(request, cacheName) {
+    try {
+      const response = await fetch(request);
+      if (response.ok) {
+        const cache = await caches.open(cacheName);
+        await cache.put(request, response.clone());
+        trimCache(cache);
+      }
+      return response;
+    } catch {
+      const cached = await caches.match(request);
+      if (cached)
+        return cached;
+      return new Response("Offline", { status: 503, statusText: "Service Unavailable" });
+    }
   }
-
-  // network-first for the public app shell and non-API same-origin resources.
-  event.respondWith(networkFirst(event.request, CACHE_NAME));
-});
-
-// ─── Web push ──────────────────────────────────────────────────────
-
-// The fallback words of a push that carries no sender or body, in the
-// browser's language: a service worker has no access to the app's i18n, and
-// they were English for everyone.
-const FALLBACK_STRINGS = {
-  en: { title: 'New email', body: 'You have a new message.' },
-  es: { title: 'Correo nuevo', body: 'Tienes un mensaje nuevo.' },
-  ca: { title: 'Correu nou', body: 'Tens un missatge nou.' },
-  de: { title: 'Neue E-Mail', body: 'Du hast eine neue Nachricht.' },
-  fr: { title: 'Nouveau courriel', body: 'Tu as un nouveau message.' },
-  it: { title: 'Nuova email', body: 'Hai un nuovo messaggio.' },
-  pt: { title: 'Novo email', body: 'Tens uma nova mensagem.' },
-  ja: { title: '新着メール', body: '新しいメッセージがあります。' },
-  ko: { title: '새 메일', body: '새 메시지가 있어요.' },
-  zh: { title: '新邮件', body: '你有一封新邮件。' },
-  ar: { title: 'رسالة جديدة', body: 'لديك رسالة جديدة.' },
-};
-
-function fallbackStrings() {
-  const language = (self.navigator?.language || 'en').slice(0, 2).toLowerCase();
-  return FALLBACK_STRINGS[language] || FALLBACK_STRINGS.en;
-}
-
-function notificationPayload(data) {
-  const fallback = fallbackStrings();
-  const payload = data && typeof data === 'object' ? data : {};
-  const messageId = typeof payload.messageId === 'string' ? payload.messageId : null;
-  const sender = typeof payload.sender === 'string' ? payload.sender : fallback.title;
-  const subject = typeof payload.subject === 'string' ? payload.subject : '';
-  const body = typeof payload.body === 'string' ? payload.body : subject;
-
-  return {
-    title: sender,
-    options: {
-      body: body || fallback.body,
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      tag: messageId ? `inbox-message-${messageId}` : 'inbox-message',
-      renotify: Boolean(messageId),
-      data: { messageId },
-    },
+  async function staleWhileRevalidate(request) {
+    const cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(request);
+    const fetchPromise = fetch(request).then((response) => {
+      if (response.ok) {
+        cache.put(request, response.clone()).then(() => trimCache(cache));
+      }
+      return response;
+    }).catch(() => null);
+    if (cached)
+      return cached;
+    const fresh = await fetchPromise;
+    if (fresh)
+      return fresh;
+    return new Response("Offline", { status: 503, statusText: "Service Unavailable" });
+  }
+  self.addEventListener("fetch", (event) => {
+    const strategy = getStrategy(event.request);
+    if (strategy === "network-only")
+      return;
+    if (strategy === "stale-while-revalidate") {
+      event.respondWith(staleWhileRevalidate(event.request));
+      return;
+    }
+    if (strategy === "navigation") {
+      event.respondWith(navigation(event.request));
+      return;
+    }
+    event.respondWith(networkFirst(event.request, CACHE_NAME));
+  });
+  var FALLBACK_STRINGS = {
+    en: { title: "New email", body: "You have a new message." },
+    es: { title: "Correo nuevo", body: "Tienes un mensaje nuevo." },
+    ca: { title: "Correu nou", body: "Tens un missatge nou." },
+    de: { title: "Neue E-Mail", body: "Du hast eine neue Nachricht." },
+    fr: { title: "Nouveau courriel", body: "Tu as un nouveau message." },
+    it: { title: "Nuova email", body: "Hai un nuovo messaggio." },
+    pt: { title: "Novo email", body: "Tens uma nova mensagem." },
+    ja: { title: "新着メール", body: "新しいメッセージがあります。" },
+    ko: { title: "새 메일", body: "새 메시지가 있어요." },
+    zh: { title: "新邮件", body: "你有一封新邮件。" },
+    ar: { title: "رسالة جديدة", body: "لديك رسالة جديدة." }
   };
-}
-
-self.addEventListener('push', (event) => {
-  let data = {};
-  try {
-    data = event.data ? event.data.json() : {};
-  } catch {
-    data = { body: event.data ? event.data.text() : '' };
+  function fallbackStrings() {
+    const language = (self.navigator?.language || "en").slice(0, 2).toLowerCase();
+    return FALLBACK_STRINGS[language] || FALLBACK_STRINGS.en;
   }
-
-  const notification = notificationPayload(data);
-  event.waitUntil(self.registration.showNotification(notification.title, notification.options));
-});
-
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  const messageId = event.notification.data?.messageId;
-  const target = messageId
-    ? new URL(`/conversation/${encodeURIComponent(messageId)}`, self.location.origin).href
-    : new URL('/', self.location.origin).href;
-
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      // `navigate()` rejects for a window this worker does not control, which
-      // `includeUncontrolled` can return; the click then did nothing at all.
+  function notificationPayload(data) {
+    const fallback = fallbackStrings();
+    const payload = data && typeof data === "object" ? data : {};
+    const messageId = typeof payload.messageId === "string" ? payload.messageId : null;
+    const sender = typeof payload.sender === "string" ? payload.sender : fallback.title;
+    const subject = typeof payload.subject === "string" ? payload.subject : "";
+    const body = typeof payload.body === "string" ? payload.body : subject;
+    return {
+      title: sender,
+      options: {
+        body: body || fallback.body,
+        icon: "/icon-192.png",
+        badge: "/icon-192.png",
+        tag: messageId ? `inbox-message-${messageId}` : "inbox-message",
+        renotify: Boolean(messageId),
+        data: { messageId }
+      }
+    };
+  }
+  self.addEventListener("push", (event) => {
+    let data = {};
+    try {
+      data = event.data ? event.data.json() : {};
+    } catch {
+      data = { body: event.data ? event.data.text() : "" };
+    }
+    const notification = notificationPayload(data);
+    event.waitUntil(self.registration.showNotification(notification.title, notification.options));
+  });
+  self.addEventListener("notificationclick", (event) => {
+    event.notification.close();
+    const messageId = event.notification.data?.messageId;
+    const target = messageId ? new URL(`/conversation/${encodeURIComponent(messageId)}`, self.location.origin).href : new URL("/", self.location.origin).href;
+    event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
       const existing = clients.find((client) => client.url.startsWith(self.location.origin));
-      if (existing && 'navigate' in existing) {
-        return existing
-          .navigate(target)
-          .then((client) => (client ?? existing).focus())
-          .catch(() => self.clients.openWindow(target));
+      if (existing && "navigate" in existing) {
+        return existing.navigate(target).then((client) => (client ?? existing).focus()).catch(() => self.clients.openWindow(target));
       }
       return self.clients.openWindow(target);
-    }),
-  );
-});
-
-// ─── Messages from clients ──────────────────────────────────────────
-
-self.addEventListener('message', (event) => {
-  if (event.data?.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-});
+    }));
+  });
+  self.addEventListener("message", (event) => {
+    if (event.data?.type === "SKIP_WAITING") {
+      self.skipWaiting();
+    }
+  });
+})();

@@ -2,10 +2,9 @@ import { Screen } from '@oxy.so/bloom/screen';
 import { EmptyState } from '@oxy.so/bloom/empty-state';
 import { Text } from '@oxy.so/bloom/typography';
 import { useMailboxScrollRestoration } from '@/hooks/useMailboxScrollRestoration';
-import { useAppShell } from '@oxy.so/bloom/app-shell';
+import { AppShellMenuButton } from '@oxy.so/bloom/app-shell';
 import { ButtonGroup, ButtonGroupItem } from '@oxy.so/bloom/button-group';
 import { RiAddLine } from '@oxy.so/bloom/icons/RiAddLine';
-import { RiMenuLine } from '@oxy.so/bloom/icons/RiMenuLine';
 import { RiSearchLine } from '@oxy.so/bloom/icons/RiSearchLine';
 import { PageHeader } from '@oxy.so/bloom/page-header';
 /**
@@ -143,9 +142,7 @@ interface InboxListProps {
 
 export function InboxList({ replaceNavigation }: InboxListProps) {
   const router = useRouter();
-  const shell = useAppShell();
   const focused = useIsFocused();
-  const drawerAvailable = shell.drawerAvailable;
   const colors = useColors();
   const { t } = useTranslation();
   const { isAuthenticated, user, canUsePrivateApi, isAccountCacheReady } = useOxy();
@@ -582,8 +579,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     [router, replaceNavigation],
   );
 
-  const handleOpenDrawer = shell.openDrawer;
-
   const handleAskAlia = useCallback(() => {
     setAliaRequest({});
   }, [setAliaRequest]);
@@ -923,18 +918,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
               sticky={false}
               scrim="none"
               safeArea={false}
-              leading={
-                drawerAvailable ? (
-                  <ButtonGroup accessibilityLabel={t('search.openMenu')}>
-                    <ButtonGroupItem
-                      iconOnly
-                      leadingIcon={RiMenuLine}
-                      accessibilityLabel={t('search.openMenu')}
-                      onPress={handleOpenDrawer}
-                    />
-                  </ButtonGroup>
-                ) : undefined
-              }
+              leading={<AppShellMenuButton accessibilityLabel={t('search.openMenu')} />}
               actions={
                 <ButtonGroup>
                   {accountReady && (

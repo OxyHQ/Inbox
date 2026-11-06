@@ -571,14 +571,13 @@ it.each([
   ['/', '/', 'list'],
   ['/', '/sent', 'list'],
   ['/', '/label/important', 'list'],
-  ['/', '/compose', 'detail'],
-  ['/', '/conversation/mail-a', 'detail'],
-  ['/', '/search/conversation/mail-a', 'detail'],
+  ['/conversation/[id]', '/conversation/mail-a', 'detail'],
+  ['/search/conversation/[id]', '/search/conversation/mail-a', 'detail'],
   ['/compose', '/compose', 'detail'],
   ['/search', '/search', 'list'],
   ['/sent', '/sent', 'list'],
 ])(
-  'hydrates static %s HTML at %s before mounting its route children',
+  'hydrates document %s at %s with the correct public panel from first paint',
   async (serverPath, path, panel) => {
     mockAuthenticated = false;
     mockTokenReady = false;
@@ -587,22 +586,25 @@ it.each([
     const routeRendered = jest.fn();
     function RoutedContent() {
       routeRendered(mockPath);
-      return mockPath === '/' ? <article>Index route</article> : <section>{mockPath}</section>;
+      return <section>{mockPath}</section>;
     }
     mockPath = serverPath;
     const container = document.createElement('div');
     const shell = (
       <MailboxShell>
-        <RoutedContent />
+        <PrivateInboxContent>
+          <RoutedContent />
+        </PrivateInboxContent>
       </MailboxShell>
     );
     container.innerHTML = renderToString(shell);
     document.body.appendChild(container);
     const original = container.querySelector('[data-testid="workspace"]');
     const header = container.querySelector('h1');
+    const emptyDetail = container.querySelector('h2');
     const navigation = container.querySelector('nav');
-    expect(original?.getAttribute('data-active-panel')).toBe('list');
-    expect(container.textContent).toContain('empty.selectConversation');
+    expect(original?.getAttribute('data-active-panel')).toBe(panel);
+    if (panel === 'detail') expect(container.textContent).not.toContain('empty.selectConversation');
     expect(routeRendered).not.toHaveBeenCalled();
     mockPath = path;
     const onRecoverableError = jest.fn();
@@ -613,16 +615,32 @@ it.each([
         root = hydrateRoot(container, shell, { onRecoverableError });
       });
       expect(container.querySelector('[data-testid="workspace"]')).toBe(original);
-      if (!path.startsWith('/search')) expect(container.querySelector('h1')).toBe(header);
+      expect(container.querySelector('h1')).toBe(header);
+      expect(container.querySelector('h2')).toBe(emptyDetail);
       expect(container.querySelector('nav')).toBe(navigation);
       expect(navigation?.getAttribute('data-selected')).toBe(
         path.startsWith('/search') ? 'search' : 'inbox',
       );
       expect(original?.getAttribute('data-active-panel')).toBe(panel);
-      expect(container.querySelector(path === '/' ? 'article' : 'section')?.textContent).toBe(
-        path === '/' ? 'Index route' : path,
+      expect(routeRendered).not.toHaveBeenCalled();
+      mockAuthenticated = true;
+      mockTokenReady = true;
+      mockCacheReady = true;
+      mockPending = false;
+      await act(async () =>
+        root?.render(
+          <MailboxShell>
+            <PrivateInboxContent>
+              <RoutedContent />
+            </PrivateInboxContent>
+          </MailboxShell>,
+        ),
       );
+      expect(container.querySelector('section')?.textContent).toBe(path);
       expect(routeRendered).toHaveBeenCalledWith(path);
+      expect(routeRendered).not.toHaveBeenCalledWith(
+        serverPath.includes('[id]') ? serverPath : 'unused-template',
+      );
       expect(onRecoverableError).not.toHaveBeenCalled();
       expect(consoleError).not.toHaveBeenCalled();
     } finally {

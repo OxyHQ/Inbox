@@ -1,3 +1,5 @@
+import { getShellCacheKey } from '../constants/shell-routes.js';
+
 /**
  * Service Worker for Inbox by Oxy
  *
@@ -6,7 +8,7 @@
  *
  * - App shell (HTML, navigation): network-first
  *   Always try the network so a deploy is visible on the next page load.
- *   Fall back to the cached `/index.html` shell when offline so the SPA
+ *   Fall back to the matching public route document when offline so the SPA
  *   can still mount and surface the offline state instead of a browser
  *   error page.
  *
@@ -28,7 +30,7 @@
  * deploys are dropped oldest-first instead of accumulating forever.
  */
 
-const CACHE_NAME = 'inbox-v3';
+const CACHE_NAME = 'inbox-v4';
 const SHELL_KEY = '/index.html';
 const MAX_ENTRIES = 150;
 
@@ -98,7 +100,7 @@ function getStrategy(request) {
     return 'stale-while-revalidate';
   }
 
-  // Navigation: network-first, falling back to the one cached shell.
+  // Navigation: network-first, falling back to its public route family.
   if (request.mode === 'navigate') return 'navigation';
 
   return 'network-first';
@@ -114,20 +116,26 @@ async function trimCache(cache) {
 }
 
 /**
- * Navigation: the network, else the cached shell. Every route is the same SPA
- * shell, so it is stored ONCE under `/index.html` — storing each
- * `/conversation/<id>` visited kept a copy of the shell per message opened.
+ * Navigation: network, else the matching public document family. Conversations
+ * share one entry independently of message ID; search and compose never replace
+ * the Inbox document. An unvisited family fails offline instead of flashing an
+ * unrelated route and breaking hydration.
  */
 async function navigation(request) {
+  const shellKey = getShellCacheKey(new URL(request.url).pathname);
   try {
     const response = await fetch(request);
-    if (response.ok && response.headers.get('content-type')?.includes('text/html')) {
+    const finalUrl = new URL(response.url || request.url);
+    const finalKey =
+      finalUrl.origin === self.location.origin ? getShellCacheKey(finalUrl.pathname) : null;
+    if (finalKey && response.ok && response.headers.get('content-type')?.includes('text/html')) {
       const cache = await caches.open(CACHE_NAME);
-      await cache.put(SHELL_KEY, response.clone());
+      await cache.put(finalKey, response.clone());
+      void trimCache(cache);
     }
     return response;
   } catch {
-    const shell = await caches.match(SHELL_KEY);
+    const shell = shellKey ? await caches.match(shellKey) : null;
     if (shell) return shell;
     return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
   }

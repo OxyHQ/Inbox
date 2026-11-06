@@ -48,3 +48,6 @@ npm-debug.*
 # Misc
 .DS_Store
 *.tsbuildinfo
+
+# Classic service worker bundled from worker/service-worker.js.
+/packages/frontend/public/sw.js

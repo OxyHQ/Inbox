@@ -60,17 +60,17 @@ A persistent outer shell is insufficient if its list is still a loading-only
 screen. Keep the actual mailbox header and public navigation mounted while the
 private list body waits for SDK readiness. Bloom selects that same list panel
 on compact mailbox routes and the detail panel on conversation/compose routes;
-do not mount another full list in a CSS-hidden route. The exported shell uses
-the index-route snapshot during hydration before applying the live deep link.
+do not mount another full list in a CSS-hidden route. The first shell snapshot
+matches the public document family selected for the requested URL. Conversation,
+search-conversation, compose and search documents render their matching public
+route tree immediately, with private content still behind SDK readiness.
 
-Dynamic links without a matching exported HTML file receive the index fallback;
-other routes can have their own static documents. Every document uses the same
-public empty-detail outlet for SSR and first hydration, then mounts the live Slot
-afterward. Matching the shell pathname alone cannot reconcile different route
-children. Keep the root navigator and real mailbox chrome mounted, and retain
-private guards inside each route. Client-only/native renders use the live outlet
-immediately. Test index HTML hydrated at different direct URLs, including the
-selected navigation tab, with no recoverable errors or replaced workspace.
+Mailbox and label links retain their index fallback until hydration resolves the
+live route. Their shared empty detail remains mounted while the navigator's
+metadata and selection effects start in a hidden host. Client-only/native renders
+use the live route immediately. Verify each served document at an actual direct
+URL, including a message ID different from the template, with the correct panel
+and navigation selection on the first frame and no recoverable hydration errors.
 
 Query clients derive synchronously from the SDK's ready HTTP client. A drawer
 mount effect must not add another render before mailbox, message and brief
@@ -157,3 +157,33 @@ by the actual header, or an empty-state flash before messages arrive. Check both
 restored messages/brief and cold network responses; a newly generated brief may
 naturally reorganize its selected messages, while a restored brief should appear
 with the restored list. Never count anonymous shell checks as this coverage.
+
+## Public route documents and offline navigation
+
+A conversation reload must start on its detail panel, including mobile before
+JavaScript arrives. Expo exports public conversation templates; the asset Worker
+selects the matching template without redirecting the browser or embedding a
+message ID. `constants/shell-routes.js` is the shared finite classification for
+that lookup, the first hydration snapshot and the service worker's cache keys.
+Compose and search keep their own static documents. Other mailbox and label
+routes retain the index fallback until their router state is ready.
+
+The shell owns its empty detail illustration. List route components retain
+their head metadata and selection effects, while their navigator stays mounted
+in a hidden host; it must not replace the illustration or take half its space
+after hydration. Conversation, compose and subscriptions show the routed host.
+
+The classic service worker is bundled from `worker/service-worker.js` before
+start, export and tests. Cache one public document per family, never one per
+message ID or all families under index. Use the final same-origin response URL
+after a canonical redirect to select its cache key. An unvisited family or an
+uncached HTML alias returns an offline response instead of the wrong document.
+The version bump discards caches made with the previous single-document policy;
+private API requests remain network-only.
+
+Verify dynamic routes through `wrangler dev`, not a static server which always
+falls back to index. Restart Wrangler after replacing dist so it rebuilds its
+asset manifest. Use local HTTPS with the production CSP: its insecure-request
+upgrade applies to asset canonicalization redirects, too. Check real GET/HEAD
+responses, original browser URLs, first-frame mobile panel bounds and hydration
+errors for IDs different from the exported template.

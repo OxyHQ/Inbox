@@ -1,4 +1,3 @@
-import { MessageDetailEmpty } from '@/components/MessageDetailEmpty';
 /**
  * Renders a system mailbox view (inbox, sent, drafts, trash, …) or a custom
  * folder addressed by its mailbox id.
@@ -120,11 +119,8 @@ export function MailboxView({ view }: { view: string }) {
   if (unknownView) return <Redirect href="/" />;
 
   return (
-    <>
-      <Head>
-        <title>{pageTitle}</title>
-      </Head>
-      <MessageDetailEmpty />
-    </>
+    <Head>
+      <title>{pageTitle}</title>
+    </Head>
   );
 }

@@ -1,6 +1,4 @@
-import { MessageDetailEmpty } from '@/components/MessageDetailEmpty';
-
-/** Bloom shows the shell's single search list on phones and beside this panel on desktop. */
+/** The shell owns the search list and its shared empty detail. */
 export default function SearchIndex() {
-  return <MessageDetailEmpty />;
+  return null;
 }

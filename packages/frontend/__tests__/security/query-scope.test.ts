@@ -75,7 +75,10 @@ describe('Inbox private-data isolation', () => {
 
 describe('Inbox Service Worker privacy boundary', () => {
   it('never caches or replays private API responses with raw fetch', () => {
-    const serviceWorker = readFileSync(resolve(__dirname, '../../public/sw.js'), 'utf8');
+    const serviceWorker = readFileSync(
+      resolve(__dirname, '../../worker/service-worker.js'),
+      'utf8',
+    );
 
     expect(serviceWorker).toContain("return 'network-only';");
     expect(serviceWorker).not.toContain('API_CACHE');

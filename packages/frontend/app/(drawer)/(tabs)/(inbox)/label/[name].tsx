@@ -15,7 +15,6 @@ import { useOxy } from '@oxy.so/services/ui/client';
 import Head from 'expo-router/head';
 import { useEffect, useMemo } from 'react';
 
-import { MessageDetailEmpty } from '@/components/MessageDetailEmpty';
 import { useLabels } from '@/hooks/queries/useLabels';
 import { useTranslation } from '@/lib/i18n';
 import { useEmailStore } from '@/hooks/useEmail';
@@ -53,11 +52,8 @@ export default function LabelViewRoute() {
   if (isFocused && accountReady && isSuccess && labels && !label) return <Redirect href="/" />;
 
   return (
-    <>
-      <Head>
-        <title>{pageTitle}</title>
-      </Head>
-      <MessageDetailEmpty />
-    </>
+    <Head>
+      <title>{pageTitle}</title>
+    </Head>
   );
 }

@@ -1241,9 +1241,9 @@ const es: LocaleDict = {
 
   auth: {
     gate: {
-      title: 'Inicia sesión para acceder a tu inbox',
+      title: 'Tu correo, por fin en calma.',
       subtitle:
-        'Conecta tu identidad Oxy para sincronizar mensajes, etiquetas y preferencias en todos tus dispositivos.',
+        'Inicia sesión con tu cuenta de Oxy para abrir tu bandeja. Alia resume lo importante y tu correo se mantiene sincronizado en todos tus dispositivos.',
       footer:
         'Al iniciar sesión aceptas nuestros Términos y reconoces nuestra Política de Privacidad.',
     },

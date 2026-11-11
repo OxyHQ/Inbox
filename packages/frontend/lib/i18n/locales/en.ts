@@ -842,9 +842,9 @@ const en: LocaleDict = {
 
   auth: {
     gate: {
-      title: 'Sign in to access your inbox',
+      title: 'Email, finally calm.',
       subtitle:
-        'Connect your Oxy identity to sync messages, labels, and preferences across every device.',
+        'Sign in with your Oxy account to open your inbox. Alia sums up what matters, and your mail stays in sync on every device.',
       footer: 'By signing in you agree to our Terms and acknowledge our Privacy Policy.',
     },
   },

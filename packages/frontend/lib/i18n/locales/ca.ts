@@ -1252,9 +1252,9 @@ const ca: LocaleDict = {
 
   auth: {
     gate: {
-      title: 'Inicia la sessió per accedir a la safata',
+      title: 'El correu, per fi en calma.',
       subtitle:
-        'Connecta la teva identitat Oxy per sincronitzar missatges, etiquetes i preferències a tots els dispositius.',
+        "Inicia la sessió amb el teu compte d'Oxy per obrir la safata d'entrada. L'Alia resumeix el que importa i el teu correu es manté sincronitzat a tots els dispositius.",
       footer:
         'En iniciar la sessió, acceptes els nostres Termes i reconeixes la nostra Política de privacitat.',
     },

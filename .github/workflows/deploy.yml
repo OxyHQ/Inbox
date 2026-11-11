@@ -106,7 +106,7 @@ jobs:
 
       # `workflow_run` takes no `paths:`, and one push's own diff would miss
       # commits whose release was held or failed. So the scope is measured from
-      # what inbox.oxy.so actually SERVES: every deploy publishes the commit it
+      # what inbo.sh actually SERVES: every deploy publishes the commit it
       # was built from as /release.txt. An unknown path on this host answers
       # 200 with the SPA shell, so only a body that is exactly a 40-hex commit
       # counts as a marker.
@@ -119,7 +119,7 @@ jobs:
       #     commit that is not an ancestor, a failed fetch): release.
       #
       # A dispatch always releases: it is the manual redeploy.
-      - name: Decide whether this commit changes what inbox.oxy.so serves
+      - name: Decide whether this commit changes what inbo.sh serves
         id: scope
         if: steps.newer.outputs.release == 'true'
         run: |
@@ -128,7 +128,7 @@ jobs:
           if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
             decide true "manual dispatch: releasing $DEPLOY_SHA"
           fi
-          live=$(curl -fsS --max-time 20 "https://inbox.oxy.so/release.txt?scope=${DEPLOY_SHA}" | tr -d '[:space:]') || live=
+          live=$(curl -fsS --max-time 20 "https://inbo.sh/release.txt?scope=${DEPLOY_SHA}" | tr -d '[:space:]') || live=
           [[ "$live" =~ ^[0-9a-f]{40}$ ]] || decide true "no release marker is live; releasing"
           git cat-file -e "$live^{commit}" 2>/dev/null || decide true "live commit $live is not in this history; releasing"
           if git merge-base --is-ancestor "$DEPLOY_SHA" "$live"; then
@@ -190,7 +190,7 @@ jobs:
         env:
           EXPO_PUBLIC_API_URL: https://api.oxy.so
           EXPO_PUBLIC_ALIA_API_URL: https://api.alia.onl
-          EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI: https://inbox.oxy.so
+          EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI: https://inbo.sh
           # Inbox's PRODUCTION Oxy client id. `packages/frontend/constants/oxy.ts`
           # falls back to a committed id when this is unset, so nothing errors —
           # the deployed bundle just authenticates against the wrong Oxy
@@ -326,7 +326,7 @@ jobs:
       # Post-deploy gate on the LIVE host, public endpoints only. A blank SPA or
       # a stylesheet-less build turns this job red instead of sitting quietly in
       # production.
-      - name: inbox.oxy.so is serving this build
+      - name: inbo.sh is serving this build
         run: |
           set +e
           set -uo pipefail
@@ -336,9 +336,9 @@ jobs:
           [ -n "$expected_entry" ] || { echo "::error::built index has no entry bundle"; exit 1; }
           for attempt in {1..12}; do
             echo "::group::smoke ${attempt}/12"
-            html=$(curl -sS --max-time 20 "https://inbox.oxy.so/?build=${DEPLOY_SHA}" || true)
-            release=$(curl -sS --max-time 20 "https://inbox.oxy.so/release.txt?build=${DEPLOY_SHA}" | tr -d '[:space:]' || true)
-            csp=$(curl -sSI --max-time 20 https://inbox.oxy.so/ | tr -d '\r' | grep -i '^content-security-policy:' || true)
+            html=$(curl -sS --max-time 20 "https://inbo.sh/?build=${DEPLOY_SHA}" || true)
+            release=$(curl -sS --max-time 20 "https://inbo.sh/release.txt?build=${DEPLOY_SHA}" | tr -d '[:space:]' || true)
+            csp=$(curl -sSI --max-time 20 https://inbo.sh/ | tr -d '\r' | grep -i '^content-security-policy:' || true)
             # A complete SSR document exceeds a pipe buffer. With pipefail,
             # grep -q can close that pipe early and make echo fail with SIGPIPE
             # even when the expected text is present. Give grep the input itself.
@@ -357,14 +357,13 @@ jobs:
             echo "::endgroup::"
             [ "$attempt" -lt 12 ] && sleep 10
           done
-          echo "::error::inbox.oxy.so is not serving the bundle built by this run"
+          echo "::error::inbo.sh is not serving the bundle built by this run"
           exit 1
 
-      # inbo.sh is new: its certificate can take a while, so this reports and
-      # never fails the deploy. inbox.oxy.so above is the gate until the switch.
-      - name: inbo.sh reports the same build (informational)
+      # The old host is only a redirect now; it reports and never fails the deploy.
+      - name: inbox.oxy.so redirects to inbo.sh (informational)
         continue-on-error: true
         run: |
-          release=$(curl -sS --max-time 20 "https://inbo.sh/release.txt?build=${DEPLOY_SHA}" | tr -d '[:space:]' || true)
-          echo "inbo.sh release: ${release:-unreachable} · expected $DEPLOY_SHA"
-          [ "$release" = "$DEPLOY_SHA" ]
+          headers=$(curl -sSI --max-time 20 "https://inbox.oxy.so/conversation/x?build=${DEPLOY_SHA}" | tr -d '\r')
+          echo "$headers" | head -3
+          echo "$headers" | grep -qiE '^location: https://inbo\.sh/conversation/x\?build='

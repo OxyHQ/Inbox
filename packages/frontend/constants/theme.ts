@@ -2,7 +2,7 @@
  * Theme colors for the inbox app.
  *
  * Provides the `useColors()` hook that merges Bloom's dynamic theme colors
- * (driven by the active `colorPreset` — Oxy purple by default) with a small set
+ * (driven by the active `colorPreset` — blue by default) with a small set
  * of inbox-specific domain tokens for things Bloom doesn't model directly
  * (read/unread row state, starred yellow, swipe action colors, etc.).
  *

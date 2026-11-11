@@ -32,3 +32,26 @@ test('frontend Worker propagates an asset binding failure', async () => {
     (error) => error === failure,
   );
 });
+
+test('frontend Worker sends the old host to inbo.sh with the path and query, and serves inbo.sh itself', async () => {
+  let served = 0;
+  const env = {
+    ASSETS: {
+      fetch: async () => {
+        served++;
+        return new Response('asset');
+      },
+    },
+  };
+  const moved = await worker0.fetch(
+    new Request('https://inbox.oxy.so/conversation/abc?x=1#frag'),
+    env,
+    {},
+  );
+  assert.equal(moved.status, 308);
+  assert.equal(moved.headers.get('location'), 'https://inbo.sh/conversation/abc?x=1');
+  assert.equal(served, 0);
+  const home = await worker0.fetch(new Request('https://inbo.sh/'), env, {});
+  assert.equal(await home.text(), 'asset');
+  assert.equal(served, 1);
+});

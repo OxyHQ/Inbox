@@ -1,6 +1,6 @@
 # Inbox
 
-**Inbosh by Oxy** — the email client at [inbox.oxy.so](https://inbox.oxy.so).
+**Inbosh by Oxy** — the email client at [inbo.sh](https://inbo.sh).
 Expo Router, web (static export → a Cloudflare Worker) and Android.
 
 Extracted from [OxyHQ/oxy](https://github.com/OxyHQ/oxy) (`packages/inbox`)
@@ -54,7 +54,7 @@ staging target.
 | `EXPO_PUBLIC_API_URL`               | `https://api.oxy.so`                                                       |
 | `EXPO_PUBLIC_ALIA_API_URL`          | `https://api.alia.onl` (owned by `@alia.onl/sdk`)                          |
 | `EXPO_PUBLIC_OXY_CLIENT_ID`         | the registered production client id (`packages/frontend/constants/oxy.ts`) |
-| `EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI` | `https://inbox.oxy.so`                                                     |
+| `EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI` | `https://inbo.sh`                                                          |
 
 ## Layout
 

@@ -1,6 +1,6 @@
 # Inbosh — email at inbo.sh
 
-> Universal standards live in `~/AGENTS.md`, Oxy-wide gotchas in `~/Oxy/AGENTS.md`.
+> Universal standards and Oxy-wide gotchas live in `~/Oxy/AGENTS.md`.
 > Files stack root→cwd and a child carries only its own DELTA, so this file holds
 > only what is true HERE. **Budget: under 4 KB**, enforced by `scripts/check-agents-md-size.mjs` (`bun run validate:agents-md`).
 

@@ -325,7 +325,7 @@ const es: LocaleDict = {
     contactsTitle: 'Todavía no hay contactos',
     errorTitle: 'Algo ha salido mal',
     errorDescription:
-      'No se ha podido mostrar esta parte de Inbox. Inténtalo de nuevo o abre otra carpeta.',
+      'No se ha podido mostrar esta parte de Inbosh. Inténtalo de nuevo o abre otra carpeta.',
     templatesTitle: 'Todavía no hay plantillas',
     templatesDescription:
       'Guarda los mensajes que escribes a menudo como plantillas para reutilizarlos al redactar.',
@@ -845,7 +845,7 @@ const es: LocaleDict = {
 
   ui: {
     error: {
-      description: 'No se pudo mostrar esta parte de Inbox. Tu correo está a salvo.',
+      description: 'No se pudo mostrar esta parte de Inbosh. Tu correo está a salvo.',
       title: 'Algo salió mal',
     },
     me: 'Me',
@@ -893,7 +893,7 @@ const es: LocaleDict = {
         vacation: 'Respuesta automática de vacaciones',
         vacationOn: 'Las respuestas se envían automáticamente.',
         vacationOff: 'Desactivado — el correo entrante llega con normalidad.',
-        keepCopy: 'Guardar una copia en Inbox',
+        keepCopy: 'Guardar una copia en Inbosh',
         keepCopyDescription: 'Recomendado para conservar un registro del correo reenviado.',
         saveChanges: 'Guardar cambios',
         loadingSettings: 'Cargando los ajustes. Tus cambios permanecen en esta pantalla.',
@@ -935,7 +935,7 @@ const es: LocaleDict = {
         deviceNotice:
           'Los permisos de notificaciones del sistema se gestionan en los ajustes del dispositivo.',
         webNotice:
-          'Las notificaciones push están disponibles en la app de Inbox para Android. Mientras tengas Inbox abierto en el navegador, el correo nuevo aparecerá aquí en cuanto llegue.',
+          'Las notificaciones push están disponibles en la app de Inbosh para Android. Mientras tengas Inbosh abierto en el navegador, el correo nuevo aparecerá aquí en cuanto llegue.',
         alerts: 'Alertas',
         push: 'Notificaciones push',
         pushDescription: 'Recibe un aviso cuando lleguen mensajes nuevos.',

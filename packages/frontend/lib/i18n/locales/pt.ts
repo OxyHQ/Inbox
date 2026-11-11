@@ -333,7 +333,7 @@ const pt: LocaleDict = {
     contactsTitle: 'Ainda não há contactos',
     errorTitle: 'Ocorreu um erro',
     errorDescription:
-      'Não foi possível mostrar esta parte do Inbox. Tenta novamente ou abre outra pasta.',
+      'Não foi possível mostrar esta parte do Inbosh. Tenta novamente ou abre outra pasta.',
     templatesTitle: 'Ainda não há modelos',
     templatesDescription:
       'Guarda as mensagens frequentes como modelos para as reutilizares ao escrever.',
@@ -857,7 +857,7 @@ const pt: LocaleDict = {
 
   ui: {
     error: {
-      description: 'Não foi possível mostrar esta parte do Inbox. Seus e-mails estão seguros.',
+      description: 'Não foi possível mostrar esta parte do Inbosh. Seus e-mails estão seguros.',
       title: 'Algo deu errado',
     },
     me: 'Me',
@@ -905,7 +905,7 @@ const pt: LocaleDict = {
         vacation: 'Resposta automática de férias',
         vacationOn: 'As respostas são enviadas automaticamente.',
         vacationOff: 'Desativada — o correio recebido segue normalmente.',
-        keepCopy: 'Manter uma cópia no Inbox',
+        keepCopy: 'Manter uma cópia no Inbosh',
         keepCopyDescription: 'Recomendado para manteres um registo do correio reencaminhado.',
         saveChanges: 'Guardar alterações',
         loadingSettings: 'Carregando configurações. Suas alterações permanecem nesta tela.',
@@ -947,7 +947,7 @@ const pt: LocaleDict = {
         deviceNotice:
           'As permissões de notificação do sistema são gerenciadas nas configurações do dispositivo.',
         webNotice:
-          'As notificações push estão disponíveis na app Inbox para Android. Enquanto tiveres o Inbox aberto no navegador, o correio novo aparece aqui assim que chega.',
+          'As notificações push estão disponíveis na app Inbosh para Android. Enquanto tiveres o Inbosh aberto no navegador, o correio novo aparece aqui assim que chega.',
         alerts: 'Alertas',
         push: 'Notificações push',
         pushDescription: 'Recebe uma notificação quando chegarem novas mensagens.',

@@ -334,7 +334,7 @@ const it: LocaleDict = {
     contactsTitle: 'Nessun contatto',
     errorTitle: 'Qualcosa è andato storto',
     errorDescription:
-      'Non è stato possibile mostrare questa parte di Inbox. Riprova o apri un’altra cartella.',
+      'Non è stato possibile mostrare questa parte di Inbosh. Riprova o apri un’altra cartella.',
     templatesTitle: 'Nessun modello',
     templatesDescription:
       'Salva i messaggi che scrivi spesso come modelli da riutilizzare durante la composizione.',
@@ -857,7 +857,7 @@ const it: LocaleDict = {
 
   ui: {
     error: {
-      description: 'Impossibile mostrare questa parte di Inbox. La tua posta è al sicuro.',
+      description: 'Impossibile mostrare questa parte di Inbosh. La tua posta è al sicuro.',
       title: 'Qualcosa è andato storto',
     },
     me: 'Me',
@@ -905,7 +905,7 @@ const it: LocaleDict = {
         vacation: 'Risposta automatica per ferie',
         vacationOn: 'Le risposte vengono inviate automaticamente.',
         vacationOff: 'Disattivato: la posta in arrivo viene gestita normalmente.',
-        keepCopy: 'Conserva una copia in Inbox',
+        keepCopy: 'Conserva una copia in Inbosh',
         keepCopyDescription: 'Consigliato per conservare una traccia della posta inoltrata.',
         saveChanges: 'Salva modifiche',
         loadingSettings:
@@ -948,7 +948,7 @@ const it: LocaleDict = {
         deviceNotice:
           'I permessi di notifica del sistema si gestiscono nelle impostazioni del dispositivo.',
         webNotice:
-          "Le notifiche push sono disponibili nell'app Inbox per Android. Finché Inbox è aperto nel browser, la nuova posta compare qui appena arriva.",
+          "Le notifiche push sono disponibili nell'app Inbosh per Android. Finché Inbosh è aperto nel browser, la nuova posta compare qui appena arriva.",
         alerts: 'Avvisi',
         push: 'Notifiche push',
         pushDescription: "Ricevi una notifica all'arrivo di nuovi messaggi.",

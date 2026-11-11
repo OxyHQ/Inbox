@@ -333,7 +333,7 @@ const ca: LocaleDict = {
     contactsTitle: 'Encara no hi ha contactes',
     errorTitle: 'Alguna cosa ha anat malament',
     errorDescription:
-      'No s’ha pogut mostrar aquesta part d’Inbox. Torna-ho a provar o obre una altra carpeta.',
+      'No s’ha pogut mostrar aquesta part d’Inbosh. Torna-ho a provar o obre una altra carpeta.',
     templatesTitle: 'Encara no hi ha plantilles',
     templatesDescription:
       'Desa els missatges que escrius sovint com a plantilles per reutilitzar-los en redactar.',
@@ -856,7 +856,7 @@ const ca: LocaleDict = {
 
   ui: {
     error: {
-      description: "No s'ha pogut mostrar aquesta part d'Inbox. El teu correu és segur.",
+      description: "No s'ha pogut mostrar aquesta part d'Inbosh. El teu correu és segur.",
       title: 'Alguna cosa ha fallat',
     },
     me: 'Me',
@@ -904,7 +904,7 @@ const ca: LocaleDict = {
         vacation: 'Resposta automàtica de vacances',
         vacationOn: "Les respostes s'envien automàticament.",
         vacationOff: 'Desactivat — el correu entrant arriba amb normalitat.',
-        keepCopy: "Conserva'n una còpia a Inbox",
+        keepCopy: "Conserva'n una còpia a Inbosh",
         keepCopyDescription: 'Recomanat per conservar un registre del correu reenviat.',
         saveChanges: 'Desa els canvis',
         loadingSettings:
@@ -947,7 +947,7 @@ const ca: LocaleDict = {
         deviceNotice:
           'Els permisos de notificacions del sistema es gestionen als ajustos del dispositiu.',
         webNotice:
-          "Les notificacions push estan disponibles a l'app d'Inbox per a Android. Mentre tinguis Inbox obert al navegador, el correu nou apareixerà aquí tan bon punt arribi.",
+          "Les notificacions push estan disponibles a l'app d'Inbosh per a Android. Mentre tinguis Inbosh obert al navegador, el correu nou apareixerà aquí tan bon punt arribi.",
         alerts: 'Alertes',
         push: 'Notificacions push',
         pushDescription: 'Rep un avís quan arribin missatges nous.',

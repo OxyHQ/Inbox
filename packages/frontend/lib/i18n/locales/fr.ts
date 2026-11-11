@@ -334,7 +334,7 @@ const fr: LocaleDict = {
     contactsTitle: 'Aucun contact pour le moment',
     errorTitle: 'Une erreur est survenue',
     errorDescription:
-      'Cette partie d’Inbox n’a pas pu être affichée. Réessaie ou ouvre un autre dossier.',
+      'Cette partie d’Inbosh n’a pas pu être affichée. Réessaie ou ouvre un autre dossier.',
     templatesTitle: 'Aucun modèle pour le moment',
     templatesDescription:
       'Enregistre les messages fréquents comme modèles pour les réutiliser lors de la rédaction.',
@@ -861,7 +861,7 @@ const fr: LocaleDict = {
 
   ui: {
     error: {
-      description: "Cette partie d'Inbox n'a pas pu s'afficher. Tes e-mails sont en sécurité.",
+      description: "Cette partie d'Inbosh n'a pas pu s'afficher. Tes e-mails sont en sécurité.",
       title: "Une erreur s'est produite",
     },
     me: 'Me',
@@ -951,7 +951,7 @@ const fr: LocaleDict = {
         deviceNotice:
           "Les autorisations de notification du système se gèrent dans les réglages de l'appareil.",
         webNotice:
-          "Les notifications push sont disponibles dans l'app Inbox pour Android. Tant qu'Inbox est ouvert dans ton navigateur, les nouveaux courriels s'affichent ici dès leur arrivée.",
+          "Les notifications push sont disponibles dans l'app Inbosh pour Android. Tant qu'Inbosh est ouvert dans ton navigateur, les nouveaux courriels s'affichent ici dès leur arrivée.",
         alerts: 'Alertes',
         push: 'Notifications push',
         pushDescription: "Sois averti de l'arrivée de nouveaux messages.",

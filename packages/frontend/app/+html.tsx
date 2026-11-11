@@ -20,7 +20,8 @@ const SITE_NAME = 'Inbosh by Oxy';
 // Absolute, and a file the export actually contains: `/assets/images/icon.png`
 // is not in dist/, so the SPA fallback answered with index.html and link
 // previews showed no image.
-const OG_IMAGE = 'https://inbox.oxy.so/icon-512.png';
+const OG_IMAGE = 'https://inbox.oxy.so/og-image.jpg';
+const OG_IMAGE_ALT = 'Inbosh: the inbox on the left, a conversation with Alia on the right.';
 
 export default function Root({ children }: PropsWithChildren) {
   // expo-router 58 renders static pages by streaming through React, and the
@@ -54,12 +55,17 @@ export default function Root({ children }: PropsWithChildren) {
         <meta property="og:title" content={DEFAULT_TITLE} />
         <meta property="og:description" content={DEFAULT_DESCRIPTION} />
         <meta property="og:image" content={OG_IMAGE} />
+        <meta property="og:image:type" content="image/jpeg" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content={OG_IMAGE_ALT} />
 
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={DEFAULT_TITLE} />
         <meta name="twitter:description" content={DEFAULT_DESCRIPTION} />
         <meta name="twitter:image" content={OG_IMAGE} />
+        <meta name="twitter:image:alt" content={OG_IMAGE_ALT} />
 
         {/* PWA manifest */}
         <link rel="manifest" href="/manifest.json" />

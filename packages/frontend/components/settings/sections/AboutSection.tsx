@@ -47,7 +47,7 @@ export function AboutSection() {
       sections={[
         {
           key: 'app',
-          label: 'Inbox by Oxy',
+          label: 'Inbosh by Oxy',
           rows: [
             {
               key: 'version',

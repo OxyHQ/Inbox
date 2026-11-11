@@ -1,6 +1,6 @@
 {
-  "name": "Inbox by Oxy",
-  "short_name": "Inbox",
+  "name": "Inbosh by Oxy",
+  "short_name": "Inbosh",
   "description": "Email by Oxy. Federated, encrypted, simple.",
   "start_url": "/",
   "scope": "/",

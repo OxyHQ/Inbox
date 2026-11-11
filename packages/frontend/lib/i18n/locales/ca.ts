@@ -94,8 +94,8 @@ const ca: LocaleDict = {
   },
 
   app: {
-    name: 'Inbox',
-    title: 'Inbox per Oxy',
+    name: 'Inbosh',
+    title: 'Inbosh per Oxy',
     titleSuffix: '· Oxy',
   },
 
@@ -451,7 +451,7 @@ const ca: LocaleDict = {
     titleCompose: 'Redacta',
     titleReply: 'Respon',
     titleForward: 'Reenvia',
-    headTitleCompose: 'Redacta · Inbox · Oxy',
+    headTitleCompose: 'Redacta · Inbosh · Oxy',
     headTitleWithSubject: '{{subject}} · Redacta · Oxy',
     placeholders: {
       to: 'Destinataris',
@@ -851,7 +851,7 @@ const ca: LocaleDict = {
   },
 
   settings: {
-    head: 'Configuració · Inbox · Oxy',
+    head: 'Configuració · Inbosh · Oxy',
     title: 'Configuració',
   },
 
@@ -862,7 +862,7 @@ const ca: LocaleDict = {
     },
     me: 'Me',
     layoutDirection: {
-      restartRequired: "Reinicia Inbox per canviar la direcció del disseny a la d'aquest idioma.",
+      restartRequired: "Reinicia Inbosh per canviar la direcció del disseny a la d'aquest idioma.",
     },
     settings: {
       manageOxyAccount: "Gestiona el compte d'Oxy",
@@ -870,7 +870,7 @@ const ca: LocaleDict = {
         personal: 'Personal',
         mail: 'Correu',
         system: 'Sistema',
-        welcome: 'Et donem la benvinguda a Inbox',
+        welcome: 'Et donem la benvinguda a Inbosh',
         signInDescription:
           'Inicia la sessió per sincronitzar els missatges, les etiquetes i les preferències a tots els dispositius.',
         manageAccount: 'Gestiona el compte de {{name}}',

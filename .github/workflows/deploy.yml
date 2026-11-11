@@ -341,7 +341,7 @@ jobs:
             # grep -q can close that pipe early and make echo fail with SIGPIPE
             # even when the expected text is present. Give grep the input itself.
             if [ "$release" = "$DEPLOY_SHA" ] \
-               && grep -q 'Inbox by Oxy' <<< "$html" \
+               && grep -q 'Inbosh by Oxy' <<< "$html" \
                && grep -qF "$expected_entry" <<< "$html" \
                && grep -qF 'https://api.alia.onl' <<< "$csp" \
                && grep -qF 'wss://api.alia.onl' <<< "$csp"; then

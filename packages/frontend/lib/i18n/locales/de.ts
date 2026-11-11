@@ -94,8 +94,8 @@ const de: LocaleDict = {
   },
 
   app: {
-    name: 'Inbox',
-    title: 'Inbox von Oxy',
+    name: 'Inbosh',
+    title: 'Inbosh von Oxy',
     titleSuffix: '· Oxy',
   },
 
@@ -455,7 +455,7 @@ const de: LocaleDict = {
     titleCompose: 'Verfassen',
     titleReply: 'Antworten',
     titleForward: 'Weiterleiten',
-    headTitleCompose: 'Verfassen · Inbox · Oxy',
+    headTitleCompose: 'Verfassen · Inbosh · Oxy',
     headTitleWithSubject: '{{subject}} · Verfassen · Oxy',
     placeholders: {
       to: 'Empfänger',
@@ -858,7 +858,7 @@ const de: LocaleDict = {
   },
 
   settings: {
-    head: 'Einstellungen · Inbox · Oxy',
+    head: 'Einstellungen · Inbosh · Oxy',
     title: 'Einstellungen',
   },
 
@@ -879,7 +879,7 @@ const de: LocaleDict = {
         personal: 'Persönlich',
         mail: 'E-Mail',
         system: 'System',
-        welcome: 'Willkommen bei Inbox',
+        welcome: 'Willkommen bei Inbosh',
         signInDescription:
           'Melde dich an, um deine Nachrichten, Labels und Einstellungen geräteübergreifend zu synchronisieren.',
         manageAccount: 'Konto von {{name}} verwalten',

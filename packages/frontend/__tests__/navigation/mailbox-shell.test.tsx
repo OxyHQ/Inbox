@@ -82,7 +82,7 @@ interface SidebarItem {
 interface SidebarProps {
   items: SidebarItem[];
   selected?: string;
-  primaryAction?: { onPress: () => void };
+  toolbar?: (state: { collapsed: boolean }) => ReactNode;
   footer?: (state: { collapsed: boolean }) => ReactNode;
 }
 interface ShellState {
@@ -297,8 +297,11 @@ it('routes system mailboxes, custom folders, labels and compose without changing
     act(() => defined(mockSidebarProps().items.find((item) => item.key === key)).onPress());
     expect(mockPush).toHaveBeenLastCalledWith(expected);
   }
-  expect(mockSidebarProps().items[0]?.key).toBe('compose');
-  act(() => defined(mockSidebarProps().items[0], 'the compose action').onPress());
+  expect(mockSidebarProps().items[0]?.key).toBe('inbox-id');
+  const toolbar = render(
+    <>{defined(mockSidebarProps().toolbar, 'the compose toolbar')({ collapsed: false })}</>,
+  );
+  fireEvent.click(toolbar.getByRole('button', { name: 'inbox.composeFabLabel' }));
   expect(mockPush).toHaveBeenLastCalledWith('/compose');
   expect(screen.getByRole('button', { name: 'Account' })).toBeTruthy();
 });
@@ -331,7 +334,7 @@ it('selects label destinations and leaves auth-only actions absent when signed o
     'drafts',
     'starred',
   ]);
-  expect(mockSidebarProps().primaryAction).toBeUndefined();
+  expect(mockSidebarProps().toolbar).toBeUndefined();
   expect(screen.getByRole('button', { name: 'Sign in' })).toBeTruthy();
   expect(screen.getByRole('heading', { name: 'auth.gate.title' })).toBeTruthy();
   expect(screen.getByText('auth.gate.subtitle')).toBeTruthy();

@@ -1,4 +1,4 @@
-# Inbox — email at inbox.oxy.so
+# Inbosh — email at inbo.sh
 
 > Universal standards live in `~/AGENTS.md`, Oxy-wide gotchas in `~/Oxy/AGENTS.md`.
 > Files stack root→cwd and a child carries only its own DELTA, so this file holds
@@ -19,7 +19,7 @@ from there**: the API's CORS allowlist (`dynamicOriginRegistry.ts`),
 application's `redirectUris`, and SMTP's ARF `reportingUA`. Deleting the first
 is a total outage; deleting the fourth silently degrades outbound
 deliverability. **`packages/inbox` was code that moved; `inbox.oxy.so` is an
-origin that did not.**
+origin that did not (it redirects to `inbo.sh`).**
 
 ## `linker = "hoisted"` is not a preference
 

@@ -20,7 +20,7 @@ const SITE_NAME = 'Inbosh by Oxy';
 // Absolute, and a file the export actually contains: `/assets/images/icon.png`
 // is not in dist/, so the SPA fallback answered with index.html and link
 // previews showed no image.
-const OG_IMAGE = 'https://inbox.oxy.so/og-image.jpg';
+const OG_IMAGE = 'https://inbo.sh/og-image.jpg';
 const OG_IMAGE_ALT = 'Inbosh: the inbox on the left, a conversation with Alia on the right.';
 
 export default function Root({ children }: PropsWithChildren) {

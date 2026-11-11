@@ -49,6 +49,8 @@ module.exports = {
   ],
   testMatch: ['<rootDir>/__tests__/**/*.(test|spec).(ts|tsx)'],
   moduleNameMapper: {
+    // First: the `@/` rule below would otherwise claim `@/assets/….png`.
+    '\\.(png|jpe?g)$': '<rootDir>/__mocks__/image-file.cjs',
     '^@/(.*)$': '<rootDir>/$1',
     // `@oxy.so/core`, `@oxy.so/protocol` and `@oxy.so/contracts` are deliberately
     // NOT mapped. In OxyHQServices they pointed at workspace SOURCE, which then
@@ -81,6 +83,7 @@ module.exports = {
     '^@oxy.so/services/ui(/client)?$': '<rootDir>/__mocks__/oxyhq-services.ts',
     '^@oxy.so/bloom/icons/[^/]+$': '<rootDir>/__mocks__/bloom-icon.cjs',
     '^@oxy.so/bloom/tab-bar$': '<rootDir>/__mocks__/bloom-tab-bar.tsx',
+    '^expo-image$': '<rootDir>/__mocks__/expo-image.tsx',
     '^@oxy.so/bloom/layout$': '<rootDir>/__mocks__/bloom-layout.tsx',
     '^@oxy.so/bloom/dropdown-menu$': '<rootDir>/__mocks__/bloom-dropdown-menu.tsx',
     '^@oxy.so/bloom/list$': '<rootDir>/__mocks__/bloom-list.tsx',

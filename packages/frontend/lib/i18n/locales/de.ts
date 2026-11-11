@@ -1266,9 +1266,9 @@ const de: LocaleDict = {
 
   auth: {
     gate: {
-      title: 'Melde dich an, um auf deinen Posteingang zuzugreifen',
+      title: 'E-Mail, endlich entspannt.',
       subtitle:
-        'Verbinde deine Oxy-Identität, um Nachrichten, Labels und Einstellungen geräteübergreifend zu synchronisieren.',
+        'Melde dich mit deinem Oxy-Konto an, um dein Postfach zu öffnen. Alia fasst das Wichtigste zusammen, und deine Mails bleiben auf allen Geräten synchron.',
       footer:
         'Mit der Anmeldung akzeptierst du unsere Nutzungsbedingungen und bestätigst unsere Datenschutzrichtlinie.',
     },

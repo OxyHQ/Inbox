@@ -1254,9 +1254,9 @@ const it: LocaleDict = {
 
   auth: {
     gate: {
-      title: 'Accedi per usare la tua posta',
+      title: 'Finalmente, una posta serena.',
       subtitle:
-        'Connetti la tua identità Oxy per sincronizzare messaggi, etichette e preferenze su tutti i dispositivi.',
+        'Accedi con il tuo account Oxy per aprire la posta. Alia riassume ciò che conta e i tuoi messaggi restano sincronizzati su ogni dispositivo.',
       footer: 'Accedendo accetti i nostri Termini e riconosci la nostra Privacy Policy.',
     },
   },

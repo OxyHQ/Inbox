@@ -1259,9 +1259,9 @@ const fr: LocaleDict = {
 
   auth: {
     gate: {
-      title: 'Connecte-toi pour accéder à ta boîte',
+      title: 'Enfin un e-mail serein.',
       subtitle:
-        'Connecte ton identité Oxy pour synchroniser messages, libellés et préférences sur tous tes appareils.',
+        "Connectez-vous avec votre compte Oxy pour ouvrir votre boîte de réception. Alia résume l'essentiel et vos e-mails restent synchronisés sur tous vos appareils.",
       footer:
         'En te connectant, tu acceptes nos Conditions et reconnais notre Politique de confidentialité.',
     },

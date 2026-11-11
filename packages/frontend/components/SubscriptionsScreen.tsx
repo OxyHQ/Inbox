@@ -1,14 +1,7 @@
-import { BREAKPOINTS } from '@oxy.so/bloom/styles';
-import {
-  ScrollMetricsProvider,
-  TopEdgeProvider,
-  useBottomEdgeInset,
-  useAnimatedScrollMetricsBinding,
-  useTopEdgeInset,
-} from '@oxy.so/bloom/layout';
+import { VirtualList, type VirtualListHandle } from '@oxy.so/bloom/list';
 import { PageHeader } from '@oxy.so/bloom/page-header';
-import { ScrollRestorationProvider, useScrollRestoration } from '@oxy.so/bloom/scroll';
-import { expoRouterScrollAdapter } from '@oxy.so/bloom/scroll/expo-router';
+import { Screen } from '@oxy.so/bloom/screen';
+import { useScrollRestoration } from '@oxy.so/bloom/scroll';
 import { useOxy } from '@oxy.so/services/ui/client';
 /**
  * Subscriptions management screen.
@@ -17,12 +10,9 @@ import { useOxy } from '@oxy.so/services/ui/client';
  * similar to Gmail's "Manage subscriptions" feature.
  */
 
-import { useMinimizeOnScroll } from '@oxy.so/bloom/tab-bar';
-import { FlashList, type FlashListProps, type FlashListRef } from '@shopify/flash-list';
-import type React from 'react';
+import { useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useWindowDimensions, RefreshControl, View } from 'react-native';
-import Animated, { type AnimatedProps } from 'react-native-reanimated';
+import { View } from 'react-native';
 
 import { SubscriptionRow } from '@/components/SubscriptionRow';
 import { SubscriptionStacks } from '@/components/SubscriptionStacks';
@@ -40,41 +30,16 @@ import { Loading } from '@oxy.so/bloom/loading';
 import { Text } from '@oxy.so/bloom/typography';
 import { useTranslation } from '@/lib/i18n';
 
-const AnimatedSubscriptionsList = Animated.createAnimatedComponent(
-  FlashList as React.ComponentType<FlashListProps<Subscription>>,
-) as React.ComponentType<
-  AnimatedProps<FlashListProps<Subscription>> & {
-    ref?: React.Ref<FlashListRef<Subscription>>;
-  }
->;
-
 export function SubscriptionsScreen() {
-  return (
-    <ScrollRestorationProvider adapter={expoRouterScrollAdapter}>
-      <TopEdgeProvider>
-        <ScrollMetricsProvider>
-          <SubscriptionsContent />
-        </ScrollMetricsProvider>
-      </TopEdgeProvider>
-    </ScrollRestorationProvider>
-  );
-}
-
-function SubscriptionsContent() {
-  const minimizeTabBarOnScroll = useMinimizeOnScroll();
-  const headerClearance = useTopEdgeInset();
   const shell = useAppShell();
-  const occupiedBottom = useBottomEdgeInset();
-  const { width: viewportWidth } = useWindowDimensions();
-  const bottomClearance = viewportWidth < BREAKPOINTS.md ? occupiedBottom : 0;
+  const focused = useIsFocused();
   const { t } = useTranslation();
   const { user, oxyServices } = useOxy();
 
   const { data, isLoading, isRefetching, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useSubscriptions();
 
-  // RefreshControl's `onRefresh` resolves to nothing (React Native 0.88 types
-  // it), and `refetch` resolves to the query result.
+  // `onRefresh` resolves to nothing, and `refetch` resolves to the query result.
   const handleRefresh = useCallback(() => {
     void refetch();
   }, [refetch]);
@@ -146,49 +111,34 @@ function SubscriptionsContent() {
    * Tapping a pile scrolls the list to that sender — the pile is a jump target,
    * matching the header's "Scroll to <sender>" affordance.
    */
-  const listRef = useRef<FlashListRef<Subscription>>(null);
-  const scrollRestoration = useScrollRestoration(listRef, {
+  const listRef = useRef<VirtualListHandle>(null);
+  const restoration = useScrollRestoration(listRef, {
     key: JSON.stringify(['subscriptions', user?.id]),
-    enabled: subscriptions.length > 0,
-  });
-  const scrollBinding = useAnimatedScrollMetricsBinding({
-    handler: minimizeTabBarOnScroll,
-    onScroll: scrollRestoration.onScroll,
+    enabled: focused && subscriptions.length > 0,
   });
   const handleSelectSubscription = useCallback(
     (subscriptionId: string) => {
       const index = subscriptions.findIndex((s) => s._id === subscriptionId);
       if (index < 0) return;
-      // FlashList 2 removed onScrollToIndexFailed — approximate offset first when
-      // the target row may not be measured yet (e.g. after pagination).
-      const estimatedRowHeight = 72;
-      listRef.current?.scrollToOffset({
-        offset: estimatedRowHeight * index,
-        animated: false,
-      });
-      requestAnimationFrame(() => {
-        listRef.current?.scrollToIndex({
-          index,
-          animated: true,
-          viewPosition: 0,
-        });
-      });
+      listRef.current?.scrollToOffset({ offset: SUBSCRIPTION_ROW_HEIGHT * index });
     },
     [subscriptions],
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: Subscription }) => (
-      <SubscriptionRow
-        subscription={item}
-        onUnsubscribe={handleUnsubscribe}
-        isUnsubscribing={pendingKeys.has(JSON.stringify([scope, item._id]))}
-      />
+    ({ item, index }: { item: Subscription; index: number }) => (
+      <>
+        <SubscriptionRow
+          subscription={item}
+          onUnsubscribe={handleUnsubscribe}
+          isUnsubscribing={pendingKeys.has(JSON.stringify([scope, item._id]))}
+        />
+        {index < subscriptions.length - 1 && <Divider spacing={0} />}
+      </>
     ),
-    [handleUnsubscribe, scope, pendingKeys],
+    [handleUnsubscribe, scope, pendingKeys, subscriptions.length],
   );
 
-  const renderSeparator = useCallback(() => <Divider spacing={0} />, []);
   const renderEmpty = useCallback(
     () => (
       <EmptyState
@@ -205,39 +155,44 @@ function SubscriptionsContent() {
   );
 
   return (
-    <View className="flex-1">
-      <PageHeader
-        title={t('drawer.subscriptions')}
-        onBack={handleBack}
-        sticky={false}
-        placement="overlay"
-        scrim="auto"
-        testID="subscriptions-header"
-        safeArea={false}
-        leading={
-          shell.drawerAvailable ? (
-            <ButtonGroup accessibilityLabel={t('search.openMenu')}>
-              <ButtonGroupItem
-                iconOnly
-                leadingIcon={RiMenuLine}
-                accessibilityLabel={t('search.openMenu')}
-                onPress={shell.openDrawer}
-              />
-            </ButtonGroup>
-          ) : undefined
-        }
-      />
+    <Screen
+      active={focused}
+      scroll="auto"
+      header={
+        <PageHeader
+          title={t('drawer.subscriptions')}
+          onBack={handleBack}
+          sticky={false}
+          scrim="auto"
+          testID="subscriptions-header"
+          safeArea={false}
+          leading={
+            shell.drawerAvailable ? (
+              <ButtonGroup accessibilityLabel={t('search.openMenu')}>
+                <ButtonGroupItem
+                  iconOnly
+                  leadingIcon={RiMenuLine}
+                  accessibilityLabel={t('search.openMenu')}
+                  onPress={shell.openDrawer}
+                />
+              </ButtonGroup>
+            ) : undefined
+          }
+        />
+      }
+    >
       {isLoading ? (
-        <View className="flex-1 justify-center" style={{ paddingTop: headerClearance }}>
+        <View className="flex-1 justify-center">
           <Loading />
         </View>
       ) : (
-        <AnimatedSubscriptionsList
+        <VirtualList
           testID="subscriptions-list"
           ref={listRef}
+          screen={{ active: focused, restoration }}
           data={subscriptions}
           renderItem={renderItem}
-          ItemSeparatorComponent={renderSeparator}
+          keyExtractor={subscriptionKey}
           ListHeaderComponent={
             <>
               <SubscriptionStacks
@@ -257,20 +212,15 @@ function SubscriptionsContent() {
           ListFooterComponent={renderFooter}
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.3}
-          {...scrollBinding}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefetching && !isFetchingNextPage}
-              onRefresh={handleRefresh}
-            />
-          }
-          contentContainerStyle={{
-            ...(subscriptions.length === 0 ? { flexGrow: 1 } : undefined),
-            paddingTop: headerClearance,
-            paddingBottom: bottomClearance,
-          }}
+          refreshing={isRefetching && !isFetchingNextPage}
+          onRefresh={handleRefresh}
+          contentContainerStyle={subscriptions.length === 0 ? { flexGrow: 1 } : undefined}
         />
       )}
-    </View>
+    </Screen>
   );
 }
+
+/** Where the list jumps to for a sender: rows are one height, so the offset is the index times it. */
+const SUBSCRIPTION_ROW_HEIGHT = 72;
+const subscriptionKey = (subscription: Subscription) => subscription._id;

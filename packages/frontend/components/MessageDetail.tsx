@@ -9,7 +9,13 @@ import { Text } from '@oxy.so/bloom/typography';
 import { useAppShell } from '@oxy.so/bloom/app-shell';
 import { ButtonGroup, ButtonGroupItem } from '@oxy.so/bloom/button-group';
 import { Button, IconButton } from '@oxy.so/bloom/button';
-import { Checkbox } from '@oxy.so/bloom/checkbox';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@oxy.so/bloom/dropdown-menu';
 import { RiArchiveLine } from '@oxy.so/bloom/icons/RiArchiveLine';
 import { RiCalendarLine } from '@oxy.so/bloom/icons/RiCalendarLine';
 import { RiInbox2Line } from '@oxy.so/bloom/icons/RiInbox2Line';
@@ -17,6 +23,9 @@ import { RiArrowGoBackLine } from '@oxy.so/bloom/icons/RiArrowGoBackLine';
 import { RiCornerUpLeftLine } from '@oxy.so/bloom/icons/RiCornerUpLeftLine';
 import { RiDeleteBinLine } from '@oxy.so/bloom/icons/RiDeleteBinLine';
 import { RiDraftLine } from '@oxy.so/bloom/icons/RiDraftLine';
+import { RiFolderLine } from '@oxy.so/bloom/icons/RiFolderLine';
+import { RiPriceTag3Line } from '@oxy.so/bloom/icons/RiPriceTag3Line';
+import { RiSpamLine } from '@oxy.so/bloom/icons/RiSpamLine';
 import { RiMailLine } from '@oxy.so/bloom/icons/RiMailLine';
 import { RiMenuLine } from '@oxy.so/bloom/icons/RiMenuLine';
 import { RiMoreLine } from '@oxy.so/bloom/icons/RiMoreLine';
@@ -36,7 +45,6 @@ import { PageHeader } from '@oxy.so/bloom/page-header';
  * - embedded: inline panel without back button (desktop split-view)
  */
 
-import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
 import { toast } from '@oxy.so/bloom/toast';
 import { Loading } from '@oxy.so/bloom/loading';
 import { useOxy } from '@oxy.so/services/ui/client';
@@ -221,11 +229,6 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const [replyMode, setReplyMode] = useState<'reply' | 'reply-all' | 'forward' | null>(null);
   const [replyTargetId, setReplyTargetId] = useState<string | null>(null);
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set([messageId]));
-  const [messageMenuId, setMessageMenuId] = useState<string | null>(null);
-
-  const moreMenuControl = useDialogControl();
-  const labelPickerControl = useDialogControl();
-  const messageMenuControl = useDialogControl();
 
   // Sentiment analysis for the current message
   const sentiment = useSentimentAnalysis(currentMessage);
@@ -305,29 +308,27 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const handleMarkUnread = useCallback(() => {
     if (!currentMessage) return;
     messageActions.setRead([currentMessage], false);
-    moreMenuControl.close();
     if (mode === 'standalone') handleBack();
-  }, [currentMessage, messageActions, handleBack, mode, moreMenuControl]);
+  }, [currentMessage, messageActions, handleBack, mode]);
 
   const handleMarkSpam = useCallback(() => {
     if (!messageId) return;
     const spamBox = mailboxes.find((m) => m.specialUse === SPECIAL_USE.SPAM);
-    moreMenuControl.close();
     if (!spamBox) {
       toast.error(t('message.toast.spamUnavailable'));
       return;
     }
     leaveConversation();
     messageActions.moveTo(folderConversation, spamBox._id, 'spam');
-  }, [
-    messageId,
-    mailboxes,
-    messageActions,
-    folderConversation,
-    leaveConversation,
-    moreMenuControl,
-    t,
-  ]);
+  }, [messageId, mailboxes, messageActions, folderConversation, leaveConversation, t]);
+
+  const handleMoveToFolder = useCallback(
+    (mailboxId: string) => {
+      leaveConversation();
+      messageActions.moveTo(folderConversation, mailboxId);
+    },
+    [leaveConversation, messageActions, folderConversation],
+  );
 
   const router = useRouter();
 
@@ -339,7 +340,6 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const openReply = useCallback(
     (mode: 'reply' | 'reply-all', targetMsgId?: string) => {
       if (!currentMessage) return;
-      setMessageMenuId(null);
       const target =
         (targetMsgId ? sortedThread.find((m) => m._id === targetMsgId) : undefined) ??
         (currentMessage.flags.draft
@@ -374,7 +374,6 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
       if (!currentMessage) return;
       setReplyTargetId(targetMsgId || null);
       setReplyMode('forward');
-      setMessageMenuId(null);
     },
     [currentMessage],
   );
@@ -517,9 +516,8 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   // attachments, and unencoded non-ASCII headers.
   const handleDownloadEml = useCallback(() => {
     if (!currentMessage) return;
-    moreMenuControl.close();
     void downloadSource(currentMessage._id, currentMessage.subject);
-  }, [currentMessage, downloadSource, moreMenuControl]);
+  }, [currentMessage, downloadSource]);
 
   // Label data for assigned labels (backend stores label names, not IDs)
   const assignedLabels = useMemo(() => {
@@ -648,14 +646,28 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           onPress={() => handleEditDraft(msg)}
         />
       ) : (
-        <IconButton
-          accessibilityLabel={t('message.actions.more')}
-          icon={<RiMoreLine />}
-          onPress={() => {
-            setMessageMenuId(msg._id);
-            messageMenuControl.open();
-          }}
-        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild label={t('message.actions.more')}>
+            <IconButton accessibilityLabel={t('message.actions.more')} icon={<RiMoreLine />} />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem leading={<RiCornerUpLeftLine />} onPress={() => handleReply(msg._id)}>
+              {t('message.actions.reply')}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              leading={<RiArrowGoBackLine />}
+              onPress={() => handleReplyAll(msg._id)}
+            >
+              {t('message.actions.replyAll')}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              leading={<RiShareForwardLine />}
+              onPress={() => handleForward(msg._id)}
+            >
+              {t('message.actions.forward')}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       ),
       ...(msg.flags.draft ? { time: t('message.draftLabel') } : {}),
       // A sent message that has not left says so where its time would be, so
@@ -693,16 +705,129 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           onBack={handleBack}
           backLabel={t('common.back')}
           leading={
-            shell.drawerAvailable ? (
-              <ButtonGroup accessibilityLabel={t('search.openMenu')}>
+            <>
+              {shell.drawerAvailable && (
+                <ButtonGroup accessibilityLabel={t('search.openMenu')}>
+                  <ButtonGroupItem
+                    iconOnly
+                    leadingIcon={RiMenuLine}
+                    accessibilityLabel={t('search.openMenu')}
+                    onPress={shell.openDrawer}
+                  />
+                </ButtonGroup>
+              )}
+              {replyableMessage && (
+                <ButtonGroup>
+                  <ButtonGroupItem
+                    iconOnly
+                    accessibilityLabel={t('message.actions.reply')}
+                    leadingIcon={RiCornerUpLeftLine}
+                    onPress={() => handleReply(replyableMessage._id)}
+                  />
+                  <ButtonGroupItem
+                    iconOnly
+                    accessibilityLabel={t('message.actions.replyAll')}
+                    leadingIcon={RiArrowGoBackLine}
+                    onPress={() => handleReplyAll(replyableMessage._id)}
+                  />
+                  <ButtonGroupItem
+                    iconOnly
+                    accessibilityLabel={t('message.actions.forward')}
+                    leadingIcon={RiShareForwardLine}
+                    onPress={() => handleForward(replyableMessage._id)}
+                  />
+                </ButtonGroup>
+              )}
+              <ButtonGroup>
                 <ButtonGroupItem
                   iconOnly
-                  leadingIcon={RiMenuLine}
-                  accessibilityLabel={t('search.openMenu')}
-                  onPress={shell.openDrawer}
+                  accessibilityLabel={t(
+                    archived ? 'message.actions.moveToInbox' : 'message.actions.archive',
+                  )}
+                  leadingIcon={archived ? RiInbox2Line : RiArchiveLine}
+                  onPress={handleArchive}
+                />
+                <ButtonGroupItem
+                  iconOnly
+                  accessibilityLabel={t('message.actions.snooze')}
+                  leadingIcon={RiTimeLine}
+                  onPress={() => setSnoozeVisible(true)}
+                />
+                <ButtonGroupItem
+                  iconOnly
+                  accessibilityLabel={t('message.actions.reportSpam')}
+                  leadingIcon={RiSpamLine}
+                  onPress={handleMarkSpam}
+                />
+                <ButtonGroupItem
+                  iconOnly
+                  accessibilityLabel={t('message.actions.delete')}
+                  leadingIcon={RiDeleteBinLine}
+                  onPress={handleDelete}
                 />
               </ButtonGroup>
-            ) : undefined
+              <ButtonGroup>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild label={t('ui.drawer.folders')}>
+                    <ButtonGroupItem
+                      iconOnly
+                      accessibilityLabel={t('ui.drawer.folders')}
+                      leadingIcon={RiFolderLine}
+                    />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    {mailboxes
+                      .filter((mailbox) => mailbox._id !== currentMessage.mailboxId)
+                      .map((mailbox) => (
+                        <DropdownMenuItem
+                          key={mailbox._id}
+                          leading={<RiFolderLine />}
+                          onPress={() => handleMoveToFolder(mailbox._id)}
+                        >
+                          {mailbox.name}
+                        </DropdownMenuItem>
+                      ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild label={t('message.actions.label')}>
+                    <ButtonGroupItem
+                      iconOnly
+                      accessibilityLabel={t('message.actions.label')}
+                      leadingIcon={RiPriceTag3Line}
+                    />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    {labels.length === 0 && (
+                      <DropdownMenuItem disabled>{t('message.labelPicker.empty')}</DropdownMenuItem>
+                    )}
+                    {labels.map((label) => (
+                      <DropdownMenuCheckboxItem
+                        key={label._id}
+                        checked={currentMessage.labels.includes(label.name)}
+                        onCheckedChange={() => handleToggleLabel(label.name)}
+                        leading={<RiPriceTag3Line fill={label.color} />}
+                        indicatorPosition="trailing"
+                        keepOpen
+                      >
+                        {label.name}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <ButtonGroupItem
+                  iconOnly
+                  accessibilityLabel={t(
+                    currentMessage.flags.starred
+                      ? 'message.actions.unstar'
+                      : 'message.actions.star',
+                  )}
+                  leadingIcon={currentMessage.flags.starred ? RiStarFill : RiStarLine}
+                  onPress={handleStar}
+                  disabled={toggleStar.isPending}
+                />
+              </ButtonGroup>
+            </>
           }
           sticky={false}
           scrim="auto"
@@ -713,177 +838,70 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
             <ButtonGroup>
               <ButtonGroupItem
                 iconOnly
-                accessibilityLabel={t(
-                  archived ? 'message.actions.moveToInbox' : 'message.actions.archive',
-                )}
-                leadingIcon={archived ? RiInbox2Line : RiArchiveLine}
-                onPress={handleArchive}
+                accessibilityLabel={t('message.actions.markUnread')}
+                leadingIcon={RiMailLine}
+                onPress={handleMarkUnread}
               />
-              <ButtonGroupItem
-                iconOnly
-                accessibilityLabel={t('message.actions.delete')}
-                leadingIcon={RiDeleteBinLine}
-                onPress={handleDelete}
-              />
-              <ButtonGroupItem
-                iconOnly
-                accessibilityLabel={t(
-                  currentMessage.flags.starred ? 'message.actions.unstar' : 'message.actions.star',
-                )}
-                leadingIcon={currentMessage.flags.starred ? RiStarFill : RiStarLine}
-                onPress={handleStar}
-                disabled={toggleStar.isPending}
-              />
-              <ButtonGroupItem
-                iconOnly
-                accessibilityLabel={t('message.actions.more')}
-                leadingIcon={RiMoreLine}
-                onPress={() => moreMenuControl.open()}
-              />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild label={t('message.actions.more')}>
+                  <ButtonGroupItem
+                    iconOnly
+                    accessibilityLabel={t('message.actions.more')}
+                    leadingIcon={RiMoreLine}
+                  />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem
+                    leading={<RiPushpinLine />}
+                    onPress={handlePin}
+                    disabled={togglePin.isPending}
+                  >
+                    {t(
+                      currentMessage.flags.pinned ? 'message.actions.unpin' : 'message.actions.pin',
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    leading={<RiCalendarLine />}
+                    onPress={() =>
+                      setReminderTarget({
+                        id: currentMessage._id,
+                        key: ++reminderEditorId.current,
+                        owner: reminderOwner,
+                        mutate: createReminder.mutateAsync,
+                      })
+                    }
+                  >
+                    {t('reminder.create.title')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem leading={<RiPrinterLine />} onPress={handlePrint}>
+                    {t('message.actions.print')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onPress={handleDownloadEml}>
+                    {t('message.actions.downloadEml')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </ButtonGroup>
           }
         />
       }
       bottomBar={
-        !replyMode && (
+        !replyMode &&
+        threadDraft && (
           <PageFooter
             scrim="auto"
             scrimColor={bloomColors.card}
             safeArea={false}
             testID="message-reply-footer"
             actions={
-              <>
-                {threadDraft && (
-                  <Button leadingIcon={RiDraftLine} onPress={() => handleEditDraft(threadDraft)}>
-                    {t('message.actions.editDraft')}
-                  </Button>
-                )}
-                {replyableMessage && (
-                  <>
-                    <Button
-                      appearance={threadDraft ? 'subtle' : undefined}
-                      leadingIcon={RiCornerUpLeftLine}
-                      onPress={() => handleReply(replyableMessage._id)}
-                    >
-                      {t('message.actions.reply')}
-                    </Button>
-                    <Button
-                      appearance="subtle"
-                      leadingIcon={RiArrowGoBackLine}
-                      onPress={() => handleReplyAll(replyableMessage._id)}
-                    >
-                      {t('message.actions.replyAll')}
-                    </Button>
-                    <Button
-                      appearance="subtle"
-                      leadingIcon={RiShareForwardLine}
-                      onPress={() => handleForward(replyableMessage._id)}
-                    >
-                      {t('message.actions.forward')}
-                    </Button>
-                  </>
-                )}
-              </>
+              <Button leadingIcon={RiDraftLine} onPress={() => handleEditDraft(threadDraft)}>
+                {t('message.actions.editDraft')}
+              </Button>
             }
           />
         )
       }
     >
-      <Dialog control={moreMenuControl} label={t('message.actions.more')}>
-        <View className="gap-2">
-          <Button appearance="subtle" leading={<RiMailLine />} onPress={handleMarkUnread}>
-            {t('message.actions.markUnread')}
-          </Button>
-          <Button
-            appearance="subtle"
-            leading={<RiPushpinLine />}
-            onPress={() => {
-              moreMenuControl.close();
-              handlePin();
-            }}
-            disabled={togglePin.isPending}
-          >
-            {t(currentMessage.flags.pinned ? 'message.actions.unpin' : 'message.actions.pin')}
-          </Button>
-          <Button
-            appearance="subtle"
-            leading={<RiTimeLine />}
-            onPress={() => {
-              moreMenuControl.close();
-              setSnoozeVisible(true);
-            }}
-          >
-            {t('message.actions.snooze')}
-          </Button>
-          <Button
-            appearance="subtle"
-            leading={<RiCalendarLine />}
-            onPress={() => {
-              moreMenuControl.close();
-              setReminderTarget({
-                id: currentMessage._id,
-                key: ++reminderEditorId.current,
-                owner: reminderOwner,
-                mutate: createReminder.mutateAsync,
-              });
-            }}
-          >
-            {t('reminder.create.title')}
-          </Button>
-          <Button
-            appearance="subtle"
-            leading={<RiPrinterLine />}
-            onPress={() => {
-              moreMenuControl.close();
-              handlePrint();
-            }}
-          >
-            {t('message.actions.print')}
-          </Button>
-          <Button appearance="subtle" onPress={handleMarkSpam}>
-            {t('message.actions.reportSpam')}
-          </Button>
-          <Button
-            appearance="subtle"
-            onPress={() => {
-              moreMenuControl.close();
-              labelPickerControl.open();
-            }}
-          >
-            {t('message.actions.label')}
-          </Button>
-          <Button appearance="subtle" onPress={handleDownloadEml}>
-            {t('message.actions.downloadEml')}
-          </Button>
-        </View>
-      </Dialog>
-      {/* Label picker dialog */}
-      <Dialog
-        control={labelPickerControl}
-        label={t('message.labelPicker.title')}
-        style={{ padding: 0 }}
-      >
-        <Text style={[styles.labelPickerTitle, { color: colors.text }]}>
-          {t('message.labelPicker.title')}
-        </Text>
-        {labels.length === 0 && (
-          <EmptyState
-            variant="compact"
-            illustration={<EmptyStateSticker name="conversation" size={80} />}
-            title={t('message.labelPicker.empty')}
-            description={t('empty.labelsDescription')}
-          />
-        )}
-        {labels.map((label) => (
-          <Checkbox
-            key={label._id}
-            checked={currentMessage.labels.includes(label.name)}
-            onCheckedChange={() => handleToggleLabel(label.name)}
-            label={label.name}
-          />
-        ))}
-      </Dialog>
-
       <ScreenScrollView
         testID="message-scroll"
         style={styles.body}
@@ -1000,45 +1018,6 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         onClose={() => setSnoozeVisible(false)}
         onSnooze={handleSnooze}
       />
-
-      <Dialog
-        control={messageMenuControl}
-        onClose={() => setMessageMenuId(null)}
-        label={t('message.actions.messageActions')}
-      >
-        <View className="gap-2">
-          <Button
-            appearance="subtle"
-            leading={<RiCornerUpLeftLine />}
-            onPress={() => {
-              messageMenuControl.close();
-              handleReply(messageMenuId ?? undefined);
-            }}
-          >
-            {t('message.actions.reply')}
-          </Button>
-          <Button
-            appearance="subtle"
-            leading={<RiArrowGoBackLine />}
-            onPress={() => {
-              messageMenuControl.close();
-              handleReplyAll(messageMenuId ?? undefined);
-            }}
-          >
-            {t('message.actions.replyAll')}
-          </Button>
-          <Button
-            appearance="subtle"
-            leading={<RiShareForwardLine />}
-            onPress={() => {
-              messageMenuControl.close();
-              handleForward(messageMenuId ?? undefined);
-            }}
-          >
-            {t('message.actions.forward')}
-          </Button>
-        </View>
-      </Dialog>
     </Screen>
   );
 }
@@ -1046,12 +1025,6 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  labelPickerTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    paddingHorizontal: 14,
-    paddingBottom: 6,
   },
   loadingContainer: {
     flex: 1,

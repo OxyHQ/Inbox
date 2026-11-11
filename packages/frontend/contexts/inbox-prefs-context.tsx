@@ -33,6 +33,9 @@ import { Platform } from 'react-native';
 export type MessageDensity = MailDensity;
 export type SwipeAction = 'archive' | 'delete' | 'mark-read' | 'snooze' | 'none';
 
+export const UNDO_SEND_SECONDS = [0, 5, 10, 20, 30] as const;
+export type UndoSendSeconds = (typeof UNDO_SEND_SECONDS)[number];
+
 export interface InboxPrefs {
   /** How tightly to pack message rows in the list. */
   density: MessageDensity;
@@ -48,6 +51,9 @@ export interface InboxPrefs {
   leftSwipeAction: SwipeAction;
   /** Action triggered by a right-to-left swipe in the list. */
   rightSwipeAction: SwipeAction;
+
+  /** Seconds a sent message can still be called back with Undo; 0 sends at once. */
+  undoSendSeconds: UndoSendSeconds;
 
   /** Enable push notifications. */
   pushNotifications: boolean;
@@ -69,6 +75,7 @@ export const DEFAULT_INBOX_PREFS: InboxPrefs = {
   showPreviews: true,
   leftSwipeAction: 'archive',
   rightSwipeAction: 'delete',
+  undoSendSeconds: 5,
   pushNotifications: true,
   // Prepared automatically once the Inbox account and its cache are ready.
   aiBrief: true,
@@ -95,6 +102,10 @@ function isSwipeAction(value: unknown): value is SwipeAction {
   );
 }
 
+function isUndoSendSeconds(value: unknown): value is UndoSendSeconds {
+  return UNDO_SEND_SECONDS.some((seconds) => seconds === value);
+}
+
 function isBoolean(value: unknown): value is boolean {
   return typeof value === 'boolean';
 }
@@ -106,6 +117,7 @@ const IS_VALID: { [K in keyof InboxPrefs]: (value: unknown) => value is InboxPre
   showPreviews: isBoolean,
   leftSwipeAction: isSwipeAction,
   rightSwipeAction: isSwipeAction,
+  undoSendSeconds: isUndoSendSeconds,
   pushNotifications: isBoolean,
   aiBrief: isBoolean,
   aiSmartReply: isBoolean,

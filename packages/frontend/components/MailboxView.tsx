@@ -12,12 +12,14 @@ import { MessageDetailEmpty } from '@/components/MessageDetailEmpty';
 
 import { Redirect, useIsFocused } from 'expo-router';
 import Head from 'expo-router/head';
-import { useEffect, useMemo } from 'react';
+import { lazy, Suspense, useEffect, useMemo } from 'react';
 
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
 import { useEmailStore } from '@/hooks/useEmail';
 import { useTranslation } from '@/lib/i18n';
+
+const InboxAliaPanel = lazy(() => import('@/components/InboxAliaPanel'));
 
 /** Map a view segment to a `drawer.mailboxes.*` translation key. */
 const VIEW_TO_LABEL_KEY: Record<string, string> = {
@@ -124,7 +126,9 @@ export function MailboxView({ view }: { view: string }) {
       <Head>
         <title>{pageTitle}</title>
       </Head>
-      <MessageDetailEmpty />
+      <Suspense fallback={<MessageDetailEmpty />}>
+        <InboxAliaPanel />
+      </Suspense>
     </>
   );
 }

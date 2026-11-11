@@ -208,6 +208,8 @@ const ko: LocaleDict = {
   },
 
   inbox: {
+    summary: '메시지 {{total}}개, 읽지 않음 {{unread}}개',
+    refresh: '새로고침',
     resizePanes: '패널 크기 조정',
     loadErrorTitle: '메일을 불러올 수 없습니다',
     unreadable: {
@@ -936,6 +938,15 @@ const ko: LocaleDict = {
         soundDescription: '새 메시지가 오면 짧은 알림음이 울려요.',
       },
       inbox: {
+        sending: '보내기',
+        undoSend: '보내기 취소',
+        undoSendDescription: '보내기를 누른 뒤 메시지를 회수할 수 있는 시간입니다.',
+        undoSendSeconds: '{{count}}초',
+        savedSearches: '저장된 검색',
+        savedSearchesEmpty: '저장된 검색이 아직 없습니다. 검색 화면에서 저장하세요.',
+        shortcuts: '키보드 단축키',
+        shortcutsDescription: '사용할 수 있는 모든 단축키를 확인합니다.',
+        shortcutsOpen: '보기',
         density: '메시지 밀도',
         compact: '좁게',
         comfortable: '넓게',

@@ -208,6 +208,8 @@ const en: LocaleDict = {
   },
 
   inbox: {
+    summary: '{{total}} messages, {{unread}} unread',
+    refresh: 'Refresh',
     loadErrorTitle: "Couldn't load your mail",
     unreadable: {
       section: "Couldn't display",
@@ -957,6 +959,15 @@ const en: LocaleDict = {
         soundDescription: 'A short chime on new messages.',
       },
       inbox: {
+        sending: 'Sending',
+        undoSend: 'Undo send',
+        undoSendDescription: 'How long you can call a message back after pressing Send.',
+        undoSendSeconds: '{{count}} seconds',
+        savedSearches: 'Saved searches',
+        savedSearchesEmpty: 'No saved searches yet. Save one from the search screen.',
+        shortcuts: 'Keyboard shortcuts',
+        shortcutsDescription: 'See every shortcut you can use.',
+        shortcutsOpen: 'View',
         density: 'Message density',
         compact: 'Compact',
         comfortable: 'Comfortable',

@@ -209,6 +209,8 @@ const ja: LocaleDict = {
   },
 
   inbox: {
+    summary: '{{total}}件のメッセージ、未読{{unread}}件',
+    refresh: '更新',
     resizePanes: 'パネルのサイズを変更',
     loadErrorTitle: 'メールを読み込めませんでした',
     unreadable: {
@@ -946,6 +948,15 @@ const ja: LocaleDict = {
         soundDescription: '新しいメッセージで短い通知音を鳴らします。',
       },
       inbox: {
+        sending: '送信',
+        undoSend: '送信の取り消し',
+        undoSendDescription: '送信ボタンを押した後、メッセージを取り消せる時間です。',
+        undoSendSeconds: '{{count}}秒',
+        savedSearches: '保存した検索',
+        savedSearchesEmpty: '保存した検索はまだありません。検索画面から保存できます。',
+        shortcuts: 'キーボードショートカット',
+        shortcutsDescription: '使えるショートカットをすべて表示します。',
+        shortcutsOpen: '表示',
         density: '表示密度',
         compact: 'コンパクト',
         comfortable: 'ゆったり',

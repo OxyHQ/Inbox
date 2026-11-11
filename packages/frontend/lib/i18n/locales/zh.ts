@@ -206,6 +206,8 @@ const zh: LocaleDict = {
   },
 
   inbox: {
+    summary: '{{total}} 封邮件，{{unread}} 封未读',
+    refresh: '刷新',
     resizePanes: '调整面板大小',
     loadErrorTitle: '无法加载你的邮件',
     unreadable: {
@@ -919,6 +921,15 @@ const zh: LocaleDict = {
         soundDescription: '收到新邮件时播放简短提示音。',
       },
       inbox: {
+        sending: '发送',
+        undoSend: '撤销发送',
+        undoSendDescription: '点击发送后可以撤回邮件的时长。',
+        undoSendSeconds: '{{count}} 秒',
+        savedSearches: '已保存的搜索',
+        savedSearchesEmpty: '还没有已保存的搜索。可在搜索页面保存。',
+        shortcuts: '键盘快捷键',
+        shortcutsDescription: '查看所有可用的快捷键。',
+        shortcutsOpen: '查看',
         density: '邮件密度',
         compact: '紧凑',
         comfortable: '舒适',

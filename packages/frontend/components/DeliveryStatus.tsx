@@ -1,14 +1,12 @@
 /**
  * Where a message the user sent stands, wherever that message is shown.
  *
- * `DeliveryBadge` is the one-line form for a list row; `DeliveryNotice` is the
- * full form for the message itself, with the reason and what the user can do
- * about it. Both render nothing for received mail and for delivered mail —
+ * `DeliveryNotice` is the full form for the message itself, with the reason and
+ * what the user can do about it. It renders nothing for received mail and for delivered mail —
  * delivered is the normal case and needs no decoration.
  */
 
 import { StyleSheet, View } from 'react-native';
-import { Text } from '@oxy.so/bloom/typography';
 import {
   AdmonitionButton,
   AdmonitionContent,
@@ -18,7 +16,6 @@ import {
   AdmonitionText,
 } from '@oxy.so/bloom/admonition';
 
-import { useColors } from '@/constants/theme';
 import { useEditAsNew } from '@/hooks/mutations/useEditAsNew';
 import { useRetryDelivery } from '@/hooks/mutations/useRetryDelivery';
 import { useTranslation } from '@/lib/i18n';
@@ -43,25 +40,6 @@ export function useDeliveryLabel() {
         return '';
     }
   };
-}
-
-/** Compact status for a message list row. */
-export function DeliveryBadge({ delivery }: { delivery: MessageDelivery | undefined }) {
-  const colors = useColors();
-  const label = useDeliveryLabel();
-  if (!isOutstanding(delivery)) return null;
-
-  const color =
-    delivery.state === 'failed'
-      ? colors.error
-      : delivery.state === 'retrying'
-        ? colors.warning
-        : colors.secondaryText;
-  return (
-    <Text accessibilityRole="text" style={[styles.badge, { color }]} numberOfLines={1}>
-      {label(delivery)}
-    </Text>
-  );
 }
 
 /** Full status for an open message: why, when it retries, and what to do. */
@@ -120,6 +98,5 @@ export function DeliveryNotice({ message }: { message: Message }) {
 }
 
 const styles = StyleSheet.create({
-  badge: { fontSize: 12, fontWeight: '600' },
   notice: { marginBottom: 12 },
 });

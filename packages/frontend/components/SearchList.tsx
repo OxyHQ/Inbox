@@ -8,7 +8,8 @@ import {
   type SearchFilters,
 } from '@/utils/searchFilters';
 import { Divider } from '@oxy.so/bloom/divider';
-import { useMailboxScrollRestoration } from '@/hooks/useMailboxScrollRestoration';
+import { VirtualList, type VirtualListHandle } from '@oxy.so/bloom/list';
+import { useScrollRestoration } from '@oxy.so/bloom/scroll';
 /**
  * Search emails list with Gmail-style search bar and filter chips.
  */
@@ -25,8 +26,7 @@ import { Loading } from '@oxy.so/bloom/loading';
 import { Text } from '@oxy.so/bloom/typography';
 import { useIsFocused, useRouter } from 'expo-router';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
-import { type FlatList, StyleSheet, type TextInputInstance, View } from 'react-native';
-import Animated from 'react-native-reanimated';
+import { StyleSheet, type TextInputInstance, View } from 'react-native';
 
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
 import { MessageRow } from '@/components/MessageRow';
@@ -550,41 +550,26 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     ],
   );
 
-  const listExtraData = useMemo(
-    () => ({
-      selectedMessageId,
-      density,
-      showPreviews,
-      themeKey: `${colors.unread}|${colors.surface}|${colors.secondaryText}|${colors.primary}|${colors.border}`,
-    }),
-    [
-      selectedMessageId,
-      density,
-      showPreviews,
-      colors.unread,
-      colors.surface,
-      colors.secondaryText,
-      colors.primary,
-      colors.border,
-    ],
-  );
-
   const renderItem = useCallback(
-    ({ item }: { item: SearchItem }) =>
-      item.kind === 'unreadable' ? (
-        <View style={styles.unreadableItem}>
-          <UnreadableMessageRow message={item.row} onOpen={openConversation} />
-        </View>
-      ) : (
-        <MessageRow
-          message={item.message}
-          onSelect={handleMessagePress}
-          isSelected={item.message._id === selectedMessageId}
-          density={density}
-          showPreviews={showPreviews}
-        />
-      ),
-    [handleMessagePress, openConversation, selectedMessageId, density, showPreviews],
+    ({ item, index }: { item: SearchItem; index: number }) => (
+      <>
+        {item.kind === 'unreadable' ? (
+          <View style={styles.unreadableItem}>
+            <UnreadableMessageRow message={item.row} onOpen={openConversation} />
+          </View>
+        ) : (
+          <MessageRow
+            message={item.message}
+            onSelect={handleMessagePress}
+            isSelected={item.message._id === selectedMessageId}
+            density={density}
+            showPreviews={showPreviews}
+          />
+        )}
+        {index < items.length - 1 && <Divider spacing={0} />}
+      </>
+    ),
+    [handleMessagePress, openConversation, selectedMessageId, density, showPreviews, items.length],
   );
 
   const handleEndReached = useCallback(() => {
@@ -719,18 +704,17 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
     t,
   ]);
 
-  const listRef = useRef<FlatList<SearchItem>>(null);
+  const listRef = useRef<VirtualListHandle>(null);
   const focused = useIsFocused();
-  const onListScroll = useMailboxScrollRestoration(
-    listRef,
-    JSON.stringify(['search', user?.id, submittedQuery, filters, nlParsedOptions]),
-    focused && !searching && items.length > 0,
-  );
+  const restoration = useScrollRestoration(listRef, {
+    key: JSON.stringify(['search', user?.id, submittedQuery, filters, nlParsedOptions]),
+    enabled: focused && !searching && items.length > 0,
+  });
 
   return (
     <Screen
       active={focused}
-      scroll="none"
+      scroll="auto"
       testID="search-screen"
       header={
         <SearchHeader
@@ -746,8 +730,9 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         />
       }
     >
-      <Animated.FlatList
+      <VirtualList
         ref={listRef}
+        screen={{ active: focused, restoration }}
         ListHeaderComponent={
           <View>
             {/* Filters scroll so short mobile screens always have room for results. */}
@@ -843,30 +828,22 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
         data={searching ? [] : items}
         renderItem={renderItem}
         keyExtractor={searchItemKey}
-        extraData={listExtraData}
         ListEmptyComponent={renderEmpty}
         ListFooterComponent={renderFooter}
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.4}
-        onScroll={onListScroll}
-        scrollEventThrottle={16}
         contentContainerStyle={{
           ...(items.length === 0 ? styles.emptyListContent : null),
           ...styles.listContent,
           paddingTop: 0,
           paddingBottom: 0,
         }}
-        showsVerticalScrollIndicator={false}
-        ItemSeparatorComponent={SearchItemSeparator}
       />
     </Screen>
   );
 }
 
-// Defined once, not inline: an inline separator is a new component type on
-// every render, and the list remounts every separator for it.
 const searchItemKey = (item: SearchItem) => item.key;
-const SearchItemSeparator = () => <Divider spacing={0} />;
 
 const styles = StyleSheet.create({
   container: {

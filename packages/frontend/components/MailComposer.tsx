@@ -23,14 +23,8 @@ import { Text } from '@oxy.so/bloom/typography';
 import type { FileMetadata } from '@oxy.so/core';
 import { useOxy } from '@oxy.so/services/ui/client';
 import { type ReactNode, useCallback, useRef, useState } from 'react';
-import {
-  Platform,
-  ScrollView,
-  type StyleProp,
-  type TextInput,
-  View,
-  type ViewStyle,
-} from 'react-native';
+import { ScrollArea } from '@oxy.so/bloom/layout';
+import { Platform, type StyleProp, type TextInput, View, type ViewStyle } from 'react-native';
 
 import { AiComposeToolbar } from '@/components/AiComposeToolbar';
 import { MailAddressFields } from '@/components/MailAddressFields';
@@ -296,9 +290,9 @@ export function MailComposer({
         </Dialog>
 
         {layout === 'screen' ? (
-          <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
+          <ScrollArea className="flex-1" keyboardShouldPersistTaps="handled">
             {content}
-          </ScrollView>
+          </ScrollArea>
         ) : (
           content
         )}

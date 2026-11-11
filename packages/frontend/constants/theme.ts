@@ -12,7 +12,6 @@
 
 import { useThemePaint } from '@oxy.so/bloom/theme';
 import { useMemo } from 'react';
-import { Platform } from 'react-native';
 
 /** Inbox names for final paint roles, including Bloom’s pre-hydration web palette. */
 export function useColors() {
@@ -66,23 +65,3 @@ export function useColors() {
     [bloom],
   );
 }
-
-// ── Fonts ───────────────────────────────────────────────────────────
-
-export const Fonts = Platform.select({
-  ios: {
-    sans: 'system-ui',
-    serif: 'ui-serif',
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    mono: 'monospace',
-  },
-  web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-  },
-});

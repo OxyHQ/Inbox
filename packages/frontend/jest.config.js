@@ -84,7 +84,6 @@ module.exports = {
     '^@oxy.so/bloom/icons/[^/]+$': '<rootDir>/__mocks__/bloom-icon.cjs',
     '^@oxy.so/bloom/tab-bar$': '<rootDir>/__mocks__/bloom-tab-bar.tsx',
     '^expo-image$': '<rootDir>/__mocks__/expo-image.tsx',
-    '^@oxy.so/bloom/fab$': '<rootDir>/__mocks__/bloom-fab.tsx',
     '^@oxy.so/bloom/layout$': '<rootDir>/__mocks__/bloom-layout.tsx',
     '^@oxy.so/bloom/dropdown-menu$': '<rootDir>/__mocks__/bloom-dropdown-menu.tsx',
     '^@oxy.so/bloom/list$': '<rootDir>/__mocks__/bloom-list.tsx',

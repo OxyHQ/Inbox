@@ -41,136 +41,140 @@ export function InboxPrefsSection() {
     <>
       <SettingsGeneralPage
         sections={[
-        {
-          key: 'density',
-          rows: [
-            {
-              key: 'density',
-              label: t('ui.settings.inbox.density'),
-              description: t('ui.settings.inbox.densityHint'),
+          {
+            key: 'density',
+            rows: [
+              {
+                key: 'density',
+                label: t('ui.settings.inbox.density'),
+                description: t('ui.settings.inbox.densityHint'),
+                control: (
+                  <SettingsSelect
+                    label={t('ui.settings.inbox.density')}
+                    value={prefs.density}
+                    onChange={(v) => setPref('density', v)}
+                    items={DENSITY_OPTIONS.map((item) => ({
+                      value: item.value,
+                      label: t(item.labelKey),
+                    }))}
+                  />
+                ),
+              },
+            ],
+          },
+          {
+            key: 'display',
+            label: t('ui.settings.inbox.display'),
+            rows: toggles.map(([key, label]) => ({
+              key,
+              label: t(`ui.settings.inbox.${label}`),
+              description: t(`ui.settings.inbox.${label}Description`),
+              control: (
+                <Switch
+                  accessibilityLabel={t(`ui.settings.inbox.${label}`)}
+                  checked={prefs[key]}
+                  onCheckedChange={(v) => setPref(key, v)}
+                />
+              ),
+            })),
+          },
+          {
+            key: 'swipe',
+            label: t('ui.settings.inbox.swipeActions'),
+            description: t('ui.settings.inbox.swipeHint'),
+            rows: (
+              [
+                ['leftSwipeAction', 'swipeRight'],
+                ['rightSwipeAction', 'swipeLeft'],
+              ] as const
+            ).map(([key, label]) => ({
+              key,
+              label: t(`ui.settings.inbox.${label}`),
               control: (
                 <SettingsSelect
-                  label={t('ui.settings.inbox.density')}
-                  value={prefs.density}
-                  onChange={(v) => setPref('density', v)}
-                  items={DENSITY_OPTIONS.map((item) => ({
+                  label={t(`ui.settings.inbox.${label}`)}
+                  value={prefs[key]}
+                  onChange={(v) => setPref(key, v)}
+                  items={SWIPE_OPTIONS.map((item) => ({
                     value: item.value,
                     label: t(item.labelKey),
                   }))}
                 />
               ),
-            },
-          ],
-        },
-        {
-          key: 'display',
-          label: t('ui.settings.inbox.display'),
-          rows: toggles.map(([key, label]) => ({
-            key,
-            label: t(`ui.settings.inbox.${label}`),
-            description: t(`ui.settings.inbox.${label}Description`),
-            control: (
-              <Switch
-                accessibilityLabel={t(`ui.settings.inbox.${label}`)}
-                checked={prefs[key]}
-                onCheckedChange={(v) => setPref(key, v)}
-              />
-            ),
-          })),
-        },
-        {
-          key: 'swipe',
-          label: t('ui.settings.inbox.swipeActions'),
-          description: t('ui.settings.inbox.swipeHint'),
-          rows: (
-            [
-              ['leftSwipeAction', 'swipeRight'],
-              ['rightSwipeAction', 'swipeLeft'],
-            ] as const
-          ).map(([key, label]) => ({
-            key,
-            label: t(`ui.settings.inbox.${label}`),
-            control: (
-              <SettingsSelect
-                label={t(`ui.settings.inbox.${label}`)}
-                value={prefs[key]}
-                onChange={(v) => setPref(key, v)}
-                items={SWIPE_OPTIONS.map((item) => ({
-                  value: item.value,
-                  label: t(item.labelKey),
-                }))}
-              />
-            ),
-          })),
-        },
-        {
-          key: 'sending',
-          label: t('ui.settings.inbox.sending'),
-          rows: [
-            {
-              key: 'undoSend',
-              label: t('ui.settings.inbox.undoSend'),
-              description: t('ui.settings.inbox.undoSendDescription'),
-              control: (
-                <SettingsSelect
-                  label={t('ui.settings.inbox.undoSend')}
-                  value={String(prefs.undoSendSeconds)}
-                  onChange={(v) => setPref('undoSendSeconds', Number(v) as typeof prefs.undoSendSeconds)}
-                  items={UNDO_SEND_SECONDS.map((seconds) => ({
-                    value: String(seconds),
-                    label:
-                      seconds === 0
-                        ? t('common.no')
-                        : t('ui.settings.inbox.undoSendSeconds', { count: seconds }),
-                  }))}
-                />
-              ),
-            },
-          ],
-        },
-        {
-          key: 'savedSearches',
-          label: t('ui.settings.inbox.savedSearches'),
-          description: savedSearches.length ? undefined : t('ui.settings.inbox.savedSearchesEmpty'),
-          rows: savedSearches.map((search) => ({
-            key: search.id,
-            label: search.name,
-            description: search.query || undefined,
-            control: (
-              <Button
-                appearance="subtle"
-                tone="danger"
-                disabled={deleteSavedSearch.isPending}
-                onPress={() => deleteSavedSearch.mutate(search.id)}
-              >
-                {t('common.delete')}
-              </Button>
-            ),
-          })),
-        },
-        ...(Platform.OS === 'web'
-          ? [
+            })),
+          },
+          {
+            key: 'sending',
+            label: t('ui.settings.inbox.sending'),
+            rows: [
               {
-                key: 'shortcuts',
-                label: t('ui.settings.inbox.shortcuts'),
-                rows: [
-                  {
-                    key: 'shortcuts',
-                    label: t('ui.settings.inbox.shortcuts'),
-                    description: t('ui.settings.inbox.shortcutsDescription'),
-                    control: (
-                      <Button appearance="subtle" onPress={() => shortcutsControl.open()}>
-                        {t('ui.settings.inbox.shortcutsOpen')}
-                      </Button>
-                    ),
-                  },
-                ],
+                key: 'undoSend',
+                label: t('ui.settings.inbox.undoSend'),
+                description: t('ui.settings.inbox.undoSendDescription'),
+                control: (
+                  <SettingsSelect
+                    label={t('ui.settings.inbox.undoSend')}
+                    value={String(prefs.undoSendSeconds)}
+                    onChange={(v) =>
+                      setPref('undoSendSeconds', Number(v) as typeof prefs.undoSendSeconds)
+                    }
+                    items={UNDO_SEND_SECONDS.map((seconds) => ({
+                      value: String(seconds),
+                      label:
+                        seconds === 0
+                          ? t('common.no')
+                          : t('ui.settings.inbox.undoSendSeconds', { count: seconds }),
+                    }))}
+                  />
+                ),
               },
-            ]
-          : []),
-      ]}
-    />
-    <KeyboardShortcutsHelp control={shortcutsControl} />
+            ],
+          },
+          {
+            key: 'savedSearches',
+            label: t('ui.settings.inbox.savedSearches'),
+            description: savedSearches.length
+              ? undefined
+              : t('ui.settings.inbox.savedSearchesEmpty'),
+            rows: savedSearches.map((search) => ({
+              key: search.id,
+              label: search.name,
+              description: search.query || undefined,
+              control: (
+                <Button
+                  appearance="subtle"
+                  tone="danger"
+                  disabled={deleteSavedSearch.isPending}
+                  onPress={() => deleteSavedSearch.mutate(search.id)}
+                >
+                  {t('common.delete')}
+                </Button>
+              ),
+            })),
+          },
+          ...(Platform.OS === 'web'
+            ? [
+                {
+                  key: 'shortcuts',
+                  label: t('ui.settings.inbox.shortcuts'),
+                  rows: [
+                    {
+                      key: 'shortcuts',
+                      label: t('ui.settings.inbox.shortcuts'),
+                      description: t('ui.settings.inbox.shortcutsDescription'),
+                      control: (
+                        <Button appearance="subtle" onPress={() => shortcutsControl.open()}>
+                          {t('ui.settings.inbox.shortcutsOpen')}
+                        </Button>
+                      ),
+                    },
+                  ],
+                },
+              ]
+            : []),
+        ]}
+      />
+      <KeyboardShortcutsHelp control={shortcutsControl} />
     </>
   );
 }

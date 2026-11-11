@@ -142,7 +142,6 @@ const en: LocaleDict = {
       evening: 'Good evening',
       withName: '{{greeting}}, {{name}}',
     },
-    todaysBrief: "Today's Brief",
     openMenu: 'Open menu',
     jumpToToday: 'Jump to today',
     previousWeek: 'Previous week',

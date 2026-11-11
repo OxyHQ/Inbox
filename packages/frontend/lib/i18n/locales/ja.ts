@@ -143,7 +143,6 @@ const ja: LocaleDict = {
       evening: 'こんばんは',
       withName: '{{greeting}}、{{name}} さん',
     },
-    todaysBrief: '今日のブリーフ',
     openMenu: 'メニューを開く',
     jumpToToday: '今日へ移動',
     previousWeek: '前の週',

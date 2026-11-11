@@ -39,11 +39,7 @@ import { UnreadableMessageRow } from '@/components/UnreadableMessageRow';
 import { SPACING } from '@/constants/layout';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import { useColors } from '@/constants/theme';
-import {
-  DEFAULT_INBOX_PREFS,
-  useInboxPrefs,
-  type SwipeAction,
-} from '@/contexts/inbox-prefs-context';
+import { useInboxPrefs, type SwipeAction } from '@/contexts/inbox-prefs-context';
 import { useBulkUpdateFlags, useTogglePin } from '@/hooks/mutations/useMessageMutations';
 import { useDeleteReminder, useUpdateReminder } from '@/hooks/mutations/useReminderMutations';
 import { isCurrentEmailOwner, useEmailMutationOwner } from '@/hooks/mutations/ownedEmailMutation';
@@ -258,7 +254,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   // the existing user-facing categorization preference. It is not an AI call.
   const sentimentMap = useBatchSentimentAnalysis(displayMessages, prefs.aiCategorization);
 
-  const briefHeading = accountReady ? isInboxView && prefs.aiBrief : DEFAULT_INBOX_PREFS.aiBrief;
   const briefVisible = accountReady && isInboxView && prefs.aiBrief;
   const { brief, error: briefError } = useDailyBrief({ enabled: briefVisible });
   // Messages in the brief card appear once, instead of repeating below it.
@@ -893,13 +888,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
           />
         ) : (
           <PageHeader
-            title={
-              briefHeading
-                ? t('home.todaysBrief')
-                : accountReady
-                  ? mailboxTitle
-                  : t('drawer.mailboxes.Inbox')
-            }
+            title={accountReady ? mailboxTitle : t('drawer.mailboxes.Inbox')}
             sticky={false}
             scrim="auto"
             scrimColor={bloomColors.card}
@@ -917,7 +906,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
               ) : undefined
             }
             subtitle={
-              accountReady && currentMailbox && !briefHeading
+              accountReady && currentMailbox
                 ? t('inbox.summary', {
                     total: currentMailbox.totalMessages,
                     unread: currentMailbox.unseenMessages,

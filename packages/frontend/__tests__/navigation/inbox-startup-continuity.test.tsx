@@ -350,6 +350,6 @@ it('does not apply the previous account brief preference while another account r
   mockAuth = { ...mockAuth, user: { id: 'b' }, isAccountCacheReady: false };
   view.rerender(<InboxList />);
   expect(view.container.querySelector('h1')).toBe(heading);
-  expect(heading?.textContent).toBe('home.todaysBrief');
+  expect(heading?.textContent).toBe('drawer.mailboxes.Inbox');
   expect(view.container.querySelector('[data-message]')).toBeNull();
 });

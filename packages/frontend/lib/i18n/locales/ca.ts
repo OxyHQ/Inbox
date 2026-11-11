@@ -144,7 +144,6 @@ const ca: LocaleDict = {
       evening: 'Bona nit',
       withName: '{{greeting}}, {{name}}',
     },
-    todaysBrief: "Resum d'avui",
     openMenu: 'Obre el menú',
     jumpToToday: 'Ves a avui',
     previousWeek: 'Setmana anterior',

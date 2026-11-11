@@ -143,7 +143,6 @@ const ko: LocaleDict = {
       evening: '좋은 저녁이에요',
       withName: '{{greeting}}, {{name}}님',
     },
-    todaysBrief: '오늘의 요약',
     openMenu: '메뉴 열기',
     jumpToToday: '오늘로 이동',
     previousWeek: '이전 주',

@@ -168,7 +168,6 @@ const ar: LocaleDict = {
       evening: 'مساء الخير',
       withName: '{{greeting}}، {{name}}',
     },
-    todaysBrief: 'ملخّص اليوم',
     openMenu: 'فتح القائمة',
     jumpToToday: 'الانتقال إلى اليوم',
     previousWeek: 'الأسبوع السابق',

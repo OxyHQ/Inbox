@@ -1,78 +1,58 @@
-# Inbosh — email at inbo.sh
+# Inbosh
 
-> Universal standards and Oxy-wide gotchas live in `~/Oxy/AGENTS.md`.
-> Files stack root→cwd and a child carries only its own DELTA, so this file holds
-> only what is true HERE. **Budget: under 4 KB**, enforced by `scripts/check-agents-md-size.mjs` (`bun run validate:agents-md`).
+Email client at inbo.sh: Expo Router app, web (Cloudflare Worker `oxy-inbox`) + Android.
 
-Expo Router app, web (Cloudflare Worker `oxy-inbox`, `packages/frontend/wrangler.toml`) + Android.
-Extracted from `OxyHQ/oxy` `packages/inbox` in 2026-08, history preserved.
+## Commands
 
-## There is no backend here
+```bash
+bun install
+bun run dev          # Expo start (web: bun run web, android: bun run android)
+bun run test         # jest + worker tests
+bun run lint         # Biome + Expo ESLint (lint:fix to write)
+bun run typecheck
+bun run build        # expo export, web
+```
 
-Mailboxes, threads, labels, filters, federation, SMTP and webhook ingest are all
-`@oxy.so/api` in OxyHQ/oxy (~8 200 lines there). This repo is a client.
+## Map
 
-Things that stay in OxyHQ/oxy and name this origin — **do not "clean them up"
-from there**: the API's CORS allowlist (`dynamicOriginRegistry.ts`),
-`@oxy.so/core`'s official-origin allowlists (`server/cors.ts`,
-`utils/oauthPkce.ts`) _and the tests asserting them_, the seeded Oxy
-application's `redirectUris`, and SMTP's ARF `reportingUA`. Deleting the first
-is a total outage; deleting the fourth silently degrades outbound
-deliverability. **`packages/inbox` was code that moved; `inbox.oxy.so` is an
-origin that did not (it redirects to `inbo.sh`).**
+- `packages/frontend/`: the app; `packages/frontend/wrangler.toml`: the Worker
+- `docs/`: design notes; reasons for the rules below: `docs/agent-rules.md`
 
-## `linker = "hoisted"` is not a preference
+## Conventions
 
-`@oxy.so/app-preset/css/base.css` finds Bloom's and the SDK's class names through
-RELATIVE `@source` globs (`../../services/lib`, `../../bloom/lib`). They resolve
-only in a hoisted `node_modules`. Under bun's default isolated linker they match
-nothing, Tailwind emits a stylesheet with no SDK utilities in it, and web layout
-silently falls back to react-native-web's base reset. Nothing errors. The gate is
-a byte floor on `dist/_expo/static/css/global-*.css` (≥20 KB) — a screenshot
-cannot see it, because Bloom sets colours inline and only _layout_ breaks.
+- Client only: mailbox, SMTP and federation logic live in OxyHQ/oxy; origins named there stay.
+- `linker = "hoisted"` stays in `bunfig.toml`; isolated linking drops SDK CSS silently.
+- `bun run test`, never `bun test` (refused by `bunfig.toml`).
+- No `catalog:` or `workspace:*` specifiers; commit `bun.lock` with any `package.json` change.
+- Import `@oxy.so/services/ui/client`, not the root barrel (first-paint cost).
+- One `OxyProvider`; sign-in is `OxyAccountDialog`, never a redirect.
+- Config from `@oxy.so/app-preset`; fix the preset upstream.
+- Bloom tokens + NativeWind only; no hardcoded brand colours.
+- Realtime via `useOxyEvent`; never a second `io()`.
 
-## `expo export` bundles through type errors
+## Boundaries
 
-So `typecheck` runs BEFORE the export, in CI and in the deploy. Note that
-`experiments.typedRoutes` does **not** make CI stricter: `.expo/` is gitignored
-and nothing in CI generates `router.d.ts`, so expo-router's `Href` degrades to
-`string | HrefObject`, which is strictly more permissive. Route strings are not
-gated in CI. The deploy re-runs `typecheck` after `build`, when `expo export`
-has written `.expo/types` as a side effect — that run is the real gate.
+- Never prune a dependency from a zero-import census; 48 have no imports by design.
+- Never "clean up" Inbox origins in OxyHQ/oxy; removal causes an outage.
+- Ask first before changing legacy mutation handling: `docs/legacy-mutation-quarantine.md`.
 
-## The suite is jest; `bun test` is refused
+## Testing
 
-`bun test` ignores `jest.config.js` and half-runs the suite, printing a
-plausible smaller number rather than an error. Both `bunfig.toml` files preload
-`packages/frontend/scripts/refuse-bun-test.ts` to abort it. Run `bun run test`.
+Run `bun run typecheck` and `bun run test`; `expo export` ignores type errors,
+so typecheck is the gate. Done = lint, typecheck and test green.
 
-## No root tsconfig
+## PR and commits
 
-Deliberate divergence from Atlas, whose root solution file needs
-`composite: true` — which `packages/frontend/tsconfig.json` (extends
-`expo/tsconfig.base.json`) does not set. Typecheck via `bun run typecheck`.
+- Run `bun run validate:agents-md`; AGENTS.md has a 4 KB budget, so move detail to `docs/`.
+- Run `bun run doctor:oxy` after dependency changes.
 
-## Dependencies
+## Secrets
 
-Never a `catalog:` or `workspace:*` specifier — there is no catalog and one
-package. After any `package.json` change run `bun install` and commit `bun.lock`
-in the SAME commit.
+Never print env or token values; deploy secrets live in GitHub Actions and Cloudflare.
 
-**A zero-import census cannot justify pruning a dependency here** — 48 of this
-package's deps have zero source references, build tooling and hard peers
-included. The declared peers and the measured census:
-`docs/dependencies.md`.
+## Links
 
-## Oxy SDK conventions
+- [Agent rules](./docs/agent-rules.md), [dependencies](./docs/dependencies.md), [realtime](./docs/realtime-and-outbound.md), [legacy mutation quarantine](./docs/legacy-mutation-quarantine.md)
+- [Oxy standards](https://github.com/OxyHQ/oxy/blob/main/docs/engineering/standards.md), [lint and format](https://github.com/OxyHQ/oxy/blob/main/docs/engineering/lint-and-format.md), [build traps](https://github.com/OxyHQ/oxy/blob/main/docs/engineering/build-and-runtime-traps.md), [npm releases](https://github.com/OxyHQ/oxy/blob/main/docs/npm-releases.md)
 
-- **Import `@oxy.so/services/ui/client`** (or `/ui`) over the root barrel: the
-  root registers every account screen into web first paint.
-- **One provider:** `OxyProvider` with `clientId` + `authRedirectUri`. Sign-in is the in-app `OxyAccountDialog` behind
-  `RequireOxyAuth` — never a redirect to auth.oxy.so.
-- **Config** comes from `@oxy.so/app-preset` (Metro, Babel, base CSS).
-  Fix the preset upstream; never copy config back into the app. Lint and
-  format are Biome plus a minimal Expo ESLint: `bun run lint`.
-- **Theming** is Bloom tokens + NativeWind classNames. Never hardcode brand
-  colours, never redefine `--bloom-*`.
-- **Realtime** rides the SDK's socket via `useOxyEvent`. Never open a second
-  `io()`: `docs/realtime-and-outbound.md`.
+Owner: Nate Isern (Oxy). Last reviewed: 2026-11-11.

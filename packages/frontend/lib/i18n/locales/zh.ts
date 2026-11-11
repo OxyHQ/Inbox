@@ -141,7 +141,6 @@ const zh: LocaleDict = {
       evening: '晚上好',
       withName: '{{greeting}},{{name}}',
     },
-    todaysBrief: '今日摘要',
     openMenu: '打开菜单',
     jumpToToday: '跳到今天',
     previousWeek: '上一周',

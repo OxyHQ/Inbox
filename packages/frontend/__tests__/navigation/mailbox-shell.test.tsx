@@ -297,7 +297,8 @@ it('routes system mailboxes, custom folders, labels and compose without changing
     act(() => defined(mockSidebarProps().items.find((item) => item.key === key)).onPress());
     expect(mockPush).toHaveBeenLastCalledWith(expected);
   }
-  act(() => defined(mockSidebarProps().primaryAction, 'the compose action').onPress());
+  expect(mockSidebarProps().items[0]?.key).toBe('compose');
+  act(() => defined(mockSidebarProps().items[0], 'the compose action').onPress());
   expect(mockPush).toHaveBeenLastCalledWith('/compose');
   expect(screen.getByRole('button', { name: 'Account' })).toBeTruthy();
 });

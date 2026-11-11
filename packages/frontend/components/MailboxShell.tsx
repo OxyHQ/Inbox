@@ -295,6 +295,12 @@ export function MailboxShell({ children }: { children: ReactNode }) {
   });
   const items: SidebarNavItem[] = accountReady
     ? [
+        {
+          key: 'compose',
+          label: t('inbox.composeFabLabel'),
+          icon: RiEditLine,
+          onPress: handleCompose,
+        },
         ...primaryMailboxes.map(mailboxItem),
         {
           key: 'starred',
@@ -407,13 +413,6 @@ export function MailboxShell({ children }: { children: ReactNode }) {
     },
     showSearch: false,
     showThemeToggle: false,
-    primaryAction: accountReady
-      ? {
-          label: t('inbox.composeFabLabel'),
-          icon: RiEditLine,
-          onPress: handleCompose,
-        }
-      : undefined,
     secondaryItems: accountReady
       ? [
           {

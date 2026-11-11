@@ -211,6 +211,8 @@ const fr: LocaleDict = {
   },
 
   inbox: {
+    summary: '{{total}} messages, {{unread}} non lus',
+    refresh: 'Actualiser',
     resizePanes: 'Redimensionner les panneaux',
     loadErrorTitle: 'Impossible de charger tes e-mails',
     unreadable: {
@@ -961,6 +963,17 @@ const fr: LocaleDict = {
         soundDescription: 'Un court carillon à chaque nouveau message.',
       },
       inbox: {
+        sending: 'Envoi',
+        undoSend: "Annuler l'envoi",
+        undoSendDescription:
+          'Combien de temps vous pouvez rappeler un message après avoir appuyé sur Envoyer.',
+        undoSendSeconds: '{{count}} secondes',
+        savedSearches: 'Recherches enregistrées',
+        savedSearchesEmpty:
+          "Aucune recherche enregistrée pour l'instant. Enregistrez-en une depuis l'écran de recherche.",
+        shortcuts: 'Raccourcis clavier',
+        shortcutsDescription: 'Voir tous les raccourcis disponibles.',
+        shortcutsOpen: 'Afficher',
         density: 'Densité des messages',
         compact: 'Compacte',
         comfortable: 'Confortable',

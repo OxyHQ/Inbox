@@ -389,6 +389,9 @@ export function MailboxShell({ children }: { children: ReactNode }) {
   const sidebarProps: SidebarProps = {
     items,
     selected: accountReady ? selected : 'inbox',
+    // Plain and compact, as Alia's sidebar: no card edge, 30px rows.
+    surface: 'plain',
+    size: 'sm',
     collapsed,
     onCollapsedChange: (next) => {
       if (next !== useEmailStore.getState().sidebarCollapsed)

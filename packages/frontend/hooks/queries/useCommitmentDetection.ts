@@ -149,36 +149,3 @@ export function useCommitmentDetection(message: Message | null | undefined): Com
     [hasMessage, text, date],
   );
 }
-
-/**
- * Finds messages with upcoming or past-due commitments.
- */
-export function useCommitmentReminders(
-  sentMessages: Message[],
-): { message: Message; commitments: Commitment[] }[] {
-  return useMemo(() => {
-    const results: { message: Message; commitments: Commitment[] }[] = [];
-
-    for (const msg of sentMessages) {
-      const commitments = extractCommitments(msg);
-      // Only include if there are actionable commitments (urgent or past due)
-      const actionable = commitments.filter((c) => c.isUrgent || c.isPast);
-      if (actionable.length > 0) {
-        results.push({ message: msg, commitments: actionable });
-      }
-    }
-
-    // Sort by urgency (past due first, then by deadline)
-    return results.sort((a, b) => {
-      const aHasPast = a.commitments.some((c) => c.isPast);
-      const bHasPast = b.commitments.some((c) => c.isPast);
-      if (aHasPast && !bHasPast) return -1;
-      if (!aHasPast && bHasPast) return 1;
-
-      const aDeadline = a.commitments.find((c) => c.deadline)?.deadline;
-      const bDeadline = b.commitments.find((c) => c.deadline)?.deadline;
-      if (aDeadline && bDeadline) return aDeadline.getTime() - bDeadline.getTime();
-      return 0;
-    });
-  }, [sentMessages]);
-}

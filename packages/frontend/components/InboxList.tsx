@@ -1,12 +1,16 @@
 import { Screen } from '@oxy.so/bloom/screen';
 import { EmptyState } from '@oxy.so/bloom/empty-state';
 import { Text } from '@oxy.so/bloom/typography';
-import { useMailboxScrollRestoration } from '@/hooks/useMailboxScrollRestoration';
+import { useScrollRestoration } from '@oxy.so/bloom/scroll';
+import { VirtualList, type VirtualListHandle } from '@oxy.so/bloom/list';
 import { useAppShell } from '@oxy.so/bloom/app-shell';
 import { ButtonGroup, ButtonGroupItem } from '@oxy.so/bloom/button-group';
-import { RiAddLine } from '@oxy.so/bloom/icons/RiAddLine';
-import { RiMenuLine } from '@oxy.so/bloom/icons/RiMenuLine';
+import { useTheme } from '@oxy.so/bloom/theme';
+import { RiEditLine } from '@oxy.so/bloom/icons/RiEditLine';
+import { RiMailCheckLine } from '@oxy.so/bloom/icons/RiMailCheckLine';
+import { RiRefreshLine } from '@oxy.so/bloom/icons/RiRefreshLine';
 import { RiSearchLine } from '@oxy.so/bloom/icons/RiSearchLine';
+import { RiMenuLine } from '@oxy.so/bloom/icons/RiMenuLine';
 import { PageHeader } from '@oxy.so/bloom/page-header';
 /**
  * Routed mailbox list with Bloom page chrome and pull-to-refresh.
@@ -15,14 +19,11 @@ import { PageHeader } from '@oxy.so/bloom/page-header';
 
 import { toast } from '@oxy.so/bloom/toast';
 import { OxySignInButton, useOxy } from '@oxy.so/services/ui/client';
-import { FlashList, type FlashListProps, type FlashListRef } from '@shopify/flash-list';
 import { useQueryClient } from '@tanstack/react-query';
 import { useIsFocused, useRouter } from 'expo-router';
 
-import type React from 'react';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { RefreshControl, StyleSheet, View } from 'react-native';
-import Animated, { type AnimatedProps } from 'react-native-reanimated';
+import { StyleSheet, View } from 'react-native';
 
 import { BundleRow } from '@/components/BundleRow';
 import { CreateReminderSheet } from '@/components/CreateReminderSheet';
@@ -79,15 +80,6 @@ type ListItem =
   | { type: 'reminder'; data: Reminder }
   | { type: 'unreadable'; data: UnreadableMessage; key: string };
 
-/** FlashList wrapped once so Bloom's scroll worklet stays on the UI thread. */
-const AnimatedInboxList = Animated.createAnimatedComponent(
-  FlashList as React.ComponentType<
-    FlashListProps<ListItem> & React.RefAttributes<FlashListRef<ListItem>>
-  >,
-) as React.ComponentType<
-  AnimatedProps<FlashListProps<ListItem>> & React.RefAttributes<FlashListRef<ListItem>>
->;
-
 /** Section title for a message: one card per calendar bucket. */
 function getDateCategory(dateStr: string, t: TranslateFn): string {
   const diffDays = calendarDaysBetween(new Date(dateStr), new Date());
@@ -143,6 +135,7 @@ interface InboxListProps {
 }
 
 export function InboxList({ replaceNavigation }: InboxListProps) {
+  const { colors: bloomColors } = useTheme();
   const router = useRouter();
   const shell = useAppShell();
   const focused = useIsFocused();
@@ -703,36 +696,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const pinPendingId =
     togglePin.isPending && togglePin.variables?.messageId ? togglePin.variables.messageId : null;
 
-  const listExtraData = useMemo(
-    () => ({
-      selectedMessageIds,
-      selectedMessageId,
-      isSelectionMode,
-      pinPendingId,
-      isSnoozedView,
-      expandedBundles,
-      density,
-      showPreviews,
-      themeKey: `${colors.unread}|${colors.surface}|${colors.surfaceVariant}|${colors.secondaryText}|${colors.primary}|${colors.border}`,
-    }),
-    [
-      selectedMessageIds,
-      selectedMessageId,
-      isSelectionMode,
-      pinPendingId,
-      isSnoozedView,
-      expandedBundles,
-      density,
-      showPreviews,
-      colors.unread,
-      colors.surface,
-      colors.surfaceVariant,
-      colors.secondaryText,
-      colors.border,
-      colors.primary,
-    ],
-  );
-
   const renderMessageRow = useCallback(
     (msg: Message, note?: string, onOpen?: () => void) => (
       <SwipeableRow
@@ -862,12 +825,11 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     return item.data._id;
   }, []);
 
-  const listRef = useRef<FlashListRef<ListItem>>(null);
-  const onListScroll = useMailboxScrollRestoration(
-    listRef,
-    JSON.stringify(['mailbox', user?.id, messagesOptions]),
-    focused && listItems.length > 0,
-  );
+  const listRef = useRef<VirtualListHandle>(null);
+  const restoration = useScrollRestoration(listRef, {
+    key: JSON.stringify(['mailbox', user?.id, messagesOptions]),
+    enabled: focused && listItems.length > 0,
+  });
 
   const renderEmpty = useCallback(() => {
     // The list waits for the mailboxes to know which folder to read. If those
@@ -916,7 +878,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   return (
     <Screen
       active={focused}
-      scroll="none"
+      scroll="auto"
       testID="inbox-screen"
       header={
         accountReady && isSelectionMode ? (
@@ -930,107 +892,115 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
             onMarkRead={handleBulkMarkRead}
           />
         ) : (
-          <View>
-            <PageHeader
-              title={
-                briefHeading
-                  ? t('home.todaysBrief')
-                  : accountReady
-                    ? mailboxTitle
-                    : t('drawer.mailboxes.Inbox')
-              }
-              sticky={false}
-              scrim="none"
-              safeArea={false}
-              leading={
-                drawerAvailable ? (
-                  <ButtonGroup accessibilityLabel={t('search.openMenu')}>
-                    <ButtonGroupItem
-                      iconOnly
-                      leadingIcon={RiMenuLine}
-                      accessibilityLabel={t('search.openMenu')}
-                      onPress={handleOpenDrawer}
-                    />
-                  </ButtonGroup>
-                ) : undefined
-              }
-              actions={
-                <ButtonGroup>
-                  {accountReady && (
-                    <>
-                      <ButtonGroupItem
-                        iconOnly
-                        leadingIcon={RiAddLine}
-                        accessibilityLabel={t('inbox.composeFabLabel')}
-                        onPress={() => router.push('/compose')}
-                      />
-                      <ButtonGroupItem leadingIcon={AliaAvatarIcon} onPress={handleAskAlia}>
-                        {t('inbox.askAlia')}
-                      </ButtonGroupItem>
-                    </>
-                  )}
+          <PageHeader
+            title={
+              briefHeading
+                ? t('home.todaysBrief')
+                : accountReady
+                  ? mailboxTitle
+                  : t('drawer.mailboxes.Inbox')
+            }
+            sticky={false}
+            scrim="auto"
+            scrimColor={bloomColors.card}
+            safeArea={false}
+            leading={
+              drawerAvailable ? (
+                <ButtonGroup accessibilityLabel={t('search.openMenu')}>
                   <ButtonGroupItem
                     iconOnly
-                    leadingIcon={RiSearchLine}
-                    accessibilityLabel={t('inbox.searchInMailbox', {
-                      mailbox: (accountReady
-                        ? mailboxTitle
-                        : t('drawer.mailboxes.Inbox')
-                      ).toLowerCase(),
-                    })}
-                    onPress={handleSearch}
+                    leadingIcon={RiMenuLine}
+                    accessibilityLabel={t('search.openMenu')}
+                    onPress={handleOpenDrawer}
                   />
                 </ButtonGroup>
-              }
-            />
-          </View>
+              ) : undefined
+            }
+            subtitle={
+              accountReady && currentMailbox && !briefHeading
+                ? t('inbox.summary', {
+                    total: currentMailbox.totalMessages,
+                    unread: currentMailbox.unseenMessages,
+                  })
+                : undefined
+            }
+            actions={
+              accountReady ? (
+                <>
+                  <ButtonGroup>
+                    <ButtonGroupItem leadingIcon={AliaAvatarIcon} onPress={handleAskAlia}>
+                      {t('inbox.askAlia')}
+                    </ButtonGroupItem>
+                    <ButtonGroupItem
+                      iconOnly
+                      leadingIcon={RiSearchLine}
+                      accessibilityLabel={t('inbox.searchInMailbox', {
+                        mailbox: mailboxTitle.toLowerCase(),
+                      })}
+                      onPress={handleSearch}
+                    />
+                  </ButtonGroup>
+                  <ButtonGroup>
+                    <ButtonGroupItem
+                      iconOnly
+                      leadingIcon={RiRefreshLine}
+                      accessibilityLabel={t('inbox.refresh')}
+                      onPress={handleRefresh}
+                      loading={pulling}
+                    />
+                    <ButtonGroupItem
+                      iconOnly
+                      leadingIcon={RiMailCheckLine}
+                      accessibilityLabel={t('message.actions.markRead')}
+                      onPress={() => messageActions.setRead(messages, true)}
+                    />
+                    <ButtonGroupItem
+                      iconOnly
+                      leadingIcon={RiEditLine}
+                      accessibilityLabel={t('inbox.composeFabLabel')}
+                      onPress={() => router.push('/compose')}
+                    />
+                  </ButtonGroup>
+                </>
+              ) : undefined
+            }
+          />
         )
       }
     >
       <PrivateInboxContent>
-        <View style={styles.listContainer}>
-          <AnimatedInboxList
-            ref={listRef}
-            data={listItems}
-            renderItem={renderItem}
-            keyExtractor={keyExtractor}
-            getItemType={getItemType}
-            ListHeaderComponent={
-              <>
-                <UndeliveredBanner />
-                {briefVisible && (
-                  <DailyBrief
-                    onOpenMessage={openMessageById}
-                    onAction={handleBriefAction}
-                    messages={messages}
-                    renderMessage={renderMessageRow}
-                  />
-                )}
-              </>
-            }
-            ListEmptyComponent={shownAboveIds.size > 0 ? null : renderEmpty}
-            onEndReached={handleLoadMore}
-            onEndReachedThreshold={0.3}
-            onScroll={onListScroll}
-            scrollEventThrottle={16}
-            extraData={listExtraData}
-            refreshControl={
-              <RefreshControl
-                refreshing={pulling}
-                onRefresh={handleRefresh}
-                tintColor={colors.primary}
-                colors={[colors.primary]}
-              />
-            }
-            contentContainerStyle={{
-              ...(listItems.length === 0 ? styles.emptyListContent : null),
-              ...styles.listContent,
-              paddingTop: 0,
-              paddingBottom: 0,
-            }}
-            showsVerticalScrollIndicator={false}
-          />
-        </View>
+        <VirtualList
+          ref={listRef}
+          data={listItems}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          getItemType={getItemType}
+          screen={{ active: focused, restoration }}
+          ListHeaderComponent={
+            <>
+              <UndeliveredBanner />
+              {briefVisible && (
+                <DailyBrief
+                  onOpenMessage={openMessageById}
+                  onAction={handleBriefAction}
+                  messages={messages}
+                  renderMessage={renderMessageRow}
+                />
+              )}
+            </>
+          }
+          ListEmptyComponent={shownAboveIds.size > 0 ? null : renderEmpty}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.3}
+          refreshing={pulling}
+          onRefresh={handleRefresh}
+          contentContainerStyle={{
+            ...(listItems.length === 0 ? styles.emptyListContent : null),
+            ...styles.listContent,
+            paddingTop: 0,
+            paddingBottom: 0,
+          }}
+        />
 
         {/* Alia remains available from the inline header action. */}
         {isAuthenticated && aliaRequest && (
@@ -1074,10 +1044,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     width: '100%',
-  },
-  listContainer: {
-    flex: 1,
-    minHeight: 0,
   },
   emptyListContent: {
     flexGrow: 1,

@@ -211,6 +211,8 @@ const it: LocaleDict = {
   },
 
   inbox: {
+    summary: '{{total}} messaggi, {{unread}} da leggere',
+    refresh: 'Aggiorna',
     resizePanes: 'Ridimensiona i pannelli',
     loadErrorTitle: 'Impossibile caricare la posta',
     unreadable: {
@@ -958,6 +960,16 @@ const it: LocaleDict = {
         soundDescription: 'Un breve segnale acustico per i nuovi messaggi.',
       },
       inbox: {
+        sending: 'Invio',
+        undoSend: 'Annulla invio',
+        undoSendDescription:
+          'Per quanto tempo puoi richiamare un messaggio dopo aver premuto Invia.',
+        undoSendSeconds: '{{count}} secondi',
+        savedSearches: 'Ricerche salvate',
+        savedSearchesEmpty: 'Nessuna ricerca salvata. Salvane una dalla schermata di ricerca.',
+        shortcuts: 'Scorciatoie da tastiera',
+        shortcutsDescription: 'Vedi tutte le scorciatoie disponibili.',
+        shortcutsOpen: 'Mostra',
         density: 'Densità dei messaggi',
         compact: 'Compatta',
         comfortable: 'Comoda',

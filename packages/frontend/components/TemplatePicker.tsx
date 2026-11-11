@@ -5,7 +5,7 @@ import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
 import { RiDraftLine } from '@oxy.so/bloom/icons/RiDraftLine';
 import { SettingsListItem } from '@oxy.so/bloom/settings-list';
 import { useCallback } from 'react';
-import { ScrollView } from 'react-native';
+import { ScrollArea } from '@oxy.so/bloom/layout';
 import { useTranslation } from '@/lib/i18n';
 
 interface TemplatePickerProps {
@@ -35,7 +35,7 @@ export function TemplatePicker({ onSelect }: TemplatePickerProps) {
         icon={<RiDraftLine />}
       />
       <Dialog control={control} title={t('templates.insert')}>
-        <ScrollView style={{ maxHeight: 360 }}>
+        <ScrollArea style={{ maxHeight: 360 }}>
           {templates.map((template) => (
             <SettingsListItem
               key={template._id}
@@ -44,7 +44,7 @@ export function TemplatePicker({ onSelect }: TemplatePickerProps) {
               onPress={() => handleSelect(template)}
             />
           ))}
-        </ScrollView>
+        </ScrollArea>
       </Dialog>
     </>
   );

@@ -36,7 +36,12 @@ jest.mock('@oxy.so/bloom/screen', () => ({
 jest.mock('@oxy.so/bloom/theme', () => ({ useTheme: () => ({ colors: {} }) }));
 jest.mock('@oxy.so/bloom/app-shell', () => ({ useAppShell: () => ({ drawerAvailable: false }) }));
 jest.mock('@oxy.so/bloom/page-header', () => ({
-  PageHeader: ({ actions }: { actions: React.ReactNode }) => actions,
+  PageHeader: ({ leading, actions }: { leading?: React.ReactNode; actions: React.ReactNode }) => (
+    <>
+      {leading}
+      {actions}
+    </>
+  ),
 }));
 jest.mock('@oxy.so/bloom/button-group', () => ({
   ButtonGroup: ({ children }: { children: React.ReactNode }) => children,

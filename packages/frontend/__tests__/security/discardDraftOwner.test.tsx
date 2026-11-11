@@ -18,6 +18,9 @@ const mockToast = Object.assign(jest.fn(), {
   warning: jest.fn(),
   dismiss: jest.fn(),
 });
+jest.mock('@/contexts/inbox-prefs-context', () => ({
+  useInboxPrefs: () => ({ prefs: { undoSendSeconds: 5 } }),
+}));
 jest.mock('@oxy.so/services/runtime', () => ({ useOxyRuntime: () => mockRuntime }));
 jest.mock('@oxy.so/services/ui/client', () => ({
   useOxy: () => {

@@ -42,19 +42,17 @@ jest.mock('react-native', () => ({
   RefreshControl: () => null,
   StyleSheet: { create: (styles: unknown) => styles },
 }));
-jest.mock('react-native-reanimated', () => ({
-  __esModule: true,
-  default: { createAnimatedComponent: (component: unknown) => component },
-}));
-jest.mock('@shopify/flash-list', () => ({
-  FlashList: ({
+jest.mock('@oxy.so/bloom/theme', () => ({ useTheme: () => ({ colors: {} }) }));
+jest.mock('@oxy.so/bloom/scroll', () => ({ useScrollRestoration: () => ({}) }));
+jest.mock('@oxy.so/bloom/list', () => ({
+  VirtualList: ({
     data,
     renderItem,
     ListHeaderComponent,
     ListEmptyComponent,
   }: {
     data: { key?: string; data?: Message }[];
-    renderItem: (args: { item: unknown }) => ReactNode;
+    renderItem: (args: { item: unknown; index: number }) => ReactNode;
     ListHeaderComponent?: ReactNode;
     ListEmptyComponent?: (() => ReactNode) | null;
   }) => (
@@ -62,7 +60,7 @@ jest.mock('@shopify/flash-list', () => ({
       {ListHeaderComponent}
       {data.length
         ? data.map((item, index) => (
-            <div key={item.key ?? item.data?._id ?? index}>{renderItem({ item })}</div>
+            <div key={item.key ?? item.data?._id ?? index}>{renderItem({ item, index })}</div>
           ))
         : ListEmptyComponent?.()}
     </section>
@@ -184,9 +182,7 @@ jest.mock('@/hooks/mutations/useMessageMutations', () => ({
 }));
 jest.mock('@/hooks/useMessageActions', () => ({ useMessageActions: () => mockActions }));
 jest.mock('@/hooks/useLeaveRemovedRows', () => ({ useLeaveRemovedRows: () => mockNoop }));
-jest.mock('@/hooks/useMailboxScrollRestoration', () => ({
-  useMailboxScrollRestoration: () => mockNoop,
-}));
+jest.mock('@oxy.so/bloom/scroll', () => ({ useScrollRestoration: () => ({}) }));
 jest.mock('@/components/MessageRow', () => ({
   MessageRow: ({ message }: { message: Message }) => (
     <article data-message={message._id}>{message.subject}</article>

@@ -19,6 +19,9 @@ const toast = Object.assign(jest.fn(), {
   dismiss: jest.fn(),
 });
 
+jest.mock('@/contexts/inbox-prefs-context', () => ({
+  useInboxPrefs: () => ({ prefs: { undoSendSeconds: 5 } }),
+}));
 jest.mock('@oxy.so/bloom/toast', () => ({ toast }));
 
 const invalidateQueries = jest.fn();

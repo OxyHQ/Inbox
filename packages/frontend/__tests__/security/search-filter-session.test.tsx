@@ -38,25 +38,22 @@ jest.mock('react-native', () => ({
   View: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   StyleSheet: { create: (styles: unknown) => styles },
 }));
-jest.mock('react-native-reanimated', () => ({
-  __esModule: true,
-  default: {
-    FlatList: ({
-      ListHeaderComponent,
-      data,
-      onEndReached,
-      ListEmptyComponent,
-    }: {
-      ListHeaderComponent: ReactNode;
-      data: unknown[];
-      onEndReached?: () => void;
-      ListEmptyComponent?: () => React.ReactElement | null;
-    }) => {
-      mockRenderedItems = data;
-      mockEndReached = onEndReached;
-      mockRenderEmpty = ListEmptyComponent;
-      return <div>{ListHeaderComponent}</div>;
-    },
+jest.mock('@oxy.so/bloom/list', () => ({
+  VirtualList: ({
+    ListHeaderComponent,
+    data,
+    onEndReached,
+    ListEmptyComponent,
+  }: {
+    ListHeaderComponent: ReactNode;
+    data: unknown[];
+    onEndReached?: () => void;
+    ListEmptyComponent?: () => React.ReactElement | null;
+  }) => {
+    mockRenderedItems = data;
+    mockEndReached = onEndReached;
+    mockRenderEmpty = ListEmptyComponent;
+    return <div>{ListHeaderComponent}</div>;
   },
 }));
 jest.mock('expo-router', () => ({
@@ -218,9 +215,7 @@ jest.mock('@/contexts/search-focus-context', () => ({
   useSearchFocus: () => ({ registerInput: () => {} }),
 }));
 jest.mock('@/hooks/useGoBack', () => ({ useGoBack: () => () => {} }));
-jest.mock('@/hooks/useMailboxScrollRestoration', () => ({
-  useMailboxScrollRestoration: () => () => {},
-}));
+jest.mock('@oxy.so/bloom/scroll', () => ({ useScrollRestoration: () => ({}) }));
 jest.mock('@/hooks/queries/useLabels', () => ({ useLabels: () => ({ data: [] }) }));
 jest.mock('@/hooks/queries/useMailboxes', () => ({
   useMailboxes: () => ({

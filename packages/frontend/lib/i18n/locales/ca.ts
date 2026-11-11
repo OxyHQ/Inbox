@@ -210,6 +210,8 @@ const ca: LocaleDict = {
   },
 
   inbox: {
+    summary: '{{total}} missatges, {{unread}} sense llegir',
+    refresh: 'Actualitza',
     resizePanes: 'Canvia la mida dels plafons',
     loadErrorTitle: "No s'ha pogut carregar el correu",
     unreadable: {
@@ -957,6 +959,16 @@ const ca: LocaleDict = {
         soundDescription: 'Un so breu amb cada missatge nou.',
       },
       inbox: {
+        sending: 'Enviament',
+        undoSend: "Desfés l'enviament",
+        undoSendDescription: 'Quant de temps pots anul·lar un missatge després de prémer Envia.',
+        undoSendSeconds: '{{count}} segons',
+        savedSearches: 'Cerques desades',
+        savedSearchesEmpty:
+          "Encara no hi ha cerques desades. Desa'n una des de la pantalla de cerca.",
+        shortcuts: 'Dreceres de teclat',
+        shortcutsDescription: 'Consulta totes les dreceres disponibles.',
+        shortcutsOpen: 'Veure',
         density: 'Densitat de missatges',
         compact: 'Compacta',
         comfortable: 'Còmoda',

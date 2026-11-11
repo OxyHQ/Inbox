@@ -15,23 +15,3 @@ export const SPACING = {
   lg: 16,
   xl: 24,
 } as const;
-
-/** Avatar diameter in a message row. */
-export const AVATAR_SIZE = 24;
-
-/** Radii, from the tightest (chips) to the widest (cards). */
-export const RADIUS = {
-  chip: 10,
-  row: 12,
-  card: 16,
-} as const;
-
-/** Fixed width for the trailing timestamp, so times never ragged-edge. */
-export const TIMESTAMP_WIDTH = 64;
-
-/**
- * Readable column width for the message list. Without the detail pane beside
- * it the list would otherwise stretch across an entire desktop display, which
- * leaves the timestamp an arm's length from the sender.
- */
-export const CONTENT_MAX_WIDTH = 760;

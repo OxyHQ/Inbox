@@ -210,6 +210,8 @@ const pt: LocaleDict = {
   },
 
   inbox: {
+    summary: '{{total}} mensagens, {{unread}} não lidas',
+    refresh: 'Atualizar',
     resizePanes: 'Redimensionar painéis',
     loadErrorTitle: 'Não foi possível carregar seus e-mails',
     unreadable: {
@@ -957,6 +959,16 @@ const pt: LocaleDict = {
         soundDescription: 'Um breve aviso sonoro para novas mensagens.',
       },
       inbox: {
+        sending: 'Envio',
+        undoSend: 'Desfazer envio',
+        undoSendDescription:
+          'Quanto tempo você pode cancelar uma mensagem depois de tocar em Enviar.',
+        undoSendSeconds: '{{count}} segundos',
+        savedSearches: 'Pesquisas salvas',
+        savedSearchesEmpty: 'Ainda não há pesquisas salvas. Salve uma na tela de pesquisa.',
+        shortcuts: 'Atalhos de teclado',
+        shortcutsDescription: 'Veja todos os atalhos disponíveis.',
+        shortcutsOpen: 'Ver',
         density: 'Densidade das mensagens',
         compact: 'Compacta',
         comfortable: 'Confortável',

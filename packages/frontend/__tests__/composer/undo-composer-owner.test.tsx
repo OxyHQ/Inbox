@@ -18,6 +18,9 @@ const mockToast = Object.assign(jest.fn(), {
 const mockStorage = new Map<string, string>();
 const token = `e30.${Buffer.from(JSON.stringify({ userId: 'u1', sessionId: 's1', exp: 2000000000 })).toString('base64url')}.test`;
 
+jest.mock('@/contexts/inbox-prefs-context', () => ({
+  useInboxPrefs: () => ({ prefs: { undoSendSeconds: 5 } }),
+}));
 jest.mock('@/hooks/useEmail', () => ({
   useEmailStore: Object.assign((selector: (s: unknown) => unknown) => selector({ _api: mockApi }), {
     getState: () => ({ _api: mockApi }),

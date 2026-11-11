@@ -12,8 +12,6 @@ import { SPECIAL_USE } from '@/constants/mailbox';
 import type { Message } from '@/services/emailApi';
 import type { Commitment } from './useCommitmentDetection';
 
-// Re-export commitment detection for use with follow-up messages
-export { useCommitmentReminders } from './useCommitmentDetection';
 export type { Commitment };
 
 export interface FollowUpMessage extends Message {

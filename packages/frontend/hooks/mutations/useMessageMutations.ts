@@ -9,6 +9,7 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@oxy.so/bloom/toast';
 import { useOxy } from '@oxy.so/services/ui/client';
+import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
 import { useOxyRuntime } from '@oxy.so/services/runtime';
 import { useEmailStore } from '@/hooks/useEmail';
 import { useTranslation } from '@/lib/i18n';
@@ -417,8 +418,6 @@ function invalidateAfterSend(queryClient: ReturnType<typeof useQueryClient>) {
   invalidateMailViews(queryClient);
 }
 
-const UNDO_SEND_DELAY_MS = 5000;
-
 /** A send waiting out its undo window. */
 export interface PendingSend {
   /**
@@ -434,6 +433,7 @@ export interface PendingSend {
 
 export function useSendMessageWithUndo() {
   const { t } = useTranslation();
+  const undoDelayMs = useInboxPrefs().prefs.undoSendSeconds * 1000;
   const api = useEmailStore((s) => s._api);
   const queryClient = useQueryClient();
   const { oxyServices, user } = useOxy();
@@ -536,13 +536,16 @@ export function useSendMessageWithUndo() {
       };
 
       const toastId = toast(t('ui.mutations.sending'), {
-        duration: UNDO_SEND_DELAY_MS,
-        action: {
-          label: t('common.undo'),
-          onClick: () => {
-            if (cancel() && ownsSession()) toast(t('ui.mutations.sendCancelled'));
-          },
-        },
+        // Without an undo window there is nothing to offer Undo for.
+        duration: undoDelayMs || undefined,
+        action: undoDelayMs
+          ? {
+              label: t('common.undo'),
+              onClick: () => {
+                if (cancel() && ownsSession()) toast(t('ui.mutations.sendCancelled'));
+              },
+            }
+          : undefined,
       } as Record<string, unknown>);
 
       const timer = setTimeout(async () => {
@@ -590,7 +593,7 @@ export function useSendMessageWithUndo() {
           unsubscribe();
           setPendingOwner((pending) => (pending === owner ? null : pending));
         }
-      }, UNDO_SEND_DELAY_MS);
+      }, undoDelayMs);
       const checkOwner = () => {
         if (!ownsSession()) abandon();
       };
@@ -610,7 +613,7 @@ export function useSendMessageWithUndo() {
 
       return { cancel, abandoned, detach: () => unsubscribe() };
     },
-    [api, queryClient, t, http, epoch, subjectId, renderedOwner, ownsSession],
+    [api, queryClient, t, http, epoch, subjectId, renderedOwner, ownsSession, undoDelayMs],
   );
 
   return {

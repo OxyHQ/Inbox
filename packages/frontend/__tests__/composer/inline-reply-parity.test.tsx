@@ -50,6 +50,9 @@ const mockSession = {
 const mockShowBottomSheet = jest.fn();
 const mockDialogOpen = jest.fn();
 
+jest.mock('@oxy.so/bloom/layout', () => ({
+  ScrollArea: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+}));
 jest.mock('react-native', () => ({
   Platform: { OS: 'web' },
   View: ({ children }: Children) => <div>{children}</div>,

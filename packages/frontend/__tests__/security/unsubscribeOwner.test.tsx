@@ -31,40 +31,33 @@ jest.mock('react-native', () => ({
   useWindowDimensions: () => ({ width: 800 }),
   Platform: { OS: 'web', select: (v: { web?: unknown; default?: unknown }) => v.web ?? v.default },
 }));
-jest.mock('react-native-reanimated', () => ({
-  __esModule: true,
-  default: { createAnimatedComponent: (component: unknown) => component },
-}));
-jest.mock('@shopify/flash-list', () => ({
-  FlashList: ({
+jest.mock('@oxy.so/bloom/list', () => ({
+  VirtualList: ({
     data,
     renderItem,
   }: {
     data: { _id: string }[];
-    renderItem: (item: { item: { _id: string } }) => ReactNode;
+    renderItem: (info: { item: { _id: string }; index: number }) => ReactNode;
   }) => (
     <>
-      {data.map((item) => (
-        <span key={item._id}>{renderItem({ item })}</span>
+      {data.map((item, index) => (
+        <span key={item._id}>{renderItem({ item, index })}</span>
       ))}
     </>
   ),
 }));
 jest.mock('@oxy.so/bloom/styles', () => ({ BREAKPOINTS: { md: 700 } }));
 jest.mock('@oxy.so/bloom/design-tokens', () => ({ SPACING: { 'space-2': 4 } }));
-jest.mock('@oxy.so/bloom/layout', () => ({
-  ScrollMetricsProvider: ({ children }: { children: ReactNode }) => children,
-  TopEdgeProvider: ({ children }: { children: ReactNode }) => children,
-  useBottomEdgeInset: () => 0,
-  useTopEdgeInset: () => 0,
-  useAnimatedScrollMetricsBinding: () => ({}),
+jest.mock('@oxy.so/bloom/scroll', () => ({ useScrollRestoration: () => ({}) }));
+jest.mock('expo-router', () => ({ useIsFocused: () => true }));
+jest.mock('@oxy.so/bloom/screen', () => ({
+  Screen: ({ header, children }: { header: ReactNode; children: ReactNode }) => (
+    <>
+      {header}
+      {children}
+    </>
+  ),
 }));
-jest.mock('@oxy.so/bloom/scroll', () => ({
-  ScrollRestorationProvider: ({ children }: { children: ReactNode }) => children,
-  useScrollRestoration: () => ({}),
-}));
-jest.mock('@oxy.so/bloom/scroll/expo-router', () => ({ expoRouterScrollAdapter: {} }));
-jest.mock('@oxy.so/bloom/tab-bar', () => ({ useMinimizeOnScroll: () => () => {} }));
 jest.mock('@oxy.so/bloom/page-header', () => ({ PageHeader: () => null }));
 jest.mock('@oxy.so/bloom/app-shell', () => ({ useAppShell: () => ({ drawerAvailable: false }) }));
 jest.mock('@oxy.so/bloom/button-group', () => ({

@@ -233,6 +233,8 @@ const ar: LocaleDict = {
   },
 
   inbox: {
+    summary: '{{total}} رسالة، {{unread}} غير مقروءة',
+    refresh: 'تحديث',
     resizePanes: 'تغيير حجم الأجزاء',
     loadErrorTitle: 'تعذّر تحميل بريدك',
     unreadable: {
@@ -972,6 +974,15 @@ const ar: LocaleDict = {
         soundDescription: 'نغمة قصيرة عند وصول رسائل جديدة.',
       },
       inbox: {
+        sending: 'الإرسال',
+        undoSend: 'التراجع عن الإرسال',
+        undoSendDescription: 'المدة التي يمكنك فيها استرجاع الرسالة بعد الضغط على إرسال.',
+        undoSendSeconds: '{{count}} ثوانٍ',
+        savedSearches: 'عمليات البحث المحفوظة',
+        savedSearchesEmpty: 'لا توجد عمليات بحث محفوظة بعد. احفظ واحدة من شاشة البحث.',
+        shortcuts: 'اختصارات لوحة المفاتيح',
+        shortcutsDescription: 'اعرض جميع الاختصارات المتاحة.',
+        shortcutsOpen: 'عرض',
         density: 'كثافة الرسائل',
         compact: 'مضغوطة',
         comfortable: 'مريحة',

@@ -3,7 +3,7 @@
 // dev variant with `APP_VARIANT=development` (e.g.
 // `APP_VARIANT=development npx expo run:android`); production is the default.
 const IS_DEV_VARIANT = process.env.APP_VARIANT === 'development';
-const APP_ID = IS_DEV_VARIANT ? 'so.oxy.inbox.dev' : 'so.oxy.inbox';
+const APP_ID = IS_DEV_VARIANT ? 'sh.inbo.app.dev' : 'sh.inbo.app';
 const APP_NAME = IS_DEV_VARIANT ? 'Inbosh (Dev)' : 'Inbosh by Oxy';
 
 module.exports = {

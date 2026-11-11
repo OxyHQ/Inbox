@@ -93,8 +93,8 @@ const ja: LocaleDict = {
   },
 
   app: {
-    name: 'Inbox',
-    title: 'Oxy Inbox',
+    name: 'Inbosh',
+    title: 'Oxy Inbosh',
     titleSuffix: '· Oxy',
   },
 
@@ -445,7 +445,7 @@ const ja: LocaleDict = {
     titleCompose: '作成',
     titleReply: '返信',
     titleForward: '転送',
-    headTitleCompose: '作成 · Inbox · Oxy',
+    headTitleCompose: '作成 · Inbosh · Oxy',
     headTitleWithSubject: '{{subject}} · 作成 · Oxy',
     placeholders: {
       to: '宛先',
@@ -843,7 +843,7 @@ const ja: LocaleDict = {
   },
 
   settings: {
-    head: '設定 · Inbox · Oxy',
+    head: '設定 · Inbosh · Oxy',
     title: '設定',
   },
 
@@ -854,7 +854,7 @@ const ja: LocaleDict = {
     },
     me: 'Me',
     layoutDirection: {
-      restartRequired: 'この言語の表示方向に切り替えるには、Inbox を再起動してください。',
+      restartRequired: 'この言語の表示方向に切り替えるには、Inbosh を再起動してください。',
     },
     settings: {
       manageOxyAccount: 'Oxy アカウントを管理',
@@ -862,7 +862,7 @@ const ja: LocaleDict = {
         personal: '個人',
         mail: 'メール',
         system: 'システム',
-        welcome: 'Inbox へようこそ',
+        welcome: 'Inbosh へようこそ',
         signInDescription: 'サインインすると、メッセージ、ラベル、設定をデバイス間で同期できます。',
         manageAccount: '{{name}} のアカウントを管理',
         sections: {

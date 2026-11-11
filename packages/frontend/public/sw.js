@@ -1,5 +1,5 @@
 /**
- * Service Worker for Inbox by Oxy
+ * Service Worker for Inbosh by Oxy
  *
  * Caching strategies (chosen for an email client that has to feel instant
  * but also stay fresh):

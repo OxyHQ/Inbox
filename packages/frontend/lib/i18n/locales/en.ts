@@ -92,8 +92,8 @@ const en: LocaleDict = {
   },
 
   app: {
-    name: 'Inbox',
-    title: 'Inbox by Oxy',
+    name: 'Inbosh',
+    title: 'Inbosh by Oxy',
     titleSuffix: '· Oxy',
   },
 
@@ -331,7 +331,7 @@ const en: LocaleDict = {
     contactsTitle: 'No contacts yet',
     errorTitle: 'Something went wrong',
     errorDescription:
-      'This part of Inbox couldn’t be displayed. Try again, or open another mailbox.',
+      'This part of Inbosh couldn’t be displayed. Try again, or open another mailbox.',
     templatesTitle: 'No templates yet',
     templatesDescription:
       'Save messages you write often as templates to reuse them when composing.',
@@ -444,7 +444,7 @@ const en: LocaleDict = {
     titleCompose: 'Compose',
     titleReply: 'Reply',
     titleForward: 'Forward',
-    headTitleCompose: 'Compose · Inbox · Oxy',
+    headTitleCompose: 'Compose · Inbosh · Oxy',
     headTitleWithSubject: '{{subject}} · Compose · Oxy',
     placeholders: {
       to: 'Recipients',
@@ -837,7 +837,7 @@ const en: LocaleDict = {
   },
 
   settings: {
-    head: 'Settings · Inbox · Oxy',
+    head: 'Settings · Inbosh · Oxy',
     title: 'Settings',
   },
 
@@ -861,12 +861,12 @@ const en: LocaleDict = {
 
   ui: {
     error: {
-      description: "This part of Inbox couldn't be shown. Your mail is safe.",
+      description: "This part of Inbosh couldn't be shown. Your mail is safe.",
       title: 'Something went wrong',
     },
     me: 'Me',
     layoutDirection: {
-      restartRequired: 'Restart Inbox to switch the layout direction for this language.',
+      restartRequired: 'Restart Inbosh to switch the layout direction for this language.',
     },
     settings: {
       manageOxyAccount: 'Manage Oxy account',
@@ -874,7 +874,7 @@ const en: LocaleDict = {
         personal: 'Personal',
         mail: 'Mail',
         system: 'System',
-        welcome: 'Welcome to Inbox',
+        welcome: 'Welcome to Inbosh',
         signInDescription: 'Sign in to sync your messages, labels, and preferences across devices.',
         manageAccount: 'Manage account for {{name}}',
         sections: {
@@ -905,7 +905,7 @@ const en: LocaleDict = {
       account: {
         saveChanges: 'Save changes',
         keepCopyDescription: 'Recommended so you keep a record of forwarded mail.',
-        keepCopy: 'Keep a copy in Inbox',
+        keepCopy: 'Keep a copy in Inbosh',
         vacationOff: 'Off — incoming mail flows normally.',
         vacationOn: 'Replies are sent automatically.',
         vacation: 'Vacation responder',
@@ -948,7 +948,7 @@ const en: LocaleDict = {
       notifications: {
         deviceNotice: 'System-level notification permissions are managed in your device settings.',
         webNotice:
-          'Push notifications are available in the Inbox app for Android. While Inbox is open in your browser, new mail appears here as it arrives.',
+          'Push notifications are available in the Inbosh app for Android. While Inbosh is open in your browser, new mail appears here as it arrives.',
         alerts: 'Alerts',
         push: 'Push notifications',
         pushDescription: 'Get notified when new messages arrive.',

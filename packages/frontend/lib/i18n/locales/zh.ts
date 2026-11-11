@@ -91,8 +91,8 @@ const zh: LocaleDict = {
   },
 
   app: {
-    name: 'Inbox',
-    title: 'Oxy Inbox',
+    name: 'Inbosh',
+    title: 'Oxy Inbosh',
     titleSuffix: '· Oxy',
   },
 
@@ -432,7 +432,7 @@ const zh: LocaleDict = {
     titleCompose: '撰写',
     titleReply: '回复',
     titleForward: '转发',
-    headTitleCompose: '撰写 · Inbox · Oxy',
+    headTitleCompose: '撰写 · Inbosh · Oxy',
     headTitleWithSubject: '{{subject}} · 撰写 · Oxy',
     placeholders: {
       to: '收件人',
@@ -819,7 +819,7 @@ const zh: LocaleDict = {
   },
 
   settings: {
-    head: '设置 · Inbox · Oxy',
+    head: '设置 · Inbosh · Oxy',
     title: '设置',
   },
 
@@ -830,7 +830,7 @@ const zh: LocaleDict = {
     },
     me: 'Me',
     layoutDirection: {
-      restartRequired: '重新启动 Inbox 即可切换为此语言的布局方向。',
+      restartRequired: '重新启动 Inbosh 即可切换为此语言的布局方向。',
     },
     settings: {
       manageOxyAccount: '管理 Oxy 账户',
@@ -838,7 +838,7 @@ const zh: LocaleDict = {
         personal: '个人',
         mail: '邮件',
         system: '系统',
-        welcome: '欢迎使用 Inbox',
+        welcome: '欢迎使用 Inbosh',
         signInDescription: '登录以在各设备间同步你的邮件、标签和偏好设置。',
         manageAccount: '管理 {{name}} 的账户',
         sections: {

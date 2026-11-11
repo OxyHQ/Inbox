@@ -1,6 +1,6 @@
 # Inbox
 
-**Inbox by Oxy** — the email client at [inbox.oxy.so](https://inbox.oxy.so).
+**Inbosh by Oxy** — the email client at [inbox.oxy.so](https://inbox.oxy.so).
 Expo Router, web (static export → a Cloudflare Worker) and Android.
 
 Extracted from [OxyHQ/oxy](https://github.com/OxyHQ/oxy) (`packages/inbox`)

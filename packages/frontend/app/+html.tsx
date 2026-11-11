@@ -14,9 +14,9 @@ import { BloomFontHead } from '@oxy.so/bloom/fonts';
 import { BloomThemeHead } from '@oxy.so/bloom/theme';
 import { INBOX_THEME_BOOTSTRAP } from '@/constants/theme-bootstrap';
 
-const DEFAULT_TITLE = 'Inbox by Oxy';
+const DEFAULT_TITLE = 'Inbosh by Oxy';
 const DEFAULT_DESCRIPTION = 'Email by Oxy. Federated, encrypted, simple.';
-const SITE_NAME = 'Inbox by Oxy';
+const SITE_NAME = 'Inbosh by Oxy';
 // Absolute, and a file the export actually contains: `/assets/images/icon.png`
 // is not in dist/, so the SPA fallback answered with index.html and link
 // previews showed no image.

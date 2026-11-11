@@ -4,7 +4,7 @@
 // `APP_VARIANT=development npx expo run:android`); production is the default.
 const IS_DEV_VARIANT = process.env.APP_VARIANT === 'development';
 const APP_ID = IS_DEV_VARIANT ? 'so.oxy.inbox.dev' : 'so.oxy.inbox';
-const APP_NAME = IS_DEV_VARIANT ? 'Inbox (Dev)' : 'Inbox by Oxy';
+const APP_NAME = IS_DEV_VARIANT ? 'Inbosh (Dev)' : 'Inbosh by Oxy';
 
 module.exports = {
   expo: {
@@ -71,7 +71,7 @@ module.exports = {
       [
         'react-native-audio-api',
         {
-          iosMicrophonePermission: 'Allow Inbox to hear what you dictate and say to Alia.',
+          iosMicrophonePermission: 'Allow Inbosh to hear what you dictate and say to Alia.',
           iosBackgroundMode: false,
           androidForegroundService: false,
           androidPermissions: ['android.permission.RECORD_AUDIO'],

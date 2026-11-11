@@ -93,8 +93,8 @@ const ko: LocaleDict = {
   },
 
   app: {
-    name: 'Inbox',
-    title: 'Oxy Inbox',
+    name: 'Inbosh',
+    title: 'Oxy Inbosh',
     titleSuffix: '· Oxy',
   },
 
@@ -440,7 +440,7 @@ const ko: LocaleDict = {
     titleCompose: '작성',
     titleReply: '답장',
     titleForward: '전달',
-    headTitleCompose: '작성 · Inbox · Oxy',
+    headTitleCompose: '작성 · Inbosh · Oxy',
     headTitleWithSubject: '{{subject}} · 작성 · Oxy',
     placeholders: {
       to: '받는 사람',
@@ -833,7 +833,7 @@ const ko: LocaleDict = {
   },
 
   settings: {
-    head: '설정 · Inbox · Oxy',
+    head: '설정 · Inbosh · Oxy',
     title: '설정',
   },
 
@@ -844,7 +844,7 @@ const ko: LocaleDict = {
     },
     me: 'Me',
     layoutDirection: {
-      restartRequired: '이 언어의 화면 방향으로 바꾸려면 Inbox를 다시 시작하세요.',
+      restartRequired: '이 언어의 화면 방향으로 바꾸려면 Inbosh를 다시 시작하세요.',
     },
     settings: {
       manageOxyAccount: 'Oxy 계정 관리',
@@ -852,7 +852,7 @@ const ko: LocaleDict = {
         personal: '개인',
         mail: '메일',
         system: '시스템',
-        welcome: 'Inbox에 오신 것을 환영해요',
+        welcome: 'Inbosh에 오신 것을 환영해요',
         signInDescription: '로그인하면 메시지, 라벨, 환경설정을 여러 기기에서 동기화할 수 있어요.',
         manageAccount: '{{name}} 계정 관리',
         sections: {

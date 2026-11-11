@@ -23,6 +23,7 @@ import { AppShell } from '@oxy.so/bloom/app-shell';
 import { MAIL_DETAIL_PANEL, MAIL_LIST_PANEL, MAIL_PANELS, MAIL_WORKSPACE } from './mailWorkspace';
 import { Button } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
+import { Fab } from '@oxy.so/bloom/fab';
 import { RiAddLine } from '@oxy.so/bloom/icons/RiAddLine';
 import { RiArchiveLine } from '@oxy.so/bloom/icons/RiArchiveLine';
 import { RiArrowDownSLine } from '@oxy.so/bloom/icons/RiArrowDownSLine';
@@ -295,12 +296,6 @@ export function MailboxShell({ children }: { children: ReactNode }) {
   });
   const items: SidebarNavItem[] = accountReady
     ? [
-        {
-          key: 'compose',
-          label: t('inbox.composeFabLabel'),
-          icon: RiEditLine,
-          onPress: handleCompose,
-        },
         ...primaryMailboxes.map(mailboxItem),
         {
           key: 'starred',
@@ -411,6 +406,19 @@ export function MailboxShell({ children }: { children: ReactNode }) {
         onClose();
       },
     },
+    // The sidebar's main command, the same Fab its `primaryAction` draws, above the destinations.
+    toolbar: accountReady
+      ? ({ collapsed: compact }) => (
+          <Fab
+            size="md"
+            icon={RiEditLine}
+            label={t('inbox.composeFabLabel')}
+            collapsed={compact}
+            onPress={handleCompose}
+            style={{ width: '100%' }}
+          />
+        )
+      : undefined,
     showSearch: false,
     showThemeToggle: false,
     secondaryItems: accountReady

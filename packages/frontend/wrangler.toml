@@ -47,3 +47,11 @@ not_found_handling = "single-page-application"
 [[routes]]
 pattern = "inbox.oxy.so"
 custom_domain = true
+
+# Inbosh's new home. Both names serve this same bundle until inbo.sh is proven,
+# then inbox.oxy.so becomes a redirect. Both origins are registered in the
+# Oxy application (OxyHQ/oxy seedOxyApplicationsSpecs.ts), so sign-in and the
+# API's CORS accept either.
+[[routes]]
+pattern = "inbo.sh"
+custom_domain = true

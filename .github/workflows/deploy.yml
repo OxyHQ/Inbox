@@ -267,11 +267,13 @@ jobs:
             || { echo "::error::$c has lost the SPA fallback that replaced public/_redirects — deep links would 404"; exit 1; }
           grep -qE '^pattern[[:space:]]*=[[:space:]]*"inbox\.oxy\.so"' "$c" \
             || { echo "::error::$c no longer claims inbox.oxy.so"; exit 1; }
+          grep -qE '^pattern[[:space:]]*=[[:space:]]*"inbo\.sh"' "$c" \
+            || { echo "::error::$c no longer claims inbo.sh"; exit 1; }
           if [ -e "$d/_redirects" ]; then
             echo "::error::$d/_redirects is back. A Worker IGNORES it; not_found_handling is what serves the shell, and a file that looks like routing but is not will outlive whoever added it."
             exit 1
           fi
-          echo "workers_dev=false · SPA fallback · inbox.oxy.so · no _redirects"
+          echo "workers_dev=false · SPA fallback · inbox.oxy.so + inbo.sh · no _redirects"
 
       # A WORKER, not a Pages project. A Pages project ALWAYS serves
       # `<project>.pages.dev` and Cloudflare offers no way to switch it off —
@@ -357,3 +359,12 @@ jobs:
           done
           echo "::error::inbox.oxy.so is not serving the bundle built by this run"
           exit 1
+
+      # inbo.sh is new: its certificate can take a while, so this reports and
+      # never fails the deploy. inbox.oxy.so above is the gate until the switch.
+      - name: inbo.sh reports the same build (informational)
+        continue-on-error: true
+        run: |
+          release=$(curl -sS --max-time 20 "https://inbo.sh/release.txt?build=${DEPLOY_SHA}" | tr -d '[:space:]' || true)
+          echo "inbo.sh release: ${release:-unreachable} · expected $DEPLOY_SHA"
+          [ "$release" = "$DEPLOY_SHA" ]

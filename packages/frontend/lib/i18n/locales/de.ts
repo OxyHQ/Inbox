@@ -334,7 +334,7 @@ const de: LocaleDict = {
     contactsTitle: 'Noch keine Kontakte',
     errorTitle: 'Etwas ist schiefgelaufen',
     errorDescription:
-      'Dieser Teil von Inbox konnte nicht angezeigt werden. Versuche es erneut oder öffne einen anderen Ordner.',
+      'Dieser Teil von Inbosh konnte nicht angezeigt werden. Versuche es erneut oder öffne einen anderen Ordner.',
     templatesTitle: 'Noch keine Vorlagen',
     templatesDescription:
       'Speichere häufig geschriebene Nachrichten als Vorlagen, um sie beim Verfassen wiederzuverwenden.',
@@ -864,13 +864,13 @@ const de: LocaleDict = {
   ui: {
     error: {
       description:
-        'Dieser Teil von Inbox konnte nicht angezeigt werden. Deine E-Mails sind sicher.',
+        'Dieser Teil von Inbosh konnte nicht angezeigt werden. Deine E-Mails sind sicher.',
       title: 'Etwas ist schiefgelaufen',
     },
     me: 'Me',
     layoutDirection: {
       restartRequired:
-        'Starte Inbox neu, um die Leserichtung der Oberfläche an diese Sprache anzupassen.',
+        'Starte Inbosh neu, um die Leserichtung der Oberfläche an diese Sprache anzupassen.',
     },
     settings: {
       manageOxyAccount: 'Oxy-Konto verwalten',
@@ -956,7 +956,7 @@ const de: LocaleDict = {
         deviceNotice:
           'Benachrichtigungsberechtigungen werden in den Geräteeinstellungen verwaltet.',
         webNotice:
-          'Push-Benachrichtigungen gibt es in der Inbox-App für Android. Solange Inbox in deinem Browser geöffnet ist, erscheinen neue E-Mails hier, sobald sie ankommen.',
+          'Push-Benachrichtigungen gibt es in der Inbosh-App für Android. Solange Inbosh in deinem Browser geöffnet ist, erscheinen neue E-Mails hier, sobald sie ankommen.',
         alerts: 'Benachrichtigungen',
         push: 'Push-Benachrichtigungen',
         pushDescription: 'Werde benachrichtigt, wenn neue Nachrichten eintreffen.',

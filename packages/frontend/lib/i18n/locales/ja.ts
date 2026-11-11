@@ -331,7 +331,7 @@ const ja: LocaleDict = {
     contactsTitle: '連絡先はまだありません',
     errorTitle: '問題が発生しました',
     errorDescription:
-      'Inboxのこの部分を表示できませんでした。再試行するか、別のフォルダーを開いてください。',
+      'Inboshのこの部分を表示できませんでした。再試行するか、別のフォルダーを開いてください。',
     templatesTitle: 'テンプレートはまだありません',
     templatesDescription: 'よく書くメールをテンプレートとして保存すると、作成時に再利用できます。',
     selectConversationDescription: '一覧から会話を選んで、メッセージを読んだり返信したりできます。',
@@ -848,7 +848,7 @@ const ja: LocaleDict = {
 
   ui: {
     error: {
-      description: 'Inbox のこの部分を表示できませんでした。メールは安全です。',
+      description: 'Inbosh のこの部分を表示できませんでした。メールは安全です。',
       title: '問題が発生しました',
     },
     me: 'Me',
@@ -895,7 +895,7 @@ const ja: LocaleDict = {
         vacation: '不在通知',
         vacationOn: '自動で返信が送信されます。',
         vacationOff: 'オフ — 受信メールは通常どおり届きます。',
-        keepCopy: 'Inbox にコピーを残す',
+        keepCopy: 'Inbosh にコピーを残す',
         keepCopyDescription: '転送したメールの記録を残すためにおすすめします。',
         saveChanges: '変更を保存',
         loadingSettings: '設定を読み込んでいます。変更はこの画面に残ります。',
@@ -936,7 +936,7 @@ const ja: LocaleDict = {
       notifications: {
         deviceNotice: 'システムの通知許可はデバイスの設定で管理します。',
         webNotice:
-          'プッシュ通知は Android 版 Inbox アプリで利用できます。ブラウザで Inbox を開いている間は、新しいメールが届くとここに表示されます。',
+          'プッシュ通知は Android 版 Inbosh アプリで利用できます。ブラウザで Inbosh を開いている間は、新しいメールが届くとここに表示されます。',
         alerts: '通知',
         push: 'プッシュ通知',
         pushDescription: '新しいメッセージが届いたときに通知します。',

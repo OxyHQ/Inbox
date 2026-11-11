@@ -329,7 +329,7 @@ const ko: LocaleDict = {
     labelsTitle: '아직 라벨이 없습니다',
     contactsTitle: '아직 연락처가 없습니다',
     errorTitle: '문제가 발생했습니다',
-    errorDescription: 'Inbox의 이 부분을 표시하지 못했습니다. 다시 시도하거나 다른 폴더를 여세요.',
+    errorDescription: 'Inbosh의 이 부분을 표시하지 못했습니다. 다시 시도하거나 다른 폴더를 여세요.',
     templatesTitle: '아직 템플릿이 없습니다',
     templatesDescription:
       '자주 작성하는 메시지를 템플릿으로 저장하여 메일 작성 시 다시 사용하세요.',
@@ -838,7 +838,7 @@ const ko: LocaleDict = {
 
   ui: {
     error: {
-      description: 'Inbox의 이 부분을 표시할 수 없습니다. 메일은 안전합니다.',
+      description: 'Inbosh의 이 부분을 표시할 수 없습니다. 메일은 안전합니다.',
       title: '문제가 발생했습니다',
     },
     me: 'Me',
@@ -885,7 +885,7 @@ const ko: LocaleDict = {
         vacation: '부재중 자동응답',
         vacationOn: '답장이 자동으로 전송돼요.',
         vacationOff: '꺼짐 — 받은 메일이 평소처럼 도착해요.',
-        keepCopy: 'Inbox에 사본 보관',
+        keepCopy: 'Inbosh에 사본 보관',
         keepCopyDescription: '전달한 메일의 기록을 남기려면 사용하는 것이 좋아요.',
         saveChanges: '변경사항 저장',
         loadingSettings: '설정을 불러오는 중입니다. 변경 사항은 이 화면에 유지됩니다.',
@@ -926,7 +926,7 @@ const ko: LocaleDict = {
       notifications: {
         deviceNotice: '시스템 알림 권한은 기기 설정에서 관리합니다.',
         webNotice:
-          '푸시 알림은 Android용 Inbox 앱에서 사용할 수 있어요. 브라우저에서 Inbox를 열어 두면 새 메일이 도착하는 대로 여기에 표시돼요.',
+          '푸시 알림은 Android용 Inbosh 앱에서 사용할 수 있어요. 브라우저에서 Inbosh를 열어 두면 새 메일이 도착하는 대로 여기에 표시돼요.',
         alerts: '알림',
         push: '푸시 알림',
         pushDescription: '새 메시지가 도착하면 알려 드려요.',

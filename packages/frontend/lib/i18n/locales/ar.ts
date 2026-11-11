@@ -358,7 +358,7 @@ const ar: LocaleDict = {
     labelsTitle: 'لا توجد تصنيفات بعد',
     contactsTitle: 'لا توجد جهات اتصال بعد',
     errorTitle: 'حدث خطأ ما',
-    errorDescription: 'تعذر عرض هذا الجزء من Inbox. حاول مرة أخرى أو افتح مجلدًا آخر.',
+    errorDescription: 'تعذر عرض هذا الجزء من Inbosh. حاول مرة أخرى أو افتح مجلدًا آخر.',
     templatesTitle: 'لا توجد قوالب بعد',
     templatesDescription:
       'احفظ الرسائل التي تكتبها كثيرًا كقوالب لإعادة استخدامها عند كتابة الرسائل.',
@@ -876,7 +876,7 @@ const ar: LocaleDict = {
 
   ui: {
     error: {
-      description: 'تعذّر عرض هذا الجزء من Inbox. بريدك في أمان.',
+      description: 'تعذّر عرض هذا الجزء من Inbosh. بريدك في أمان.',
       title: 'حدث خطأ ما',
     },
     me: 'Me',
@@ -962,7 +962,7 @@ const ar: LocaleDict = {
       notifications: {
         deviceNotice: 'تُدار أذونات إشعارات النظام من إعدادات جهازك.',
         webNotice:
-          'تتوفر الإشعارات الفورية في تطبيق Inbox لنظام Android. وما دام Inbox مفتوحًا في متصفحك، ستظهر الرسائل الجديدة هنا فور وصولها.',
+          'تتوفر الإشعارات الفورية في تطبيق Inbosh لنظام Android. وما دام Inbosh مفتوحًا في متصفحك، ستظهر الرسائل الجديدة هنا فور وصولها.',
         alerts: 'التنبيهات',
         push: 'الإشعارات الفورية',
         pushDescription: 'احصل على إشعار عند وصول رسائل جديدة.',

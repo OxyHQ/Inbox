@@ -326,7 +326,7 @@ const zh: LocaleDict = {
     labelsTitle: '暂无标签',
     contactsTitle: '暂无联系人',
     errorTitle: '出了点问题',
-    errorDescription: '无法显示 Inbox 的这部分内容。请重试或打开其他文件夹。',
+    errorDescription: '无法显示 Inbosh 的这部分内容。请重试或打开其他文件夹。',
     templatesTitle: '暂无模板',
     templatesDescription: '将经常编写的邮件保存为模板，方便撰写时重复使用。',
     selectConversationDescription: '从列表中选择一个会话，阅读消息并回复。',
@@ -824,7 +824,7 @@ const zh: LocaleDict = {
 
   ui: {
     error: {
-      description: '无法显示 Inbox 的这一部分。你的邮件是安全的。',
+      description: '无法显示 Inbosh 的这一部分。你的邮件是安全的。',
       title: '出了点问题',
     },
     me: 'Me',
@@ -909,7 +909,7 @@ const zh: LocaleDict = {
       notifications: {
         deviceNotice: '系统通知权限在设备设置中管理。',
         webNotice:
-          '推送通知可在 Android 版 Inbox 应用中使用。在浏览器中打开 Inbox 时，新邮件一到就会显示在这里。',
+          '推送通知可在 Android 版 Inbosh 应用中使用。在浏览器中打开 Inbosh 时，新邮件一到就会显示在这里。',
         alerts: '提醒',
         push: '推送通知',
         pushDescription: '收到新邮件时通知我。',

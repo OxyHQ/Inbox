@@ -8,7 +8,6 @@ import {
   INFERENCE_TIMEOUT_MS,
   streamInboxDraft,
 } from '@/services/inboxInferenceApi';
-import { withAliaSdkCsp } from '@alia.onl/sdk/csp';
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -189,10 +188,32 @@ describe('Inbox point-inference API client', () => {
     expect(readFileSync(resolve(frontendRoot, 'scripts/write-pages-headers.ts'), 'utf8')).toContain(
       'withAliaSdkCsp(config.csp)',
     );
-    expect(withAliaSdkCsp(headers.csp).connectSrc).toEqual(
-      expect.arrayContaining(['https://api.alia.onl', 'wss://api.alia.onl']),
+    // The web build (deploy.yml) and the native build (eas.json) point the SDK at
+    // api.gemies.ai, and the SDK's CSP follows that same variable, so the policy
+    // the build composes names api.gemies.ai and not the retiring api.alia.onl.
+    const deployWorkflow = readFileSync(
+      resolve(frontendRoot, '../../.github/workflows/deploy.yml'),
+      'utf8',
     );
-    expect(withAliaSdkCsp(headers.csp).connectSrc).not.toContain('wss://livekit.oxy.so');
+    expect(deployWorkflow).toContain('EXPO_PUBLIC_ALIA_API_URL: https://api.gemies.ai');
+    const eas = JSON.parse(readFileSync(resolve(frontendRoot, 'eas.json'), 'utf8')) as {
+      build: { production: { env: Record<string, string> } };
+    };
+    expect(eas.build.production.env.EXPO_PUBLIC_ALIA_API_URL).toBe('https://api.gemies.ai');
+    const previous = process.env.EXPO_PUBLIC_ALIA_API_URL;
+    process.env.EXPO_PUBLIC_ALIA_API_URL = 'https://api.gemies.ai';
+    let withAliaSdkCsp!: typeof import('@alia.onl/sdk/csp').withAliaSdkCsp;
+    jest.isolateModules(() => {
+      ({ withAliaSdkCsp } = require('@alia.onl/sdk/csp') as typeof import('@alia.onl/sdk/csp'));
+    });
+    if (previous === undefined) delete process.env.EXPO_PUBLIC_ALIA_API_URL;
+    else process.env.EXPO_PUBLIC_ALIA_API_URL = previous;
+    const connectSrc = withAliaSdkCsp(headers.csp).connectSrc;
+    expect(connectSrc).toEqual(
+      expect.arrayContaining(['https://api.gemies.ai', 'wss://api.gemies.ai']),
+    );
+    expect(connectSrc).not.toContain('https://api.alia.onl');
+    expect(connectSrc).not.toContain('wss://livekit.oxy.so');
   });
 
   it('fails closed on malformed non-streaming data', async () => {

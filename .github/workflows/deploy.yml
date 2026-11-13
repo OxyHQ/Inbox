@@ -189,7 +189,7 @@ jobs:
       - run: bun run build
         env:
           EXPO_PUBLIC_API_URL: https://api.oxy.so
-          EXPO_PUBLIC_ALIA_API_URL: https://api.gemies.ai
+          EXPO_PUBLIC_GEMIES_API_URL: https://api.gemies.ai
           EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI: https://inbo.sh
           # Inbox's PRODUCTION Oxy client id. `packages/frontend/constants/oxy.ts`
           # falls back to a committed id when this is unset, so nothing errors —

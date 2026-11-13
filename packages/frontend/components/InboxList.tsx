@@ -65,7 +65,7 @@ import { useScopedState } from '@/hooks/useScopedState';
 import { PrivateInboxContent } from '@/components/PrivateInboxContent';
 import type { InboxAliaRequest } from './InboxAlia';
 
-import { AliaAvatarIcon } from '@alia.onl/sdk/avatar';
+import { GemieAvatarIcon } from '@gemies/sdk/avatar';
 
 const InboxAlia = lazy(() => import('./InboxAlia'));
 
@@ -917,7 +917,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
               accountReady ? (
                 <>
                   <ButtonGroup>
-                    <ButtonGroupItem leadingIcon={AliaAvatarIcon} onPress={handleAskAlia}>
+                    <ButtonGroupItem leadingIcon={GemieAvatarIcon} onPress={handleAskAlia}>
                       {t('inbox.askAlia')}
                     </ButtonGroupItem>
                     <ButtonGroupItem

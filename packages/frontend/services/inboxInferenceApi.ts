@@ -4,7 +4,7 @@
  * These calls are deliberately owned by Oxy (`/email/ai/*`): Oxy authenticates
  * the human session, bounds the email data and prompt, attributes usage to the
  * exact Inbox application, and sends the authorized route to Kaana. Agent chat
- * remains a separate `@alia.onl/sdk` concern.
+ * remains a separate `@gemies/sdk` concern.
  */
 
 import type { OxyServices } from '@oxy.so/core';

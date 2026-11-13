@@ -40,7 +40,7 @@ linker = "hoisted"
 # compromised THIRD-PARTY release. These are first-party.
 minimumReleaseAge = 604800
 minimumReleaseAgeExcludes = [
-  "@alia.onl/sdk",
+  "@gemies/sdk",
   "@clarity.surf/sdk",
   "@oxy.so/app-preset",
   "@oxy.so/bloom",

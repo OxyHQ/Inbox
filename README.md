@@ -36,7 +36,7 @@ Inbox keeps product inference and agent conversation separate:
   this client never sends a model or routing profile. The concrete model that
   ran is recorded by Oxy, not returned to the app.
 - “Ask Alia” and voice remain Alia agent capabilities through
-  `@alia.onl/sdk` and `https://api.gemies.ai`; they do not use the removed
+  `@gemies/sdk` and `https://api.gemies.ai`; they do not use the removed
   Oxy-to-Alia completion proxy.
 
 No provider credential belongs in this app or its environment. Hosted provider
@@ -52,7 +52,7 @@ staging target.
 | Variable                            | Default                                                                       |
 | ----------------------------------- | ----------------------------------------------------------------------------- |
 | `EXPO_PUBLIC_API_URL`               | `https://api.oxy.so`                                                          |
-| `EXPO_PUBLIC_ALIA_API_URL`          | `https://api.gemies.ai` (set in `deploy.yml` and `eas.json`; read by the SDK) |
+| `EXPO_PUBLIC_GEMIES_API_URL`        | `https://api.gemies.ai` (set in `deploy.yml` and `eas.json`; read by the SDK) |
 | `EXPO_PUBLIC_OXY_CLIENT_ID`         | the registered production client id (`packages/frontend/constants/oxy.ts`)    |
 | `EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI` | `https://inbo.sh`                                                             |
 

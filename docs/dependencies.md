@@ -33,7 +33,7 @@ exclusion comes back with that reason next to it.
 `socket.io-client` is deliberately NOT a direct dependency. It was one until
 2026-09-19, when `useInboxSocket` stopped opening its own connection and moved
 onto the SDK's (`docs/realtime-and-outbound.md`). It is still installed —
-`@oxy.so/core` depends on it and `@alia.onl/sdk` peers on it — so a dependabot
+`@oxy.so/core` depends on it and `@gemies/sdk` peers on it — so a dependabot
 PR bumping the direct range should be closed, not merged: merging re-adds the
 dependency the fix removed.
 

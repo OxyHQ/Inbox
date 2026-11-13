@@ -1,10 +1,10 @@
-import { AliaChatContent } from '@alia.onl/sdk';
+import { GemieChatContent } from '@gemies/sdk';
 import { AgentAvatarProvider } from '@oxy.so/bloom/agent-avatar';
 import { useMemo } from 'react';
 import { View } from 'react-native';
 import { useTranslation } from '@/lib/i18n';
 
-/** Alia's own conversation screen (the SDK's `AliaChatContent`), where no message is open. */
+/** Alia's own conversation screen (the SDK's `GemieChatContent`), where no message is open. */
 export default function InboxAliaPanel() {
   const { t } = useTranslation();
   const welcomeSuggestions = useMemo(
@@ -18,7 +18,7 @@ export default function InboxAliaPanel() {
   return (
     <AgentAvatarProvider>
       <View className="flex-1">
-        <AliaChatContent
+        <GemieChatContent
           app="inbox"
           clientContext={t('inbox.aliaClientContext')}
           welcomeSuggestions={welcomeSuggestions}

@@ -170,7 +170,7 @@ describe('Inbox point-inference API client', () => {
       expect(source).toContain(path);
     }
     const inboxAlia = readFileSync(resolve(frontendRoot, 'components/InboxAlia.tsx'), 'utf8');
-    expect(inboxAlia).toContain('<AliaChatSheet');
+    expect(inboxAlia).toContain('<GemieChatSheet');
     expect(inboxList + inboxAlia).not.toMatch(
       /ALIA_PROXY_API_URL|apiUrl=\{ALIA_PROXY_API_URL\}|model="alia-lite"/,
     );
@@ -183,10 +183,10 @@ describe('Inbox point-inference API client', () => {
       /drafted by Alia|Daily Brief and Smart Reply use Alia|conversation to Alia for summarization|Alia will draft it/,
     );
     // What the embedded SDK loads is the SDK's declaration, composed in by the
-    // writer (`withAliaSdkCsp`), never a hand-kept copy of Alia's origins.
+    // writer (`withGemiesSdkCsp`), never a hand-kept copy of Alia's origins.
     expect(JSON.stringify(headers)).not.toContain('alia.onl');
     expect(readFileSync(resolve(frontendRoot, 'scripts/write-pages-headers.ts'), 'utf8')).toContain(
-      'withAliaSdkCsp(config.csp)',
+      'withGemiesSdkCsp(config.csp)',
     );
     // The web build (deploy.yml) and the native build (eas.json) point the SDK at
     // api.gemies.ai, and the SDK's CSP follows that same variable, so the policy
@@ -195,20 +195,20 @@ describe('Inbox point-inference API client', () => {
       resolve(frontendRoot, '../../.github/workflows/deploy.yml'),
       'utf8',
     );
-    expect(deployWorkflow).toContain('EXPO_PUBLIC_ALIA_API_URL: https://api.gemies.ai');
+    expect(deployWorkflow).toContain('EXPO_PUBLIC_GEMIES_API_URL: https://api.gemies.ai');
     const eas = JSON.parse(readFileSync(resolve(frontendRoot, 'eas.json'), 'utf8')) as {
       build: { production: { env: Record<string, string> } };
     };
-    expect(eas.build.production.env.EXPO_PUBLIC_ALIA_API_URL).toBe('https://api.gemies.ai');
-    const previous = process.env.EXPO_PUBLIC_ALIA_API_URL;
-    process.env.EXPO_PUBLIC_ALIA_API_URL = 'https://api.gemies.ai';
-    let withAliaSdkCsp!: typeof import('@alia.onl/sdk/csp').withAliaSdkCsp;
+    expect(eas.build.production.env.EXPO_PUBLIC_GEMIES_API_URL).toBe('https://api.gemies.ai');
+    const previous = process.env.EXPO_PUBLIC_GEMIES_API_URL;
+    process.env.EXPO_PUBLIC_GEMIES_API_URL = 'https://api.gemies.ai';
+    let withGemiesSdkCsp!: typeof import('@gemies/sdk/csp').withGemiesSdkCsp;
     jest.isolateModules(() => {
-      ({ withAliaSdkCsp } = require('@alia.onl/sdk/csp') as typeof import('@alia.onl/sdk/csp'));
+      ({ withGemiesSdkCsp } = require('@gemies/sdk/csp') as typeof import('@gemies/sdk/csp'));
     });
-    if (previous === undefined) delete process.env.EXPO_PUBLIC_ALIA_API_URL;
-    else process.env.EXPO_PUBLIC_ALIA_API_URL = previous;
-    const connectSrc = withAliaSdkCsp(headers.csp).connectSrc;
+    if (previous === undefined) delete process.env.EXPO_PUBLIC_GEMIES_API_URL;
+    else process.env.EXPO_PUBLIC_GEMIES_API_URL = previous;
+    const connectSrc = withGemiesSdkCsp(headers.csp).connectSrc;
     expect(connectSrc).toEqual(
       expect.arrayContaining(['https://api.gemies.ai', 'wss://api.gemies.ai']),
     );

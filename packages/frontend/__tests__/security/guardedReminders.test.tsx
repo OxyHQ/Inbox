@@ -137,7 +137,7 @@ jest.mock('@oxy.so/bloom/empty-state', () => ({ EmptyState: () => <p>Empty mailb
 jest.mock('@oxy.so/bloom/toast', () => ({
   toast: mockToast,
 }));
-jest.mock('@alia.onl/sdk/avatar', () => ({ AliaAvatarIcon: () => null }));
+jest.mock('@gemies/sdk/avatar', () => ({ GemieAvatarIcon: () => null }));
 jest.mock('@/constants/theme', () => ({ useColors: () => ({}) }));
 jest.mock('@/lib/i18n', () => ({ useTranslation: () => ({ t: mockTranslate, locale: 'en' }) }));
 jest.mock('@/contexts/inbox-prefs-context', () => ({

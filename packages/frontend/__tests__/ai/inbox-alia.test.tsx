@@ -6,10 +6,10 @@ const mockPresent = jest.fn();
 jest.mock('@/lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
-jest.mock('@alia.onl/sdk', () => {
+jest.mock('@gemies/sdk', () => {
   const { useImperativeHandle } = jest.requireActual('react');
   return {
-    AliaChatSheet: ({ ref, clientContext }: { ref: unknown; clientContext: string }) => {
+    GemieChatSheet: ({ ref, clientContext }: { ref: unknown; clientContext: string }) => {
       useImperativeHandle(ref, () => ({
         present: (turn?: { text: string }) => mockPresent({ turn, clientContext }),
       }));

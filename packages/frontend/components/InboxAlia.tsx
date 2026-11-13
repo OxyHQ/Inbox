@@ -1,4 +1,4 @@
-import { AliaChatSheet, type AliaChatSheetRef } from '@alia.onl/sdk';
+import { GemieChatSheet, type GemieChatSheetRef } from '@gemies/sdk';
 import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import type { InboxDailyBriefAction } from '@/services/inboxInferenceApi';
@@ -10,7 +10,7 @@ export interface InboxAliaRequest {
 /** Loaded on first use; each request opens Alia after its context has committed. */
 export default function InboxAlia({ request }: { request: InboxAliaRequest }) {
   const { t } = useTranslation();
-  const sheet = useRef<AliaChatSheetRef>(null);
+  const sheet = useRef<GemieChatSheetRef>(null);
   const presented = useRef<InboxAliaRequest | null>(null);
   const welcomeSuggestions = useMemo(
     () => [
@@ -27,7 +27,7 @@ export default function InboxAlia({ request }: { request: InboxAliaRequest }) {
   }, [request]);
 
   return (
-    <AliaChatSheet
+    <GemieChatSheet
       ref={sheet}
       app="inbox"
       clientContext={

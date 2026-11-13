@@ -29,7 +29,7 @@
     "react-native-css": "3.1.0-rc.0",
     "markdown-it": "12.3.2",
     "@oxy.so/core": "7.49.0",
-    "@oxy.so/contracts": "7.0.0",
+    "@oxy.so/contracts": "7.1.0",
     "@oxy.so/protocol": "1.11.1"
   },
   "engines": {

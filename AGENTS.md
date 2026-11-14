@@ -34,6 +34,7 @@ bun run build        # expo export, web
 
 - Never prune a dependency from a zero-import census; 48 have no imports by design.
 - Never "clean up" Inbox origins in OxyHQ/oxy; removal causes an outage.
+- First-party never asks people for permissions: this app acts for a person with `actingFor` on what oxy's first-party registry declares (oxy ADR 0066); permissions, scopes and consent are only for third parties.
 - Ask first before changing legacy mutation handling: `docs/legacy-mutation-quarantine.md`.
 
 ## Testing

@@ -2,7 +2,7 @@ import { useTranslation, type TranslateFn } from '@/lib/i18n';
 import { Button } from '@oxy.so/bloom/button';
 import { Checkbox } from '@oxy.so/bloom/checkbox';
 import { RiDeleteBinLine } from '@oxy.so/bloom/icons/RiDeleteBinLine';
-import { Item } from '@oxy.so/bloom/item';
+import { ListItem } from '@oxy.so/bloom/list';
 /**
  * Reminder row for the inbox list.
  *
@@ -55,7 +55,7 @@ export function formatReminderTime(
 export function ReminderRow({ reminder, onToggleComplete, onPress, onDelete }: ReminderRowProps) {
   const { t, locale } = useTranslation();
   return (
-    <Item
+    <ListItem
       leading={
         <Checkbox
           checked={reminder.completed}
@@ -63,12 +63,9 @@ export function ReminderRow({ reminder, onToggleComplete, onPress, onDelete }: R
           onCheckedChange={(next) => onToggleComplete(reminder._id, next)}
         />
       }
-      title={
-        <Button appearance="subtle" onPress={() => onPress(reminder._id)}>
-          {reminder.text}
-        </Button>
-      }
-      subtitle={reminder.remindAt ? formatReminderTime(reminder.remindAt, t, locale) : undefined}
+      title={reminder.text}
+      onPress={() => onPress(reminder._id)}
+      supporting={reminder.remindAt ? formatReminderTime(reminder.remindAt, t, locale) : undefined}
       trailing={
         <Button
           appearance="outline"

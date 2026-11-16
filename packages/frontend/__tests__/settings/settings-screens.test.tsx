@@ -80,7 +80,7 @@ describe('SubscriptionRow', () => {
         isUnsubscribing={false}
       />,
     );
-    expect(screen.getByText('subscriptions.messageCount#1')).toBeTruthy();
+    expect(screen.getByText(/subscriptions\.messageCount#1/)).toBeTruthy();
   });
 
   it('offers the way out while still subscribed', () => {

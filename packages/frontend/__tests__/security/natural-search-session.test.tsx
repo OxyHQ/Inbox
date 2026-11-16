@@ -22,6 +22,7 @@ jest.mock('react-native', () => ({
   StyleSheet: { create: (styles: unknown) => styles },
 }));
 jest.mock('@oxy.so/bloom/list', () => ({
+  ...jest.requireActual('@oxy.so/bloom/list'),
   VirtualList: ({ ListHeaderComponent }: { ListHeaderComponent: ReactNode }) => (
     <div>{ListHeaderComponent}</div>
   ),
@@ -39,7 +40,9 @@ jest.mock('@oxy.so/bloom/screen', () => ({
   ),
 }));
 jest.mock('@oxy.so/bloom/divider', () => ({ Divider: () => null }));
-jest.mock('@oxy.so/bloom/button', () => require('../fixtures/bloomButton'));
+jest.mock('@oxy.so/bloom/button', () => ({
+  Button: ({ children }: { children: ReactNode }) => <button type="button">{children}</button>,
+}));
 jest.mock('@oxy.so/bloom/empty-state', () => ({ EmptyState: () => null }));
 jest.mock('@oxy.so/bloom/icons/RiCloseLine', () => ({ RiCloseLine: () => null }));
 jest.mock('@oxy.so/bloom/loading', () => ({ Loading: () => <div>loading</div> }));
@@ -105,7 +108,7 @@ jest.mock('@/hooks/queries/useSearchMessages', () => ({
   },
 }));
 jest.mock('@/hooks/useInboxDisplayPrefs', () => ({
-  useInboxDisplayPrefs: () => ({ density: 'comfortable', showPreviews: true }),
+  useInboxDisplayPrefs: () => ({ showPreviews: true }),
 }));
 jest.mock('@/hooks/useMessageActions', () => ({
   useMessageActions: () => ({ prepareOpenMessage: () => {} }),

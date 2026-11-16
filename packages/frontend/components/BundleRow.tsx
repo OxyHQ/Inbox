@@ -11,7 +11,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Text } from '@oxy.so/bloom/typography';
 import { useMemo, type ComponentProps } from 'react';
 import { View } from 'react-native';
-import { Card, CardHeader, CardTitle, CardDescription } from '@oxy.so/bloom/card';
+import { ListItem } from '@oxy.so/bloom/list';
 import { RiArrowUpSLine } from '@oxy.so/bloom/icons/RiArrowUpSLine';
 import { RiArrowDownSLine } from '@oxy.so/bloom/icons/RiArrowDownSLine';
 import { useTranslation } from '@/lib/i18n';
@@ -37,32 +37,30 @@ export function BundleRow({ bundle, messages, unreadCount, isExpanded, onToggle 
   }, [messages, t]);
 
   return (
-    <Card
-      appearance="plain"
-      onPress={onToggle}
-      accessibilityLabel={t(isExpanded ? 'bundles.rowExpanded' : 'bundles.rowCollapsed', {
-        name: bundle.name,
-        count: messages.length,
-      })}
-    >
-      <CardHeader>
+    <ListItem
+      title={bundle.name}
+      supporting={isExpanded ? undefined : latestPreview}
+      leading={
+        <MaterialCommunityIcons
+          name={(bundle.icon || 'folder-outline') as MaterialCommunityIconName}
+          size={20}
+          color={bundle.color}
+        />
+      }
+      trailing={
         <View className="flex-row items-center gap-2">
-          <MaterialCommunityIcons
-            name={(bundle.icon || 'folder-outline') as MaterialCommunityIconName}
-            size={20}
-            color={bundle.color}
-          />
-          <View className="flex-1">
-            <CardTitle>{bundle.name}</CardTitle>
-          </View>
           {unreadCount > 0 && (
             <Badge color="primary" variant="subtle" content={unreadCount} size="sm" />
           )}
           <Text variant="caption-1-regular">{messages.length}</Text>
           {isExpanded ? <RiArrowUpSLine /> : <RiArrowDownSLine />}
         </View>
-        {!isExpanded && <CardDescription numberOfLines={1}>{latestPreview}</CardDescription>}
-      </CardHeader>
-    </Card>
+      }
+      onPress={onToggle}
+      label={t(isExpanded ? 'bundles.rowExpanded' : 'bundles.rowCollapsed', {
+        name: bundle.name,
+        count: messages.length,
+      })}
+    />
   );
 }

@@ -32,6 +32,7 @@ jest.mock('react-native', () => ({
   Platform: { OS: 'web', select: (v: { web?: unknown; default?: unknown }) => v.web ?? v.default },
 }));
 jest.mock('@oxy.so/bloom/list', () => ({
+  ...jest.requireActual('@oxy.so/bloom/list'),
   VirtualList: ({
     data,
     renderItem,
@@ -58,9 +59,12 @@ jest.mock('@oxy.so/bloom/screen', () => ({
     </>
   ),
 }));
-jest.mock('@oxy.so/bloom/page-header', () => ({ PageHeader: () => null }));
+jest.mock('@oxy.so/bloom/page-header', () => ({
+  ...jest.requireActual('../fixtures/bloomHeaderActions'),
+  PageHeader: () => null,
+}));
 jest.mock('@oxy.so/bloom/app-shell', () => ({ useAppShell: () => ({ drawerAvailable: false }) }));
-
+jest.mock('@oxy.so/bloom/button', () => jest.requireActual('../fixtures/bloomButton'));
 jest.mock('@oxy.so/bloom/divider', () => ({ Divider: () => null }));
 jest.mock('@oxy.so/bloom/empty-state', () => ({ EmptyState: () => null }));
 jest.mock('@oxy.so/bloom/loading', () => ({ Loading: () => null }));
@@ -75,7 +79,6 @@ jest.mock('@oxy.so/bloom/item', () => ({
     </section>
   ),
 }));
-jest.mock('@oxy.so/bloom/button', () => require('../fixtures/bloomButton'));
 jest.mock('@/constants/theme', () => ({
   useColors: () => ({ text: 'black', secondaryText: 'gray' }),
 }));

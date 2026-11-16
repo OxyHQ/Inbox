@@ -5,8 +5,9 @@ workspace; the brief and Alia open on demand.
 
 The root `BloomScope size="md"` sets the shared component scale. The sidebar,
 buttons and chips inherit it instead of declaring per-screen sizes. Change the root scope
-to adjust the app's controls together; the mail list's comfortable/compact
-density remains a separate preference owned by Bloom's mail components.
+to adjust the app's controls together. Lists use Bloom's single compact row
+recipe. The obsolete density setting is ignored when reading saved preferences;
+other account-scoped preferences are preserved.
 
 Empty states use the same Oxy catalogue integration as Mention:
 `@oxy.so/stickers` resolves the IDs in `lib/stickers.ts`, and Bloom's `Sticker`
@@ -23,7 +24,7 @@ allows WASM compilation without enabling JavaScript `unsafe-eval`.
 | Surface      | Shared Bloom primitives                                                   | Inbox responsibilities                                                                         |
 | ------------ | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | Workspace    | AppShell, AppShellPanels, Sidebar, BottomBar, Fab                         | Mailbox/label destinations and SDK account actions                                             |
-| Mail list    | MailRow, MailSelectionBar, SwipeRow                                       | Virtualization, grouping, unreadable rows, bulk mutations and preferences                      |
+| Mail list    | ListItem, ListSelectionBar, VirtualList                                   | Virtualization, grouping, unreadable rows, bulk mutations and preferences                      |
 | Conversation | PageHeader, PageFooter, MailThread, MailMessage                           | Safe HTML/CID resolution, unreadable entries, downloads, reply targets                         |
 | Composer     | MailComposeSurface, MailRecipientField, TextFieldInput                    | Recipient validation/suggestions, editor, draft recovery, RFC reply headers and outbound queue |
 | Settings     | SettingsModal and its page/row templates                                  | Existing preferences, forms, mutations and bookmarked route compatibility                      |
@@ -33,6 +34,35 @@ The custom drawer, tab bar, settings navigation, floating-header hook, row
 density geometry and independent color palette are removed. Structured mail
 cards and the HTML editor remain domain-specific; neither is reimplemented by
 this migration. Colors now come from semantic Bloom roles.
+
+## Unified list adoption
+
+`MessageRow` supplies mail data to `ListItem.mail`; it owns no row renderer or
+spacing. The same row preserves snoozed times, draft recipients, delivery
+labels, unread/starred/thread markers, preview preferences, labels, sentiment,
+and file/card attachments. Inline body images stay out of the attachment rail.
+Daily-brief rows use the same API. Bundles, reminders, subscriptions, unreadable
+messages and template choices also use `ListItem`/`List`.
+
+Avatar activation and touch long press enter the existing bulk-selection flow.
+Selected rows toggle without opening the message, and selection disables swipe
+and file actions. Desktop context actions and touch gestures belong to Bloom.
+The app maps its saved left/right commands to `swipeActions` and explicit
+`fullSwipeAction` keys; `none` exposes no action. Opening a swipe no longer
+remounts the mail content. `ListSelectionBar` remains visible during selection,
+including zero selected rows.
+
+`VirtualList` retains each mailbox/search/subscription scroller, its restoration
+key, stable IDs and pagination. Grouping does not turn a whole date bucket into
+one mounted row. Existing account-guarded callbacks still own all mail writes;
+this migration does not change legacy mutation persistence or transport.
+
+Headers and controls use `Button` and `Button.Group`, with the former icon
+preset's outline/neutral appearance specified directly. Mailbox and conversation
+commands use `HeaderActions` to keep primary actions visible and move the rest
+into overflow according to the header's own width. Folder and label pickers stay
+mounted as persistent controls. Settings continue to use Bloom's settings pages
+and grouped sections; existing setting descriptions remain untruncated.
 
 ## State and navigation
 

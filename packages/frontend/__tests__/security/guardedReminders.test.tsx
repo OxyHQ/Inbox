@@ -45,6 +45,7 @@ jest.mock('react-native', () => ({
 jest.mock('@oxy.so/bloom/theme', () => ({ useTheme: () => ({ colors: {} }) }));
 jest.mock('@oxy.so/bloom/scroll', () => ({ useScrollRestoration: () => ({}) }));
 jest.mock('@oxy.so/bloom/list', () => ({
+  ...jest.requireActual('@oxy.so/bloom/list'),
   VirtualList: ({
     data,
     renderItem,
@@ -99,6 +100,7 @@ jest.mock('@oxy.so/bloom/screen', () => ({
   ),
 }));
 jest.mock('@oxy.so/bloom/page-header', () => ({
+  ...jest.requireActual('../fixtures/bloomHeaderActions'),
   PageHeader: ({
     title,
     leading,
@@ -118,7 +120,32 @@ jest.mock('@oxy.so/bloom/page-header', () => ({
 jest.mock('@oxy.so/bloom/typography', () => ({
   Text: ({ children }: Children) => <span>{children}</span>,
 }));
-
+jest.mock('@oxy.so/bloom/button', () => ({
+  Button: Object.assign(
+    ({
+      children,
+      onPress,
+      accessibilityLabel,
+    }: {
+      children?: ReactNode;
+      onPress?: () => void;
+      accessibilityLabel?: string;
+    }) => (
+      <button
+        type="button"
+        aria-label={accessibilityLabel}
+        onClick={() => {
+          if (mockDelayDelete && accessibilityLabel === 'common.delete')
+            mockRetainedDelete = onPress;
+          else onPress?.();
+        }}
+      >
+        {children}
+      </button>
+    ),
+    { Group: ({ children }: Children) => <div>{children}</div> },
+  ),
+}));
 jest.mock('@oxy.so/bloom/empty-state', () => ({ EmptyState: () => <p>Empty mailbox</p> }));
 jest.mock('@oxy.so/bloom/toast', () => ({
   toast: mockToast,
@@ -131,7 +158,7 @@ jest.mock('@/contexts/inbox-prefs-context', () => ({
   useInboxPrefs: () => ({ prefs: { aiBrief: mockAiBrief, aiCategorization: false } }),
 }));
 jest.mock('@/hooks/useInboxDisplayPrefs', () => ({
-  useInboxDisplayPrefs: () => ({ density: 'comfortable', showPreviews: true }),
+  useInboxDisplayPrefs: () => ({ showPreviews: true }),
 }));
 jest.mock('@/hooks/useCurrentList', () => ({
   useCurrentList: () => ({
@@ -187,9 +214,6 @@ jest.mock('@/components/DailyBrief', () => ({
       </aside>
     ) : null,
 }));
-jest.mock('@/components/SwipeableRow', () => ({
-  SwipeableRow: ({ children }: Children) => children,
-}));
 jest.mock('@/components/BundleRow', () => ({ BundleRow: () => null }));
 jest.mock('@/components/EmptyStateSticker', () => ({ EmptyStateSticker: () => null }));
 jest.mock('@/components/UndeliveredBanner', () => ({ UndeliveredBanner: () => null }));
@@ -217,23 +241,6 @@ jest.mock('@oxy.so/bloom/item', () => ({
 }));
 let mockDelayDelete = false;
 let mockRetainedDelete: (() => void) | undefined;
-jest.mock('@oxy.so/bloom/button', () => {
-  const { Button } = require('../fixtures/bloomButton');
-  return {
-    Button: Object.assign(
-      (props: { children?: ReactNode; onPress?: () => void }) => (
-        <Button
-          {...props}
-          onPress={() => {
-            if (mockDelayDelete && !props.children) mockRetainedDelete = props.onPress;
-            else props.onPress?.();
-          }}
-        />
-      ),
-      { Group: Button.Group },
-    ),
-  };
-});
 jest.mock('@/components/UnreadableMessageRow', () => ({ UnreadableMessageRow: () => null }));
 jest.mock('@/components/SelectionToolbar', () => ({
   SelectionToolbar: () => <p>Private selection</p>,

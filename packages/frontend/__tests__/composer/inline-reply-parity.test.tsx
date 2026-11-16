@@ -99,7 +99,7 @@ jest.mock('@oxy.so/bloom/text-field', () => ({
     <input aria-label={label} value={value} readOnly />
   ),
 }));
-jest.mock('@oxy.so/bloom/button', () => require('../fixtures/bloomButton'));
+jest.mock('@oxy.so/bloom/button', () => jest.requireActual('../fixtures/bloomButton'));
 jest.mock('@oxy.so/bloom/mail-thread', () => ({
   MailQuoteToggle: ({ children }: Children) => <div>{children}</div>,
 }));

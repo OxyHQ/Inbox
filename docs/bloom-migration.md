@@ -86,6 +86,13 @@ this migration. Colors now come from semantic Bloom roles.
   Both use `scrim="auto"`: the header fades out at the start, the footer at the
   end, and both disappear when the content fits. Resizing and expanding quoted
   content update the shared measurements without application scroll handlers.
+- On web, Bloom 22.1.3 defers virtual-row measurements while a pane is hidden or its
+  geometry is transitioning, then measures the settled rows. Returning from a
+  compact reader therefore preserves the mailbox's restored scroll position;
+  ordinary content changes still update row heights and scroll anchoring.
+  The shared bottom bar measures Compose intrinsically after becoming visible,
+  and `MailMessage` fits reply actions to its usable body width. Inbox supplies
+  no measurement filters, transition timers or responsive width corrections.
 - Message citations use Bloom `MailMessage.trimmed` / `MailQuoteToggle`. Inbox
   identifies mail-client quote containers with a platform-neutral HTML parser,
   preserving surrounding styles and visible inline answers. Plain-text

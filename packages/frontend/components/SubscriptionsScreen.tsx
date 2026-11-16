@@ -1,3 +1,4 @@
+import { Button } from '@oxy.so/bloom/button';
 import { VirtualList, type VirtualListHandle } from '@oxy.so/bloom/list';
 import { PageHeader } from '@oxy.so/bloom/page-header';
 import { Screen } from '@oxy.so/bloom/screen';
@@ -21,7 +22,7 @@ import { useSubscriptions } from '@/hooks/queries/useSubscriptions';
 import { useGoBack } from '@/hooks/useGoBack';
 import type { Subscription } from '@/services/emailApi';
 import { useAppShell } from '@oxy.so/bloom/app-shell';
-import { ButtonGroup, ButtonGroupItem } from '@oxy.so/bloom/button-group';
+
 import { Divider } from '@oxy.so/bloom/divider';
 import { EmptyState } from '@oxy.so/bloom/empty-state';
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
@@ -168,14 +169,14 @@ export function SubscriptionsScreen() {
           safeArea={false}
           leading={
             shell.drawerAvailable ? (
-              <ButtonGroup accessibilityLabel={t('search.openMenu')}>
-                <ButtonGroupItem
+              <Button.Group accessibilityLabel={t('search.openMenu')}>
+                <Button
                   iconOnly
                   leadingIcon={RiMenuLine}
                   accessibilityLabel={t('search.openMenu')}
                   onPress={shell.openDrawer}
                 />
-              </ButtonGroup>
+              </Button.Group>
             ) : undefined
           }
         />

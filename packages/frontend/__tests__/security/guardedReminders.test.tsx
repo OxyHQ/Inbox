@@ -118,21 +118,7 @@ jest.mock('@oxy.so/bloom/page-header', () => ({
 jest.mock('@oxy.so/bloom/typography', () => ({
   Text: ({ children }: Children) => <span>{children}</span>,
 }));
-jest.mock('@oxy.so/bloom/button-group', () => ({
-  ButtonGroup: ({ children }: Children) => <div>{children}</div>,
-  ButtonGroupItem: ({
-    children,
-    accessibilityLabel,
-    onPress,
-  }: Children & {
-    accessibilityLabel?: string;
-    onPress?: () => void;
-  }) => (
-    <button type="button" aria-label={accessibilityLabel} onClick={onPress}>
-      {children}
-    </button>
-  ),
-}));
+
 jest.mock('@oxy.so/bloom/empty-state', () => ({ EmptyState: () => <p>Empty mailbox</p> }));
 jest.mock('@oxy.so/bloom/toast', () => ({
   toast: mockToast,
@@ -231,29 +217,23 @@ jest.mock('@oxy.so/bloom/item', () => ({
 }));
 let mockDelayDelete = false;
 let mockRetainedDelete: (() => void) | undefined;
-jest.mock('@oxy.so/bloom/button', () => ({
-  Button: ({ children, onPress }: { children: ReactNode; onPress: () => void }) => (
-    <button type="button" onClick={onPress}>
-      {children}
-    </button>
-  ),
-  IconButton: ({
-    accessibilityLabel,
-    onPress,
-  }: {
-    accessibilityLabel: string;
-    onPress: () => void;
-  }) => (
-    <button
-      type="button"
-      aria-label={accessibilityLabel}
-      onClick={() => {
-        if (mockDelayDelete) mockRetainedDelete = onPress;
-        else onPress();
-      }}
-    />
-  ),
-}));
+jest.mock('@oxy.so/bloom/button', () => {
+  const { Button } = require('../fixtures/bloomButton');
+  return {
+    Button: Object.assign(
+      (props: { children?: ReactNode; onPress?: () => void }) => (
+        <Button
+          {...props}
+          onPress={() => {
+            if (mockDelayDelete && !props.children) mockRetainedDelete = props.onPress;
+            else props.onPress?.();
+          }}
+        />
+      ),
+      { Group: Button.Group },
+    ),
+  };
+});
 jest.mock('@/components/UnreadableMessageRow', () => ({ UnreadableMessageRow: () => null }));
 jest.mock('@/components/SelectionToolbar', () => ({
   SelectionToolbar: () => <p>Private selection</p>,

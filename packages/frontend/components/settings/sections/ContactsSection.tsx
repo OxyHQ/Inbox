@@ -10,7 +10,7 @@ import { isCurrentEmailOwner, useEmailMutationOwner } from '@/hooks/mutations/ow
 import { useContacts } from '@/hooks/queries/useContacts';
 import { useTranslation } from '@/lib/i18n';
 import type { Contact } from '@/schemas/emailSchemas';
-import { Button, IconButton } from '@oxy.so/bloom/button';
+import { Button } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
 import { RiDeleteBin6Line } from '@oxy.so/bloom/icons/RiDeleteBin6Line';
 import { RiEditLine } from '@oxy.so/bloom/icons/RiEditLine';
@@ -209,7 +209,10 @@ export function ContactsSection() {
                   : contact.email,
                 control: (
                   <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <IconButton
+                    <Button
+                      appearance="outline"
+                      tone="neutral"
+                      iconOnly
                       accessibilityLabel={t('ui.settings.contacts.edit', {
                         name: contact.name,
                       })}
@@ -217,7 +220,10 @@ export function ContactsSection() {
                       disabled={formUnavailable || accountUnavailable}
                       onPress={() => startEdit(contact)}
                     />
-                    <IconButton
+                    <Button
+                      appearance="outline"
+                      tone="neutral"
+                      iconOnly
                       accessibilityLabel={t('ui.settings.contacts.delete', {
                         name: contact.name,
                       })}

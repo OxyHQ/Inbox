@@ -5,7 +5,7 @@ import { RiDeleteBinLine } from '@oxy.so/bloom/icons/RiDeleteBinLine';
 import { RiMailOpenLine } from '@oxy.so/bloom/icons/RiMailOpenLine';
 import { RiPushpinLine } from '@oxy.so/bloom/icons/RiPushpinLine';
 import { RiPriceTag3Line } from '@oxy.so/bloom/icons/RiPriceTag3Line';
-import { MailRow, type MailAction } from '@oxy.so/bloom/mail-list';
+import { ListItem, type ListAction } from '@oxy.so/bloom/list';
 import { useThemePaint } from '@oxy.so/bloom/theme';
 /** Bloom owns row layout, selection, hover actions and density on every platform. */
 
@@ -113,7 +113,7 @@ function MessageRowInner({
 }: MessageRowProps) {
   const { t, locale } = useTranslation();
   const deliveryLabel = useDeliveryLabel();
-  const actions: MailAction[] = [];
+  const actions: ListAction[] = [];
   if (onToggleSelect)
     actions.push({
       key: 'select',
@@ -151,23 +151,20 @@ function MessageRowInner({
       onPress: () => onPin(message._id),
     });
   return (
-    <MailRow
-      sender={{
-        name: getSenderName(message, t),
-        avatar: message.senderAvatarPath ? `${API_URL}${message.senderAvatarPath}` : undefined,
-      }}
-      subject={message.subject || t('message.detail.noSubject')}
-      snippet={showPreviews ? (snippetOverride ?? getPreview(message)) : undefined}
-      time={
-        showSnoozeTime && message.snoozedUntil
-          ? formatSnoozeTime(message.snoozedUntil, t, locale)
-          : formatRowTime(message.date, t('inbox.sections.yesterday'), locale)
-      }
-      // A sent message that has not left says so on the row — the one place a
-      // glance at Sent always lands. Delivered mail and received mail carry
-      // no delivery chip.
-      labels={
-        isOutstanding(message.delivery)
+    <ListItem
+      mail={{
+        sender: {
+          name: getSenderName(message, t),
+          avatar: message.senderAvatarPath ? `${API_URL}${message.senderAvatarPath}` : undefined,
+        },
+        subject: message.subject || t('message.detail.noSubject'),
+        snippet: showPreviews ? (snippetOverride ?? getPreview(message)) : undefined,
+        time:
+          showSnoozeTime && message.snoozedUntil
+            ? formatSnoozeTime(message.snoozedUntil, t, locale)
+            : formatRowTime(message.date, t('inbox.sections.yesterday'), locale),
+        // Pending sent delivery remains visible in the shared row.
+        labels: isOutstanding(message.delivery)
           ? [
               {
                 id: 'delivery',
@@ -175,14 +172,23 @@ function MessageRowInner({
                 tone: deliveryTone(message.delivery),
               },
             ]
-          : undefined
-      }
-      unread={!message.flags.seen}
-      starred={message.flags.starred}
-      threadCount={message.threadCount ?? undefined}
-      hasAttachment={fileAttachments(message).length > 0}
-      selected={isSelected}
+          : undefined,
+        unread: !message.flags.seen,
+        starred: message.flags.starred,
+        threadCount: message.threadCount ?? undefined,
+        hasAttachment: fileAttachments(message).length > 0,
+        strings: {
+          star: t('selection.star'),
+          select: t('selection.select'),
+          attachment: t('search.filters.hasAttachment'),
+          starred: t('drawer.starred'),
+          threadCount: (count) => t('ui.message.conversationMessages', { count }),
+          unread: t('message.unreadState'),
+        },
+      }}
+      active={isSelected}
       checked={!!isMultiSelected}
+      selecting={isSelectionMode}
       onCheckedChange={
         isSelectionMode && onToggleSelect ? () => onToggleSelect(message._id) : undefined
       }
@@ -190,7 +196,7 @@ function MessageRowInner({
         isSelectionMode && onToggleSelect ? onToggleSelect(message._id) : onSelect(message)
       }
       onLongPress={onLongPress ? () => onLongPress(message._id) : undefined}
-      density={density}
+      supportingLines={density === 'compact' ? 1 : 2}
       actions={isSelectionMode ? [] : actions}
       swipeEnabled={false}
       footer={
@@ -203,14 +209,6 @@ function MessageRowInner({
           <MessageAttachments message={message} disabled={isSelectionMode} />
         ) : undefined
       }
-      strings={{
-        star: t('selection.star'),
-        select: t('selection.select'),
-        attachment: t('search.filters.hasAttachment'),
-        starred: t('drawer.starred'),
-        threadCount: (count) => t('ui.message.conversationMessages', { count }),
-        unread: t('message.unreadState'),
-      }}
     />
   );
 }

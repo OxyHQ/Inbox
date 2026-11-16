@@ -46,8 +46,8 @@ jest.mock('@oxy.so/bloom/button', () => ({
     );
   },
 }));
-jest.mock('@oxy.so/bloom/mail-list', () => ({
-  MailRow: ({ onPress }: { onPress: () => void }) => {
+jest.mock('@oxy.so/bloom/list', () => ({
+  ListItem: ({ onPress }: { onPress: () => void }) => {
     mockRowPress = onPress;
     return (
       <button type="button" onClick={onPress}>

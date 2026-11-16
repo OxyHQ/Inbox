@@ -39,10 +39,7 @@ jest.mock('@oxy.so/bloom/screen', () => ({
   ),
 }));
 jest.mock('@oxy.so/bloom/divider', () => ({ Divider: () => null }));
-jest.mock('@oxy.so/bloom/button', () => ({
-  Button: ({ children }: { children: ReactNode }) => <button type="button">{children}</button>,
-  IconButton: () => null,
-}));
+jest.mock('@oxy.so/bloom/button', () => require('../fixtures/bloomButton'));
 jest.mock('@oxy.so/bloom/empty-state', () => ({ EmptyState: () => null }));
 jest.mock('@oxy.so/bloom/icons/RiCloseLine', () => ({ RiCloseLine: () => null }));
 jest.mock('@oxy.so/bloom/loading', () => ({ Loading: () => <div>loading</div> }));

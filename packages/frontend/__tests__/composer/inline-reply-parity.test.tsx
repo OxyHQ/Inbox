@@ -12,7 +12,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { InlineReply } from '@/components/InlineReply';
 import type { Message } from '@/services/emailApi';
 import type { ReactNode } from 'react';
-import type { Children, DialogAction, Pressable } from '../fixtures/mockProps';
+import type { Children, DialogAction } from '../fixtures/mockProps';
 
 const mockSession = {
   to: 'ana@example.com',
@@ -99,16 +99,7 @@ jest.mock('@oxy.so/bloom/text-field', () => ({
     <input aria-label={label} value={value} readOnly />
   ),
 }));
-jest.mock('@oxy.so/bloom/button', () => ({
-  Button: ({ children, onPress }: Pressable) => (
-    <button type="button" onClick={onPress}>
-      {children}
-    </button>
-  ),
-  IconButton: ({ accessibilityLabel, onPress }: Pressable) => (
-    <button type="button" aria-label={accessibilityLabel} onClick={onPress} />
-  ),
-}));
+jest.mock('@oxy.so/bloom/button', () => require('../fixtures/bloomButton'));
 jest.mock('@oxy.so/bloom/mail-thread', () => ({
   MailQuoteToggle: ({ children }: Children) => <div>{children}</div>,
 }));

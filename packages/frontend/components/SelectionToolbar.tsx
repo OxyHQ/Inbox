@@ -4,7 +4,7 @@ import { RiDeleteBinLine } from '@oxy.so/bloom/icons/RiDeleteBinLine';
 import { RiInbox2Line } from '@oxy.so/bloom/icons/RiInbox2Line';
 import { RiMailOpenLine } from '@oxy.so/bloom/icons/RiMailOpenLine';
 import { RiStarLine } from '@oxy.so/bloom/icons/RiStarLine';
-import { MailSelectionBar } from '@oxy.so/bloom/mail-list';
+import { ListSelectionBar } from '@oxy.so/bloom/list';
 interface SelectionToolbarProps {
   count: number;
   onClose: () => void;
@@ -26,7 +26,7 @@ export function SelectionToolbar({
 }: SelectionToolbarProps) {
   const { t } = useTranslation();
   return (
-    <MailSelectionBar
+    <ListSelectionBar
       count={count}
       total={count}
       onClear={onClose}

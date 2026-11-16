@@ -30,28 +30,7 @@ jest.mock('@oxy.so/bloom/bottom-sheet', () => {
     }),
   };
 });
-jest.mock('@oxy.so/bloom/button', () => ({
-  Button: ({
-    children,
-    onPress,
-    disabled,
-  }: {
-    children: ReactNode;
-    onPress: () => void;
-    disabled?: boolean;
-  }) => (
-    <button type="button" disabled={disabled} onClick={onPress}>
-      {children}
-    </button>
-  ),
-  IconButton: ({
-    accessibilityLabel,
-    onPress,
-  }: {
-    accessibilityLabel: string;
-    onPress: () => void;
-  }) => <button type="button" aria-label={accessibilityLabel} onClick={onPress} />,
-}));
+jest.mock('@oxy.so/bloom/button', () => require('../fixtures/bloomButton'));
 jest.mock('@oxy.so/bloom/text-field', () => ({
   TextFieldInput: ({
     label,

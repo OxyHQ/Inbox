@@ -116,21 +116,7 @@ jest.mock('@oxy.so/bloom/page-header', () => ({
 jest.mock('@oxy.so/bloom/typography', () => ({
   Text: ({ children }: Children) => <span>{children}</span>,
 }));
-jest.mock('@oxy.so/bloom/button-group', () => ({
-  ButtonGroup: ({ children }: Children) => <div>{children}</div>,
-  ButtonGroupItem: ({
-    children,
-    accessibilityLabel,
-    onPress,
-  }: Children & {
-    accessibilityLabel?: string;
-    onPress?: () => void;
-  }) => (
-    <button type="button" aria-label={accessibilityLabel} onClick={onPress}>
-      {children}
-    </button>
-  ),
-}));
+jest.mock('@oxy.so/bloom/button', () => require('../fixtures/bloomButton'));
 jest.mock('@oxy.so/bloom/empty-state', () => ({ EmptyState: () => <p>Empty mailbox</p> }));
 jest.mock('@oxy.so/bloom/toast', () => ({
   toast: { error: (...args: unknown[]) => mockNoop(...args) },

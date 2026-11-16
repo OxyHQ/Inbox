@@ -1,4 +1,4 @@
-import { Button, IconButton } from '@oxy.so/bloom/button';
+import { Button } from '@oxy.so/bloom/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from '@oxy.so/bloom/card';
 import { RiCloseLine } from '@oxy.so/bloom/icons/RiCloseLine';
 import { RiCornerUpLeftLine } from '@oxy.so/bloom/icons/RiCornerUpLeftLine';
@@ -34,7 +34,10 @@ export function StaleThreadBanner({ staleInfo, onReply, onDismiss }: StaleThread
             {t('message.actions.reply')}
           </Button>
         )}
-        <IconButton
+        <Button
+          appearance="outline"
+          tone="neutral"
+          iconOnly
           accessibilityLabel={t('stale.dismiss')}
           icon={<RiCloseLine />}
           onPress={() => {

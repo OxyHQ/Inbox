@@ -19,7 +19,7 @@ import { useSearchSessionState } from '@/contexts/search-session-context';
 import { useGoBack } from '@/hooks/useGoBack';
 import { useLabels } from '@/hooks/queries/useLabels';
 import { useTranslation } from '@/lib/i18n';
-import { Button, IconButton } from '@oxy.so/bloom/button';
+import { Button } from '@oxy.so/bloom/button';
 import { EmptyState } from '@oxy.so/bloom/empty-state';
 import { RiCloseLine } from '@oxy.so/bloom/icons/RiCloseLine';
 import { Loading } from '@oxy.so/bloom/loading';
@@ -801,7 +801,10 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
                     </Text>
                   )}
                   {nlInterpretation && !nlParsing && (
-                    <IconButton
+                    <Button
+                      appearance="outline"
+                      tone="neutral"
+                      iconOnly
                       icon={<RiCloseLine />}
                       accessibilityLabel={t('common.close')}
                       onPress={() => {

@@ -1,6 +1,6 @@
 import { Button } from '@oxy.so/bloom/button';
 import { Card, CardBody } from '@oxy.so/bloom/card';
-import { MailRow } from '@oxy.so/bloom/mail-list';
+import { ListItem } from '@oxy.so/bloom/list';
 import { Text } from '@oxy.so/bloom/typography';
 import type { ReactNode } from 'react';
 import { useMessage } from '@/hooks/queries/useMessage';
@@ -127,16 +127,21 @@ function BriefMessageRow({
   const current = message ?? data;
   if (current && renderMessage && actionsReady) return renderMessage(current, item.note, onOpen);
   return (
-    <MailRow
-      sender={{ name: item.from.name || item.from.address }}
-      subject={item.subject || t('message.detail.noSubject')}
-      snippet={item.note || undefined}
-      time={formatRowTime(item.receivedAt, t('inbox.sections.yesterday'), locale)}
-      unread={item.unread}
-      hasAttachment={item.hasAttachments}
+    <ListItem
+      mail={{
+        sender: { name: item.from.name || item.from.address },
+        subject: item.subject || t('message.detail.noSubject'),
+        snippet: item.note || undefined,
+        time: formatRowTime(item.receivedAt, t('inbox.sections.yesterday'), locale),
+        unread: item.unread,
+        hasAttachment: item.hasAttachments,
+        strings: {
+          attachment: t('search.filters.hasAttachment'),
+          unread: t('message.unreadState'),
+        },
+      }}
       swipeEnabled={false}
       onPress={actionsReady ? onOpen : undefined}
-      strings={{ attachment: t('search.filters.hasAttachment'), unread: t('message.unreadState') }}
     />
   );
 }

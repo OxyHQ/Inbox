@@ -1,7 +1,7 @@
 import { useTranslation } from '@/lib/i18n';
 import { presetsThatMakeSense } from '@/utils/timePresets';
 import { BottomSheet, type BottomSheetRef } from '@oxy.so/bloom/bottom-sheet';
-import { Button, IconButton } from '@oxy.so/bloom/button';
+import { Button } from '@oxy.so/bloom/button';
 import { RiCloseLine } from '@oxy.so/bloom/icons/RiCloseLine';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { Text } from '@oxy.so/bloom/typography';
@@ -196,7 +196,10 @@ export function CreateReminderSheet({
               {isEdit ? t('common.edit') : t('reminder.create.title')}
             </Text>
           </View>
-          <IconButton
+          <Button
+            appearance="outline"
+            tone="neutral"
+            iconOnly
             icon={<RiCloseLine />}
             accessibilityLabel={t('common.close')}
             onPress={handleClose}

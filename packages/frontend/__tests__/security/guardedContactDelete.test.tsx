@@ -37,40 +37,7 @@ jest.mock('@oxy.so/bloom/text-field', () => ({
 jest.mock('@oxy.so/bloom/textarea', () => ({ Textarea: () => null }));
 jest.mock('@oxy.so/bloom/switch', () => ({ Switch: () => null }));
 jest.mock('@/components/EmptyStateSticker', () => ({ EmptyStateSticker: () => null }));
-jest.mock('@oxy.so/bloom/button', () => ({
-  Button: ({
-    children,
-    onPress,
-    disabled,
-  }: {
-    children: ReactNode;
-    onPress: () => void;
-    disabled?: boolean;
-  }) => (
-    <button type="button" disabled={disabled} onClick={onPress}>
-      {children}
-    </button>
-  ),
-  IconButton: ({
-    accessibilityLabel,
-    onPress,
-    disabled,
-    loading,
-  }: {
-    accessibilityLabel: string;
-    onPress: () => void;
-    disabled?: boolean;
-    loading?: boolean;
-  }) => (
-    <button
-      type="button"
-      aria-label={accessibilityLabel}
-      aria-busy={loading || undefined}
-      disabled={disabled}
-      onClick={onPress}
-    />
-  ),
-}));
+jest.mock('@oxy.so/bloom/button', () => require('../fixtures/bloomButton'));
 jest.mock('@oxy.so/bloom/settings-modal', () => ({
   SettingsProfilePage: ({
     sections,

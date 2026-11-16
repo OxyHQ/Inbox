@@ -1,5 +1,5 @@
 import { useTranslation, type TranslateFn } from '@/lib/i18n';
-import { Button, IconButton } from '@oxy.so/bloom/button';
+import { Button } from '@oxy.so/bloom/button';
 import { Checkbox } from '@oxy.so/bloom/checkbox';
 import { RiDeleteBinLine } from '@oxy.so/bloom/icons/RiDeleteBinLine';
 import { Item } from '@oxy.so/bloom/item';
@@ -70,7 +70,10 @@ export function ReminderRow({ reminder, onToggleComplete, onPress, onDelete }: R
       }
       subtitle={reminder.remindAt ? formatReminderTime(reminder.remindAt, t, locale) : undefined}
       trailing={
-        <IconButton
+        <Button
+          appearance="outline"
+          tone="neutral"
+          iconOnly
           accessibilityLabel={t('common.delete')}
           icon={<RiDeleteBinLine />}
           onPress={() => onDelete(reminder._id)}

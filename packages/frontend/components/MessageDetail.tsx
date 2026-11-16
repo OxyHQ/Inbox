@@ -7,8 +7,8 @@ import { EmptyState } from '@oxy.so/bloom/empty-state';
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
 import { Text } from '@oxy.so/bloom/typography';
 import { useAppShell } from '@oxy.so/bloom/app-shell';
-import { ButtonGroup, ButtonGroupItem } from '@oxy.so/bloom/button-group';
-import { Button, IconButton } from '@oxy.so/bloom/button';
+
+import { Button } from '@oxy.so/bloom/button';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -640,7 +640,10 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           onPress: () => handleAttachment(attachment.fileId, attachment.name),
         })),
       menu: msg.flags.draft ? (
-        <IconButton
+        <Button
+          appearance="outline"
+          tone="neutral"
+          iconOnly
           accessibilityLabel={t('message.actions.editDraft')}
           icon={<RiDraftLine />}
           onPress={() => handleEditDraft(msg)}
@@ -648,7 +651,13 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
       ) : (
         <DropdownMenu>
           <DropdownMenuTrigger asChild label={t('message.actions.more')}>
-            <IconButton accessibilityLabel={t('message.actions.more')} icon={<RiMoreLine />} />
+            <Button
+              appearance="outline"
+              tone="neutral"
+              iconOnly
+              accessibilityLabel={t('message.actions.more')}
+              icon={<RiMoreLine />}
+            />
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem leading={<RiCornerUpLeftLine />} onPress={() => handleReply(msg._id)}>
@@ -697,6 +706,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
   return (
     <Screen
+      kind="document"
       active={focused}
       scroll="auto"
       testID="message-screen"
@@ -707,39 +717,39 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           leading={
             <>
               {shell.drawerAvailable && (
-                <ButtonGroup accessibilityLabel={t('search.openMenu')}>
-                  <ButtonGroupItem
+                <Button.Group accessibilityLabel={t('search.openMenu')}>
+                  <Button
                     iconOnly
                     leadingIcon={RiMenuLine}
                     accessibilityLabel={t('search.openMenu')}
                     onPress={shell.openDrawer}
                   />
-                </ButtonGroup>
+                </Button.Group>
               )}
               {replyableMessage && (
-                <ButtonGroup>
-                  <ButtonGroupItem
+                <Button.Group>
+                  <Button
                     iconOnly
                     accessibilityLabel={t('message.actions.reply')}
                     leadingIcon={RiCornerUpLeftLine}
                     onPress={() => handleReply(replyableMessage._id)}
                   />
-                  <ButtonGroupItem
+                  <Button
                     iconOnly
                     accessibilityLabel={t('message.actions.replyAll')}
                     leadingIcon={RiArrowGoBackLine}
                     onPress={() => handleReplyAll(replyableMessage._id)}
                   />
-                  <ButtonGroupItem
+                  <Button
                     iconOnly
                     accessibilityLabel={t('message.actions.forward')}
                     leadingIcon={RiShareForwardLine}
                     onPress={() => handleForward(replyableMessage._id)}
                   />
-                </ButtonGroup>
+                </Button.Group>
               )}
-              <ButtonGroup>
-                <ButtonGroupItem
+              <Button.Group>
+                <Button
                   iconOnly
                   accessibilityLabel={t(
                     archived ? 'message.actions.moveToInbox' : 'message.actions.archive',
@@ -747,29 +757,29 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
                   leadingIcon={archived ? RiInbox2Line : RiArchiveLine}
                   onPress={handleArchive}
                 />
-                <ButtonGroupItem
+                <Button
                   iconOnly
                   accessibilityLabel={t('message.actions.snooze')}
                   leadingIcon={RiTimeLine}
                   onPress={() => setSnoozeVisible(true)}
                 />
-                <ButtonGroupItem
+                <Button
                   iconOnly
                   accessibilityLabel={t('message.actions.reportSpam')}
                   leadingIcon={RiSpamLine}
                   onPress={handleMarkSpam}
                 />
-                <ButtonGroupItem
+                <Button
                   iconOnly
                   accessibilityLabel={t('message.actions.delete')}
                   leadingIcon={RiDeleteBinLine}
                   onPress={handleDelete}
                 />
-              </ButtonGroup>
-              <ButtonGroup>
+              </Button.Group>
+              <Button.Group>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild label={t('ui.drawer.folders')}>
-                    <ButtonGroupItem
+                    <Button
                       iconOnly
                       accessibilityLabel={t('ui.drawer.folders')}
                       leadingIcon={RiFolderLine}
@@ -791,7 +801,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
                 </DropdownMenu>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild label={t('message.actions.label')}>
-                    <ButtonGroupItem
+                    <Button
                       iconOnly
                       accessibilityLabel={t('message.actions.label')}
                       leadingIcon={RiPriceTag3Line}
@@ -815,7 +825,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
-                <ButtonGroupItem
+                <Button
                   iconOnly
                   accessibilityLabel={t(
                     currentMessage.flags.starred
@@ -826,7 +836,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
                   onPress={handleStar}
                   disabled={toggleStar.isPending}
                 />
-              </ButtonGroup>
+              </Button.Group>
             </>
           }
           sticky={false}
@@ -835,8 +845,8 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           testID="message-header"
           safeArea={false}
           actions={
-            <ButtonGroup>
-              <ButtonGroupItem
+            <Button.Group>
+              <Button
                 iconOnly
                 accessibilityLabel={t('message.actions.markUnread')}
                 leadingIcon={RiMailLine}
@@ -844,7 +854,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
               />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild label={t('message.actions.more')}>
-                  <ButtonGroupItem
+                  <Button
                     iconOnly
                     accessibilityLabel={t('message.actions.more')}
                     leadingIcon={RiMoreLine}
@@ -881,7 +891,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </ButtonGroup>
+            </Button.Group>
           }
         />
       }

@@ -29,22 +29,7 @@ jest.mock('react-native', () => ({
 jest.mock('@/constants/theme', () => ({
   useColors: () => ({ error: 'red', secondaryText: 'gray' }),
 }));
-jest.mock('@oxy.so/bloom/button', () => ({
-  Button: ({
-    children,
-    onPress,
-    disabled,
-  }: {
-    children: ReactNode;
-    onPress?: () => void;
-    disabled?: boolean;
-  }) => (
-    <button type="button" disabled={disabled} onClick={onPress}>
-      {children}
-    </button>
-  ),
-  IconButton: () => null,
-}));
+jest.mock('@oxy.so/bloom/button', () => require('../fixtures/bloomButton'));
 jest.mock('@oxy.so/bloom/dialog', () => ({
   Dialog: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   useDialogControl: () => ({ open: () => {}, close: () => {} }),

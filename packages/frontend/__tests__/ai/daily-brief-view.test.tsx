@@ -42,16 +42,12 @@ jest.mock('@oxy.so/bloom/card', () => ({
   Card: ({ children }: Children) => <div data-testid="brief-card">{children}</div>,
   CardBody: ({ children }: Children) => <div>{children}</div>,
 }));
-jest.mock('@oxy.so/bloom/mail-list', () => ({
-  MailRow: ({
-    sender,
-    subject,
-    snippet,
+jest.mock('@oxy.so/bloom/list', () => ({
+  ListItem: ({
+    mail: { sender, subject, snippet },
     onPress,
   }: Pressable & {
-    sender: { name: string };
-    subject: string;
-    snippet: string;
+    mail: { sender: { name: string }; subject: string; snippet: string };
   }) => (
     <button type="button" onClick={onPress}>
       {`${sender.name} · ${subject} · ${snippet}`}

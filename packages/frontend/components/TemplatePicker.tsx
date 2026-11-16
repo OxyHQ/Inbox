@@ -1,9 +1,10 @@
+import { GroupedSectionItem } from '@oxy.so/bloom/grouped-section';
 import { useTemplates } from '@/hooks/queries/useTemplates';
 import type { EmailTemplate } from '@/services/emailApi';
-import { IconButton } from '@oxy.so/bloom/button';
+import { Button } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
 import { RiDraftLine } from '@oxy.so/bloom/icons/RiDraftLine';
-import { SettingsListItem } from '@oxy.so/bloom/settings-list';
+
 import { useCallback } from 'react';
 import { ScrollArea } from '@oxy.so/bloom/layout';
 import { useTranslation } from '@/lib/i18n';
@@ -29,7 +30,10 @@ export function TemplatePicker({ onSelect }: TemplatePickerProps) {
 
   return (
     <>
-      <IconButton
+      <Button
+        appearance="outline"
+        tone="neutral"
+        iconOnly
         onPress={() => control.open()}
         accessibilityLabel={t('templates.insert')}
         icon={<RiDraftLine />}
@@ -37,7 +41,7 @@ export function TemplatePicker({ onSelect }: TemplatePickerProps) {
       <Dialog control={control} title={t('templates.insert')}>
         <ScrollArea style={{ maxHeight: 360 }}>
           {templates.map((template) => (
-            <SettingsListItem
+            <GroupedSectionItem
               key={template._id}
               title={template.name}
               description={template.body.replace(/\n/g, ' ').slice(0, 60)}

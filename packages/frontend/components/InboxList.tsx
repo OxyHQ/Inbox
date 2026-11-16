@@ -1,10 +1,11 @@
+import { Button } from '@oxy.so/bloom/button';
 import { Screen } from '@oxy.so/bloom/screen';
 import { EmptyState } from '@oxy.so/bloom/empty-state';
 import { Text } from '@oxy.so/bloom/typography';
 import { useScrollRestoration } from '@oxy.so/bloom/scroll';
 import { VirtualList, type VirtualListHandle } from '@oxy.so/bloom/list';
 import { useAppShell } from '@oxy.so/bloom/app-shell';
-import { ButtonGroup, ButtonGroupItem } from '@oxy.so/bloom/button-group';
+
 import { useTheme } from '@oxy.so/bloom/theme';
 import { RiEditLine } from '@oxy.so/bloom/icons/RiEditLine';
 import { RiMailCheckLine } from '@oxy.so/bloom/icons/RiMailCheckLine';
@@ -872,6 +873,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
 
   return (
     <Screen
+      kind="collection"
       active={focused}
       scroll="auto"
       testID="inbox-screen"
@@ -895,14 +897,14 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
             safeArea={false}
             leading={
               drawerAvailable ? (
-                <ButtonGroup accessibilityLabel={t('search.openMenu')}>
-                  <ButtonGroupItem
+                <Button.Group accessibilityLabel={t('search.openMenu')}>
+                  <Button
                     iconOnly
                     leadingIcon={RiMenuLine}
                     accessibilityLabel={t('search.openMenu')}
                     onPress={handleOpenDrawer}
                   />
-                </ButtonGroup>
+                </Button.Group>
               ) : undefined
             }
             subtitle={
@@ -916,11 +918,11 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
             actions={
               accountReady ? (
                 <>
-                  <ButtonGroup>
-                    <ButtonGroupItem leadingIcon={GemieAvatarIcon} onPress={handleAskAlia}>
+                  <Button.Group>
+                    <Button leadingIcon={GemieAvatarIcon} onPress={handleAskAlia}>
                       {t('inbox.askAlia')}
-                    </ButtonGroupItem>
-                    <ButtonGroupItem
+                    </Button>
+                    <Button
                       iconOnly
                       leadingIcon={RiSearchLine}
                       accessibilityLabel={t('inbox.searchInMailbox', {
@@ -928,28 +930,28 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
                       })}
                       onPress={handleSearch}
                     />
-                  </ButtonGroup>
-                  <ButtonGroup>
-                    <ButtonGroupItem
+                  </Button.Group>
+                  <Button.Group>
+                    <Button
                       iconOnly
                       leadingIcon={RiRefreshLine}
                       accessibilityLabel={t('inbox.refresh')}
                       onPress={handleRefresh}
                       loading={pulling}
                     />
-                    <ButtonGroupItem
+                    <Button
                       iconOnly
                       leadingIcon={RiMailCheckLine}
                       accessibilityLabel={t('message.actions.markRead')}
                       onPress={() => messageActions.setRead(messages, true)}
                     />
-                    <ButtonGroupItem
+                    <Button
                       iconOnly
                       leadingIcon={RiEditLine}
                       accessibilityLabel={t('inbox.composeFabLabel')}
                       onPress={() => router.push('/compose')}
                     />
-                  </ButtonGroup>
+                  </Button.Group>
                 </>
               ) : undefined
             }

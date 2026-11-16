@@ -18,7 +18,7 @@ import { useTemplates } from '@/hooks/queries/useTemplates';
 import { useEmailStore } from '@/hooks/useEmail';
 import { useTranslation } from '@/lib/i18n';
 import type { EmailFilterAction, EmailFilterCondition } from '@/services/emailApi';
-import { Button, IconButton } from '@oxy.so/bloom/button';
+import { Button } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
 import { RiArrowDownSLine } from '@oxy.so/bloom/icons/RiArrowDownSLine';
 import { RiArrowUpSLine } from '@oxy.so/bloom/icons/RiArrowUpSLine';
@@ -367,7 +367,10 @@ export function AdvancedSection() {
                     checked={filter.enabled}
                     onCheckedChange={(v) => handleToggleFilter(filter._id, v)}
                   />
-                  <IconButton
+                  <Button
+                    appearance="outline"
+                    tone="neutral"
+                    iconOnly
                     accessibilityLabel={t('ui.settings.advanced.deleteFilter', {
                       name: filter.name,
                     })}
@@ -485,7 +488,10 @@ export function AdvancedSection() {
               description: `${template.subject ? `${template.subject} — ` : ''}${template.body.replace(/\n/g, ' ').slice(0, 60)}`,
               control: (
                 <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <IconButton
+                  <Button
+                    appearance="outline"
+                    tone="neutral"
+                    iconOnly
                     accessibilityLabel={t('ui.settings.advanced.editTemplate', {
                       name: template.name,
                     })}
@@ -499,7 +505,10 @@ export function AdvancedSection() {
                       )
                     }
                   />
-                  <IconButton
+                  <Button
+                    appearance="outline"
+                    tone="neutral"
+                    iconOnly
                     accessibilityLabel={t('ui.settings.advanced.deleteTemplate', {
                       name: template.name,
                     })}
@@ -606,7 +615,10 @@ export function AdvancedSection() {
                           gap: 8,
                         }}
                       >
-                        <IconButton
+                        <Button
+                          appearance="outline"
+                          tone="neutral"
+                          iconOnly
                           accessibilityLabel={t('ui.settings.advanced.moveUp', {
                             name: bundle.name,
                           })}
@@ -619,7 +631,10 @@ export function AdvancedSection() {
                             })
                           }
                         />
-                        <IconButton
+                        <Button
+                          appearance="outline"
+                          tone="neutral"
+                          iconOnly
                           accessibilityLabel={t('ui.settings.advanced.moveDown', {
                             name: bundle.name,
                           })}

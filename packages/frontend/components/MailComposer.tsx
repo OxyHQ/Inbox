@@ -1,6 +1,6 @@
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
 import { toast } from '@oxy.so/bloom/toast';
-import { Button, IconButton } from '@oxy.so/bloom/button';
+import { Button } from '@oxy.so/bloom/button';
 import { RiArrowDownSLine } from '@oxy.so/bloom/icons/RiArrowDownSLine';
 import { RiSaveLine } from '@oxy.so/bloom/icons/RiSaveLine';
 import { RiSendPlaneLine } from '@oxy.so/bloom/icons/RiSendPlaneLine';
@@ -240,12 +240,18 @@ export function MailComposer({
         footer={
           <View className="flex-row items-center gap-1">
             <TemplatePicker onSelect={handleTemplateSelect} />
-            <IconButton
+            <Button
+              appearance="outline"
+              tone="neutral"
+              iconOnly
               accessibilityLabel={t('compose.actions.saveDraft')}
               onPress={() => void session.saveAndClose()}
               icon={<RiSaveLine />}
             />
-            <IconButton
+            <Button
+              appearance="outline"
+              tone="neutral"
+              iconOnly
               accessibilityLabel={t('compose.actions.moreSendOptions')}
               onPress={() => sendMenuControl.open()}
               disabled={session.sendDisabled}

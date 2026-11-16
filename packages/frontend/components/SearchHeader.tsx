@@ -2,7 +2,7 @@ import { useAppShell } from '@oxy.so/bloom/app-shell';
 /** App-specific search routing around Bloom's shared search field and buttons. */
 import { useTranslation } from '@/lib/i18n';
 import { Button } from '@oxy.so/bloom/button';
-import { ButtonGroup, ButtonGroupItem } from '@oxy.so/bloom/button-group';
+
 import { PageHeader } from '@oxy.so/bloom/page-header';
 import { RiMenuLine } from '@oxy.so/bloom/icons/RiMenuLine';
 import { RiSearchLine } from '@oxy.so/bloom/icons/RiSearchLine';
@@ -50,14 +50,14 @@ export const SearchHeader = forwardRef<TextInputInstance, SearchHeaderProps>(fun
       backLabel={t('search.goBack')}
       leading={
         shell.drawerAvailable ? (
-          <ButtonGroup accessibilityLabel={t('search.openMenu')}>
-            <ButtonGroupItem
+          <Button.Group accessibilityLabel={t('search.openMenu')}>
+            <Button
               iconOnly
               leadingIcon={RiMenuLine}
               accessibilityLabel={t('search.openMenu')}
               onPress={shell.openDrawer}
             />
-          </ButtonGroup>
+          </Button.Group>
         ) : undefined
       }
       title={

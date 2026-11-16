@@ -60,10 +60,7 @@ jest.mock('@oxy.so/bloom/screen', () => ({
 }));
 jest.mock('@oxy.so/bloom/page-header', () => ({ PageHeader: () => null }));
 jest.mock('@oxy.so/bloom/app-shell', () => ({ useAppShell: () => ({ drawerAvailable: false }) }));
-jest.mock('@oxy.so/bloom/button-group', () => ({
-  ButtonGroup: () => null,
-  ButtonGroupItem: () => null,
-}));
+
 jest.mock('@oxy.so/bloom/divider', () => ({ Divider: () => null }));
 jest.mock('@oxy.so/bloom/empty-state', () => ({ EmptyState: () => null }));
 jest.mock('@oxy.so/bloom/loading', () => ({ Loading: () => null }));
@@ -78,23 +75,7 @@ jest.mock('@oxy.so/bloom/item', () => ({
     </section>
   ),
 }));
-jest.mock('@oxy.so/bloom/button', () => ({
-  Button: ({
-    children,
-    onPress,
-    disabled,
-    loading,
-  }: {
-    children: ReactNode;
-    onPress?: () => void;
-    disabled?: boolean;
-    loading?: boolean;
-  }) => (
-    <button type="button" onClick={onPress} disabled={disabled} aria-busy={loading || undefined}>
-      {children}
-    </button>
-  ),
-}));
+jest.mock('@oxy.so/bloom/button', () => require('../fixtures/bloomButton'));
 jest.mock('@/constants/theme', () => ({
   useColors: () => ({ text: 'black', secondaryText: 'gray' }),
 }));

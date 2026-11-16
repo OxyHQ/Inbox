@@ -7,7 +7,7 @@ import {
   useUpdateLabel,
 } from '@/hooks/queries/useLabels';
 import { useTranslation } from '@/lib/i18n';
-import { Button, IconButton } from '@oxy.so/bloom/button';
+import { Button } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
 import { RiDeleteBin6Line } from '@oxy.so/bloom/icons/RiDeleteBin6Line';
 import { RiEditLine } from '@oxy.so/bloom/icons/RiEditLine';
@@ -162,7 +162,10 @@ export function LabelsSection() {
                       </Button>
                     </>
                   ) : (
-                    <IconButton
+                    <Button
+                      appearance="outline"
+                      tone="neutral"
+                      iconOnly
                       accessibilityLabel={t('ui.settings.labels.rename', {
                         name: label.name,
                       })}
@@ -173,7 +176,10 @@ export function LabelsSection() {
                       }}
                     />
                   )}
-                  <IconButton
+                  <Button
+                    appearance="outline"
+                    tone="neutral"
+                    iconOnly
                     accessibilityLabel={t('ui.settings.labels.delete', {
                       name: label.name,
                     })}

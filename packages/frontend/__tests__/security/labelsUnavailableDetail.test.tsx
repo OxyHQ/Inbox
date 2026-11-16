@@ -48,20 +48,7 @@ jest.mock('@oxy.so/bloom/page-header', () => ({
     </>
   ),
 }));
-jest.mock('@oxy.so/bloom/button-group', () => ({
-  ButtonGroup: ({ children }: { children: React.ReactNode }) => children,
-  ButtonGroupItem: ({
-    accessibilityLabel,
-    onPress,
-    disabled,
-  }: {
-    accessibilityLabel: string;
-    onPress: () => void;
-    disabled?: boolean;
-  }) => (
-    <button type="button" aria-label={accessibilityLabel} onClick={onPress} disabled={disabled} />
-  ),
-}));
+
 jest.mock('@oxy.so/bloom/dialog', () => ({
   Dialog: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useDialogControl: () => ({ open: jest.fn(), close: jest.fn() }),
@@ -93,7 +80,7 @@ jest.mock('@oxy.so/bloom/page-footer', () => ({ PageFooter: () => null }));
 jest.mock('@oxy.so/bloom/card', () => ({ Card: () => null, CardBody: () => null }));
 jest.mock('@oxy.so/bloom/empty-state', () => ({ EmptyState: () => null }));
 jest.mock('@oxy.so/bloom/typography', () => ({ Text: () => null }));
-jest.mock('@oxy.so/bloom/button', () => ({ Button: () => null, IconButton: () => null }));
+jest.mock('@oxy.so/bloom/button', () => require('../fixtures/bloomButton'));
 jest.mock('@oxy.so/bloom/checkbox', () => ({
   Checkbox: ({ label, onCheckedChange }: { label: string; onCheckedChange: () => void }) => (
     <button type="button" aria-label={label} onClick={onCheckedChange} />

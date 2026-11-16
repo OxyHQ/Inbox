@@ -24,7 +24,7 @@ function ButtonControl({
       aria-label={accessibilityLabel}
       aria-busy={loading || undefined}
       aria-pressed={pressed}
-      disabled={disabled}
+      disabled={disabled || loading}
       onClick={() => {
         onPress?.();
         onPressedChange?.(!pressed);

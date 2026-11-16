@@ -1,7 +1,7 @@
 /**
  * Thin action facade over the message mutation hooks.
  *
- * Components (InboxList, MessageDetail, SwipeableRow) call these named actions
+ * Components (InboxList, MessageDetail) call these named actions
  * instead of wiring up individual mutations and resolving mailbox ids inline.
  * All cache logic lives in `utils/messageCache.ts` and the mutation hooks; this
  * layer only orchestrates.

@@ -36,6 +36,7 @@ jest.mock('@oxy.so/bloom/screen', () => ({
 jest.mock('@oxy.so/bloom/theme', () => ({ useTheme: () => ({ colors: {} }) }));
 jest.mock('@oxy.so/bloom/app-shell', () => ({ useAppShell: () => ({ drawerAvailable: false }) }));
 jest.mock('@oxy.so/bloom/page-header', () => ({
+  ...jest.requireActual('../fixtures/bloomHeaderActions'),
   PageHeader: ({ leading, actions }: { leading?: React.ReactNode; actions: React.ReactNode }) => (
     <>
       {leading}
@@ -43,7 +44,7 @@ jest.mock('@oxy.so/bloom/page-header', () => ({
     </>
   ),
 }));
-
+jest.mock('@oxy.so/bloom/button', () => jest.requireActual('../fixtures/bloomButton'));
 jest.mock('@oxy.so/bloom/dialog', () => ({
   Dialog: {},
   useDialogControl: () => ({ open: jest.fn(), close: jest.fn() }),
@@ -73,7 +74,6 @@ jest.mock('@oxy.so/bloom/page-footer', () => ({ PageFooter: () => null }));
 jest.mock('@oxy.so/bloom/card', () => ({ Card: () => null, CardBody: () => null }));
 jest.mock('@oxy.so/bloom/empty-state', () => ({ EmptyState: () => null }));
 jest.mock('@oxy.so/bloom/typography', () => ({ Text: () => null }));
-jest.mock('@oxy.so/bloom/button', () => require('../fixtures/bloomButton'));
 jest.mock('@oxy.so/bloom/checkbox', () => ({ Checkbox: () => null }));
 jest.mock('@oxy.so/bloom/mail-thread', () => ({ MailMessage: () => null, MailThread: () => null }));
 jest.mock('@oxy.so/bloom/loading', () => ({ Loading: () => null }));

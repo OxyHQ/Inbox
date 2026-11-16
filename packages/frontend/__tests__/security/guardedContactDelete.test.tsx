@@ -37,7 +37,7 @@ jest.mock('@oxy.so/bloom/text-field', () => ({
 jest.mock('@oxy.so/bloom/textarea', () => ({ Textarea: () => null }));
 jest.mock('@oxy.so/bloom/switch', () => ({ Switch: () => null }));
 jest.mock('@/components/EmptyStateSticker', () => ({ EmptyStateSticker: () => null }));
-jest.mock('@oxy.so/bloom/button', () => require('../fixtures/bloomButton'));
+jest.mock('@oxy.so/bloom/button', () => jest.requireActual('../fixtures/bloomButton'));
 jest.mock('@oxy.so/bloom/settings-modal', () => ({
   SettingsProfilePage: ({
     sections,

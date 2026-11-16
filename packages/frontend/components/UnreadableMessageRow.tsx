@@ -1,4 +1,4 @@
-import { Card, CardHeader, CardTitle, CardDescription } from '@oxy.so/bloom/card';
+import { ListItem } from '@oxy.so/bloom/list';
 import { useTranslation } from '@/lib/i18n';
 import type { UnreadableMessage } from '@/services/emailApi';
 
@@ -12,17 +12,10 @@ export function UnreadableMessageRow({ message, onOpen }: UnreadableMessageRowPr
   const { t } = useTranslation();
   const id = message._id;
   return (
-    <Card
-      appearance="outline"
-      accessibilityLabel={t('inbox.unreadable.title')}
+    <ListItem
+      title={t('inbox.unreadable.title')}
+      supporting={[message.from, message.subject].filter(Boolean).join(' · ')}
       onPress={id && onOpen ? () => onOpen(id) : undefined}
-    >
-      <CardHeader>
-        <CardTitle>{t('inbox.unreadable.title')}</CardTitle>
-        <CardDescription>
-          {[message.from, message.subject].filter(Boolean).join(' · ')}
-        </CardDescription>
-      </CardHeader>
-    </Card>
+    />
   );
 }

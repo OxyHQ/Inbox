@@ -1,13 +1,11 @@
 import { tokens } from '@oxy.so/bloom/styles';
 import { Screen, ScreenScrollView } from '@oxy.so/bloom/screen';
-import { useTheme } from '@oxy.so/bloom/theme';
 import { PageFooter } from '@oxy.so/bloom/page-footer';
 import { Card, CardBody } from '@oxy.so/bloom/card';
 import { EmptyState } from '@oxy.so/bloom/empty-state';
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
 import { Text } from '@oxy.so/bloom/typography';
 import { useAppShell } from '@oxy.so/bloom/app-shell';
-
 import { Button } from '@oxy.so/bloom/button';
 import {
   DropdownMenu,
@@ -36,7 +34,7 @@ import { RiStarFill } from '@oxy.so/bloom/icons/RiStarFill';
 import { RiStarLine } from '@oxy.so/bloom/icons/RiStarLine';
 import { RiTimeLine } from '@oxy.so/bloom/icons/RiTimeLine';
 import { MailMessage, MailThread, type MailThreadMessage } from '@oxy.so/bloom/mail-thread';
-import { PageHeader } from '@oxy.so/bloom/page-header';
+import { HeaderActions, PageHeader } from '@oxy.so/bloom/page-header';
 /**
  * Reusable message detail view.
  *
@@ -161,7 +159,6 @@ export function MessageDetail(props: MessageDetailProps) {
 function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   const shell = useAppShell();
   const focused = useIsFocused();
-  const { colors: bloomColors } = useTheme();
   const pathname = usePathname();
   const colors = useColors();
   const { t, locale } = useTranslation();
@@ -715,183 +712,210 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           onBack={handleBack}
           backLabel={t('common.back')}
           leading={
-            <>
-              {shell.drawerAvailable && (
-                <Button.Group accessibilityLabel={t('search.openMenu')}>
-                  <Button
-                    iconOnly
-                    leadingIcon={RiMenuLine}
-                    accessibilityLabel={t('search.openMenu')}
-                    onPress={shell.openDrawer}
-                  />
-                </Button.Group>
-              )}
-              {replyableMessage && (
-                <Button.Group>
-                  <Button
-                    iconOnly
-                    accessibilityLabel={t('message.actions.reply')}
-                    leadingIcon={RiCornerUpLeftLine}
-                    onPress={() => handleReply(replyableMessage._id)}
-                  />
-                  <Button
-                    iconOnly
-                    accessibilityLabel={t('message.actions.replyAll')}
-                    leadingIcon={RiArrowGoBackLine}
-                    onPress={() => handleReplyAll(replyableMessage._id)}
-                  />
-                  <Button
-                    iconOnly
-                    accessibilityLabel={t('message.actions.forward')}
-                    leadingIcon={RiShareForwardLine}
-                    onPress={() => handleForward(replyableMessage._id)}
-                  />
-                </Button.Group>
-              )}
-              <Button.Group>
-                <Button
-                  iconOnly
-                  accessibilityLabel={t(
-                    archived ? 'message.actions.moveToInbox' : 'message.actions.archive',
-                  )}
-                  leadingIcon={archived ? RiInbox2Line : RiArchiveLine}
-                  onPress={handleArchive}
-                />
-                <Button
-                  iconOnly
-                  accessibilityLabel={t('message.actions.snooze')}
-                  leadingIcon={RiTimeLine}
-                  onPress={() => setSnoozeVisible(true)}
-                />
-                <Button
-                  iconOnly
-                  accessibilityLabel={t('message.actions.reportSpam')}
-                  leadingIcon={RiSpamLine}
-                  onPress={handleMarkSpam}
-                />
-                <Button
-                  iconOnly
-                  accessibilityLabel={t('message.actions.delete')}
-                  leadingIcon={RiDeleteBinLine}
-                  onPress={handleDelete}
-                />
-              </Button.Group>
-              <Button.Group>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild label={t('ui.drawer.folders')}>
-                    <Button
-                      iconOnly
-                      accessibilityLabel={t('ui.drawer.folders')}
-                      leadingIcon={RiFolderLine}
-                    />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    {mailboxes
-                      .filter((mailbox) => mailbox._id !== currentMessage.mailboxId)
-                      .map((mailbox) => (
-                        <DropdownMenuItem
-                          key={mailbox._id}
-                          leading={<RiFolderLine />}
-                          onPress={() => handleMoveToFolder(mailbox._id)}
-                        >
-                          {mailbox.name}
-                        </DropdownMenuItem>
-                      ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild label={t('message.actions.label')}>
-                    <Button
-                      iconOnly
-                      accessibilityLabel={t('message.actions.label')}
-                      leadingIcon={RiPriceTag3Line}
-                    />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    {labels.length === 0 && (
-                      <DropdownMenuItem disabled>{t('message.labelPicker.empty')}</DropdownMenuItem>
-                    )}
-                    {labels.map((label) => (
-                      <DropdownMenuCheckboxItem
-                        key={label._id}
-                        checked={currentMessage.labels.includes(label.name)}
-                        onCheckedChange={() => handleToggleLabel(label.name)}
-                        leading={<RiPriceTag3Line fill={label.color} />}
-                        indicatorPosition="trailing"
-                        keepOpen
-                      >
-                        {label.name}
-                      </DropdownMenuCheckboxItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <Button
-                  iconOnly
-                  accessibilityLabel={t(
-                    currentMessage.flags.starred
-                      ? 'message.actions.unstar'
-                      : 'message.actions.star',
-                  )}
-                  leadingIcon={currentMessage.flags.starred ? RiStarFill : RiStarLine}
-                  onPress={handleStar}
-                  disabled={toggleStar.isPending}
-                />
-              </Button.Group>
-            </>
+            shell.drawerAvailable ? (
+              <Button
+                icon={RiMenuLine}
+                appearance="outline"
+                tone="neutral"
+                iconOnly
+                accessibilityLabel={t('search.openMenu')}
+                onPress={shell.openDrawer}
+              />
+            ) : undefined
           }
           sticky={false}
           scrim="auto"
-          scrimColor={bloomColors.card}
           testID="message-header"
           safeArea={false}
           actions={
-            <Button.Group>
-              <Button
-                iconOnly
-                accessibilityLabel={t('message.actions.markUnread')}
-                leadingIcon={RiMailLine}
-                onPress={handleMarkUnread}
-              />
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild label={t('message.actions.more')}>
-                  <Button
-                    iconOnly
-                    accessibilityLabel={t('message.actions.more')}
-                    leadingIcon={RiMoreLine}
-                  />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem
-                    leading={<RiPushpinLine />}
-                    onPress={handlePin}
-                    disabled={togglePin.isPending}
-                  >
-                    {t(
-                      currentMessage.flags.pinned ? 'message.actions.unpin' : 'message.actions.pin',
-                    )}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    leading={<RiCalendarLine />}
-                    onPress={() =>
-                      setReminderTarget({
-                        id: currentMessage._id,
-                        key: ++reminderEditorId.current,
-                        owner: reminderOwner,
-                        mutate: createReminder.mutateAsync,
-                      })
-                    }
-                  >
-                    {t('reminder.create.title')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem leading={<RiPrinterLine />} onPress={handlePrint}>
-                    {t('message.actions.print')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onPress={handleDownloadEml}>
-                    {t('message.actions.downloadEml')}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </Button.Group>
+            <HeaderActions
+              overflowLabel={t('message.actions.more')}
+              persistentActions={
+                <Button.Group>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild label={t('ui.drawer.folders')}>
+                      <Button
+                        iconOnly
+                        accessibilityLabel={t('ui.drawer.folders')}
+                        leadingIcon={RiFolderLine}
+                      />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      {mailboxes
+                        .filter((mailbox) => mailbox._id !== currentMessage.mailboxId)
+                        .map((mailbox) => (
+                          <DropdownMenuItem
+                            key={mailbox._id}
+                            leading={<RiFolderLine />}
+                            onPress={() => handleMoveToFolder(mailbox._id)}
+                          >
+                            {mailbox.name}
+                          </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild label={t('message.actions.label')}>
+                      <Button
+                        iconOnly
+                        accessibilityLabel={t('message.actions.label')}
+                        leadingIcon={RiPriceTag3Line}
+                      />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      {labels.length === 0 && (
+                        <DropdownMenuItem disabled>
+                          {t('message.labelPicker.empty')}
+                        </DropdownMenuItem>
+                      )}
+                      {labels.map((label) => (
+                        <DropdownMenuCheckboxItem
+                          key={label._id}
+                          checked={currentMessage.labels.includes(label.name)}
+                          onCheckedChange={() => handleToggleLabel(label.name)}
+                          leading={<RiPriceTag3Line fill={label.color} />}
+                          indicatorPosition="trailing"
+                          keepOpen
+                        >
+                          {label.name}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </Button.Group>
+              }
+              actions={[
+                {
+                  id: 'reply',
+                  label: t('message.actions.reply'),
+                  icon: RiCornerUpLeftLine,
+                  onPress: () => {
+                    if (replyableMessage) handleReply(replyableMessage._id);
+                  },
+                  visible: !!replyableMessage,
+                  priority: 100,
+                  group: 'reply',
+                  labelVisibility: 'hidden',
+                },
+                {
+                  id: 'reply-all',
+                  label: t('message.actions.replyAll'),
+                  icon: RiArrowGoBackLine,
+                  onPress: () => {
+                    if (replyableMessage) handleReplyAll(replyableMessage._id);
+                  },
+                  visible: !!replyableMessage,
+                  group: 'reply',
+                  labelVisibility: 'hidden',
+                },
+                {
+                  id: 'forward',
+                  label: t('message.actions.forward'),
+                  icon: RiShareForwardLine,
+                  onPress: () => {
+                    if (replyableMessage) handleForward(replyableMessage._id);
+                  },
+                  visible: !!replyableMessage,
+                  group: 'reply',
+                  labelVisibility: 'hidden',
+                },
+                {
+                  id: 'archive',
+                  label: t(archived ? 'message.actions.moveToInbox' : 'message.actions.archive'),
+                  icon: archived ? RiInbox2Line : RiArchiveLine,
+                  onPress: handleArchive,
+                  priority: 90,
+                  group: 'mail',
+                  labelVisibility: 'hidden',
+                },
+                {
+                  id: 'snooze',
+                  label: t('message.actions.snooze'),
+                  icon: RiTimeLine,
+                  onPress: () => setSnoozeVisible(true),
+                  group: 'mail',
+                  labelVisibility: 'hidden',
+                },
+                {
+                  id: 'spam',
+                  label: t('message.actions.reportSpam'),
+                  icon: RiSpamLine,
+                  onPress: handleMarkSpam,
+                  group: 'mail',
+                  labelVisibility: 'hidden',
+                },
+                {
+                  id: 'delete',
+                  label: t('message.actions.delete'),
+                  icon: RiDeleteBinLine,
+                  onPress: handleDelete,
+                  group: 'mail',
+                  labelVisibility: 'hidden',
+                },
+                {
+                  id: 'star',
+                  label: t(
+                    currentMessage.flags.starred
+                      ? 'message.actions.unstar'
+                      : 'message.actions.star',
+                  ),
+                  icon: currentMessage.flags.starred ? RiStarFill : RiStarLine,
+                  onPress: handleStar,
+                  disabled: toggleStar.isPending,
+                  selected: currentMessage.flags.starred,
+                  group: 'mail',
+                  labelVisibility: 'hidden',
+                },
+                {
+                  id: 'unread',
+                  label: t('message.actions.markUnread'),
+                  icon: RiMailLine,
+                  onPress: handleMarkUnread,
+                  group: 'mail',
+                  labelVisibility: 'hidden',
+                },
+                {
+                  id: 'pin',
+                  label: t(
+                    currentMessage.flags.pinned ? 'message.actions.unpin' : 'message.actions.pin',
+                  ),
+                  icon: RiPushpinLine,
+                  onPress: handlePin,
+                  disabled: togglePin.isPending,
+                  overflow: 'always',
+                  group: 'more',
+                },
+                {
+                  id: 'reminder',
+                  label: t('reminder.create.title'),
+                  icon: RiCalendarLine,
+                  onPress: () =>
+                    setReminderTarget({
+                      id: currentMessage._id,
+                      key: ++reminderEditorId.current,
+                      owner: reminderOwner,
+                      mutate: createReminder.mutateAsync,
+                    }),
+                  overflow: 'always',
+                  group: 'more',
+                },
+                {
+                  id: 'print',
+                  label: t('message.actions.print'),
+                  icon: RiPrinterLine,
+                  onPress: handlePrint,
+                  overflow: 'always',
+                  group: 'more',
+                },
+                {
+                  id: 'download',
+                  label: t('message.actions.downloadEml'),
+                  onPress: handleDownloadEml,
+                  overflow: 'always',
+                  group: 'more',
+                },
+              ]}
+            />
           }
         />
       }
@@ -900,7 +924,6 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         threadDraft && (
           <PageFooter
             scrim="auto"
-            scrimColor={bloomColors.card}
             safeArea={false}
             testID="message-reply-footer"
             actions={

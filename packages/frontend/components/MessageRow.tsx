@@ -5,12 +5,11 @@ import { RiDeleteBinLine } from '@oxy.so/bloom/icons/RiDeleteBinLine';
 import { RiMailOpenLine } from '@oxy.so/bloom/icons/RiMailOpenLine';
 import { RiPushpinLine } from '@oxy.so/bloom/icons/RiPushpinLine';
 import { RiPriceTag3Line } from '@oxy.so/bloom/icons/RiPriceTag3Line';
-import { ListItem, type ListAction } from '@oxy.so/bloom/list';
+import { ListItem, type ListAction, type ListCommonProps } from '@oxy.so/bloom/list';
 import { useThemePaint } from '@oxy.so/bloom/theme';
 /** Bloom owns row layout, selection, hover actions and density on every platform. */
 
 import { SPACING } from '@/constants/layout';
-import type { MessageDensity } from '@/contexts/inbox-prefs-context';
 import type { SentimentResult } from '@/hooks/queries/useSentimentAnalysis';
 import { useTranslation, type TranslateFn } from '@/lib/i18n';
 import type { Message } from '@/services/emailApi';
@@ -85,7 +84,8 @@ interface MessageRowProps {
   onLongPress?: (id: string) => void;
   isPinPending?: boolean;
   showSnoozeTime?: boolean;
-  density?: MessageDensity;
+  swipeActions?: ListCommonProps['swipeActions'];
+  fullSwipeAction?: ListCommonProps['fullSwipeAction'];
   showPreviews?: boolean;
   sentiment?: SentimentResult | null;
   snippetOverride?: string;
@@ -105,7 +105,8 @@ function MessageRowInner({
   onLongPress,
   isPinPending,
   showSnoozeTime,
-  density = 'comfortable',
+  swipeActions,
+  fullSwipeAction,
   showPreviews = true,
   archived = false,
   sentiment,
@@ -163,7 +164,6 @@ function MessageRowInner({
           showSnoozeTime && message.snoozedUntil
             ? formatSnoozeTime(message.snoozedUntil, t, locale)
             : formatRowTime(message.date, t('inbox.sections.yesterday'), locale),
-        // Pending sent delivery remains visible in the shared row.
         labels: isOutstanding(message.delivery)
           ? [
               {
@@ -190,15 +190,19 @@ function MessageRowInner({
       checked={!!isMultiSelected}
       selecting={isSelectionMode}
       onCheckedChange={
-        isSelectionMode && onToggleSelect ? () => onToggleSelect(message._id) : undefined
+        onToggleSelect
+          ? () => {
+              if (!isSelectionMode && onLongPress) onLongPress(message._id);
+              else onToggleSelect(message._id);
+            }
+          : undefined
       }
-      onPress={() =>
-        isSelectionMode && onToggleSelect ? onToggleSelect(message._id) : onSelect(message)
-      }
+      onPress={() => onSelect(message)}
       onLongPress={onLongPress ? () => onLongPress(message._id) : undefined}
-      supportingLines={density === 'compact' ? 1 : 2}
       actions={isSelectionMode ? [] : actions}
-      swipeEnabled={false}
+      swipeActions={swipeActions}
+      fullSwipeAction={fullSwipeAction}
+      swipeEnabled={isSelectionMode || !swipeActions ? false : undefined}
       footer={
         message.labels.length > 0 || sentiment ? (
           <MessageRowExtras message={message} sentiment={sentiment} />

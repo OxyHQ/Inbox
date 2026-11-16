@@ -1,7 +1,7 @@
 /**
  * Inbox client-side preferences.
  *
- * Stores user preferences that are scoped to this device (density, swipe
+ * Stores user preferences that are scoped to this device (swipe
  * action bindings, AI feature toggles, notification preferences). Server-
  * backed preferences (signature, vacation responder, forwarding) live in
  * the email settings API and are not duplicated here.
@@ -14,7 +14,6 @@
  */
 
 import { useScopedState } from '@/hooks/useScopedState';
-import type { MailDensity } from '@oxy.so/bloom/mail-list';
 import {
   createContext,
   useCallback,
@@ -26,19 +25,12 @@ import {
 import type { ReactNode } from 'react';
 import { Platform } from 'react-native';
 
-/**
- * Bloom's row densities. Bloom 5 dropped `cozy`; a stored `cozy` falls back to
- * the default (`comfortable`) through `mergeInboxPrefs`.
- */
-export type MessageDensity = MailDensity;
 export type SwipeAction = 'archive' | 'delete' | 'mark-read' | 'snooze' | 'none';
 
 export const UNDO_SEND_SECONDS = [0, 5, 10, 20, 30] as const;
 export type UndoSendSeconds = (typeof UNDO_SEND_SECONDS)[number];
 
 export interface InboxPrefs {
-  /** How tightly to pack message rows in the list. */
-  density: MessageDensity;
   /** Group messages into threads in the list view. */
   conversationView: boolean;
   /** Auto-mark messages as read when opened. */
@@ -69,7 +61,6 @@ export interface InboxPrefs {
 }
 
 export const DEFAULT_INBOX_PREFS: InboxPrefs = {
-  density: 'comfortable',
   conversationView: true,
   markReadOnOpen: true,
   showPreviews: true,
@@ -87,10 +78,6 @@ export const DEFAULT_INBOX_PREFS: InboxPrefs = {
 
 /** What the user chose. A preference left out follows its default. */
 export type InboxPrefChoices = Partial<InboxPrefs>;
-
-function isMessageDensity(value: unknown): value is MessageDensity {
-  return value === 'compact' || value === 'comfortable';
-}
 
 function isSwipeAction(value: unknown): value is SwipeAction {
   return (
@@ -111,7 +98,6 @@ function isBoolean(value: unknown): value is boolean {
 }
 
 const IS_VALID: { [K in keyof InboxPrefs]: (value: unknown) => value is InboxPrefs[K] } = {
-  density: isMessageDensity,
   conversationView: isBoolean,
   markReadOnOpen: isBoolean,
   showPreviews: isBoolean,

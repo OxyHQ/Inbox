@@ -10,7 +10,7 @@ jest.mock('@/lib/i18n', () => ({
 }));
 // Only the components' pure helpers are under test; their UI kit is not loaded.
 jest.mock('@oxy.so/bloom/theme', () => ({ useTheme: () => ({}) }));
-jest.mock('@oxy.so/bloom/button', () => ({ Button: () => null, IconButton: () => null }));
+jest.mock('@oxy.so/bloom/button', () => ({ Button: () => null }));
 jest.mock('@oxy.so/bloom/checkbox', () => ({ Checkbox: () => null }));
 jest.mock('@oxy.so/bloom/item', () => ({ Item: () => null }));
 jest.mock('@oxy.so/bloom/bottom-sheet', () => ({ BottomSheet: () => null }));

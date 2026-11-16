@@ -42,6 +42,7 @@ jest.mock('react-native', () => ({
 }));
 jest.mock('@oxy.so/bloom/scroll', () => ({ useScrollRestoration: () => ({}) }));
 jest.mock('@oxy.so/bloom/list', () => ({
+  ...jest.requireActual('@oxy.so/bloom/list'),
   VirtualList: ({
     data,
     renderItem,
@@ -97,6 +98,7 @@ jest.mock('@oxy.so/bloom/screen', () => ({
   ),
 }));
 jest.mock('@oxy.so/bloom/page-header', () => ({
+  ...jest.requireActual('../fixtures/bloomHeaderActions'),
   PageHeader: ({
     title,
     leading,
@@ -116,7 +118,7 @@ jest.mock('@oxy.so/bloom/page-header', () => ({
 jest.mock('@oxy.so/bloom/typography', () => ({
   Text: ({ children }: Children) => <span>{children}</span>,
 }));
-jest.mock('@oxy.so/bloom/button', () => require('../fixtures/bloomButton'));
+jest.mock('@oxy.so/bloom/button', () => jest.requireActual('../fixtures/bloomButton'));
 jest.mock('@oxy.so/bloom/empty-state', () => ({ EmptyState: () => <p>Empty mailbox</p> }));
 jest.mock('@oxy.so/bloom/toast', () => ({
   toast: { error: (...args: unknown[]) => mockNoop(...args) },
@@ -129,7 +131,7 @@ jest.mock('@/contexts/inbox-prefs-context', () => ({
   useInboxPrefs: () => ({ prefs: { aiBrief: mockAiBrief, aiCategorization: false } }),
 }));
 jest.mock('@/hooks/useInboxDisplayPrefs', () => ({
-  useInboxDisplayPrefs: () => ({ density: 'comfortable', showPreviews: true }),
+  useInboxDisplayPrefs: () => ({ showPreviews: true }),
 }));
 jest.mock('@/hooks/useEmail', () => ({
   useEmailStore: (select: (state: unknown) => unknown) =>
@@ -202,9 +204,6 @@ jest.mock('@/components/DailyBrief', () => ({
         ))}
       </aside>
     ) : null,
-}));
-jest.mock('@/components/SwipeableRow', () => ({
-  SwipeableRow: ({ children }: Children) => children,
 }));
 jest.mock('@/components/BundleRow', () => ({ BundleRow: () => null }));
 jest.mock('@/components/EmptyStateSticker', () => ({ EmptyStateSticker: () => null }));

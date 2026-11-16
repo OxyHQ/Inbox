@@ -56,28 +56,28 @@ describe('Inbox preferences', () => {
 
     expect(window.localStorage.getItem(getInboxPrefsStorageKey(null))).toBe('{}');
     act(() => {
-      result.current.setPref('density', 'compact');
+      result.current.setPref('conversationView', false);
     });
     expect(JSON.parse(window.localStorage.getItem(getInboxPrefsStorageKey(null)) ?? '')).toEqual({
-      density: 'compact',
+      conversationView: false,
     });
   });
 
   it('moves a v2 blob to v3, turning on the brief its old default turned off', () => {
     window.localStorage.setItem(
       getV2InboxPrefsStorageKey('user-a'),
-      JSON.stringify({ ...DEFAULT_INBOX_PREFS, aiBrief: false, density: 'compact' }),
+      JSON.stringify({ ...DEFAULT_INBOX_PREFS, aiBrief: false, conversationView: false }),
     );
 
     const { result } = renderHook(() => useInboxPrefs(), {
       wrapper: ({ children }) => <InboxPrefsProvider scope="user-a">{children}</InboxPrefsProvider>,
     });
 
-    expect(result.current.prefs).toEqual({ ...DEFAULT_INBOX_PREFS, density: 'compact' });
+    expect(result.current.prefs).toEqual({ ...DEFAULT_INBOX_PREFS, conversationView: false });
     expect(
       JSON.parse(window.localStorage.getItem(getInboxPrefsStorageKey('user-a')) ?? ''),
     ).toEqual({
-      density: 'compact',
+      conversationView: false,
     });
     expect(window.localStorage.getItem(getV2InboxPrefsStorageKey('user-a'))).toBeNull();
   });
@@ -89,7 +89,7 @@ describe('Inbox preferences', () => {
     );
     window.localStorage.setItem(
       getV2InboxPrefsStorageKey('user-a'),
-      JSON.stringify({ aiBrief: true, density: 'compact' }),
+      JSON.stringify({ aiBrief: true, conversationView: false }),
     );
 
     const { result } = renderHook(() => useInboxPrefs(), {
@@ -97,7 +97,7 @@ describe('Inbox preferences', () => {
     });
 
     expect(result.current.prefs.aiBrief).toBe(false);
-    expect(result.current.prefs.density).toBe(DEFAULT_INBOX_PREFS.density);
+    expect(result.current.prefs.conversationView).toBe(DEFAULT_INBOX_PREFS.conversationView);
   });
 
   it('updates a preference without dropping the other preferences', () => {
@@ -110,7 +110,7 @@ describe('Inbox preferences', () => {
     });
 
     expect(result.current.prefs.aiBrief).toBe(false);
-    expect(result.current.prefs.density).toBe(DEFAULT_INBOX_PREFS.density);
+    expect(result.current.prefs.conversationView).toBe(DEFAULT_INBOX_PREFS.conversationView);
     expect(window.localStorage.getItem(getInboxPrefsStorageKey(null))).toContain('"aiBrief":false');
   });
 
@@ -137,7 +137,7 @@ describe('Inbox preferences', () => {
 });
 
 it('loads each account before rendering its children without remounting them, and rejects old setters', () => {
-  localStorage.setItem(getInboxPrefsStorageKey('a'), JSON.stringify({ density: 'compact' }));
+  localStorage.setItem(getInboxPrefsStorageKey('a'), JSON.stringify({ conversationView: false }));
   localStorage.setItem(getInboxPrefsStorageKey('b'), JSON.stringify({ showPreviews: false }));
   const mounts = jest.fn();
   let prefs: ReturnType<typeof useInboxPrefs>;
@@ -149,7 +149,7 @@ it('loads each account before rendering its children without remounting them, an
     useEffect(mounts, []);
     return (
       <main>
-        {current.prefs.density}:{String(current.prefs.showPreviews)}
+        {String(current.prefs.conversationView)}:{String(current.prefs.showPreviews)}
       </main>
     );
   }
@@ -164,14 +164,14 @@ it('loads each account before rendering its children without remounting them, an
       <Workspace />
     </InboxPrefsProvider>,
   );
-  expect(workspace.textContent).toBe('compact:true');
+  expect(workspace.textContent).toBe('false:true');
   const oldSetter = defined(prefs).setPref;
   view.rerender(
     <InboxPrefsProvider scope="b">
       <Workspace />
     </InboxPrefsProvider>,
   );
-  expect(workspace.textContent).toBe('comfortable:false');
+  expect(workspace.textContent).toBe('true:false');
   act(() => oldSetter('aiBrief', false));
   expect(defined(prefs).prefs.aiBrief).toBe(true);
   view.rerender(
@@ -201,7 +201,7 @@ it('drops a native hydration completed after switching accounts and waits before
     useEffect(() => {
       prefs = current;
     }, [current]);
-    return <main>{current.prefs.density}</main>;
+    return <main>{String(current.prefs.conversationView)}</main>;
   }
   try {
     const view = render(
@@ -218,11 +218,13 @@ it('drops a native hydration completed after switching accounts and waits before
     await act(async () => {});
     expect(mockNativeSet).not.toHaveBeenCalled();
     await act(async () => {
-      defined(pending.get(getInboxPrefsStorageKey('a')))(JSON.stringify({ density: 'compact' }));
+      defined(pending.get(getInboxPrefsStorageKey('a')))(
+        JSON.stringify({ conversationView: false }),
+      );
       defined(pending.get(getV2InboxPrefsStorageKey('a')))(null);
     });
     expect(defined(prefs).loaded).toBe(false);
-    expect(defined(prefs).prefs.density).toBe('comfortable');
+    expect(defined(prefs).prefs.conversationView).toBe(true);
     expect(mockNativeSet).not.toHaveBeenCalled();
     await act(async () => {
       defined(pending.get(getInboxPrefsStorageKey('b')))(JSON.stringify({ showPreviews: false }));
@@ -257,7 +259,7 @@ it('hydrates the default heading before applying stored choices without replacin
   document.body.appendChild(container);
   const heading = container.querySelector('h1');
   expect(heading?.textContent).toBe("Today's brief");
-  localStorage.setItem(key, JSON.stringify({ aiBrief: false, density: 'compact' }));
+  localStorage.setItem(key, JSON.stringify({ aiBrief: false, conversationView: false }));
   const onRecoverableError = jest.fn();
   const writes = jest.spyOn(Storage.prototype, 'setItem');
   let root: Root | undefined;
@@ -270,7 +272,7 @@ it('hydrates the default heading before applying stored choices without replacin
     expect(onRecoverableError).not.toHaveBeenCalled();
     expect(JSON.parse(defined(localStorage.getItem(key)))).toEqual({
       aiBrief: false,
-      density: 'compact',
+      conversationView: false,
     });
     expect(
       writes.mock.calls
@@ -314,3 +316,30 @@ it('keeps preferences usable when the localStorage getter itself is blocked', ()
     warning.mockRestore();
   }
 });
+
+it.each(['comfortable', 'compact'])(
+  'retires the old %s density without clearing other preferences',
+  (density) => {
+    const key = getInboxPrefsStorageKey('density-migration');
+    localStorage.setItem(
+      key,
+      JSON.stringify({ density, showPreviews: false, leftSwipeAction: 'snooze', aiBrief: false }),
+    );
+    const { result } = renderHook(() => useInboxPrefs(), {
+      wrapper: ({ children }) => (
+        <InboxPrefsProvider scope="density-migration">{children}</InboxPrefsProvider>
+      ),
+    });
+    expect(result.current.prefs).toEqual({
+      ...DEFAULT_INBOX_PREFS,
+      showPreviews: false,
+      leftSwipeAction: 'snooze',
+      aiBrief: false,
+    });
+    expect(JSON.parse(localStorage.getItem(key) ?? '')).toEqual({
+      showPreviews: false,
+      leftSwipeAction: 'snooze',
+      aiBrief: false,
+    });
+  },
+);

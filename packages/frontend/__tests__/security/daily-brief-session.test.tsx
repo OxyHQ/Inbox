@@ -47,6 +47,7 @@ jest.mock('@oxy.so/bloom/button', () => ({
   },
 }));
 jest.mock('@oxy.so/bloom/list', () => ({
+  ...jest.requireActual('@oxy.so/bloom/list'),
   ListItem: ({ onPress }: { onPress: () => void }) => {
     mockRowPress = onPress;
     return (

@@ -6,13 +6,12 @@ import { useScrollRestoration } from '@oxy.so/bloom/scroll';
 import { VirtualList, type VirtualListHandle } from '@oxy.so/bloom/list';
 import { useAppShell } from '@oxy.so/bloom/app-shell';
 
-import { useTheme } from '@oxy.so/bloom/theme';
 import { RiEditLine } from '@oxy.so/bloom/icons/RiEditLine';
 import { RiMailCheckLine } from '@oxy.so/bloom/icons/RiMailCheckLine';
 import { RiRefreshLine } from '@oxy.so/bloom/icons/RiRefreshLine';
 import { RiSearchLine } from '@oxy.so/bloom/icons/RiSearchLine';
 import { RiMenuLine } from '@oxy.so/bloom/icons/RiMenuLine';
-import { PageHeader } from '@oxy.so/bloom/page-header';
+import { HeaderActions, PageHeader } from '@oxy.so/bloom/page-header';
 /**
  * Routed mailbox list with Bloom page chrome and pull-to-refresh.
  * The shell owns the content width on every platform.
@@ -35,7 +34,7 @@ import { UndeliveredBanner } from '@/components/UndeliveredBanner';
 import { ReminderRow } from '@/components/ReminderRow';
 import { SelectionToolbar } from '@/components/SelectionToolbar';
 import { SnoozeSheet } from '@/components/SnoozeSheet';
-import { SwipeableRow } from '@/components/SwipeableRow';
+import { messageSwipeActions } from '@/utils/messageSwipeActions';
 import { UnreadableMessageRow } from '@/components/UnreadableMessageRow';
 import { SPACING } from '@/constants/layout';
 import { SPECIAL_USE } from '@/constants/mailbox';
@@ -88,15 +87,7 @@ function getDateCategory(dateStr: string, t: TranslateFn): string {
   return t('inbox.sections.earlier');
 }
 
-/**
- * Pushes a titled section: one list item holding the whole group, rendered as
- * a Bloom `SettingsListGroup` card with its title above it.
- *
- * The group is a single FlashList item, so its rows are not individually
- * virtualized — acceptable because a group spans one date bucket of one page,
- * and it is the price of framing each section with a shared card component
- * instead of hand-rolling per-row borders.
- */
+/** Each date bucket contributes its heading and individually virtualized message rows. */
 function pushGroup(items: ListItem[], title: string, key: string, messages: Message[]): void {
   if (messages.length === 0) return;
   // One list item per message, not one per bucket. FlashList mounts an item
@@ -132,7 +123,6 @@ interface InboxListProps {
 }
 
 export function InboxList({ replaceNavigation }: InboxListProps) {
-  const { colors: bloomColors } = useTheme();
   const router = useRouter();
   const shell = useAppShell();
   const focused = useIsFocused();
@@ -153,7 +143,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     [setAliaRequest],
   );
   const { prefs } = useInboxPrefs();
-  const { density, showPreviews } = useInboxDisplayPrefs();
+  const { showPreviews } = useInboxDisplayPrefs();
   const messageActions = useMessageActions();
 
   const currentMailbox = useEmailStore((s) => s.currentMailbox);
@@ -664,7 +654,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
     return currentMailbox?.name || t('drawer.mailboxes.Inbox');
   }, [currentMailbox, t, viewMode]);
 
-  // Single entry point for swipe actions. `SwipeableRow` only knows which
+  // Single entry point for swipe actions. Bloom only knows which
   // action the user configured; the behaviour lives here via `useMessageActions`.
   const handleSwipeAction = useCallback(
     (action: SwipeAction, messageId: string) => {
@@ -694,37 +684,36 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
 
   const renderMessageRow = useCallback(
     (msg: Message, note?: string, onOpen?: () => void) => (
-      <SwipeableRow
+      <MessageRow
         key={msg._id}
-        messageId={msg._id}
-        leftAction={prefs.leftSwipeAction}
-        rightAction={prefs.rightSwipeAction}
-        onAction={handleSwipeAction}
+        {...messageSwipeActions(
+          prefs.leftSwipeAction,
+          prefs.rightSwipeAction,
+          messageActions.isArchived(conversationOf(msg._id)),
+          t,
+          (action) => handleSwipeAction(action, msg._id),
+        )}
+        message={msg}
+        onPin={handlePin}
+        onSelect={onOpen ?? handleMessagePress}
+        snippetOverride={note}
+        onArchive={handleArchiveRow}
         archived={messageActions.isArchived(conversationOf(msg._id))}
-      >
-        <MessageRow
-          message={msg}
-          onPin={handlePin}
-          onSelect={onOpen ?? handleMessagePress}
-          snippetOverride={note}
-          onArchive={handleArchiveRow}
-          archived={messageActions.isArchived(conversationOf(msg._id))}
-          onDelete={handleDeleteRow}
-          onToggleRead={handleToggleRead}
-          isSelected={msg._id === selectedMessageId}
-          isSelectionMode={isSelectionMode}
-          isMultiSelected={selectedMessageIds.has(msg._id)}
-          onToggleSelect={toggleMessageSelection}
-          onLongPress={handleLongPress}
-          isPinPending={pinPendingId === msg._id}
-          showSnoozeTime={isSnoozedView}
-          density={density}
-          showPreviews={showPreviews}
-          sentiment={sentimentMap.get(msg._id)}
-        />
-      </SwipeableRow>
+        onDelete={handleDeleteRow}
+        onToggleRead={handleToggleRead}
+        isSelected={msg._id === selectedMessageId}
+        isSelectionMode={isSelectionMode}
+        isMultiSelected={selectedMessageIds.has(msg._id)}
+        onToggleSelect={toggleMessageSelection}
+        onLongPress={handleLongPress}
+        isPinPending={pinPendingId === msg._id}
+        showSnoozeTime={isSnoozedView}
+        showPreviews={showPreviews}
+        sentiment={sentimentMap.get(msg._id)}
+      />
     ),
     [
+      t,
       prefs.leftSwipeAction,
       prefs.rightSwipeAction,
       handleSwipeAction,
@@ -740,7 +729,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
       handleLongPress,
       pinPendingId,
       isSnoozedView,
-      density,
       showPreviews,
       sentimentMap,
       messageActions,
@@ -893,7 +881,6 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
             title={accountReady ? mailboxTitle : t('drawer.mailboxes.Inbox')}
             sticky={false}
             scrim="auto"
-            scrimColor={bloomColors.card}
             safeArea={false}
             leading={
               drawerAvailable ? (
@@ -917,42 +904,53 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
             }
             actions={
               accountReady ? (
-                <>
-                  <Button.Group>
-                    <Button leadingIcon={GemieAvatarIcon} onPress={handleAskAlia}>
-                      {t('inbox.askAlia')}
-                    </Button>
-                    <Button
-                      iconOnly
-                      leadingIcon={RiSearchLine}
-                      accessibilityLabel={t('inbox.searchInMailbox', {
-                        mailbox: mailboxTitle.toLowerCase(),
-                      })}
-                      onPress={handleSearch}
-                    />
-                  </Button.Group>
-                  <Button.Group>
-                    <Button
-                      iconOnly
-                      leadingIcon={RiRefreshLine}
-                      accessibilityLabel={t('inbox.refresh')}
-                      onPress={handleRefresh}
-                      loading={pulling}
-                    />
-                    <Button
-                      iconOnly
-                      leadingIcon={RiMailCheckLine}
-                      accessibilityLabel={t('message.actions.markRead')}
-                      onPress={() => messageActions.setRead(messages, true)}
-                    />
-                    <Button
-                      iconOnly
-                      leadingIcon={RiEditLine}
-                      accessibilityLabel={t('inbox.composeFabLabel')}
-                      onPress={() => router.push('/compose')}
-                    />
-                  </Button.Group>
-                </>
+                <HeaderActions
+                  actions={[
+                    {
+                      id: 'ask',
+                      label: t('inbox.askAlia'),
+                      icon: GemieAvatarIcon,
+                      onPress: handleAskAlia,
+                      group: 'discovery',
+                      priority: 80,
+                    },
+                    {
+                      id: 'search',
+                      label: t('inbox.searchInMailbox', { mailbox: mailboxTitle.toLowerCase() }),
+                      icon: RiSearchLine,
+                      onPress: handleSearch,
+                      group: 'discovery',
+                      priority: 100,
+                      labelVisibility: 'hidden',
+                    },
+                    {
+                      id: 'refresh',
+                      label: t('inbox.refresh'),
+                      icon: RiRefreshLine,
+                      onPress: handleRefresh,
+                      busy: pulling,
+                      group: 'mail',
+                      labelVisibility: 'hidden',
+                    },
+                    {
+                      id: 'read',
+                      label: t('message.actions.markRead'),
+                      icon: RiMailCheckLine,
+                      onPress: () => messageActions.setRead(messages, true),
+                      group: 'mail',
+                      labelVisibility: 'hidden',
+                    },
+                    {
+                      id: 'compose',
+                      priority: 90,
+                      label: t('inbox.composeFabLabel'),
+                      icon: RiEditLine,
+                      onPress: () => router.push('/compose'),
+                      group: 'mail',
+                      labelVisibility: 'hidden',
+                    },
+                  ]}
+                />
               ) : undefined
             }
           />

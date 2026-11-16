@@ -30,3 +30,60 @@ export function VirtualList<T>({
     </div>
   );
 }
+
+/** Boundary for app content/callback tests; gesture and geometry belong to Bloom's runtime gates. */
+export function ListItem({
+  title,
+  supporting,
+  leading,
+  trailing,
+  footer,
+  attachments,
+  mail,
+  onPress,
+  label,
+}: {
+  title?: ReactNode;
+  supporting?: ReactNode;
+  leading?: ReactNode;
+  trailing?: ReactNode;
+  footer?: ReactNode;
+  attachments?: ReactNode;
+  mail?: { sender: { name: string }; subject: string; snippet?: string };
+  onPress?: () => void;
+  label?: string;
+}) {
+  const body = (
+    <>
+      {mail ? (
+        <>
+          {mail.sender.name} {mail.subject} {mail.snippet}
+        </>
+      ) : (
+        <>
+          <span>{title}</span>
+          <span>{supporting}</span>
+        </>
+      )}
+    </>
+  );
+  return (
+    <div>
+      {leading}
+      {onPress ? (
+        <button
+          type="button"
+          aria-label={label ?? (typeof title === 'string' ? title : undefined)}
+          onClick={onPress}
+        >
+          {body}
+        </button>
+      ) : (
+        body
+      )}
+      {trailing}
+      {footer}
+      {attachments}
+    </div>
+  );
+}

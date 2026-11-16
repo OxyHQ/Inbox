@@ -27,6 +27,7 @@ export function SelectionToolbar({
   const { t } = useTranslation();
   return (
     <ListSelectionBar
+      selecting
       count={count}
       total={count}
       onClear={onClose}

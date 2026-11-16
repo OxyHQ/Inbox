@@ -43,15 +43,15 @@ jest.mock('@oxy.so/bloom/card', () => ({
   CardBody: ({ children }: Children) => <div>{children}</div>,
 }));
 jest.mock('@oxy.so/bloom/list', () => ({
+  ...jest.requireActual('@oxy.so/bloom/list'),
   ListItem: ({
-    mail: { sender, subject, snippet },
+    mail,
     onPress,
-  }: Pressable & {
-    mail: { sender: { name: string }; subject: string; snippet: string };
-  }) => (
-    <button type="button" onClick={onPress}>
-      {`${sender.name} · ${subject} · ${snippet}`}
-    </button>
+  }: Pressable & { mail: { sender: { name: string }; subject: string; snippet: string } }) => (
+    <button
+      type="button"
+      onClick={onPress}
+    >{`${mail.sender.name} · ${mail.subject} · ${mail.snippet}`}</button>
   ),
 }));
 jest.mock('@oxy.so/bloom/typography', () => ({

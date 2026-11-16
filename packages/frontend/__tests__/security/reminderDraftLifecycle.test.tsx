@@ -30,7 +30,7 @@ jest.mock('@oxy.so/bloom/bottom-sheet', () => {
     }),
   };
 });
-jest.mock('@oxy.so/bloom/button', () => require('../fixtures/bloomButton'));
+jest.mock('@oxy.so/bloom/button', () => jest.requireActual('../fixtures/bloomButton'));
 jest.mock('@oxy.so/bloom/text-field', () => ({
   TextFieldInput: ({
     label,

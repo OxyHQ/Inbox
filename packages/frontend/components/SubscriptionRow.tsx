@@ -5,16 +5,12 @@
  * sends and how much of that you actually open — then the address it comes
  * from, then the way out.
  *
- * Built on Bloom's `Item`, which owns the leading/text/trailing geometry and
+ * Built on Bloom's `ListItem`, which owns the leading/text/trailing geometry and
  * the row's padding, so this file only supplies content.
  */
 
-import { View, StyleSheet } from 'react-native';
-import { Item } from '@oxy.so/bloom/item';
+import { ListItem } from '@oxy.so/bloom/list';
 import { Button } from '@oxy.so/bloom/button';
-import { Text } from '@oxy.so/bloom/typography';
-import { SPACING as BLOOM_SPACING } from '@oxy.so/bloom/design-tokens';
-import { useColors } from '@/constants/theme';
 import { SenderAvatar } from '@/components/Avatar';
 import type { Subscription } from '@/services/emailApi';
 import { useTranslation } from '@/lib/i18n';
@@ -55,7 +51,6 @@ export function SubscriptionRow({
   isUnsubscribing: boolean;
 }) {
   const { t } = useTranslation();
-  const colors = useColors();
 
   const isBlockOnly = subscription.type === 'frequent';
   // Once it worked, the way out is spent: the row stays (its mail is still in
@@ -80,29 +75,17 @@ export function SubscriptionRow({
   };
 
   return (
-    <Item
+    <ListItem
       leading={
         <SenderAvatar
           avatarPath={subscription.senderAvatarPath}
           name={subscription.name}
-          size={40}
+          size={36}
         />
       }
       title={subscription.name}
-      titleStyle={styles.name}
-      subtitle={
-        <View style={styles.details}>
-          <Text style={[styles.stats, { color: colors.text }]} numberOfLines={1}>
-            <Text style={{ color: colors.secondaryText }}>
-              {t('subscriptions.messageCount', { count: subscription.messageCount })}
-            </Text>
-            {` ${detail}`}
-          </Text>
-          <Text style={[styles.email, { color: colors.secondaryText }]} numberOfLines={1}>
-            {subscription._id}
-          </Text>
-        </View>
-      }
+      supporting={`${t('subscriptions.messageCount', { count: subscription.messageCount })} ${detail}\n${subscription._id}`}
+      supportingLines={2}
       trailing={
         isDone ? (
           <Button appearance="outline" tone="neutral" disabled>
@@ -123,19 +106,3 @@ export function SubscriptionRow({
     />
   );
 }
-
-const styles = StyleSheet.create({
-  name: {
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  details: {
-    gap: BLOOM_SPACING['space-2'],
-  },
-  stats: {
-    fontSize: 14,
-  },
-  email: {
-    fontSize: 14,
-  },
-});

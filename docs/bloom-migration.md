@@ -5,8 +5,9 @@ workspace; the brief and Alia open on demand.
 
 The root `BloomScope size="md"` sets the shared component scale. The sidebar,
 buttons and chips inherit it instead of declaring per-screen sizes. Change the root scope
-to adjust the app's controls together; the mail list's comfortable/compact
-density remains a separate preference owned by Bloom's mail components.
+to adjust the app's controls together. Lists use Bloom's single compact row
+recipe. The obsolete density setting is ignored when reading saved preferences;
+other account-scoped preferences are preserved.
 
 Empty states use the same Oxy catalogue integration as Mention:
 `@oxy.so/stickers` resolves the IDs in `lib/stickers.ts`, and Bloom's `Sticker`
@@ -23,7 +24,7 @@ allows WASM compilation without enabling JavaScript `unsafe-eval`.
 | Surface      | Shared Bloom primitives                                                   | Inbox responsibilities                                                                         |
 | ------------ | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | Workspace    | AppShell, AppShellPanels, Sidebar, BottomBar, Fab                         | Mailbox/label destinations and SDK account actions                                             |
-| Mail list    | MailRow, MailSelectionBar, SwipeRow                                       | Virtualization, grouping, unreadable rows, bulk mutations and preferences                      |
+| Mail list    | ListItem, ListSelectionBar, VirtualList                                   | Virtualization, grouping, unreadable rows, bulk mutations and preferences                      |
 | Conversation | PageHeader, PageFooter, MailThread, MailMessage                           | Safe HTML/CID resolution, unreadable entries, downloads, reply targets                         |
 | Composer     | MailComposeSurface, MailRecipientField, TextFieldInput                    | Recipient validation/suggestions, editor, draft recovery, RFC reply headers and outbound queue |
 | Settings     | SettingsModal and its page/row templates                                  | Existing preferences, forms, mutations and bookmarked route compatibility                      |
@@ -33,6 +34,35 @@ The custom drawer, tab bar, settings navigation, floating-header hook, row
 density geometry and independent color palette are removed. Structured mail
 cards and the HTML editor remain domain-specific; neither is reimplemented by
 this migration. Colors now come from semantic Bloom roles.
+
+## Unified list adoption
+
+`MessageRow` supplies mail data to `ListItem.mail`; it owns no row renderer or
+spacing. The same row preserves snoozed times, draft recipients, delivery
+labels, unread/starred/thread markers, preview preferences, labels, sentiment,
+and file/card attachments. Inline body images stay out of the attachment rail.
+Daily-brief rows use the same API. Bundles, reminders, subscriptions, unreadable
+messages and template choices also use `ListItem`/`List`.
+
+Avatar activation and touch long press enter the existing bulk-selection flow.
+Selected rows toggle without opening the message, and selection disables swipe
+and file actions. Desktop context actions and touch gestures belong to Bloom.
+The app maps its saved left/right commands to `swipeActions` and explicit
+`fullSwipeAction` keys; `none` exposes no action. Opening a swipe no longer
+remounts the mail content. `ListSelectionBar` remains visible during selection,
+including zero selected rows.
+
+`VirtualList` retains each mailbox/search/subscription scroller, its restoration
+key, stable IDs and pagination. Grouping does not turn a whole date bucket into
+one mounted row. Existing account-guarded callbacks still own all mail writes;
+this migration does not change legacy mutation persistence or transport.
+
+Headers and controls use `Button` and `Button.Group`, with the former icon
+preset's outline/neutral appearance specified directly. Mailbox and conversation
+commands use `HeaderActions` to keep primary actions visible and move the rest
+into overflow according to the header's own width. Folder and label pickers stay
+mounted as persistent controls. Settings continue to use Bloom's settings pages
+and grouped sections; existing setting descriptions remain untruncated.
 
 ## State and navigation
 
@@ -63,8 +93,8 @@ this migration. Colors now come from semantic Bloom roles.
 - Routes remain transparent and each pane owns its scrolling. The reader's
   `PageFooter` overlays reply actions with Bloom's bottom-edge gradient.
   The detail `ContentPanel appearance="plain"` inherits the shell surface without
-  painting a backing card. Header and footer both use the semantic card color
-  for the gradient; the surrounding reader remains transparent.
+  painting a backing card. Header and footer inherit the containing Screen's
+  surface for their gradients; Inbox supplies no separate background color.
   Its scoped inset keeps the last message and inline reply reachable, without
   contributing another claim to the navigation bar's edge registry.
 - `MailMessage` keeps the same card surface when expanded or collapsed;
@@ -83,9 +113,11 @@ this migration. Colors now come from semantic Bloom roles.
   remounting healthy panes. The outer provider-free boundary remains the last
   line of defense if a root provider itself fails.
 - Bloom `ScrollMetricsProvider` connects `ScrollArea`, PageHeader and PageFooter.
-  Both use `scrim="auto"`: the header fades out at the start, the footer at the
-  end, and both disappear when the content fits. Resizing and expanding quoted
-  content update the shared measurements without application scroll handlers.
+  Both use `scrim="auto"` and inherit the containing Screen surface: the header
+  fades out at the start, the footer at the end, and both disappear when the
+  content fits. Inbox does not override their shared background color. Resizing
+  and expanding quoted content update the shared measurements without application
+  scroll handlers.
 - On web, Bloom 22.1.3 defers virtual-row measurements while a pane is hidden or its
   geometry is transitioning, then measures the settled rows. Returning from a
   compact reader therefore preserves the mailbox's restored scroll position;
@@ -153,41 +185,36 @@ it does not recalculate panel margins, surfaces or safe areas.
 
 ## Shared library dependency
 
-The integration uses Bloom **7.6.0**, Services **11.1.0**, Core **4.4.0** and
-App Preset **3.0.0**. Bloom [#263](https://github.com/OxyHQ/Bloom/pull/263) owns
-full-width AppShell content, its safe-area option, the dashboard gutter fix,
-PageFooter, shared panel radius, and spaced message surfaces in both states.
-Bloom [#264](https://github.com/OxyHQ/Bloom/pull/264) adds panel recovery, settings
-empty-state slots and separate semantic targets for removable interactive chips.
-Bloom [#265](https://github.com/OxyHQ/Bloom/pull/265) extends the shared radius to
-mail/reply cards, provides plain ContentPanel appearance and removes the thread
-title divider.
-Bloom [#266](https://github.com/OxyHQ/Bloom/pull/266) adds shared scroll metrics,
-ScrollArea and automatic footer fades coordinated with PageHeader.
-Bloom [#267](https://github.com/OxyHQ/Bloom/pull/267) adds animated list bindings
-that compose scroll metrics, tab-bar minimization and restoration callbacks.
-
-Both manifests and the lockfile resolve the published library normally. There
-are no local Bloom copies or package patches. The shared Doctor CLI checks
-dependency health, retaining the current main branch's release-age policy.
-
-Services 11.1.0 still declares Bloom `>=7.1.2 <7.2.0` as its accepted 7.x
-peer range. Inbox's existing root override now resolves one Bloom 7.6.0 copy.
-This combination passes the consumer checks below, including the real SDK
-account dialog at 390px and 1440px, but the Services peer declaration still
-needs its upstream compatibility review before it can declare 7.6 support.
+Both manifests and the lockfile pin published Bloom **22.1.5**, Services **14.23.0**
+and Gemies SDK **9.1.0**. There are no local Bloom copies, export shims or package patches.
+Services and the Gemies SDK resolve the same Bloom package as the application.
+The shared Doctor CLI checks dependency health; the repository retains its
+release-age policy (explicit release installs use only a command-line exception).
 
 ## Validation
 
 Boot-path changes also follow the [startup continuity checks](startup.md).
 Final content and an absent spinner alone do not prove a flicker-free transition.
 
-The local validation run passed 37 Jest suites (181 tests), lint and TypeScript.
+The unified-list validation run passed 122 Jest suites (1163 tests, two existing
+skips), lint and TypeScript.
 The web export emits compiled layout CSS above the 20 KB floor, and the
-post-export TypeScript check also passed. The current-major integration export uses `--max-workers 2`.
+post-export TypeScript check also passed. Android export uses `--max-workers 2`.
 The previous layout revision was smoke-tested in a locally compiled
 Android client. This cleanup is checked by Android export and Bloom's simulated
 iOS/Android inset regressions; it has not been exercised on a physical device.
+
+The unified-list browser fixture boots the full exported application with synthetic
+account/mail responses and blocks unrelated network calls. It checks 1440, 390
+and 320px layouts in light/dark themes: avatar and touch-long-press selection,
+desktop context menu, attachment opening without row navigation, disabled files
+while selecting, and message open/back. Header overflow retains conversation
+actions; a touch swipe reveals the configured Snooze action and opens its dialog
+without performing a mail write. Settings descriptions remain complete at 320px.
+Alia opens with the published SDK, accepts an unsent draft and dismisses back to
+the mailbox. Scrolled message headers and draft footers resolve the same color
+as their Screen in both themes. These are browser checks, including touch-input
+emulation; they do not establish native gesture behavior or mail delivery.
 
 The Jest suite covers recipient draft preservation, existing composer/reply and
 HTML safety, account-scoped search retention, mailbox navigation, settings deep

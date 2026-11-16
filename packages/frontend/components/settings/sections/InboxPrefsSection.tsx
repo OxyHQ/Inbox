@@ -1,10 +1,5 @@
 import { KeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp';
-import {
-  UNDO_SEND_SECONDS,
-  useInboxPrefs,
-  type MessageDensity,
-  type SwipeAction,
-} from '@/contexts/inbox-prefs-context';
+import { UNDO_SEND_SECONDS, useInboxPrefs, type SwipeAction } from '@/contexts/inbox-prefs-context';
 import { useDeleteSavedSearch } from '@/hooks/mutations/useSavedSearchMutations';
 import { useSavedSearches } from '@/hooks/queries/useSavedSearches';
 import { useTranslation } from '@/lib/i18n';
@@ -13,11 +8,6 @@ import { useDialogControl } from '@oxy.so/bloom/dialog';
 import { SettingsGeneralPage, SettingsSelect } from '@oxy.so/bloom/settings-modal';
 import { Switch } from '@oxy.so/bloom/switch';
 import { Platform } from 'react-native';
-const DENSITY_OPTIONS: readonly { value: MessageDensity; labelKey: string }[] = [
-  { value: 'compact', labelKey: 'ui.settings.inbox.compact' },
-  { value: 'comfortable', labelKey: 'ui.settings.inbox.comfortable' },
-];
-
 const SWIPE_OPTIONS: readonly { value: SwipeAction; labelKey: string }[] = [
   { value: 'archive', labelKey: 'message.actions.archive' },
   { value: 'delete', labelKey: 'message.actions.delete' },
@@ -41,27 +31,6 @@ export function InboxPrefsSection() {
     <>
       <SettingsGeneralPage
         sections={[
-          {
-            key: 'density',
-            rows: [
-              {
-                key: 'density',
-                label: t('ui.settings.inbox.density'),
-                description: t('ui.settings.inbox.densityHint'),
-                control: (
-                  <SettingsSelect
-                    label={t('ui.settings.inbox.density')}
-                    value={prefs.density}
-                    onChange={(v) => setPref('density', v)}
-                    items={DENSITY_OPTIONS.map((item) => ({
-                      value: item.value,
-                      label: t(item.labelKey),
-                    }))}
-                  />
-                ),
-              },
-            ],
-          },
           {
             key: 'display',
             label: t('ui.settings.inbox.display'),

@@ -697,6 +697,7 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
 
   return (
     <Screen
+      kind="document"
       active={focused}
       scroll="auto"
       testID="message-screen"

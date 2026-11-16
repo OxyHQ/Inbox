@@ -872,6 +872,7 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
 
   return (
     <Screen
+      kind="collection"
       active={focused}
       scroll="auto"
       testID="inbox-screen"

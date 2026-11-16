@@ -22,7 +22,7 @@ allows WASM compilation without enabling JavaScript `unsafe-eval`.
 
 | Surface      | Shared Bloom primitives                                                   | Inbox responsibilities                                                                         |
 | ------------ | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Workspace    | AppShell, ContentPanel, AppShellSplitPanes, Sidebar, BottomBar, Fab       | Mailbox/label destinations and SDK account actions                                             |
+| Workspace    | AppShell, AppShellPanels, Sidebar, BottomBar, Fab                         | Mailbox/label destinations and SDK account actions                                             |
 | Mail list    | MailRow, MailSelectionBar, SwipeRow                                       | Virtualization, grouping, unreadable rows, bulk mutations and preferences                      |
 | Conversation | PageHeader, PageFooter, MailThread, MailMessage                           | Safe HTML/CID resolution, unreadable entries, downloads, reply targets                         |
 | Composer     | MailComposeSurface, MailRecipientField, TextFieldInput                    | Recipient validation/suggestions, editor, draft recovery, RFC reply headers and outbound queue |
@@ -36,8 +36,12 @@ this migration. Colors now come from semantic Bloom roles.
 
 ## State and navigation
 
-- `AppShell` owns the reveal drawer, viewport, bottom navigation and safe area.
-  `contentMaxWidth="none"` keeps the workspace fluid on wide monitors.
+- `AppShell layout="collection-detail" presentation="framed"` owns the reveal
+  drawer, fluid viewport, panel flow, bottom navigation and safe area. The list
+  declares `role="collection"` and the reader `role="detail"`; their Screens
+  declare collection and document content. Mailbox selection, route history and
+  persisted user widths remain application state. Do not repeat the family's
+  split mode, bounded flow, surface separation or default outer gutter in Inbox.
 - Below Bloom's `md` breakpoint, the shell has no gutter and `ContentPanel`
   loses its frame. Navigation overlays a continuous, full-height surface;
   the lists use Bloom's measured `useBottomEdgeInset()` for trailing scroll
@@ -49,9 +53,9 @@ this migration. Colors now come from semantic Bloom roles.
   MailMessage and the reply Card (`radius="panel"`) inherit it too. They keep
   the panels' original circular corner geometry; changing the shared radius
   does not substitute a squircle.
-- The split primitive's `variant="separated"` keeps the list and reader in
+- The framed family's separated presentation keeps the list and reader in
   separate panels with Bloom's resize handle between them.
-- At Bloom's `lg` breakpoint (1024px), `AppShellSplitPanes` keeps the list
+- At Bloom's `lg` breakpoint (1024px), the compositor keeps the list
   beside the routed conversation/composer. Its shared divider is adjustable
   from 320–480px, initially 380px. Below `lg`, index routes render the list
   and conversation routes render the message in the same detail slot. The
@@ -73,7 +77,7 @@ this migration. Colors now come from semantic Bloom roles.
   existing Oxy inference route, including single-message threads. Fresh results
   are reused from the query cache on reopening. The summary renders nothing
   on error or an empty response; no placeholder card or empty wrapper remains.
-- `AppShellSplitPanes` isolates render failures in each pane. Inbox supplies only
+- The compositor isolates render failures in each pane. Inbox supplies only
   its sticker and translated `emptyState` data; Bloom owns the fallback layout,
   scroll clearance and retry. Route changes reset failed boundaries without
   remounting healthy panes. The outer provider-free boundary remains the last

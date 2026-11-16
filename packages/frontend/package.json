@@ -15,7 +15,7 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "@gemies/sdk": "6.3.0",
+    "@gemies/sdk": "9.1.0",
     "@clarity.surf/sdk": "^0.12.0",
     "@expo/app-integrity": "~58.0.2",
     "@expo/metro-runtime": "~58.0.17",
@@ -26,10 +26,10 @@
     "@lottiefiles/dotlottie-react-native": "^0.12.1",
     "@lottiefiles/dotlottie-web": "0.81.0",
     "@oxy.so/app-preset": "6.7.3",
-    "@oxy.so/bloom": "21.7.1",
+    "@oxy.so/bloom": "22.1.0",
     "@oxy.so/contracts": "7.2.0",
     "@oxy.so/core": "7.52.0",
-    "@oxy.so/services": "14.21.0",
+    "@oxy.so/services": "14.22.0",
     "@oxy.so/stickers": "^0.2.3",
     "@oxy.so/utils": "^1.5.2",
     "@radix-ui/react-dropdown-menu": "^2.2.1",

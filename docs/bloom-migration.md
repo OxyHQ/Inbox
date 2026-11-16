@@ -185,8 +185,8 @@ it does not recalculate panel margins, surfaces or safe areas.
 
 ## Shared library dependency
 
-Both manifests and the lockfile pin the published Bloom, Services and Gemies SDK
-packages. There are no local Bloom copies, export shims or package patches.
+Both manifests and the lockfile pin published Bloom **22.1.5**, Services **14.23.0**
+and Gemies SDK **9.1.0**. There are no local Bloom copies, export shims or package patches.
 Services and the Gemies SDK resolve the same Bloom package as the application.
 The shared Doctor CLI checks dependency health; the repository retains its
 release-age policy (explicit release installs use only a command-line exception).

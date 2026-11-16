@@ -93,8 +93,8 @@ and grouped sections; existing setting descriptions remain untruncated.
 - Routes remain transparent and each pane owns its scrolling. The reader's
   `PageFooter` overlays reply actions with Bloom's bottom-edge gradient.
   The detail `ContentPanel appearance="plain"` inherits the shell surface without
-  painting a backing card. Header and footer both use the semantic card color
-  for the gradient; the surrounding reader remains transparent.
+  painting a backing card. Header and footer inherit the containing Screen's
+  surface for their gradients; Inbox supplies no separate background color.
   Its scoped inset keeps the last message and inline reply reachable, without
   contributing another claim to the navigation bar's edge registry.
 - `MailMessage` keeps the same card surface when expanded or collapsed;

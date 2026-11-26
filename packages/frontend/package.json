@@ -9,7 +9,7 @@
     "web": "EXPO_WEB_DEV_HYDRATE=1 RCT_METRO_PORT=8103 expo start --web",
     "android": "RCT_METRO_PORT=8103 expo run:android",
     "ios": "RCT_METRO_PORT=8103 expo run:ios",
-    "typecheck": "node scripts/typecheck.mjs",
+    "typecheck": "tsc --noEmit",
     "lint": "expo lint .",
     "test": "node --test ../../scripts/worker.test.mjs && jest",
     "test:watch": "jest --watch"

@@ -10,6 +10,7 @@ import { useMessages } from '@/hooks/queries/useMessages';
 import { useMailboxes } from '@/hooks/queries/useMailboxes';
 import { SPECIAL_USE } from '@/constants/mailbox';
 import type { Message } from '@/services/emailApi';
+import { flatMessages } from '@/utils/messageCache';
 import type { Commitment } from './useCommitmentDetection';
 
 export type { Commitment };
@@ -122,7 +123,7 @@ export function useFollowUp(
       return { messages: [], count: 0 };
     }
 
-    const allSentMessages = data.pages.flatMap((p) => p.data);
+    const allSentMessages = flatMessages(data);
     const needsFollowUp = allSentMessages.filter(
       (message) => getFollowUpReason(message, inboxMessages) !== null,
     );

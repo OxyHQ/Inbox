@@ -161,5 +161,4 @@ function BriefMessageRow({
   );
 }
 
-// Bloom 23's Button takes no className; `self-start` as Bloom 22 applied it to the root.
 const RETRY_STYLE: ViewStyle = { alignSelf: 'flex-start' };

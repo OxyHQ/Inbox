@@ -391,6 +391,4 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-// Bloom 22 put ScrollArea's `className` on its scrolling viewport on both platforms;
-// Bloom 23 takes the same style as `viewportStyle` (`flex-1`).
 const FILL: ViewStyle = { flex: 1 };

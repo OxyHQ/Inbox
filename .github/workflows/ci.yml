@@ -200,7 +200,7 @@ jobs:
 
   # check's hosted twin in the Seldon race: the same name and steps.
   check-hosted:
-    name: ${{ vars.CI_SELDON_RACE == 'true' && 'typecheck · lint · test' || 'typecheck · lint · test (Seldon race off)' }}
+    name: ${{ vars.CI_SELDON_RACE == 'true' && 'typecheck · lint · test' || 'typecheck · lint · test (seldon twin, off)' }}
     needs: [race]
     if: ${{ !cancelled() && !failure() && needs.race.outputs.race == 'true' }}
     runs-on: ubuntu-latest
@@ -213,7 +213,7 @@ jobs:
   # check's rescue: reruns it hosted when its Seldon lane failed (the house
   # network drops connections); a genuine failure fails again.
   check-rescue:
-    name: ${{ vars.CI_SELDON_RACE == 'true' && 'typecheck · lint · test' || 'typecheck · lint · test (Seldon race off)' }}
+    name: ${{ vars.CI_SELDON_RACE == 'true' && 'typecheck · lint · test' || 'typecheck · lint · test (seldon rescue, off)' }}
     needs: [check]
     if: ${{ !cancelled() && needs.check.result == 'failure' && vars.CI_SELDON_RACE == 'true' && github.run_attempt == 1 && (github.event_name == 'pull_request' || github.event_name == 'merge_group') && !github.event.pull_request.head.repo.fork }}
     runs-on: ubuntu-latest

@@ -43,7 +43,14 @@ export function createMemoryStorage(): StorageInterface {
 /** localStorage on the web, AsyncStorage on a device: where Services 14 kept these blobs. */
 export function createPlatformStorage(): StorageInterface {
   if (Platform.OS === 'web') {
-    const local = typeof window === 'undefined' ? undefined : window.localStorage;
+    // A browser that blocks site storage throws on the property itself: keep
+    // the cache in memory for this page rather than failing the whole tree.
+    let local: Storage | undefined;
+    try {
+      local = typeof window === 'undefined' ? undefined : window.localStorage;
+    } catch {
+      return createMemoryStorage();
+    }
     if (!local) return createMemoryStorage();
     return {
       getItem: async (key) => local.getItem(key),

@@ -180,8 +180,8 @@ chips, empty states, accordion, keyboard keys, avatars and buttons. The editor
 uses `NoteEditorToolbar`, a Bloom link dialog and native `Textarea`. Mail parsing,
 mutations, safe HTML rendering and the web editable-document engine stay in Inbox:
 Bloom explicitly exposes the compose body as a slot rather than a rich-text engine.
-Content grouping still uses ordinary flex containers and NativeWind spacing;
-it does not recalculate panel margins, surfaces or safe areas.
+Content grouping still uses ordinary flex containers (Bloom language stacks and
+React Native styles); it does not recalculate panel margins, surfaces or safe areas.
 
 ## Shared library dependency
 
@@ -193,11 +193,13 @@ resolve the same Bloom package as the application. The shared Doctor CLI checks
 dependency health; the repository retains its release-age policy, which exempts
 first-party packages.
 
-Bloom 23 has no `className` (Bloom `docs/no-nativewind.mdx`). Inbox's remaining
-classes keep working on native through app-preset's `BloomNativeWindTheme`, mounted
-once inside `BloomProvider` in `app/_layout.tsx`. Services 15 and Gemies SDK 10 pass
-no `className` and style through React Native styles and Bloom tokens, so their
-surfaces draw as on Bloom 22 again.
+Bloom 23 has no `className` (Bloom `docs/no-nativewind.mdx`), and neither does
+Inbox: its last classes moved to the Bloom language and React Native styles.
+Services 15 and Gemies SDK 10 pass no `className` either, so NativeWind,
+react-native-css, Tailwind and app-preset's `BloomNativeWindTheme` are gone
+(`docs/dependencies.md`). With no `nativewind` dependency, app-preset 6.9's Metro
+config applies no NativeWind wrapper. The web keeps a plain-CSS `global.css` for the
+document's font and element reset (`docs/agent-rules.md`).
 
 ### The account cache
 
@@ -292,8 +294,8 @@ insertion, unreadable-message retry/original actions, summary collapse, saved
 search activation and reminder dismissal. Wide and narrow layouts report no
 JavaScript errors or page overflow.
 
-Run `bun run typecheck` before and after `bun run build`; verify the generated
-web CSS exceeds 20 KB. An Android export validates the native import graph;
+Run `bun run typecheck` before and after `bun run build`; verify the exported
+`global-*.css` still gives `html` Bloom's font (deploy.yml's export gate checks it). An Android export validates the native import graph;
 a running native client is additionally needed to validate gestures, keyboard
 and hardware-back behavior. Merging to main uses the existing deployment workflow.
 

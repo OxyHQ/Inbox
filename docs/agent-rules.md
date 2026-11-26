@@ -18,14 +18,25 @@ moved; `inbox.oxy.so` is an origin that did not (it redirects to `inbo.sh`).
 
 ## `linker = "hoisted"` is not a preference
 
-`@oxy.so/app-preset/css/base.css` finds Bloom's and the SDK's class names
-through relative `@source` globs (`../../services/lib`, `../../bloom/lib`).
-They resolve only in a hoisted `node_modules`. Under bun's default isolated
-linker they match nothing, Tailwind emits a stylesheet with no SDK utilities in
-it, and web layout silently falls back to react-native-web's base reset. Nothing
-errors. The gate is a byte floor on `dist/_expo/static/css/global-*.css`
-(at least 20 KB); a screenshot cannot see it, because Bloom sets colours inline
-and only layout breaks.
+It was introduced for `@oxy.so/app-preset/css/base.css`, whose relative
+`@source` globs found the SDK's class names only in a hoisted `node_modules`.
+That reason left with NativeWind and Tailwind (2026-11-26). It stays because
+nothing has proven the app under bun's isolated linker since: the preset's
+Metro config resolves from `[packages/frontend/node_modules,
+node_modules]` and two required peers of `@oxy.so/services` are reached by
+hoisting (`bunfig.toml`). Changing it needs `bun run test`, the web export and
+an Android build on an isolated install, not a green `bun install`.
+
+## The web's global stylesheet is plain CSS
+
+`packages/frontend/global.css` is no longer Tailwind: it is the element reset
+Tailwind's preflight used to compile into it, rule for rule, in `@layer base`.
+It is what gives the document its font: react-native-web's base face is
+`font-family: inherit` on a `Text` that names no family, so React Navigation's
+tab labels and the web composer's editable area take the document's font.
+Without the stylesheet they fall back to the browser's serif, and nothing
+errors. The deploy gate checks that the exported `global-*.css` exists, sets
+`font-family: var(--bloom-font-sans…)` on `html` and is linked by every page.
 
 ## `expo export` bundles through type errors
 
@@ -67,7 +78,8 @@ included. Declared peers and the measured census: [dependencies.md](./dependenci
   auth.oxy.so.
 - Config comes from `@oxy.so/app-preset` (Metro, Babel, base CSS). Fix the
   preset upstream; never copy config back into the app.
-- Theming is Bloom tokens + NativeWind classNames. Never hardcode brand colours,
-  never redefine `--bloom-*`.
+- Theming is Bloom tokens, through Bloom components, the Bloom language and
+  React Native styles. There is no NativeWind and no `className`. Never hardcode
+  brand colours, never redefine `--bloom-*`.
 - Realtime rides the SDK's socket via `useOxyEvent`. Never open a second `io()`:
   [realtime-and-outbound.md](./realtime-and-outbound.md).

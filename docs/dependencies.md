@@ -14,8 +14,9 @@ loaded inside a try/catch (only its Android native tabs use it, which Inbox does
 not), so the direct dependency went with it.
 
 **A zero-import census cannot justify pruning a dependency here.** Measured:
-48 of this package's deps have zero source references, including `nativewind`,
-`tailwindcss`, `typescript`, `react-dom`, `react-native-web` and `expo-font`.
+48 of this package's deps had zero source references (2026-09), including
+`typescript`, `react-dom`, `react-native-web` and `expo-font` (and `nativewind` and
+`tailwindcss`, until they went with the last `className`, below).
 Build tooling, `app.config.js` plugins and peers are all invisible to it.
 
 `babel-plugin-module-resolver` is gone. `@oxy.so/app-preset` 4 dropped it from
@@ -65,8 +66,29 @@ NativeWind as peers. Two things follow for this manifest:
 
 Both SDKs now pass no `className` and type-check against Bloom 23, so
 `typecheck` is plain `tsc --noEmit` again (the filtering `scripts/typecheck.mjs`
-that ignored their source is gone). NativeWind itself stays until Inbox's own
-classes are gone.
+that ignored their source is gone).
+
+## NativeWind, react-native-css and Tailwind are gone
+
+They went when Inbox's last `className` did (2026-11-26): nothing in the app,
+Services 15 or Gemies SDK 10 passes one, and Bloom 23 takes none. Removed:
+`nativewind`, `react-native-css`, `tailwindcss` and `@tailwindcss/postcss`, the
+root `react-native-css` override, their dependabot ignores, `postcss.config.mjs`,
+`nativewind-env.d.ts`, Biome's Tailwind CSS parsing, and app-preset's
+`BloomNativeWindTheme` (and its declaration). app-preset 6.9's Metro config reads
+`package.json`: with no `nativewind` it applies no NativeWind wrapper, no
+react-native-css runtime and no component redirect, and React Native's own
+`Text`/`TextInput` carry the base face.
+
+`global.css` stays, as plain CSS that Expo compiles itself: the element reset
+Tailwind's preflight used to put in it, which gives the web document its font
+(`docs/agent-rules.md`). The web export rendered pixel-identical before and after
+(the signed-out shell at 1440 and 390, light and dark, with reduced motion).
+
+The root `lightningcss` override stays. Expo's own CSS pipeline
+(`@expo/metro-config`, `^1.30.1`) compiles `global.css` with it, the pin predates
+any recorded reason, and dropping it would move Expo's CSS compiler in a change
+that is about NativeWind. Revisit it on its own.
 
 ## Updates
 

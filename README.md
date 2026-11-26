@@ -60,7 +60,7 @@ staging target.
 
 ```
 packages/
-  frontend/    the app — Expo Router · NativeWind · @oxy.so/bloom · @oxy.so/services
+  frontend/    the app — Expo Router · @oxy.so/bloom (and its language) · @oxy.so/services
 ```
 
 ## Licence

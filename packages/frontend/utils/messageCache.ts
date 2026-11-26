@@ -51,17 +51,17 @@ export function updateMessageInPages(
   };
 }
 
-/** Remove a single message from every page of an infinite list. */
-export function removeMessageFromPages(
+/** Remove the given messages from every page of an infinite list. */
+function removeMessagesFromPages(
   old: MessagesInfinite | undefined,
-  messageId: string,
+  ids: ReadonlySet<string>,
 ): MessagesInfinite | undefined {
   if (!old) return old;
   return {
     ...old,
     pages: old.pages.map((page) => ({
       ...page,
-      data: page.data.filter((m) => m._id !== messageId),
+      data: page.data.filter((m) => !ids.has(m._id)),
     })),
   };
 }
@@ -155,8 +155,17 @@ export function patchMessageInList(
 
 /** Remove a message from every list cache (archive, delete, snooze). */
 export function removeMessageFromList(queryClient: QueryClient, messageId: string): void {
+  removeMessagesFromLists(queryClient, [messageId]);
+}
+
+/** Remove messages from every list cache (bulk move, bulk delete). */
+export function removeMessagesFromLists(
+  queryClient: QueryClient,
+  messageIds: readonly string[],
+): void {
+  const ids = new Set(messageIds);
   queryClient.setQueriesData<MessagesInfinite>({ queryKey: emailKeys.messages.root }, (old) =>
-    removeMessageFromPages(old, messageId),
+    removeMessagesFromPages(old, ids),
   );
 }
 
@@ -172,14 +181,7 @@ export function removeMessagesFromStarredLists(
   const ids = new Set(messageIds);
   queryClient.setQueriesData<MessagesInfinite>(
     { queryKey: emailKeys.messages.root, predicate: (query) => query.queryKey[2] === true },
-    (old) =>
-      old && {
-        ...old,
-        pages: old.pages.map((page) => ({
-          ...page,
-          data: page.data.filter((m) => !ids.has(m._id)),
-        })),
-      },
+    (old) => removeMessagesFromPages(old, ids),
   );
 }
 

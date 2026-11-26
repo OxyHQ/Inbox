@@ -48,6 +48,7 @@ import {
   patchMessageFlags,
   patchMessageInList,
   removeMessageFromList,
+  removeMessagesFromLists,
   removeMessagesFromStarredLists,
   restoreSnapshot,
   snapshotForRollback,
@@ -1072,23 +1073,6 @@ export function useBulkDeleteMessages() {
     },
     onUnavailable,
   );
-}
-
-function removeMessagesFromLists(
-  queryClient: ReturnType<typeof useQueryClient>,
-  messageIds: string[],
-) {
-  const ids = new Set(messageIds);
-  queryClient.setQueriesData<MessagesInfinite>({ queryKey: emailKeys.messages.root }, (old) => {
-    if (!old) return old;
-    return {
-      ...old,
-      pages: old.pages.map((page) => ({
-        ...page,
-        data: page.data.filter((m) => !ids.has(m._id)),
-      })),
-    };
-  });
 }
 
 export function useSaveDraft() {

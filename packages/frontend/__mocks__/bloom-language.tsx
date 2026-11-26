@@ -107,15 +107,15 @@ function draw(child: unknown, key?: string | number): ReactNode {
       return createElement('input', {
         key: id,
         type: 'checkbox',
-        role: 'switch',
         checked: Boolean(value),
         onChange: (event: { target: { checked: boolean } }) => set(event.target.checked),
         disabled: Boolean(m('disabled')),
         ...a11y,
+        role: a11y.role ?? 'switch',
       });
     }
     case 'Loading':
-      return createElement('span', { key: id, role: 'progressbar', ...a11y });
+      return createElement('span', { key: id, ...a11y, role: a11y.role ?? 'progressbar' });
     case 'TextField': {
       // The second argument is the field's label (Bloom TextFieldInput's `label`).
       const [[value, set], label] = child.args as [Binding, string | undefined];

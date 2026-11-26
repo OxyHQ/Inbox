@@ -1,14 +1,12 @@
 [install]
-# Bun's default "isolated" linker does NOT hoist, and this app cannot survive
-# that. `@oxy.so/app-preset/css/base.css` reaches its `@source` globs by RELATIVE
-# path — "../../services/lib", "../../bloom/lib" — which resolve only when
-# app-preset, services and bloom are real siblings under ONE node_modules/@oxy.so/.
-# Under the isolated linker those globs match nothing: Tailwind still emits a
-# stylesheet, the SDK's and Bloom's class names are simply absent from it, and
-# every className layout utility in @oxy.so/services' web screens is inert —
-# react-native-web's base View reset shows through (flex-direction:column,
-# padding:0) with no error anywhere. `createOxyMetroConfig`'s nodeModulesPaths
-# ([projectRoot/node_modules, repoRoot/node_modules]) assumes the same layout.
+# Bun's default "isolated" linker does NOT hoist. The original reason for this
+# line, app-preset's Tailwind `base.css` finding the SDKs' class names through
+# relative `@source` globs, left with NativeWind and Tailwind (2026-11-26). It
+# stays because the app has not been proven under the isolated layout since:
+# `createOxyMetroConfig`'s nodeModulesPaths ([projectRoot/node_modules,
+# repoRoot/node_modules]) assume a hoisted tree, and the two required peers below
+# are reached by hoisting. Changing it needs the tests, the web export and an
+# Android build on an isolated install (docs/agent-rules.md).
 linker = "hoisted"
 
 # NOTE: `peer = false` is deliberately NOT set here, though OxyHQServices sets it

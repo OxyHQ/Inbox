@@ -208,10 +208,12 @@ jobs:
         run: bun run typecheck
 
       # The export must have produced the HTML, the security headers AND the
-      # compiled Tailwind stylesheet. `expo export` exits 0 with an empty global
-      # CSS when the @source globs resolve to nothing (see bunfig.toml), and
-      # that failure is invisible until someone loads the page — colours still
-      # work, because Bloom sets those inline, and only layout collapses.
+      # global stylesheet. There is no Tailwind any more (no utility classes, so
+      # no size or `flex-row` to assert): global.css is plain CSS that gives the
+      # document its font and the raw-DOM reset. Without it `expo export` still
+      # exits 0 and every text Bloom does not draw (the tab labels, the web
+      # composer) falls back to the browser's serif, so the gate checks that the
+      # stylesheet exists, sets the document's font and is linked by every page.
       - name: The export is complete, not merely present
         run: |
           set -euo pipefail
@@ -222,11 +224,10 @@ jobs:
           grep -qF 'https://api.gemies.ai' "$d/_headers" || { echo "::error::_headers does not allow the canonical Alia API"; exit 1; }
           grep -qF 'wss://api.gemies.ai' "$d/_headers" || { echo "::error::_headers does not allow Alia realtime sessions"; exit 1; }
           css=$(ls "$d"/_expo/static/css/global-*.css 2>/dev/null | head -1 || true)
-          [ -n "${css:-}" ] || { echo "::error::no compiled global CSS — the Tailwind/@source pipeline produced nothing"; exit 1; }
-          bytes=$(wc -c < "$css")
-          echo "global css: $css ($bytes bytes)"
-          [ "$bytes" -ge 20000 ] || { echo "::error::global CSS is only $bytes bytes; the SDK/Bloom @source globs matched nothing"; exit 1; }
-          grep -q 'flex-row' "$css" || { echo "::error::global CSS carries no SDK layout utilities"; exit 1; }
+          [ -n "${css:-}" ] || { echo "::error::no global CSS — app/_layout.tsx no longer imports global.css"; exit 1; }
+          echo "global css: $css ($(wc -c < "$css") bytes)"
+          grep -qE 'html,:host\{[^}]*font-family:var\(--bloom-font-sans' "$css" \
+            || { echo "::error::global CSS does not give the document Bloom's font"; exit 1; }
           # The HTML must LOAD the bundle and the stylesheet. On Expo SDK 58 a
           # custom app/+html.tsx that does not render useServerDocumentContext()'s
           # headNodes/bodyNodes exports every page without them: exit 0, every

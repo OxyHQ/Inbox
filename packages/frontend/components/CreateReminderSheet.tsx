@@ -6,7 +6,7 @@ import { RiCloseLine } from '@oxy.so/bloom/icons/RiCloseLine';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { Text } from '@oxy.so/bloom/typography';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { View, type ViewStyle } from 'react-native';
 
 import { Embed, HStack, Text as LText, VStack, toElement } from '@oxy.so/bloom-language';
 
@@ -191,7 +191,7 @@ export function CreateReminderSheet({
 
   return (
     <BottomSheet ref={sheetRef} onDismiss={handleClose} detached>
-      <View className="gap-4 p-5">
+      <View style={bodyStyle}>
         {toElement(
           HStack(
             VStack(
@@ -255,3 +255,5 @@ export function CreateReminderSheet({
     </BottomSheet>
   );
 }
+
+const bodyStyle: ViewStyle = { gap: 16, padding: 20 };

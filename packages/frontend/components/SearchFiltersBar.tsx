@@ -28,7 +28,7 @@ import {
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { Text } from '@oxy.so/bloom/typography';
 import { useLayoutEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { View, type ViewStyle } from 'react-native';
 
 import { Embed, HStack, Text as LText, VStack, toElement } from '@oxy.so/bloom-language';
 
@@ -316,7 +316,7 @@ export function SearchFiltersBar({
           <Text accessibilityLiveRegion="polite">{t('search.ui.filterDraftUnavailable')}</Text>
         )}
         {draft && (
-          <View className="gap-4 px-5">
+          <View style={draftFieldsStyle}>
             <Field label={t('search.filters.from')}>
               <TextFieldInput
                 label={t('search.filters.from')}
@@ -442,3 +442,5 @@ export function SearchFiltersBar({
     </>
   );
 }
+
+const draftFieldsStyle: ViewStyle = { gap: 16, paddingHorizontal: 20 };

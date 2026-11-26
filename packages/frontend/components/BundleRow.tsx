@@ -10,7 +10,7 @@ import type { Bundle, Message } from '@/services/emailApi';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Text } from '@oxy.so/bloom/typography';
 import { useMemo, type ComponentProps } from 'react';
-import { View } from 'react-native';
+import { View, type ViewStyle } from 'react-native';
 import { ListItem } from '@oxy.so/bloom/list';
 import { RiArrowUpSLine } from '@oxy.so/bloom/icons/RiArrowUpSLine';
 import { RiArrowDownSLine } from '@oxy.so/bloom/icons/RiArrowDownSLine';
@@ -48,7 +48,7 @@ export function BundleRow({ bundle, messages, unreadCount, isExpanded, onToggle 
         />
       }
       trailing={
-        <View className="flex-row items-center gap-2">
+        <View style={trailingStyle}>
           {unreadCount > 0 && (
             <Badge color="primary" variant="subtle" content={unreadCount} size="sm" />
           )}
@@ -64,3 +64,5 @@ export function BundleRow({ bundle, messages, unreadCount, isExpanded, onToggle 
     />
   );
 }
+
+const trailingStyle: ViewStyle = { flexDirection: 'row', alignItems: 'center', gap: 8 };

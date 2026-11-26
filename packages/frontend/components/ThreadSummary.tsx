@@ -9,7 +9,7 @@ import { RiSparklingLine } from '@oxy.so/bloom/icons/RiSparklingLine';
 import { Loading } from '@oxy.so/bloom/loading';
 import { Text } from '@oxy.so/bloom/typography';
 import { useLayoutEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { View, type ViewStyle } from 'react-native';
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
 import { useThreadSummary } from '@/hooks/queries/useThreadSummary';
 import {
@@ -84,7 +84,7 @@ function SessionThreadSummary({
   if (!prefs.aiThreadSummary || messages.length < minMessages) return null;
   if (!requested) {
     return (
-      <View className="w-full max-w-3xl items-start">
+      <View style={promptStyle}>
         <Button
           appearance="subtle"
           leadingIcon={RiSparklingLine}
@@ -168,3 +168,5 @@ function SessionThreadSummary({
     ).frame({ width: 'full', maxWidth: '768' }),
   );
 }
+
+const promptStyle: ViewStyle = { width: '100%', maxWidth: 768, alignItems: 'flex-start' };

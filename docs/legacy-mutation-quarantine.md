@@ -19,6 +19,13 @@ version, ownerless or account-owned, is deleted by the SDK, not quarantined or
 replayed. The ten registered operations keep restoring and resuming from the
 account's own new blob from then on.
 
+**Decision (owner, 2026-11-26): the one-time loss is accepted.** Offline
+operations still queued under Services 14 when a device first starts Services
+15, ownerless or account-owned, are dropped by the SDK's cleanup and are not
+rescued, quarantined or replayed. Inbox ships Services 15 (#271) on that basis.
+Operations queued from then on live in `inbox_account_queries:<account>` and
+follow the safety contract below.
+
 ## What is observed
 
 - The legacy shared TanStack Query blob can contain mutation variables, results

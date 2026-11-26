@@ -4,6 +4,9 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { useOxy } from '@oxy.so/services/ui/client';
 import { useEmailStore } from '@/hooks/useEmail';
 
+// The private-read gate is Inbox's own since Services 15; these fixtures never
+// marked the account's cache restored, so neither does this.
+jest.mock('@/hooks/useAccountCacheReady', () => ({ useAccountCacheReady: () => false }));
 jest.mock('@tanstack/react-query', () => ({
   useInfiniteQuery: jest.fn(),
 }));

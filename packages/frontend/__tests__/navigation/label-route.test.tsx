@@ -7,6 +7,12 @@ let mockFocused = true;
 let mockLabels: { _id: string; name: string }[] | undefined;
 let mockSuccess = false;
 const mockSelect = jest.fn();
+// Services 15 has no `isAccountCacheReady`; Inbox's own readiness hook reads
+// the fixture's flag so the scenario keeps its meaning.
+jest.mock('@/hooks/useAccountCacheReady', () => ({
+  useAccountCacheReady: () =>
+    Boolean(require('@oxy.so/services/ui/client').useOxy().isAccountCacheReady),
+}));
 jest.mock('expo-router', () => ({
   useIsFocused: () => mockFocused,
   useLocalSearchParams: () => ({ name: 'Receipts' }),

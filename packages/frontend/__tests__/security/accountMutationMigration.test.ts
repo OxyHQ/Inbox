@@ -1,4 +1,3 @@
-import { dirname, join } from 'node:path';
 import { QueryClient, dehydrate, onlineManager } from '@tanstack/react-query';
 import {
   INBOX_ACCOUNT_QUERIES,
@@ -8,14 +7,10 @@ import {
 } from '@/hooks/queries/queryClient';
 import { useEmailStore } from '@/hooks/useEmail';
 
-const sdkDirectory = dirname(require.resolve('@oxy.so/services/package.json'));
-const { createAccountQueryPersistence } = require(
-  join(sdkDirectory, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-);
-const { attachQueryPersistence } = require(
-  join(sdkDirectory, 'lib/commonjs/ui/hooks/queryClient.js'),
-);
+const { createAccountQueryPersistence } = require('@/hooks/queries/accountQueryPersistence');
 
+// Services 14's shared, ownerless blob. Services 15 deletes it once and Inbox
+// has no shared persister: nothing in Inbox reads or writes this key.
 const key = 'oxy_query_cache_v3';
 function storage(initial: Record<string, string> = {}) {
   const entries = new Map(Object.entries(initial));
@@ -75,10 +70,8 @@ it('restores registered Inbox operations only from their account, then resumes w
     starred: true,
   });
   paused(legacy, ['unknown'], { secret: 'legacy-private' });
-  const store = storage({ [key]: blob(legacy), 'oxy_account_queries:alice': blob(seed) });
-  const shared = attachQueryPersistence(queryClient, store, config);
-  await shared.restored;
-  expect(queryClient.getMutationCache().getAll()).toHaveLength(0);
+  const legacyBlob = blob(legacy);
+  const store = storage({ [key]: legacyBlob, 'inbox_account_queries:alice': blob(seed) });
   const persistence = createAccountQueryPersistence(queryClient, config);
   persistence.setStorage(store);
   persistence.attach();
@@ -112,7 +105,12 @@ it('restores registered Inbox operations only from their account, then resumes w
   expect(api.bulkUpdateFlags).toHaveBeenCalledTimes(1);
   expect(api.bulkMoveMessages).toHaveBeenCalledTimes(1);
   await new Promise((resolve) => setTimeout(resolve, 1200));
-  expect(store.entries.get(key)).not.toContain('legacy-private');
+  // The ownerless blob was neither restored (no operation of it is in memory)
+  // nor rewritten under any account.
+  expect(JSON.stringify(restored.map((m) => m.state.variables))).not.toContain('legacy');
+  expect(store.entries.get(key)).toBe(legacyBlob);
+  for (const [entry, value] of store.entries) {
+    if (entry !== key) expect(value).not.toContain('legacy');
+  }
   persistence.detach();
-  shared.unsubscribe();
 });

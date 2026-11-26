@@ -27,6 +27,12 @@ let mockSelecting = false;
 let mockAuthenticated = true;
 let mockTokenReady = true;
 let mockCacheReady = true;
+// Services 15 has no `isAccountCacheReady`; Inbox's own readiness hook reads
+// the fixture's flag so the scenario keeps its meaning.
+jest.mock('@/hooks/useAccountCacheReady', () => ({
+  useAccountCacheReady: () =>
+    Boolean(require('@oxy.so/services/ui/client').useOxy().isAccountCacheReady),
+}));
 jest.mock('expo-router', () => ({
   usePathname: () => mockPathname,
   useRouter: () => ({ navigate: mockNavigate, push: mockPush }),

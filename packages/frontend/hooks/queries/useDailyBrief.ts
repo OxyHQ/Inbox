@@ -9,6 +9,7 @@
 import { useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOxy } from '@oxy.so/services/ui/client';
+import { useAccountCacheReady } from '@/hooks/useAccountCacheReady';
 import { useLocale } from '@/lib/i18n';
 import { useObservedInferenceOwner } from '@/hooks/queries/useObservedInferenceOwner';
 import { runObservedInference } from '@/hooks/queries/runObservedInference';
@@ -29,7 +30,8 @@ class DailyBriefObsoleteError extends Error {
 
 export function useDailyBrief({ enabled }: { enabled: boolean }) {
   const queryClient = useQueryClient();
-  const { oxyServices, user, canUsePrivateApi, isAccountCacheReady } = useOxy();
+  const { oxyServices, user, canUsePrivateApi } = useOxy();
+  const isAccountCacheReady = useAccountCacheReady();
   const accountReady = canUsePrivateApi && isAccountCacheReady;
   const owner = useObservedInferenceOwner();
   const { locale } = useLocale();

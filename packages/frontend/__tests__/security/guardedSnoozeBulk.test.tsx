@@ -91,11 +91,7 @@ function switchToBob() {
   });
 }
 function makePersistence(client: ReturnType<typeof createInboxQueryClient>) {
-  const { dirname, join } = require('node:path');
-  const dir = dirname(require.resolve('@oxy.so/services/package.json'));
-  const { createAccountQueryPersistence } = require(
-    join(dir, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-  );
+  const { createAccountQueryPersistence } = require('@/hooks/queries/accountQueryPersistence');
   const map = new Map<string, string>();
   const storage = {
     getItem: async (k: string) => map.get(k) ?? null,
@@ -642,12 +638,8 @@ it('keeps unkeyed bulk delete outside the existing offline and persisted queue',
   await waitFor(() => expect(client.getMutationCache().getAll()[0]?.state.status).toBe('error'));
   const mutation = client.getMutationCache().getAll()[0];
   expect(mutation.state.isPaused).toBe(false);
-  const { dirname, join } = require('node:path');
-  const dir = dirname(require.resolve('@oxy.so/services/package.json'));
-  const { accountQueryOwnership } = require(
-    join(dir, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-  );
-  const { snapshot } = require(join(dir, 'lib/commonjs/ui/hooks/persistedQueryCache.js'));
+  const { accountQueryOwnership } = require('@/hooks/queries/accountQueryPersistence');
+  const { snapshot } = require('@/hooks/queries/persistedQueryCache');
   const ownership = accountQueryOwnership(INBOX_ACCOUNT_QUERIES);
   expect(ownership.ownsMutation(mutation)).toBe(false);
   expect(ownership.persistsMutation(mutation)).toBe(false);

@@ -6,18 +6,24 @@
  *   archive, delete — see `useMessageMutations`) it queues the mutation while
  *   offline and auto-resumes it when connectivity returns.
  * - `onlineManager` resume hook replays paused mutations the instant the network
- *   is reported back (network monitoring itself is wired by `OxyProvider`).
+ *   is reported back. On a device React Query hears the network and the app's
+ *   focus from bloom-data's `environment`, which `OxyProvider` feeds from NetInfo
+ *   and AppState (`followDeviceEnvironment`); the browser feeds both on the web.
  *
- * Persistence and account isolation are the SDK's: `INBOX_ACCOUNT_QUERIES` is
- * handed to `OxyProvider`, which stores these roots per account, discards them
- * on every new build, drops them from memory on an account switch and deletes
- * them on sign-out. Paused mutations carry only serializable variables; their
- * replay functions resolve the current SDK API at execution time, so no bearer
- * or CSRF header is ever persisted.
+ * This client is Inbox's own: Services 15 holds no React Query cache, so
+ * `app/_layout.tsx` mounts it in a `QueryClientProvider` above `OxyProvider`.
+ * Persistence and account isolation are Inbox's too (`inboxAccountCache.ts`):
+ * `INBOX_ACCOUNT_QUERIES` is stored per account, discarded on every new build,
+ * dropped from memory on an account switch and deleted on sign-out. Paused
+ * mutations carry only serializable variables; their replay functions resolve
+ * the current SDK API at execution time, so no bearer or CSRF header is ever
+ * persisted.
  */
 
-import { QueryClient, onlineManager } from '@tanstack/react-query';
-import type { AccountQueriesConfig } from '@oxy.so/services/ui';
+import { environment } from '@oxy.so/bloom-data';
+import { focusManager, onlineManager, QueryClient } from '@tanstack/react-query';
+import { Platform } from 'react-native';
+import type { AccountQueriesConfig } from '@/hooks/queries/accountQueryPersistence';
 import { useEmailStore } from '@/hooks/useEmail';
 import type { MessageFlags } from '@/services/emailApi';
 import { eachWithConcurrency, PER_MESSAGE_CONCURRENCY } from '@/utils/concurrency';
@@ -36,7 +42,7 @@ export const RETRY_IDEMPOTENT = { retry: 1 } as const;
 
 /**
  * Every message mutation that can wait offline (`RETRY_IDEMPOTENT`). Keyed, so
- * the SDK drops a waiting one when the account changes — unkeyed, it resumed
+ * the account cache drops a waiting one when the account changes — unkeyed, it resumed
  * after the switch and ran under the new account's credentials — and replays
  * it after a restart for the same account.
  */
@@ -249,7 +255,37 @@ onlineManager.subscribe((isOnline) => {
   }
 });
 
-/** Inbox's private, per-account data, persisted and isolated by `OxyProvider`. */
+/**
+ * On a device, React Query hears whether it is online and in front from
+ * bloom-data's `environment`, which `OxyProvider` feeds from NetInfo and
+ * AppState: Services 14 fed React Query's managers itself, Services 15 feeds
+ * only `environment`. Without this a device never counts as offline, so an
+ * offline star or archive fails instead of waiting for the network. The web
+ * keeps React Query's own browser listeners (online/offline, visibility), which
+ * only hear changes: a tab opened offline starts offline, as Services 14 made it.
+ */
+export function followDeviceEnvironment(): void {
+  if (Platform.OS === 'web') {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      onlineManager.setOnline(false);
+    }
+    return;
+  }
+  onlineManager.setEventListener((setOnline) => {
+    setOnline(environment.online);
+    return environment.subscribe((event) => {
+      if (event === 'online' || event === 'offline') setOnline(event === 'online');
+    });
+  });
+  focusManager.setEventListener((setFocused) => {
+    setFocused(environment.focused);
+    return environment.subscribe((event) => {
+      if (event === 'focus' || event === 'blur') setFocused(event === 'focus');
+    });
+  });
+}
+
+/** Inbox's private, per-account data, persisted and isolated by `inboxAccountCache`. */
 export const INBOX_ACCOUNT_QUERIES: AccountQueriesConfig = {
   roots: [...PERSISTED_QUERY_ROOTS],
   memoryOnlyRoots: [...MEMORY_ONLY_QUERY_ROOTS],

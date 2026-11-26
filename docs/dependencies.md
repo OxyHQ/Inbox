@@ -45,7 +45,28 @@ dependency the fix removed.
 the OLD version, silently, with no error and no warning: measured 2026-09-19,
 when the frontend asked for `@oxy.so/bloom@^3.1.0` and `bun install` kept
 installing 2.0.0 because the override still said `^2.0.0`. Both places move
-together or neither does.
+together or neither does. It happened again on 2026-11-24: dependabot's `oxy`
+group PR (#266) moved the frontend to Bloom 23.3.0 but not the root override, so
+the lock and production stayed on 22.1.11 while the manifest said 23.3.0.
+
+## What Services 15 and Gemies SDK 10 changed here
+
+`@oxy.so/services` 15.0.0 and `@gemies/sdk` 10.0.0 keep their own data in
+`@oxy.so/bloom-data` (one store per account) and dropped React Query, zustand and
+NativeWind as peers. Two things follow for this manifest:
+
+- `expo-sqlite` is a direct dependency: Services 15 requires it (each account's
+  durable store is a SQLite file on a device). `@oxy.so/bloom-data` already was.
+- `@tanstack/react-query` and `zustand` stay, as Inbox's OWN dependencies: the
+  mail cache is Inbox's React Query client (`hooks/queries/queryClient.ts`) and
+  the app stores are zustand. `@tanstack/query-async-storage-persister` and
+  `@tanstack/query-sync-storage-persister` were removed: nothing in Inbox imports
+  them, and they were here only as Services 14's peers.
+
+Both SDKs now pass no `className` and type-check against Bloom 23, so
+`typecheck` is plain `tsc --noEmit` again (the filtering `scripts/typecheck.mjs`
+that ignored their source is gone). NativeWind itself stays until Inbox's own
+classes are gone.
 
 ## Updates
 

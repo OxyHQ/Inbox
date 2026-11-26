@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { dirname, join } from 'node:path';
 import {
   INBOX_ACCOUNT_QUERIES,
   INBOX_MEMORY_ONLY_MUTATION_KEYS,
@@ -46,11 +45,7 @@ jest.mock('@/lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => ke
 
 import { useSaveDraft, useSendMessage } from '@/hooks/mutations/useMessageMutations';
 
-const sdk = dirname(require.resolve('@oxy.so/services/package.json'));
-const { createAccountQueryPersistence } = require(
-  join(sdk, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-);
-const { attachQueryPersistence } = require(join(sdk, 'lib/commonjs/ui/hooks/queryClient.js'));
+const { createAccountQueryPersistence } = require('@/hooks/queries/accountQueryPersistence');
 
 function setup() {
   const client = new QueryClient({
@@ -195,10 +190,8 @@ it('keeps real draft and send mutations out of both caches without changing the 
       entries.delete(key);
     },
   };
-  // Inbox supplies its own QueryClient and does not attach the shared cache;
-  // exercise both SDK persisters here to guard the reusable config boundary.
-  const shared = attachQueryPersistence(client, storage, INBOX_ACCOUNT_QUERIES);
-  await shared.restored;
+  // Inbox has no shared (account-agnostic) persister since Services 15: only
+  // the account's own blob is ever written.
   const scope = createAccountQueryPersistence(client, INBOX_ACCOUNT_QUERIES);
   scope.setStorage(storage);
   scope.attach();
@@ -242,16 +235,12 @@ it('keeps real draft and send mutations out of both caches without changing the 
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 1200));
   });
-  const accountBlob = entries.get('oxy_account_queries:A');
-  const sharedBlob = entries.get('oxy_query_cache_v3');
+  const accountBlob = entries.get('inbox_account_queries:A');
   expect(accountBlob).toBeDefined();
-  expect(sharedBlob).toBeDefined();
-  expect(sharedBlob).toContain('unrelated-offline-work');
+  expect([...entries.keys()]).toEqual(['inbox_account_queries:A']);
   expect(accountBlob).not.toContain('unrelated-offline-work');
-  for (const blob of [accountBlob, sharedBlob]) {
-    expect(blob).not.toContain('synthetic-draft-private');
-    expect(blob).not.toContain('synthetic-send-private');
-  }
+  expect(accountBlob).not.toContain('synthetic-draft-private');
+  expect(accountBlob).not.toContain('synthetic-send-private');
   for (const key of Object.values(INBOX_MUTATION_KEYS)) {
     expect(accountBlob).toContain(JSON.stringify(key));
   }
@@ -271,6 +260,5 @@ it('keeps real draft and send mutations out of both caches without changing the 
   draft.unmount();
   send.unmount();
   scope.detach();
-  shared.unsubscribe();
   client.clear();
 });

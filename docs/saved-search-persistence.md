@@ -1,7 +1,7 @@
 # Saved-search persistence boundaries
 
-Inbox's saved-search query is one of the per-account roots persisted by Oxy
-Services. The persisted record is a historical cache, not a guarantee that a
+Inbox's saved-search query is one of the per-account roots persisted by Inbox's
+account cache (Oxy Services until 15.0.0). The persisted record is a historical cache, not a guarantee that a
 search still exists on the server. A write may already have committed while its
 response or subsequent refresh is still pending. When an inactive query is
 invalidated, its existing snapshot can be restored offline until a later
@@ -13,7 +13,7 @@ results. It does not sanitize older blobs: prior versions could persist a
 pending create or a list missing a pending deletion, with no durable record of
 the mutation. A prefix filter cannot reconstruct a missing deleted row. This
 change adds no explicit migration or deletion of legacy blobs; the SDK's normal
-snapshot writes and sign-out cleanup still apply.
+snapshot writes and sign-out cleanup still apply (Inbox's own since Services 15).
 
 ## Why not move the root to memory-only?
 

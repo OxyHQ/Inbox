@@ -1,0 +1,169 @@
+/**
+ * The storage format and restore rules of Inbox's per-account query cache
+ * (`accountQueryPersistence.ts`).
+ *
+ * Services 14 owned this (`accountQueries`); Services 15 keeps its own data in
+ * `@oxy.so/bloom-data` and holds no React Query cache, so Inbox owns the one its
+ * mail lives in. The rules are the ones Services 14 shipped, unchanged:
+ *
+ * A blob is `{ buster, timestamp, clientState }`, TanStack's persisted-client
+ * shape. Restoring it treats its two halves differently:
+ *
+ * - Queries are served before any refetch, so a query written by another build,
+ *   in whatever shape it had then, is dropped (the buster is the build).
+ * - Paused mutations are the user's queued actions (a star, an archive made
+ *   offline). A deploy must not lose them, so they are restored whatever build
+ *   wrote them; the current build's `setMutationDefaults` replays them.
+ */
+
+import {
+  type DehydratedState,
+  dehydrate,
+  hydrate,
+  type Mutation,
+  type Query,
+  type QueryClient,
+} from '@tanstack/react-query';
+
+/**
+ * The identity of the running JS bundle, the buster of every persisted blob.
+ *
+ * `@oxy.so/app-preset`'s production Babel config replaces
+ * `process.env.OXY_BUILD_ID` with the commit at bundle time. A development or
+ * test build has none and gets a constant, which behaves like a buster that is
+ * never bumped.
+ */
+export function getInboxBuildId(): string {
+  const buildId = typeof process === 'undefined' ? undefined : process.env.OXY_BUILD_ID;
+  return buildId || 'unversioned';
+}
+
+export interface PersistFilters {
+  /** The queries this cache keeps, whatever their state; only successful ones are written. */
+  persistsQuery: (query: Query) => boolean;
+  shouldDehydrateMutation: (mutation: Mutation) => boolean;
+  /** What a blob is stamped with, and must match to be restored. Defaults to the build. */
+  buster?: string;
+}
+
+interface PersistedBlob {
+  buster: string;
+  timestamp: number;
+  clientState: DehydratedState;
+}
+
+/**
+ * Keep a persisted root's queries in memory for as long as they live on disk.
+ *
+ * A snapshot is written from memory, so a query the client garbage-collects is
+ * gone from the next snapshot too: with the default `gcTime` (30 minutes) a
+ * thread not on screen for that long dropped out of storage as well.
+ * `gcTime: Infinity` keeps them until the cache's own rules remove them (expiry
+ * on restore, an account switch, sign-out). Set before restoring, so hydrated
+ * queries get it too.
+ */
+export function keepPersistedRootsInMemory(
+  queryClient: QueryClient,
+  roots: ReadonlyArray<string>,
+): void {
+  for (const root of roots) queryClient.setQueryDefaults([root], { gcTime: Infinity });
+}
+
+export function rootOf(query: Pick<Query, 'queryKey'>): string | null {
+  const head = query.queryKey[0];
+  return typeof head === 'string' ? head : null;
+}
+
+/** Serialize what the filters select, stamped with their buster. */
+export function snapshot(queryClient: QueryClient, filters: PersistFilters): string {
+  const blob: PersistedBlob = {
+    buster: filters.buster ?? getInboxBuildId(),
+    timestamp: Date.now(),
+    clientState: dehydrate(queryClient, {
+      shouldDehydrateQuery: (query) =>
+        query.state.status === 'success' && filters.persistsQuery(query),
+      shouldDehydrateMutation: filters.shouldDehydrateMutation,
+    }),
+  };
+  return JSON.stringify(blob);
+}
+
+/**
+ * Hydrate a stored blob into the client, synchronously, so a caller can check
+ * it is still wanted immediately before. Returns false when there was nothing
+ * usable (absent, unreadable or expired), in which case the caller removes it.
+ */
+export function hydrateSnapshot(
+  queryClient: QueryClient,
+  raw: string | null,
+  maxAge: number,
+  options?: {
+    /** The stamp the blob must carry for its queries to be restored. Defaults to the build. */
+    buster?: string;
+    shouldRestoreQuery?: (query: DehydratedState['queries'][number]) => boolean;
+    shouldRestoreMutation?: (mutation: DehydratedState['mutations'][number]) => boolean;
+  },
+): boolean {
+  if (!raw) return false;
+  let blob: PersistedBlob;
+  try {
+    blob = JSON.parse(raw) as PersistedBlob;
+  } catch {
+    return false;
+  }
+  if (
+    !blob?.clientState ||
+    typeof blob.timestamp !== 'number' ||
+    Date.now() - blob.timestamp > maxAge
+  ) {
+    return false;
+  }
+  const sameBuild = blob.buster === (options?.buster ?? getInboxBuildId());
+  hydrate(queryClient, {
+    queries: sameBuild
+      ? (blob.clientState.queries ?? []).filter(
+          (query) => options?.shouldRestoreQuery?.(query) ?? true,
+        )
+      : [],
+    mutations: (blob.clientState.mutations ?? []).filter(
+      (mutation) => options?.shouldRestoreMutation?.(mutation) ?? true,
+    ),
+  });
+  return true;
+}
+
+/**
+ * Write the filtered cache whenever one of its queries or any mutation changes,
+ * at most once per `throttleMs`. Activity in queries it does not keep (search,
+ * AI output) never serializes it. `write` receives the snapshot; `flush()`
+ * writes now.
+ */
+export function subscribeSnapshots(
+  queryClient: QueryClient,
+  filters: PersistFilters,
+  throttleMs: number,
+  write: (serialized: string) => void,
+): { flush: () => void; unsubscribe: () => void } {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const flush = () => {
+    if (timer) clearTimeout(timer);
+    timer = null;
+    write(snapshot(queryClient, filters));
+  };
+  const schedule = () => {
+    if (!timer) timer = setTimeout(flush, throttleMs);
+  };
+  const offQueries = queryClient.getQueryCache().subscribe((event) => {
+    if (filters.persistsQuery(event.query)) schedule();
+  });
+  const offMutations = queryClient.getMutationCache().subscribe(schedule);
+  return {
+    flush,
+    unsubscribe: () => {
+      if (timer) clearTimeout(timer);
+      timer = null;
+      offQueries();
+      offMutations();
+    },
+  };
+}

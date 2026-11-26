@@ -1,5 +1,4 @@
 import { useEmailStore } from '@/hooks/useEmail';
-import { dirname, join } from 'node:path';
 import { dehydrate, onlineManager, QueryClient } from '@tanstack/react-query';
 import {
   INBOX_ACCOUNT_QUERIES,
@@ -10,10 +9,7 @@ import {
 import { waitFor } from '@testing-library/react';
 import { wireMessage } from '../fixtures/wire';
 
-const sdkDirectory = dirname(require.resolve('@oxy.so/services/package.json'));
-const { createAccountQueryPersistence } = require(
-  join(sdkDirectory, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-);
+const { createAccountQueryPersistence } = require('@/hooks/queries/accountQueryPersistence');
 
 afterEach(() => {
   useEmailStore.getState().resetAccountScopedState();
@@ -94,8 +90,8 @@ it('waits for the next account cache before resuming only that account’s work'
     });
   };
   const entries = new Map([
-    ['oxy_account_queries:alice', accountBlob('alice-message')],
-    ['oxy_account_queries:bob', accountBlob('bob-message')],
+    ['inbox_account_queries:alice', accountBlob('alice-message')],
+    ['inbox_account_queries:bob', accountBlob('bob-message')],
   ]);
   const storage = {
     getItem: async (key: string) => entries.get(key) ?? null,

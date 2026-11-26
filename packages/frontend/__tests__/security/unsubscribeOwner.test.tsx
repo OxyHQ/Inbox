@@ -160,11 +160,7 @@ afterEach(() => {
   globalThis.fetch = previousFetch;
 });
 function persistenceFor(client: ReturnType<typeof createInboxQueryClient>) {
-  const { dirname, join } = require('node:path');
-  const dir = dirname(require.resolve('@oxy.so/services/package.json'));
-  const { createAccountQueryPersistence } = require(
-    join(dir, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-  );
+  const { createAccountQueryPersistence } = require('@/hooks/queries/accountQueryPersistence');
   const map = new Map<string, string>();
   const storage = {
     getItem: async (k: string) => map.get(k) ?? null,
@@ -384,11 +380,7 @@ it('does not restore A snapshot or show a late A error after B is mounted', asyn
   const mutation = client.getMutationCache().getAll()[0];
   const forced = dehydrate(client, { shouldDehydrateMutation: () => true });
   expect(JSON.stringify(forced)).not.toContain(token('alice', 'a-session'));
-  const { dirname, join } = require('node:path');
-  const dir = dirname(require.resolve('@oxy.so/services/package.json'));
-  const { accountQueryOwnership } = require(
-    join(dir, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-  );
+  const { accountQueryOwnership } = require('@/hooks/queries/accountQueryPersistence');
   const ownership = accountQueryOwnership(INBOX_ACCOUNT_QUERIES);
   expect(mutation.options.mutationKey).toBeUndefined();
   expect(ownership.persistsMutation(mutation)).toBe(false);
@@ -551,11 +543,7 @@ it('does not persist a pending unsubscribe as confirmed after restart', async ()
     begun();
     return reply;
   }) as never;
-  const { dirname, join } = require('node:path');
-  const dir = dirname(require.resolve('@oxy.so/services/package.json'));
-  const { createAccountQueryPersistence } = require(
-    join(dir, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-  );
+  const { createAccountQueryPersistence } = require('@/hooks/queries/accountQueryPersistence');
   const values = new Map<string, string>();
   let saved!: () => void;
   const written = new Promise<void>((resolve) => {

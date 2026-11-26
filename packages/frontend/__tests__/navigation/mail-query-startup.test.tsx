@@ -17,6 +17,12 @@ let mockAccount = {
 const mockMailboxes = jest.fn();
 const mockMessages = jest.fn();
 const mockBundles = jest.fn();
+// Services 15 has no `isAccountCacheReady`; Inbox's own readiness hook reads
+// the fixture's flag so the scenario keeps its meaning.
+jest.mock('@/hooks/useAccountCacheReady', () => ({
+  useAccountCacheReady: () =>
+    Boolean(require('@oxy.so/services/ui/client').useOxy().isAccountCacheReady),
+}));
 jest.mock('@oxy.so/services/ui/client', () => ({ useOxy: () => mockAccount }));
 jest.mock('@/services/emailApi', () => ({
   createEmailApi: () => ({

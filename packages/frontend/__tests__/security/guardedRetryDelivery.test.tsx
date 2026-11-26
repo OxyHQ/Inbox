@@ -121,11 +121,7 @@ function changeToBob() {
   });
 }
 function setupPersistence(client: ReturnType<typeof createInboxQueryClient>) {
-  const { dirname, join } = require('node:path');
-  const dir = dirname(require.resolve('@oxy.so/services/package.json'));
-  const { createAccountQueryPersistence } = require(
-    join(dir, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-  );
+  const { createAccountQueryPersistence } = require('@/hooks/queries/accountQueryPersistence');
   const values = new Map<string, string>();
   const storage = {
     getItem: async (key: string) => values.get(key) ?? null,

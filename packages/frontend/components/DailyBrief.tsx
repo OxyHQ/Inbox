@@ -6,7 +6,7 @@ import type { ReactNode } from 'react';
 import { useMessage } from '@/hooks/queries/useMessage';
 import type { Message } from '@/services/emailApi';
 import type { InboxDailyBrief } from '@/services/inboxInferenceApi';
-import { View } from 'react-native';
+import { View, type ViewStyle } from 'react-native';
 
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
 import { useDailyBrief } from '@/hooks/queries/useDailyBrief';
@@ -79,7 +79,7 @@ export function DailyBrief({
             {error && (
               <Button
                 appearance="subtle"
-                className="self-start"
+                style={RETRY_STYLE}
                 disabled={!actionsReady}
                 onPress={() => void regenerate()}
               >
@@ -145,3 +145,6 @@ function BriefMessageRow({
     />
   );
 }
+
+// Bloom 23's Button takes no className; `self-start` as Bloom 22 applied it to the root.
+const RETRY_STYLE: ViewStyle = { alignSelf: 'flex-start' };

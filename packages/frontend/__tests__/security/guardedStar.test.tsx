@@ -128,11 +128,7 @@ it('rejects a retained live A hook before using bearer B after reconnect', async
 });
 
 it('observes the real account persister removing a paused A hook on A to B', async () => {
-  const { dirname, join } = require('node:path');
-  const sdkDirectory = dirname(require.resolve('@oxy.so/services/package.json'));
-  const { createAccountQueryPersistence } = require(
-    join(sdkDirectory, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-  );
+  const { createAccountQueryPersistence } = require('@/hooks/queries/accountQueryPersistence');
   const { INBOX_ACCOUNT_QUERIES } = require('@/hooks/queries/queryClient');
   onlineManager.setOnline(false);
   const sent: string[] = [];
@@ -202,11 +198,7 @@ it('observes the real account persister removing a paused A hook on A to B', asy
 
 it('suppresses a late A rollback and retry after the real persister switches to B', async () => {
   const putSpy = jest.spyOn(mockOxy.http, 'put');
-  const { dirname, join } = require('node:path');
-  const sdkDirectory = dirname(require.resolve('@oxy.so/services/package.json'));
-  const { createAccountQueryPersistence } = require(
-    join(sdkDirectory, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-  );
+  const { createAccountQueryPersistence } = require('@/hooks/queries/accountQueryPersistence');
   const { INBOX_ACCOUNT_QUERIES } = require('@/hooks/queries/queryClient');
   const { emailKeys } = require('@/hooks/queries/queryKeys');
   let release!: (value: ReturnType<typeof response>) => void, started!: () => void;
@@ -239,7 +231,7 @@ it('suppresses a late A rollback and retry after the real persister switches to 
     getItem: async (k: string) => values.get(k) ?? null,
     setItem: async (k: string, v: string) => {
       values.set(k, v);
-      if (k === 'oxy_account_queries:bob') notifyB();
+      if (k === 'inbox_account_queries:bob') notifyB();
     },
     removeItem: async (k: string) => {
       values.delete(k);
@@ -304,7 +296,7 @@ it('suppresses a late A rollback and retry after the real persister switches to 
   expect(client.getQueryData(oldKey)).toBeUndefined();
   persistence.detach();
   await bWritten;
-  expect(values.get('oxy_account_queries:bob')).not.toContain('synthetic-A-private');
+  expect(values.get('inbox_account_queries:bob')).not.toContain('synthetic-A-private');
   unmount();
   client.unmount();
   client.clear();

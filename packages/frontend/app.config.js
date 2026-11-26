@@ -14,7 +14,7 @@ module.exports = {
     // `appVersion`) and the source of the derived store build number
     // (@oxy.so/app-preset: 1.2.3 → 1002003). Bump it for any native change: the
     // next push to main releases a new Android binary (`android-release.yml`).
-    version: '1.1.0',
+    version: '1.2.0',
     orientation: 'portrait',
     icon: './assets/images/icon.png',
     scheme: 'inbox',

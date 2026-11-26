@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { dirname, join } from 'node:path';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createEmailApi } from '@/services/emailApi';
@@ -30,13 +29,8 @@ import {
 } from '@/hooks/mutations/useSavedSearchMutations';
 import { useSavedSearches } from '@/hooks/queries/useSavedSearches';
 
-const sdk = dirname(require.resolve('@oxy.so/services/package.json'));
-const { accountQueryOwnership } = require(
-  join(sdk, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-);
-const { snapshot, hydrateSnapshot } = require(
-  join(sdk, 'lib/commonjs/ui/hooks/persistedQueryCache.js'),
-);
+const { accountQueryOwnership } = require('@/hooks/queries/accountQueryPersistence');
+const { snapshot, hydrateSnapshot } = require('@/hooks/queries/persistedQueryCache');
 const row = (id: string) => ({
   id,
   name: `name-${id}`,

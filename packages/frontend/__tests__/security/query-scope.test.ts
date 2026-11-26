@@ -31,9 +31,9 @@ function emailKeyRoots(): Set<string> {
 }
 
 describe('Inbox private-data isolation', () => {
-  // The SDK isolates and persists per account exactly what it is told about.
+  // The account cache isolates and persists per account exactly what it is told about.
   // A root left out would survive an account switch in memory.
-  it('declares every private query root to the SDK', () => {
+  it('declares every private query root to the account cache', () => {
     const declared = new Set([
       ...INBOX_ACCOUNT_QUERIES.roots,
       ...(INBOX_ACCOUNT_QUERIES.memoryOnlyRoots ?? []),

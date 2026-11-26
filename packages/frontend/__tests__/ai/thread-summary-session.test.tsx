@@ -98,11 +98,10 @@ it('does not show a previous session summary after switching sessions for the sa
   } as never);
   const { INBOX_ACCOUNT_QUERIES, createInboxQueryClient } = require('@/hooks/queries/queryClient');
   const client = createInboxQueryClient();
-  const { dirname, join } = require('node:path');
-  const dir = dirname(require.resolve('@oxy.so/services/package.json'));
-  const { createAccountQueryPersistence, accountQueryOwnership } = require(
-    join(dir, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-  );
+  const {
+    createAccountQueryPersistence,
+    accountQueryOwnership,
+  } = require('@/hooks/queries/accountQueryPersistence');
   const persistence = createAccountQueryPersistence(client, INBOX_ACCOUNT_QUERIES);
   persistence.setStorage({
     getItem: async () => null,

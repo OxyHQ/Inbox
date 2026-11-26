@@ -14,6 +14,12 @@ import {
 } from '@/services/inboxInferenceApi';
 
 const mockToast = Object.assign(jest.fn(), { error: jest.fn() });
+// Services 15 has no `isAccountCacheReady`; Inbox's own readiness hook reads
+// the fixture's flag so the scenario keeps its meaning.
+jest.mock('@/hooks/useAccountCacheReady', () => ({
+  useAccountCacheReady: () =>
+    Boolean(require('@oxy.so/services/ui/client').useOxy().isAccountCacheReady),
+}));
 jest.mock('@oxy.so/bloom/toast', () => ({
   get toast() {
     return mockToast;

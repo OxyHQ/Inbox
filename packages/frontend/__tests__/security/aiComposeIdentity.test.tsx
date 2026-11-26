@@ -385,11 +385,7 @@ it('keeps rewrite operations memory-only and suppresses an obsolete failure', as
   });
   await waitFor(() => expect(mockOxy.http.post).toHaveBeenCalled());
   const mutation = client.getMutationCache().getAll()[0];
-  const { dirname, join } = require('node:path');
-  const directory = dirname(require.resolve('@oxy.so/services/package.json'));
-  const { accountQueryOwnership } = require(
-    join(directory, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-  );
+  const { accountQueryOwnership } = require('@/hooks/queries/accountQueryPersistence');
   expect(accountQueryOwnership(INBOX_ACCOUNT_QUERIES).persistsMutation(mutation)).toBe(false);
   const forced = dehydrate(client, { shouldDehydrateMutation: () => true });
   expect(JSON.stringify(forced)).not.toContain(token('alice', 'a-session'));

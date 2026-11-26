@@ -185,11 +185,61 @@ it does not recalculate panel margins, surfaces or safe areas.
 
 ## Shared library dependency
 
-Both manifests and the lockfile pin published Bloom **22.1.5**, Services **14.23.0**
-and Gemies SDK **9.1.0**. There are no local Bloom copies, export shims or package patches.
-Services and the Gemies SDK resolve the same Bloom package as the application.
-The shared Doctor CLI checks dependency health; the repository retains its
-release-age policy (explicit release installs use only a command-line exception).
+Both manifests and the lockfile pin published Bloom **23.9.1**, Services **15.0.0**
+and Gemies SDK **10.0.0**, with the Bloom language (`@oxy.so/bloom-language` 1.7.0,
+its compiler 1.5.0, `@oxy.so/bloom-data` and `@oxy.so/bloom-lens`). There are no
+local Bloom copies, export shims or package patches. Services and the Gemies SDK
+resolve the same Bloom package as the application. The shared Doctor CLI checks
+dependency health; the repository retains its release-age policy, which exempts
+first-party packages.
+
+Bloom 23 has no `className` (Bloom `docs/no-nativewind.mdx`). Inbox's remaining
+classes keep working on native through app-preset's `BloomNativeWindTheme`, mounted
+once inside `BloomProvider` in `app/_layout.tsx`. Services 15 and Gemies SDK 10 pass
+no `className` and style through React Native styles and Bloom tokens, so their
+surfaces draw as on Bloom 22 again.
+
+### The account cache
+
+Services 15 keeps its own data in one `@oxy.so/bloom-data` store per account and
+holds no React Query cache: `OxyProvider` takes no `queryClient` or
+`accountQueries`, and `useOxy().isAccountCacheReady` is gone. Inbox's mail cache
+is React Query, so Inbox now owns all of it:
+
+- `app/_layout.tsx` mounts Inbox's `queryClient` in a `QueryClientProvider` above
+  `OxyProvider`, and `InboxAccountCache` as `OxyProvider`'s first child.
+- `hooks/queries/accountQueryPersistence.ts` is the per-account cache Services 14
+  ran for Inbox, with the same rules: the roots and mutation keys in
+  `INBOX_ACCOUNT_QUERIES` are persisted per account under
+  `inbox_account_queries:<account>` (localStorage on the web, AsyncStorage on a
+  device), queries are dropped on a new build and paused mutations are kept, an
+  account switch writes the leaving account's blob and drops its queries and
+  registered mutations from memory, and sign-out deletes the leaving account's
+  blob.
+- `followOxyRuntime` (`hooks/queries/inboxAccountCache.ts`) activates it from the
+  Services runtime's own notification, which runs after the new subject is
+  published and before React renders anything for it: the same moment Services
+  opens the account's bloom-data store.
+- `useAccountCacheReady()` replaces `isAccountCacheReady`. It is true only once
+  the cache is restored for the account the render is for, so a cache holding or
+  restoring another account never reads as ready. `useEmailApi` (and so every
+  private read) and `PrivateInboxContent` wait on it; the latter shows the same
+  empty fallback `RequireOxyAuth` showed while Services 14 restored the cache.
+- On a device React Query hears online and focus from bloom-data's
+  `environment`, which `OxyProvider` feeds from NetInfo and AppState
+  (`followDeviceEnvironment`).
+
+`__tests__/security/account-cache-isolation.test.tsx` and
+`account-cache-cold-boot.test.tsx` run this wiring with the real hooks: a switch
+from A to B with a read for A still in flight, sign-out, A signing in again
+offline, and a cold boot as B with A's blob on the device. Services 15 deletes
+the old `oxy_account_queries:*` and `oxy_query_cache_v3` keys once, so the first
+start on this version begins from the network
+([legacy mutation quarantine](legacy-mutation-quarantine.md)).
+
+The Bloom language compiler runs in front of Metro's transformer on every platform
+(`metro.config.js`) and in front of ts-jest (`jest.config.js`), so a test fails on
+the chain the build would.
 
 ## Validation
 

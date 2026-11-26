@@ -296,7 +296,7 @@ export function MailComposer({
         </Dialog>
 
         {layout === 'screen' ? (
-          <ScrollArea className="flex-1" keyboardShouldPersistTaps="handled">
+          <ScrollArea viewportStyle={FILL} keyboardShouldPersistTaps="handled">
             {content}
           </ScrollArea>
         ) : (
@@ -380,3 +380,7 @@ function formatSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+// Bloom 22 put ScrollArea's `className` on its scrolling viewport on both platforms;
+// Bloom 23 takes the same style as `viewportStyle` (`flex-1`).
+const FILL: ViewStyle = { flex: 1 };

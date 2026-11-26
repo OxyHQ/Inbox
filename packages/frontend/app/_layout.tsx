@@ -12,6 +12,7 @@ import { toast } from '@oxy.so/bloom/toast';
 import { ImageResolverProvider } from '@oxy.so/bloom/image-resolver';
 import type { ImageResolver } from '@oxy.so/bloom/image-resolver';
 import { BloomProvider } from '@oxy.so/bloom/provider';
+import { BloomNativeWindTheme } from '@oxy.so/app-preset/nativewind-theme';
 import { INBOX_THEME_BOOTSTRAP } from '@/constants/theme-bootstrap';
 import { INBOX_THEME_STORAGE } from '@/constants/theme-storage';
 import { BloomScope } from '@oxy.so/bloom/appearance';
@@ -22,7 +23,10 @@ import { ConnectionStatusToasts } from '@oxy.so/bloom/connection-status';
 import { createStickersClient } from '@oxy.so/stickers';
 import { StickersProvider } from '@oxy.so/stickers/react';
 
-import { INBOX_ACCOUNT_QUERIES, queryClient } from '@/hooks/queries/queryClient';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { followDeviceEnvironment, queryClient } from '@/hooks/queries/queryClient';
+import { InboxAccountCache } from '@/components/InboxAccountCache';
+import { useAccountCacheReady } from '@/hooks/useAccountCacheReady';
 import { ThemeProvider as AppThemeProvider, useThemeContext } from '@/contexts/theme-context';
 import { InboxPrefsProvider } from '@/contexts/inbox-prefs-context';
 import { LocaleProvider, useTranslation } from '@/lib/i18n';
@@ -40,6 +44,7 @@ import { configureLottieWeb } from '@/lib/lottieWeb';
 import * as SplashScreen from 'expo-splash-screen';
 
 configureLottieWeb();
+followDeviceEnvironment();
 
 SplashScreen.hideAsync().catch(() => {
   // Already hidden during a fast-refresh re-import.
@@ -70,9 +75,13 @@ function ThemedRoot() {
       storage={INBOX_THEME_STORAGE}
       awaitHydration={false}
     >
-      <BloomScope size="md">
-        <RootLayoutContent />
-      </BloomScope>
+      {/* Bloom 23 no longer publishes its tokens to NativeWind; the app's own
+          classes (and the SDKs') read them on native through this. */}
+      <BloomNativeWindTheme>
+        <BloomScope size="md">
+          <RootLayoutContent />
+        </BloomScope>
+      </BloomNativeWindTheme>
     </BloomProvider>
   );
 }
@@ -83,30 +92,35 @@ function RootLayoutContent() {
   // No KeyboardProvider here: OxyProvider mounts the one. A second one above it
   // took the native keyboard events, so every keyboard hook under OxyProvider read
   // a closed keyboard.
+  //
+  // The React Query client is Inbox's own (Services 15 keeps its data in
+  // bloom-data and mounts none), above OxyProvider so the SDK's surfaces sit
+  // inside it too. `InboxAccountCache` keeps it on the session's account.
   return (
-    <OxyProvider
-      baseURL={API_URL}
-      clientId={OXY_CLIENT_ID}
-      authRedirectUri={OXY_AUTH_REDIRECT_URI}
-      queryClient={queryClient}
-      accountQueries={INBOX_ACCOUNT_QUERIES}
-    >
-      <ScopedInboxPrefsProvider>
-        <InboxMediaProvider>
-          <LocaleProvider>
-            <PortalProvider>
-              <ThemeProvider value={navTheme}>
-                <ConnectionStatusToasts />
-                <RootEffects />
-                <InboxNavigator />
-                <StatusBar style="auto" />
-              </ThemeProvider>
-              <PortalOutlet />
-            </PortalProvider>
-          </LocaleProvider>
-        </InboxMediaProvider>
-      </ScopedInboxPrefsProvider>
-    </OxyProvider>
+    <QueryClientProvider client={queryClient}>
+      <OxyProvider
+        baseURL={API_URL}
+        clientId={OXY_CLIENT_ID}
+        authRedirectUri={OXY_AUTH_REDIRECT_URI}
+      >
+        <InboxAccountCache />
+        <ScopedInboxPrefsProvider>
+          <InboxMediaProvider>
+            <LocaleProvider>
+              <PortalProvider>
+                <ThemeProvider value={navTheme}>
+                  <ConnectionStatusToasts />
+                  <RootEffects />
+                  <InboxNavigator />
+                  <StatusBar style="auto" />
+                </ThemeProvider>
+                <PortalOutlet />
+              </PortalProvider>
+            </LocaleProvider>
+          </InboxMediaProvider>
+        </ScopedInboxPrefsProvider>
+      </OxyProvider>
+    </QueryClientProvider>
   );
 }
 
@@ -121,13 +135,15 @@ function InboxNavigator() {
 }
 
 function ScopedInboxPrefsProvider({ children }: { children: ReactNode }) {
-  const { user, oxyServices, canUsePrivateApi, isAccountCacheReady } = useOxy();
+  const { user, oxyServices, canUsePrivateApi } = useOxy();
+  const isAccountCacheReady = useAccountCacheReady();
   const scope = user?.id ?? null;
   const accountReady = canUsePrivateApi && isAccountCacheReady;
   const http = oxyServices.http;
 
   // The selected mailbox and the email API belong to the account. Its cached
-  // data is the SDK's to drop (`accountQueries`); this is the app's own state.
+  // data is the account cache's to drop (`inboxAccountCache`); this is the
+  // app's own state.
   const previousScope = useRef(scope);
   useLayoutEffect(() => {
     if (previousScope.current !== scope) {

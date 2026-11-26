@@ -1,13 +1,12 @@
-import { dirname, join } from 'node:path';
 import { QueryClient } from '@tanstack/react-query';
 import { INBOX_ACCOUNT_QUERIES, INBOX_MUTATION_KEYS } from '@/hooks/queries/queryClient';
 import { SAVED_SEARCH_MUTATION_KEYS } from '@/hooks/queries/queryKeys';
 
-const sdk = dirname(require.resolve('@oxy.so/services/package.json'));
-const { accountQueryOwnership, createAccountQueryPersistence } = require(
-  join(sdk, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-);
-const { snapshot } = require(join(sdk, 'lib/commonjs/ui/hooks/persistedQueryCache.js'));
+const {
+  accountQueryOwnership,
+  createAccountQueryPersistence,
+} = require('@/hooks/queries/accountQueryPersistence');
+const { snapshot } = require('@/hooks/queries/persistedQueryCache');
 
 it('does not persist saved-search mutations and preserves the separate account queues', async () => {
   const ownership = accountQueryOwnership(INBOX_ACCOUNT_QUERIES);
@@ -31,8 +30,8 @@ it('does not persist saved-search mutations and preserves the separate account q
     return result;
   };
   const storageMap = new Map([
-    ['oxy_account_queries:alice', makeBlob('alice-message')],
-    ['oxy_account_queries:bob', makeBlob('bob-message')],
+    ['inbox_account_queries:alice', makeBlob('alice-message')],
+    ['inbox_account_queries:bob', makeBlob('bob-message')],
   ]);
   const storage = {
     getItem: async (key: string) => storageMap.get(key) ?? null,
@@ -63,7 +62,7 @@ it('does not persist saved-search mutations and preserves the separate account q
     expect(ownership.persistsMutation(pending)).toBe(false);
     persistence.activate('bob');
     await persistence.whenReady();
-    const aliceBlob = storageMap.get('oxy_account_queries:alice');
+    const aliceBlob = storageMap.get('inbox_account_queries:alice');
     expect(aliceBlob).toBeDefined();
     const alice = JSON.parse(aliceBlob ?? 'null');
     expect(alice.clientState.mutations.map((m: { mutationKey: unknown }) => m.mutationKey)).toEqual(

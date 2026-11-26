@@ -6,7 +6,8 @@ the routed workspace. Keying a provider above that shell by account also
 remounts it when the SDK restores the signed-in user.
 
 Keep the public workspace mounted while identity and account-owned content
-resolve. Authentication still gates private content and actions; the SDK owns
+resolve. Authentication still gates private content and actions; Inbox's account
+cache (`hooks/queries/inboxAccountCache.ts`, following the SDK's session) owns
 account query restoration, clearing and mutation replay. Never show one account's
 mail, labels, search or saved preferences while another account is resolving.
 Preference and search resets must not require replacing the whole workspace, and
@@ -74,9 +75,12 @@ selected navigation tab, with no recoverable errors or replaced workspace.
 
 Query clients derive synchronously from the SDK's ready HTTP client. A drawer
 mount effect must not add another render before mailbox, message and brief
-queries can start. Keep the SDK's account-cache readiness and schema/build
-buster: a disabled query can still return cached data, so hooks above the
-private boundary also mask their data until the current account is ready.
+queries can start. Keep the account cache's readiness (`useAccountCacheReady`,
+true only for the account being rendered) and its build buster: a disabled
+query can still return cached data, so hooks above the private boundary also
+mask their data until the current account is ready. Services 15 no longer waits
+on a cache restore before resolving a cached cold boot, so the private body
+waits on it instead (`PrivateInboxContent`), behind the same empty fallback.
 Private dialogs and routed content reset by account epoch without replacing the
 header. Shared query keys deduplicate the shell, list and brief consumers.
 

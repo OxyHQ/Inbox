@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
+import { accountStorageKey } from '@/utils/accountStorageKey';
 
 const MAX_RECENT_SEARCHES = 6;
 const STORAGE_PREFIX = 'inbox-recent-searches-v1:';
 
 export function recentSearchesStorageKey(scope: string | null | undefined): string {
-  return `${STORAGE_PREFIX}${encodeURIComponent(scope ?? 'anonymous')}`;
+  return accountStorageKey(STORAGE_PREFIX, scope);
 }
 
 export function mergeRecentSearches(value: unknown): string[] {

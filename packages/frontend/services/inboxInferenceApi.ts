@@ -403,7 +403,6 @@ export const inboxDailyBriefSchema = z
   })
   .strict();
 export type InboxDailyBrief = z.infer<typeof inboxDailyBriefSchema>;
-export type InboxDailyBriefItem = InboxDailyBrief['items'][number];
 export type InboxDailyBriefAction = NonNullable<InboxDailyBrief['actions']>[number];
 
 /** Today's brief: a short summary and the messages it names, in `locale`. */

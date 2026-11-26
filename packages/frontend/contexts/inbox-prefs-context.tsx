@@ -24,6 +24,7 @@ import {
 } from 'react';
 import type { ReactNode } from 'react';
 import { Platform } from 'react-native';
+import { accountStorageKey } from '@/utils/accountStorageKey';
 
 export type SwipeAction = 'archive' | 'delete' | 'mark-read' | 'snooze' | 'none';
 
@@ -155,11 +156,11 @@ const STORAGE_KEY_PREFIX = 'inbox_user_prefs_v3';
 const InboxPrefsContext = createContext<InboxPrefsContextValue | undefined>(undefined);
 
 export function getInboxPrefsStorageKey(scope: string | null = null): string {
-  return `${STORAGE_KEY_PREFIX}:${encodeURIComponent(scope ?? 'anonymous')}`;
+  return accountStorageKey(`${STORAGE_KEY_PREFIX}:`, scope);
 }
 
 export function getV2InboxPrefsStorageKey(scope: string | null = null): string {
-  return `${V2_STORAGE_KEY_PREFIX}:${encodeURIComponent(scope ?? 'anonymous')}`;
+  return accountStorageKey(`${V2_STORAGE_KEY_PREFIX}:`, scope);
 }
 
 /** The v3 choices, or the v2 blob migrated when there are none yet. */

@@ -19,7 +19,6 @@
 
 import { z } from 'zod';
 import {
-  MESSAGE_CARD_TYPES,
   emailAttachmentSchema,
   emailBundleSchema,
   emailContactSchema,
@@ -41,7 +40,6 @@ import {
 export const EmailAddressSchema = emailMessageAddressSchema;
 export const AttachmentSchema = emailAttachmentSchema;
 export const MessageFlagsSchema = emailMessageFlagsSchema;
-export const CardTypeSchema = z.enum(MESSAGE_CARD_TYPES);
 
 /**
  * Typed view of a card's payload. The contract carries it as an open record;
@@ -281,7 +279,6 @@ export function parseRecipientList(input: string): RecipientInput[] {
 export type EmailAddress = z.infer<typeof EmailAddressSchema>;
 export type Attachment = z.infer<typeof AttachmentSchema>;
 export type MessageFlags = z.infer<typeof MessageFlagsSchema>;
-export type CardType = z.infer<typeof CardTypeSchema>;
 export type CardData = z.infer<typeof CardDataSchema>;
 export type MessageCard = z.infer<typeof MessageCardSchema>;
 export type Highlight = z.infer<typeof HighlightSchema>;

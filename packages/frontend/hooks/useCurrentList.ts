@@ -17,6 +17,7 @@ import { useMessages } from '@/hooks/queries/useMessages';
 import { useEmailStore } from '@/hooks/useEmail';
 import { useInboxDisplayPrefs } from '@/hooks/useInboxDisplayPrefs';
 import type { Message } from '@/services/emailApi';
+import { flatMessages } from '@/utils/messageCache';
 import { groupThreads } from '@/utils/threadGrouping';
 
 export function useCurrentList() {
@@ -58,7 +59,7 @@ export function useCurrentList() {
   // a conversation counted twice.
   const messages = useMemo(() => {
     const seen = new Set<string>();
-    return (data?.pages.flatMap((p) => p.data) ?? []).filter((m) => {
+    return flatMessages(data).filter((m) => {
       if (seen.has(m._id)) return false;
       seen.add(m._id);
       return true;

@@ -64,8 +64,9 @@ jobs:
     # A good run takes about a minute; the budget is for a cold runner and a
     # slow registry, not for a hang to hold one of the org's 20 job slots.
     timeout-minutes: 15
+    # The first step is the Seldon race guard: a lane that starts after its
+    # hosted twin waits there to be cancelled.
     steps: &check-steps
-      # A lane that starts after its hosted twin waits here to be cancelled (the Seldon race).
       - &race-guard
         name: Seldon race guard
         if: vars.CI_SELDON_RACE == 'true' && !endsWith(github.job, '-rescue')

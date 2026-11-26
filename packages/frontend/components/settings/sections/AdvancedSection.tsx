@@ -17,6 +17,7 @@ import { useFilters } from '@/hooks/queries/useFilters';
 import { useTemplates } from '@/hooks/queries/useTemplates';
 import { useEmailStore } from '@/hooks/useEmail';
 import { useTranslation } from '@/lib/i18n';
+import { importSummary } from '@/utils/importSummary';
 import type { EmailFilterAction, EmailFilterCondition } from '@/services/emailApi';
 import { Button } from '@oxy.so/bloom/button';
 import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
@@ -298,9 +299,7 @@ export function AdvancedSection() {
       try {
         const result = await api.importMessages(files);
         setImportResult(result);
-        toast.success(
-          t('ui.settings.advanced.imported', { imported: result.imported, total: result.total }),
-        );
+        toast.success(importSummary(t, result));
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : t('ui.settings.advanced.importFailed');
         toast.error(message);
@@ -669,10 +668,7 @@ export function AdvancedSection() {
                   key: 'import',
                   label: t('ui.settings.advanced.import'),
                   description: importResult
-                    ? t('ui.settings.advanced.imported', {
-                        imported: importResult.imported,
-                        count: importResult.total,
-                      })
+                    ? importSummary(t, importResult)
                     : t('ui.settings.advanced.importDescription'),
                   rows: [
                     {

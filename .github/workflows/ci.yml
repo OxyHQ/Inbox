@@ -17,13 +17,62 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # The Seldon race (OxyHQ/oxy docs/engineering/build-and-deploy.md, CI on
+  # Seldon), opt-in with the repository variable CI_SELDON_RACE=true, on
+  # same-repository pull_request and merge_group runs only. Push and dispatch
+  # runs stay hosted: deploy.yml releases from a push run that concluded
+  # `success`, and a race loser makes a run `cancelled`. Unset, `check` runs
+  # hosted as before and none of these takes a runner. Set, `check` runs on
+  # seldon-ci; if that lane is still queued 3 minutes after it was created its
+  # hosted twin (`check-hosted`) queues, the lane that starts first wins and the
+  # finish job cancels the other through its job-level concurrency group. A
+  # Seldon lane that fails, whatever the reason (the house network drops new
+  # connections in bursts), reruns hosted in `check-rescue`, which fails again
+  # on a genuine failure. CI complete takes the result from the race.
+  #
+  # While the race is off, the idle twin and rescue report under another name,
+  # so a skipped one can never stand in for the required
+  # `typecheck · lint · test` check.
+  race:
+    if: ${{ !cancelled() && vars.CI_SELDON_RACE == 'true' && github.run_attempt == 1 && (github.event_name == 'pull_request' || github.event_name == 'merge_group') && !github.event.pull_request.head.repo.fork }}
+    uses: OxyHQ/oxy/.github/workflows/seldon-race-start.yml@main
+    permissions:
+      actions: read
+    with:
+      names: |
+        typecheck · lint · test
+
+  race-finish:
+    needs: race
+    # `!cancelled()`: an ancestor skipped on this event must not skip it.
+    if: ${{ !cancelled() && needs.race.outputs.race == 'true' }}
+    uses: OxyHQ/oxy/.github/workflows/seldon-race-finish.yml@main
+    permissions:
+      actions: read
+    with:
+      names: |
+        typecheck · lint · test
+
   check:
     name: typecheck · lint · test
-    runs-on: ubuntu-latest
+    runs-on: &seldon-lane ${{ vars.CI_SELDON_RACE == 'true' && github.run_attempt == 1 && (github.event_name == 'pull_request' || github.event_name == 'merge_group') && !github.event.pull_request.head.repo.fork && 'seldon-ci' || 'ubuntu-latest' }}
+    concurrency:
+      group: seldon-race-${{ github.run_id }}-${{ github.run_attempt }}-seldon-typecheck · lint · test
+    permissions: &race-lane-permissions
+      contents: read
+      actions: read # the Seldon race guard reads this run's jobs
     # A good run takes about a minute; the budget is for a cold runner and a
     # slow registry, not for a hang to hold one of the org's 20 job slots.
     timeout-minutes: 15
-    steps:
+    # The first step is the Seldon race guard: a lane that starts after its
+    # hosted twin waits there to be cancelled.
+    steps: &check-steps
+      - &race-guard
+        name: Seldon race guard
+        if: vars.CI_SELDON_RACE == 'true' && !endsWith(github.job, '-rescue')
+        uses: OxyHQ/oxy/.github/actions/seldon-race@main
+        with:
+          mode: guard
       - uses: actions/checkout@v7
 
       - uses: oven-sh/setup-bun@v2
@@ -148,3 +197,86 @@ jobs:
               exit 1
             }
           done
+
+  # check's hosted twin in the Seldon race: the same name and steps.
+  check-hosted:
+    name: ${{ vars.CI_SELDON_RACE == 'true' && 'typecheck · lint · test' || 'typecheck · lint · test (Seldon race off)' }}
+    needs: [race]
+    if: ${{ !cancelled() && !failure() && needs.race.outputs.race == 'true' }}
+    runs-on: ubuntu-latest
+    concurrency:
+      group: seldon-race-${{ github.run_id }}-${{ github.run_attempt }}-hosted-typecheck · lint · test
+    permissions: *race-lane-permissions
+    timeout-minutes: 15
+    steps: *check-steps
+
+  # check's rescue: reruns it hosted when its Seldon lane failed (the house
+  # network drops connections); a genuine failure fails again.
+  check-rescue:
+    name: ${{ vars.CI_SELDON_RACE == 'true' && 'typecheck · lint · test' || 'typecheck · lint · test (Seldon race off)' }}
+    needs: [check]
+    if: ${{ !cancelled() && needs.check.result == 'failure' && vars.CI_SELDON_RACE == 'true' && github.run_attempt == 1 && (github.event_name == 'pull_request' || github.event_name == 'merge_group') && !github.event.pull_request.head.repo.fork }}
+    runs-on: ubuntu-latest
+    permissions: *race-lane-permissions
+    timeout-minutes: 15
+    steps: *check-steps
+
+  # The one check this workflow stands for, modelled on OxyHQ/Gemies': green
+  # only when `check` passed, in whichever lane. Required checks by job name
+  # cannot follow the Seldon race (a twin and a rescue share their job's name,
+  # and a cancelled loser is not a failure); this one can.
+  #
+  # When the race or the rescue ran, `check` passes on the race's verdict: its
+  # name passed in some lane and failed in no hosted lane. Otherwise `check` is
+  # judged alone and its twin and rescue must have skipped.
+  ci-complete:
+    name: CI complete
+    if: always()
+    # Not race-finish: its reapers run on seldon-ci-light and only follow the
+    # cancellation, so needing it would wait on Seldon.
+    needs: [race, check, check-hosted, check-rescue]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read # the Seldon race verdict reads this run's jobs
+    steps:
+      # Per job name: passed when one of its lanes succeeded and no hosted lane
+      # failed. Whenever the race is on: a rescue can run without the race.
+      - name: Seldon race verdict
+        id: race
+        if: vars.CI_SELDON_RACE == 'true'
+        uses: OxyHQ/oxy/.github/actions/seldon-race@main
+        with:
+          mode: verdict
+      - name: Every job passed
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+          RACE_VERDICT: ${{ steps.race.outputs.outcome }}
+        run: |
+          set -euo pipefail
+          failures=()
+          result() { jq -r --arg job "$1" '.[$job].result // "missing"' <<<"$RESULTS"; }
+
+          # The race's start: skipped when not needed, never failed.
+          case "$(result race)" in
+            success | skipped) ;;
+            *) failures+=("race did not pass: $(result race)") ;;
+          esac
+
+          own="$(result check)"
+          twin="$(result check-hosted)"
+          rescue="$(result check-rescue)"
+          raced="$(jq -r '.race.outputs.race // ""' <<<"$RESULTS")"
+          if [ "$rescue" != skipped ] || [ "$raced" = true ]; then
+            check="${RACE_VERDICT:-no verdict}"
+          else
+            [ "$twin" = skipped ] || failures+=("check-hosted ran although the Seldon race did not: $twin")
+            check="$own"
+          fi
+          [ "$check" = success ] || failures+=("typecheck · lint · test did not pass: $check")
+
+          if [ ${#failures[@]} -gt 0 ]; then
+            for failure in "${failures[@]}"; do echo "::error::$failure"; done
+            exit 1
+          fi
+          echo 'Every job passed.'

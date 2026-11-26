@@ -259,7 +259,7 @@ function WebRichTextEditor(
   return (
     <View style={[webStyles.container, style]}>
       <Dialog control={linkControl} title={t('editor.insertLink')}>
-        <View className="gap-3">
+        <View style={webStyles.linkForm}>
           <TextFieldInput
             label={t('editor.url')}
             placeholder="https://"
@@ -426,6 +426,10 @@ RichTextEditor.displayName = 'RichTextEditor';
 const webStyles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+
+  linkForm: {
+    gap: 12,
   },
 
   placeholder: {

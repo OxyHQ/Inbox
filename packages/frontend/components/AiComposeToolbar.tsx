@@ -16,7 +16,7 @@ import { Text } from '@oxy.so/bloom/typography';
 
 import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useCallback, useLayoutEffect, useRef, useState, type ComponentProps } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, View, type ViewStyle } from 'react-native';
 
 import { useAiCompose, type ComposeTone } from '@/hooks/mutations/useAiCompose';
 
@@ -280,8 +280,8 @@ export function AiComposeToolbar({
   ]);
 
   return (
-    <View className="gap-2 px-4 py-2">
-      <View className="flex-row flex-wrap gap-2">
+    <View style={styles.root}>
+      <View style={styles.actions}>
         <Button appearance="subtle" onPress={handleDraft} disabled={isLoading}>
           {t('ai.toolbar.draft')}
         </Button>
@@ -392,3 +392,8 @@ export function AiComposeToolbar({
     </View>
   );
 }
+
+const styles = {
+  root: { gap: 8, paddingHorizontal: 16, paddingVertical: 8 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+} satisfies Record<string, ViewStyle>;

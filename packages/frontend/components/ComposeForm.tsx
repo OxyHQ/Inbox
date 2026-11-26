@@ -10,7 +10,7 @@ import { EmptyState } from '@oxy.so/bloom/empty-state';
  */
 
 import { useMemo } from 'react';
-import { KeyboardAvoidingView, Platform } from 'react-native';
+import { KeyboardAvoidingView, Platform, type ViewStyle } from 'react-native';
 
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
 import { MailComposer } from '@/components/MailComposer';
@@ -186,7 +186,7 @@ function ComposeSessionForm({
 
   return (
     <KeyboardAvoidingView
-      className="flex-1"
+      style={rootStyle}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <MailComposer
@@ -209,3 +209,5 @@ function ComposeSessionForm({
     </KeyboardAvoidingView>
   );
 }
+
+const rootStyle: ViewStyle = { flexGrow: 1, flexShrink: 1, flexBasis: '0%' };

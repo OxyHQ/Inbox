@@ -49,18 +49,24 @@ together or neither does. It happened again on 2026-11-24: dependabot's `oxy`
 group PR (#266) moved the frontend to Bloom 23.3.0 but not the root override, so
 the lock and production stayed on 22.1.11 while the manifest said 23.3.0.
 
-## `typecheck` and the SDKs' own sources
+## What Services 15 and Gemies SDK 10 changed here
 
-Expo's tsconfig base resolves the `react-native` export condition, under which
-`@oxy.so/services` 14 and `@gemies/sdk` 9 publish raw `.tsx`, so tsc checks those
-files like the app's and `skipLibCheck` cannot skip them. Both still pass
-`className` to Bloom components, a prop Bloom 23 removed, so their own sources do
-not type-check against Bloom 23. `bun run typecheck` is therefore
-`scripts/typecheck.mjs`: `tsc --noEmit`, failing on every error except those
-inside `node_modules/@oxy.so/services/src/` and `node_modules/@gemies/sdk/src/`
-(the count it ignores is printed). An Inbox call into either SDK with the wrong
-types still fails. It goes back to plain `tsc --noEmit` with Services 15 and a
-Gemies SDK built for it.
+`@oxy.so/services` 15.0.0 and `@gemies/sdk` 10.0.0 keep their own data in
+`@oxy.so/bloom-data` (one store per account) and dropped React Query, zustand and
+NativeWind as peers. Two things follow for this manifest:
+
+- `expo-sqlite` is a direct dependency: Services 15 requires it (each account's
+  durable store is a SQLite file on a device). `@oxy.so/bloom-data` already was.
+- `@tanstack/react-query` and `zustand` stay, as Inbox's OWN dependencies: the
+  mail cache is Inbox's React Query client (`hooks/queries/queryClient.ts`) and
+  the app stores are zustand. `@tanstack/query-async-storage-persister` and
+  `@tanstack/query-sync-storage-persister` were removed: nothing in Inbox imports
+  them, and they were here only as Services 14's peers.
+
+Both SDKs now pass no `className` and type-check against Bloom 23, so
+`typecheck` is plain `tsc --noEmit` again (the filtering `scripts/typecheck.mjs`
+that ignored their source is gone). NativeWind itself stays until Inbox's own
+classes are gone.
 
 ## Updates
 

@@ -8,11 +8,22 @@ model of the algorithm, with in-memory fakes, is kept on the archived branch
 [`archive/sweep-20261106/wt-inbox-legacy-quarantine-prototype`](https://github.com/OxyHQ/Inbox/tree/archive/sweep-20261106/wt-inbox-legacy-quarantine-prototype).
 It is a review artifact, not evidence that the migration is production-ready.
 
+**Services 15 changed the premise (2026-11-26).** On its first start, Services
+15.0.0 deletes Services 14's query caches from AsyncStorage/localStorage once:
+the shared blob `oxy_query_cache_v3` and every per-account
+`oxy_account_queries:<account>` (`data/deviceStorage.ts`, `isDeadKey`). Inbox's
+per-account cache now lives under `inbox_account_queries:<account>`
+(`hooks/queries/accountQueryPersistence.ts`) and never reads either old key. So
+a paused operation still queued in a 14.x blob when a device first runs this
+version, ownerless or account-owned, is deleted by the SDK, not quarantined or
+replayed. The ten registered operations keep restoring and resuming from the
+account's own new blob from then on.
+
 ## What is observed
 
 - The legacy shared TanStack Query blob can contain mutation variables, results
   and other account-private state. Updating the SDK does not sanitize it.
-- `clearUnregisteredMutations` (Services `AccountQueriesConfig`) filters
+- `clearUnregisteredMutations` (`AccountQueriesConfig`, Services until 15, now Inbox's own) filters
   unregistered mutations out of persistence and clears them on account
   transitions. It does not cancel callbacks already running; the app must also
   guard results and callbacks by session ownership.

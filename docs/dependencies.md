@@ -67,6 +67,11 @@ different lock and the gate reds until it is committed. Regenerate with a PLAIN
 `--minimum-release-age=0`, which would pin packages the quarantine exists to
 keep out.
 
+The quarantine is for third-party packages. Every first-party package (the
+Oxy SDK, Bloom, the product SDKs) is exempt by exact name in `bunfig.toml`, so a
+fresh Oxy release resolves at once; `scripts/check-release-age-excludes.mjs`
+(CI) fails if `bun.lock` resolves a first-party package that list misses.
+
 Neither CI nor the application installs `latest` or modifies dependencies at
 runtime.
 

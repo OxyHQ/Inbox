@@ -26,36 +26,81 @@ linker = "hoisted"
 # deliberately RE-RESOLVES (the CI lockfile-drift gate) must pass
 # `--minimum-release-age=0` or it goes red on any recently-published dependency.
 #
-# The excludes are EXACT names, so every first-party package must be listed
-# individually. OxyHQServices only had to exclude @oxy.so/bloom, because core,
-# services, contracts and app-preset were `workspace:*` there and never touched
-# the registry at all. Here they are ordinary registry dependencies, and the
-# whole Oxy SDK ships faster than a 7-day window — measured 2026-08-10, every
-# one of these was published within the preceding four days — so without them
-# listed `bun install` refuses to resolve them outright. @oxy.so/protocol and
-# @oxy.so/expo-splash are transitive but resolve the same way.
-# @peable.to/* (Peable, first-party) arrive through @oxy.so/services >= 11.10.
-#
-# The quarantine keeps doing its actual job: it guards against a freshly
-# compromised THIRD-PARTY release. These are first-party.
+# First-party packages are exempt: the quarantine guards against a freshly
+# compromised THIRD-PARTY release, and publishing an Oxy package then bumping
+# its consumer in the same session is the normal workflow. Bun matches
+# `minimumReleaseAgeExcludes` by EXACT name (a scope glob such as "@oxy.so/*"
+# is accepted and silently matches nothing), so the list names every published
+# first-party package: the same list in every Oxy repo with the quarantine.
+# `scripts/check-release-age-excludes.mjs` (run in CI) fails if bun.lock
+# resolves a first-party package the list misses, or if the list names a glob
+# or anything outside the first-party scopes. A newly published first-party
+# package is added here in each of those repos.
 minimumReleaseAge = 604800
 minimumReleaseAgeExcludes = [
-  "@gemies/sdk",
+  "@alia-codea/cli",
+  "@alia.onl/sdk",
+  "@alia.onl/server",
   "@clarity.surf/sdk",
+  "@crowdsource.you/contracts",
+  "@crowdsource.you/core",
+  "@fairco.in/core",
+  "@fairco.in/rpc-client",
+  "@gemies/sdk",
+  "@gemies/server",
+  "@goway.to/maps",
+  "@goway.to/sdk",
+  "@kaana.ai/contracts",
+  "@kaana.ai/sdk",
+  "@mercaria.co/sdk",
+  "@oxy.so/allo-contracts",
+  "@oxy.so/allo-sdk",
   "@oxy.so/app-preset",
   "@oxy.so/bloom",
+  "@oxy.so/bloom-ai-icons",
+  "@oxy.so/bloom-avatar-native",
+  "@oxy.so/bloom-data",
+  "@oxy.so/bloom-editor",
+  "@oxy.so/bloom-language",
+  "@oxy.so/bloom-language-codemod",
+  "@oxy.so/bloom-language-compiler",
+  "@oxy.so/bloom-language-compiler-darwin-arm64",
+  "@oxy.so/bloom-language-compiler-darwin-x64",
+  "@oxy.so/bloom-language-compiler-linux-arm64-gnu",
+  "@oxy.so/bloom-language-compiler-linux-x64-gnu",
+  "@oxy.so/bloom-language-compiler-wasm32-wasi",
+  "@oxy.so/bloom-language-compiler-win32-x64-msvc",
+  "@oxy.so/bloom-lens",
+  "@oxy.so/bloom-text",
   "@oxy.so/contracts",
   "@oxy.so/core",
+  "@oxy.so/db",
   "@oxy.so/doctor",
   "@oxy.so/expo-splash",
+  "@oxy.so/federation",
+  "@oxy.so/homiio-contracts",
+  "@oxy.so/homiio-sdk",
+  "@oxy.so/mcp",
+  "@oxy.so/mention-contracts",
+  "@oxy.so/mention-sdk",
+  "@oxy.so/moovo-contracts",
+  "@oxy.so/moovo-sdk",
+  "@oxy.so/nilo-contracts",
   "@oxy.so/protocol",
   "@oxy.so/services",
+  "@oxy.so/ship",
   "@oxy.so/stickers",
   "@oxy.so/telemetry",
   "@oxy.so/utils",
   "@peable.to/contracts",
+  "@peable.to/pay",
   "@peable.to/sdk",
   "@peable.to/shared-types",
+  "@syra.fm/contracts",
+  "@syra.fm/sdk",
+  "@vibbr.co/contracts",
+  "@vibbr.co/sdk",
+  "create-oxy-app",
 ]
 
 [test]

@@ -12,9 +12,8 @@ import { Loading } from '@oxy.so/bloom/loading';
 import { Text } from '@oxy.so/bloom/typography';
 import { useCallback, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { onlineManager } from '@tanstack/react-query';
-import { View } from 'react-native';
-
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
+
 import { useSmartReplies } from '@/hooks/queries/useSmartReplies';
 import {
   type InferenceOwner,
@@ -22,6 +21,7 @@ import {
 } from '@/hooks/queries/useObservedInferenceOwner';
 import type { Message } from '@/services/emailApi';
 import { useTranslation } from '@/lib/i18n';
+import { Embed, HStack, Text as LText, VStack, toElement } from '@oxy.so/bloom-language';
 
 interface SmartReplyChipsProps {
   message: Message;
@@ -95,19 +95,21 @@ function MessageSmartReplyChips({
   }
 
   if (!hasRequestedReplies) {
-    return (
-      <View className="gap-2">
-        <Button
-          appearance="subtle"
-          leading={<RiSparklingLine />}
-          onPress={handleGenerateReplies}
-          disabled={!owner.ready}
-        >
-          {t('smartReply.generate')}
-        </Button>
-        <Text variant="caption-1-regular">{t('smartReply.notice')}</Text>
-        {!owner.ready && <Text variant="caption-1-regular">{t('smartReply.unavailable')}</Text>}
-      </View>
+    return toElement(
+      VStack(
+        Embed(
+          <Button
+            appearance="subtle"
+            leading={<RiSparklingLine />}
+            onPress={handleGenerateReplies}
+            disabled={!owner.ready}
+          >
+            {t('smartReply.generate')}
+          </Button>,
+        ),
+        LText(t('smartReply.notice')).font('caption-1'),
+        !owner.ready ? LText(t('smartReply.unavailable')).font('caption-1') : null,
+      ).spacing('sm'),
     );
   }
   const generating = isLoading || (isPending && !isPaused);
@@ -120,48 +122,52 @@ function MessageSmartReplyChips({
         : isPaused
           ? t('smartReply.waiting')
           : t('smartReply.failed');
-    return (
-      <View className="gap-2">
-        <Text variant="caption-1-regular" accessibilityLiveRegion="polite">
-          {status}
-        </Text>
-        {showFailure && (
-          <>
-            <Button
-              appearance="subtle"
-              onPress={handleGenerateReplies}
-              disabled={!online || isPaused || !owner.ready}
-            >
-              {t('common.retry')}
-            </Button>
-            <Text variant="caption-1-regular">{t('smartReply.notice')}</Text>
-          </>
-        )}
-      </View>
+    return toElement(
+      VStack(
+        LText(status).font('caption-1').liveRegion('polite'),
+        Embed(
+          showFailure && (
+            <>
+              <Button
+                appearance="subtle"
+                onPress={handleGenerateReplies}
+                disabled={!online || isPaused || !owner.ready}
+              >
+                {t('common.retry')}
+              </Button>
+              <Text variant="caption-1-regular">{t('smartReply.notice')}</Text>
+            </>
+          ),
+        ),
+      ).spacing('sm'),
     );
   }
-  return (
-    <View className="gap-2">
-      <Text variant="caption-1-regular">{t('smartReply.quickReplies')}</Text>
-      <View className="flex-row flex-wrap gap-2">
-        {generating ? (
-          <Loading text={t('smartReply.generating')} />
-        ) : (
-          replies.map((reply, index) => (
-            <Chip
-              // biome-ignore lint/suspicious/noArrayIndexKey: stateless chips, replaced as a whole on each generation; two replies can be the same text.
-              key={index}
-              appearance="subtle"
-              tone="accent"
-              onPress={() => {
-                if (mountedRef.current && owner.isCurrent()) onSelectReply(reply);
-              }}
-            >
-              {reply}
-            </Chip>
-          ))
-        )}
-      </View>
-    </View>
+  return toElement(
+    VStack(
+      LText(t('smartReply.quickReplies')).font('caption-1'),
+      HStack(
+        Embed(
+          generating ? (
+            <Loading text={t('smartReply.generating')} />
+          ) : (
+            replies.map((reply, index) => (
+              <Chip
+                // biome-ignore lint/suspicious/noArrayIndexKey: stateless chips, replaced as a whole on each generation; two replies can be the same text.
+                key={index}
+                appearance="subtle"
+                tone="accent"
+                onPress={() => {
+                  if (mountedRef.current && owner.isCurrent()) onSelectReply(reply);
+                }}
+              >
+                {reply}
+              </Chip>
+            ))
+          ),
+        ),
+      )
+        .wrap()
+        .spacing('sm'),
+    ).spacing('sm'),
   );
 }

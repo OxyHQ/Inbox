@@ -24,7 +24,7 @@ import type { FileMetadata } from '@oxy.so/core';
 import { useOxy } from '@oxy.so/services/ui/client';
 import { type ReactNode, useCallback, useRef, useState } from 'react';
 import { ScrollArea } from '@oxy.so/bloom/layout';
-import { Platform, type StyleProp, type TextInput, View, type ViewStyle } from 'react-native';
+import { Platform, type StyleProp, type TextInput, type ViewStyle } from 'react-native';
 
 import { AiComposeToolbar } from '@/components/AiComposeToolbar';
 import { MailAddressFields } from '@/components/MailAddressFields';
@@ -36,6 +36,8 @@ import type { useComposeSession } from '@/hooks/useComposeSession';
 import { useTranslation } from '@/lib/i18n';
 import type { EmailTemplate } from '@/services/emailApi';
 import { editorContentToText } from '@/utils/composeBody';
+
+import { Embed, HStack, VStack, toElement } from '@oxy.so/bloom-language';
 
 const isWeb = Platform.OS === 'web';
 
@@ -237,28 +239,34 @@ export function MailComposer({
           caption: formatSize(item.size),
         }))}
         onAttachmentRemove={session.removeAttachment}
-        footer={
-          <View className="flex-row items-center gap-1">
-            <TemplatePicker onSelect={handleTemplateSelect} />
-            <Button
-              appearance="outline"
-              tone="neutral"
-              iconOnly
-              accessibilityLabel={t('compose.actions.saveDraft')}
-              onPress={() => void session.saveAndClose()}
-              icon={<RiSaveLine />}
-            />
-            <Button
-              appearance="outline"
-              tone="neutral"
-              iconOnly
-              accessibilityLabel={t('compose.actions.moreSendOptions')}
-              onPress={() => sendMenuControl.open()}
-              disabled={session.sendDisabled}
-              icon={<RiArrowDownSLine />}
-            />
-          </View>
-        }
+        footer={toElement(
+          HStack(
+            Embed(<TemplatePicker onSelect={handleTemplateSelect} />),
+            Embed(
+              <Button
+                appearance="outline"
+                tone="neutral"
+                iconOnly
+                accessibilityLabel={t('compose.actions.saveDraft')}
+                onPress={() => void session.saveAndClose()}
+                icon={<RiSaveLine />}
+              />,
+            ),
+            Embed(
+              <Button
+                appearance="outline"
+                tone="neutral"
+                iconOnly
+                accessibilityLabel={t('compose.actions.moreSendOptions')}
+                onPress={() => sendMenuControl.open()}
+                disabled={session.sendDisabled}
+                icon={<RiArrowDownSLine />}
+              />,
+            ),
+          )
+            .align('center')
+            .spacing('xs'),
+        )}
         strings={{
           send: t('compose.actions.send'),
           sending: t('common.sending'),
@@ -269,30 +277,36 @@ export function MailComposer({
         style={style}
       >
         <Dialog control={sendMenuControl} label={t('compose.actions.sendOptions')}>
-          <View style={{ gap: 8 }}>
-            <Button
-              disabled={session.sendDisabled}
-              appearance="subtle"
-              leading={<RiSendPlaneLine />}
-              onPress={() => {
-                sendMenuControl.close();
-                void session.send();
-              }}
-            >
-              {t('compose.actions.sendNow')}
-            </Button>
-            <Button
-              disabled={session.sendDisabled}
-              appearance="subtle"
-              leading={<RiTimeLine />}
-              onPress={() => {
-                sendMenuControl.close();
-                setShowScheduleSheet(true);
-              }}
-            >
-              {t('compose.actions.scheduleSend')}
-            </Button>
-          </View>
+          {toElement(
+            VStack(
+              Embed(
+                <Button
+                  disabled={session.sendDisabled}
+                  appearance="subtle"
+                  leading={<RiSendPlaneLine />}
+                  onPress={() => {
+                    sendMenuControl.close();
+                    void session.send();
+                  }}
+                >
+                  {t('compose.actions.sendNow')}
+                </Button>,
+              ),
+              Embed(
+                <Button
+                  disabled={session.sendDisabled}
+                  appearance="subtle"
+                  leading={<RiTimeLine />}
+                  onPress={() => {
+                    sendMenuControl.close();
+                    setShowScheduleSheet(true);
+                  }}
+                >
+                  {t('compose.actions.scheduleSend')}
+                </Button>,
+              ),
+            ).spacing('sm'),
+          )}
         </Dialog>
 
         {layout === 'screen' ? (
@@ -303,13 +317,11 @@ export function MailComposer({
           content
         )}
       </MailComposeSurface>
-
       <ScheduleSendSheet
         visible={showScheduleSheet}
         onClose={() => setShowScheduleSheet(false)}
         onSchedule={(date) => void session.schedule(date)}
       />
-
       <Dialog
         control={saveDraftDialog}
         onClose={() => saveDraftDialog.close()}
@@ -325,7 +337,6 @@ export function MailComposer({
           { label: t('common.cancel'), color: 'cancel' },
         ]}
       />
-
       {/*
         The API refused the session's key: another version of this compose was
         already sent, scheduled, or failed or cancelled. Only the user decides
@@ -356,7 +367,6 @@ export function MailComposer({
             : []
         }
       />
-
       <Dialog
         control={discardDialog}
         onClose={() => discardDialog.close()}

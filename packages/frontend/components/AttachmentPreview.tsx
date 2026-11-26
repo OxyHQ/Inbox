@@ -12,14 +12,14 @@ import {
 } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import { Card } from '@oxy.so/bloom/card';
-import { Text } from '@oxy.so/bloom/typography';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { Image } from 'expo-image';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { useState } from 'react';
 import type { Attachment } from '@/services/emailApi';
 import { useAttachmentUrl } from '@/hooks/queries/useAttachmentUrl';
 import { useOpenAttachment } from '@/hooks/useOpenAttachment';
+import { Embed, HStack, Text as LText, VStack, toElement } from '@oxy.so/bloom-language';
 
 type AttachmentInfo = {
   icon: keyof typeof MaterialCommunityIcons.glyphMap;
@@ -141,25 +141,27 @@ export function AttachmentPreview({
           accessibilityLabel={attachment.name}
         />
       ) : (
-        <View style={styles.document}>
-          <Text variant="body-2-regular" numberOfLines={2}>
-            {attachment.name}
-          </Text>
-          <View style={styles.fileType}>
-            {Platform.OS === 'web' ? (
-              <HugeiconsIcon icon={info.hugeIcon} size={18} color={info.color} />
-            ) : (
-              <MaterialCommunityIcons name={info.icon} size={18} color={info.color} />
-            )}
-            <Text
-              variant="caption-1-regular"
-              style={{ color: colors.textSecondary }}
-              numberOfLines={1}
-            >
-              {fileType}
-            </Text>
-          </View>
-        </View>
+        toElement(
+          VStack(
+            LText(attachment.name).font('body-2').lines(2),
+            HStack(
+              Embed(
+                Platform.OS === 'web' ? (
+                  <HugeiconsIcon icon={info.hugeIcon} size={18} color={info.color} />
+                ) : (
+                  <MaterialCommunityIcons name={info.icon} size={18} color={info.color} />
+                ),
+              ),
+              LText(fileType).foreground('muted').font('caption-1').lines(1),
+            )
+              .align('center')
+              .spacing('6'),
+          )
+            .padding('all', 'md')
+            .justify('between')
+            .spacing('xs')
+            .grow(),
+        )
       )}
     </Card>
   );
@@ -167,6 +169,4 @@ export function AttachmentPreview({
 
 const styles = StyleSheet.create({
   image: { width: '100%', height: '100%' },
-  document: { flex: 1, padding: 12, justifyContent: 'space-between', gap: 4 },
-  fileType: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 });

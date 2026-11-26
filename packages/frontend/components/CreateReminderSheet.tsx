@@ -8,6 +8,8 @@ import { Text } from '@oxy.so/bloom/typography';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 
+import { Embed, HStack, Text as LText, VStack, toElement } from '@oxy.so/bloom-language';
+
 interface CreateReminderSheetProps {
   visible: boolean;
   onClose: () => void;
@@ -190,21 +192,27 @@ export function CreateReminderSheet({
   return (
     <BottomSheet ref={sheetRef} onDismiss={handleClose} detached>
       <View className="gap-4 p-5">
-        <View className="flex-row items-center gap-2">
-          <View className="flex-1">
-            <Text variant="body-semibold">
-              {isEdit ? t('common.edit') : t('reminder.create.title')}
-            </Text>
-          </View>
-          <Button
-            appearance="outline"
-            tone="neutral"
-            iconOnly
-            icon={<RiCloseLine />}
-            accessibilityLabel={t('common.close')}
-            onPress={handleClose}
-          />
-        </View>
+        {toElement(
+          HStack(
+            VStack(
+              LText(isEdit ? t('common.edit') : t('reminder.create.title'))
+                .font('body')
+                .weight('semibold'),
+            ).flex('1'),
+            Embed(
+              <Button
+                appearance="outline"
+                tone="neutral"
+                iconOnly
+                icon={<RiCloseLine />}
+                accessibilityLabel={t('common.close')}
+                onPress={handleClose}
+              />,
+            ),
+          )
+            .align('center')
+            .spacing('sm'),
+        )}
         <TextFieldInput
           label={t('reminder.create.placeholder')}
           placeholder={t('reminder.create.placeholder')}
@@ -218,24 +226,28 @@ export function CreateReminderSheet({
         {unavailableMessage ? <Text>{unavailableMessage}</Text> : null}
         {submitting ? <Text>{t('ui.mutations.reminderPendingNotice')}</Text> : null}
         <Text variant="body-semibold">{t('reminder.create.whenLabel')}</Text>
-        <View className="gap-2">
-          {presets.map((preset) => {
-            const isSelected = draft.selectedTime?.getTime() === preset.date.getTime();
-            return (
-              <Button
-                key={preset.label}
-                appearance={isSelected ? 'subtle' : 'outline'}
-                tone={isSelected ? 'accent' : 'neutral'}
-                pressed={isSelected}
-                disabled={submitting}
-                onPress={() => handleTimeChange(preset.date)}
-              >
-                {/* biome-ignore lint/correctness/noReactNativeRawText: Bloom Button wraps string children in Text (renderTextContent) */}
-                {`${t(preset.label)} · ${preset.date.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' })}`}
-              </Button>
-            );
-          })}
-        </View>
+        {toElement(
+          VStack(
+            Embed(
+              presets.map((preset) => {
+                const isSelected = draft.selectedTime?.getTime() === preset.date.getTime();
+                return (
+                  <Button
+                    key={preset.label}
+                    appearance={isSelected ? 'subtle' : 'outline'}
+                    tone={isSelected ? 'accent' : 'neutral'}
+                    pressed={isSelected}
+                    disabled={submitting}
+                    onPress={() => handleTimeChange(preset.date)}
+                  >
+                    {/* biome-ignore lint/correctness/noReactNativeRawText: Bloom Button wraps string children in Text (renderTextContent) */}
+                    {`${t(preset.label)} · ${preset.date.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' })}`}
+                  </Button>
+                );
+              }),
+            ),
+          ).spacing('sm'),
+        )}
         <Button onPress={handleSubmit} disabled={!canSubmit} loading={submitting}>
           {isEdit ? t('common.save') : t('reminder.create.submit')}
         </Button>

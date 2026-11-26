@@ -1,12 +1,3 @@
-/**
- * Where a message the user sent stands, wherever that message is shown.
- *
- * `DeliveryNotice` is the full form for the message itself, with the reason and
- * what the user can do about it. It renders nothing for received mail and for delivered mail —
- * delivered is the normal case and needs no decoration.
- */
-
-import { StyleSheet, View } from 'react-native';
 import {
   AdmonitionButton,
   AdmonitionContent,
@@ -22,6 +13,8 @@ import { useTranslation } from '@/lib/i18n';
 import type { Message, MessageDelivery } from '@/schemas/emailSchemas';
 import { dateFormatter } from '@/utils/dateFormat';
 import { canRetry, deliveryReasonKey, isOutstanding } from '@/utils/delivery';
+
+import { Embed, VStack, toElement } from '@oxy.so/bloom-language';
 
 const NEXT_ATTEMPT_TIME: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };
 
@@ -62,41 +55,39 @@ export function DeliveryNotice({ message }: { message: Message }) {
         })
       : null;
 
-  return (
-    <View style={styles.notice}>
-      <AdmonitionRoot type={type}>
-        <AdmonitionRow>
-          <AdmonitionIcon />
-          <AdmonitionContent>
-            <AdmonitionText>
-              {[label(delivery), reason, nextAttempt].filter(Boolean).join(' · ')}
-            </AdmonitionText>
-            {delivery.error ? <AdmonitionText>{delivery.error}</AdmonitionText> : null}
-          </AdmonitionContent>
-          {delivery.state === 'failed' ? (
-            <>
-              {canRetry(delivery) ? (
+  return toElement(
+    VStack(
+      Embed(
+        <AdmonitionRoot type={type}>
+          <AdmonitionRow>
+            <AdmonitionIcon />
+            <AdmonitionContent>
+              <AdmonitionText>
+                {[label(delivery), reason, nextAttempt].filter(Boolean).join(' · ')}
+              </AdmonitionText>
+              {delivery.error ? <AdmonitionText>{delivery.error}</AdmonitionText> : null}
+            </AdmonitionContent>
+            {delivery.state === 'failed' ? (
+              <>
+                {canRetry(delivery) ? (
+                  <AdmonitionButton
+                    onPress={() => retry.mutate({ messageId: message._id })}
+                    disabled={retry.isPending}
+                  >
+                    {t('delivery.retry')}
+                  </AdmonitionButton>
+                ) : null}
                 <AdmonitionButton
-                  onPress={() => retry.mutate({ messageId: message._id })}
-                  disabled={retry.isPending}
+                  onPress={() => editAsNew.editAsNew(message)}
+                  disabled={editAsNew.isPending}
                 >
-                  {t('delivery.retry')}
+                  {t('delivery.editAsNew')}
                 </AdmonitionButton>
-              ) : null}
-              <AdmonitionButton
-                onPress={() => editAsNew.editAsNew(message)}
-                disabled={editAsNew.isPending}
-              >
-                {t('delivery.editAsNew')}
-              </AdmonitionButton>
-            </>
-          ) : null}
-        </AdmonitionRow>
-      </AdmonitionRoot>
-    </View>
+              </>
+            ) : null}
+          </AdmonitionRow>
+        </AdmonitionRoot>,
+      ),
+    ).margin('bottom', 'md'),
   );
 }
-
-const styles = StyleSheet.create({
-  notice: { marginBottom: 12 },
-});

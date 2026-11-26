@@ -5,7 +5,6 @@ import {
   AccordionContent,
 } from '@oxy.so/bloom/accordion';
 import { Button } from '@oxy.so/bloom/button';
-import { Divider } from '@oxy.so/bloom/divider';
 import { RiSparklingLine } from '@oxy.so/bloom/icons/RiSparklingLine';
 import { Loading } from '@oxy.so/bloom/loading';
 import { Text } from '@oxy.so/bloom/typography';
@@ -19,6 +18,13 @@ import {
 } from '@/hooks/queries/useObservedInferenceOwner';
 import { useTranslation } from '@/lib/i18n';
 import type { Message } from '@/services/emailApi';
+import {
+  Divider as LDivider,
+  Embed,
+  Text as LText,
+  VStack,
+  toElement,
+} from '@oxy.so/bloom-language';
 
 interface ThreadSummaryProps {
   messageId: string;
@@ -97,50 +103,68 @@ function SessionThreadSummary({
   // Asked for, so a failure is said rather than the button just vanishing.
   if (error) return <Text>{t('threadSummary.unavailable')}</Text>;
   if (!summary.trim() && keyPoints.length === 0 && actionItems.length === 0) return null;
-  return (
-    <View className="w-full max-w-3xl">
-      <Accordion
-        value={expanded ? 'summary' : undefined}
-        onValueChange={(value) => setExpanded(value === 'summary')}
-      >
-        <AccordionItem value="summary">
-          <AccordionTrigger icon={<RiSparklingLine />}>{t('threadSummary.title')}</AccordionTrigger>
-          <AccordionContent>
-            <View className="gap-3">
-              {summary && <Text selectable>{summary}</Text>}
-              {keyPoints.length > 0 && (
-                <View className="gap-2">
-                  <Text variant="caption-1-medium">{t('threadSummary.keyPoints')}</Text>
-                  {keyPoints.map((point, index) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: a read-only list that never reorders; points can repeat.
-                    <Text key={index} selectable>
-                      • {point}
-                    </Text>
-                  ))}
-                </View>
+  return toElement(
+    VStack(
+      Embed(
+        <Accordion
+          value={expanded ? 'summary' : undefined}
+          onValueChange={(value) => setExpanded(value === 'summary')}
+        >
+          <AccordionItem value="summary">
+            <AccordionTrigger icon={<RiSparklingLine />}>
+              {t('threadSummary.title')}
+            </AccordionTrigger>
+            <AccordionContent>
+              {toElement(
+                VStack(
+                  Embed(summary && <Text selectable>{summary}</Text>),
+                  keyPoints.length > 0
+                    ? VStack(
+                        LText(t('threadSummary.keyPoints')).font('caption-1').weight('medium'),
+                        Embed(
+                          keyPoints.map((point, index) => (
+                            // biome-ignore lint/suspicious/noArrayIndexKey: a read-only list that never reorders; points can repeat.
+                            <Text key={index} selectable>
+                              • {point}
+                            </Text>
+                          )),
+                        ),
+                      ).spacing('sm')
+                    : null,
+                  actionItems.length > 0
+                    ? VStack(
+                        LDivider(),
+                        LText(t('threadSummary.actionItems')).font('caption-1').weight('medium'),
+                        Embed(
+                          actionItems.map((item, index) =>
+                            toElement(
+                              VStack(
+                                Embed(<Text selectable>{item.text}</Text>),
+                                Embed(
+                                  item.owner && (
+                                    <Text variant="caption-1-regular">{item.owner}</Text>
+                                  ),
+                                ),
+                                Embed(
+                                  item.deadline && (
+                                    <Text variant="caption-1-regular">
+                                      {t('threadSummary.due', { date: item.deadline })}
+                                    </Text>
+                                  ),
+                                ),
+                              ).spacing('xs'),
+                              index,
+                            ),
+                          ),
+                        ),
+                      ).spacing('sm')
+                    : null,
+                ).spacing('md'),
               )}
-              {actionItems.length > 0 && (
-                <View className="gap-2">
-                  <Divider />
-                  <Text variant="caption-1-medium">{t('threadSummary.actionItems')}</Text>
-                  {actionItems.map((item, index) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: a read-only list that never reorders; items can repeat.
-                    <View key={index} className="gap-1">
-                      <Text selectable>{item.text}</Text>
-                      {item.owner && <Text variant="caption-1-regular">{item.owner}</Text>}
-                      {item.deadline && (
-                        <Text variant="caption-1-regular">
-                          {t('threadSummary.due', { date: item.deadline })}
-                        </Text>
-                      )}
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
-    </View>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>,
+      ),
+    ).frame({ width: 'full', maxWidth: '768' }),
   );
 }

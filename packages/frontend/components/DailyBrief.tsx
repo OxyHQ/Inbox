@@ -1,18 +1,20 @@
 import { Button } from '@oxy.so/bloom/button';
-import { Card, CardBody } from '@oxy.so/bloom/card';
+import { CardBody } from '@oxy.so/bloom/card';
 import { ListItem } from '@oxy.so/bloom/list';
 import { Text } from '@oxy.so/bloom/typography';
 import type { ReactNode } from 'react';
 import { useMessage } from '@/hooks/queries/useMessage';
 import type { Message } from '@/services/emailApi';
 import type { InboxDailyBrief } from '@/services/inboxInferenceApi';
-import { View, type ViewStyle } from 'react-native';
+import type { ViewStyle } from 'react-native';
 
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
 import { useDailyBrief } from '@/hooks/queries/useDailyBrief';
 import { useTranslation } from '@/lib/i18n';
 import type { InboxDailyBriefAction } from '@/services/inboxInferenceApi';
 import { formatRowTime } from '@/utils/dateFormat';
+
+import { Card as LCard, Embed, HStack, VStack, toElement } from '@oxy.so/bloom-language';
 
 /** A summary and its messages in one card, without extra section headings. */
 export function DailyBrief({
@@ -43,68 +45,81 @@ export function DailyBrief({
 
   if (!status && !summary && !brief?.items.length) return null;
 
-  return (
-    <View className="px-3 pb-3">
-      <Card>
-        {(status || summary || !actionsReady) && (
-          <CardBody>
-            {(status || summary) && (
-              <Text
-                variant={status ? 'body-regular' : 'title-3-regular'}
-                accessibilityLiveRegion="polite"
-              >
-                {status ?? summary}
-              </Text>
-            )}
-            {!actionsReady && (
-              <Text accessibilityLiveRegion="polite">{t('home.brief.sessionUnavailable')}</Text>
-            )}
-            {!error && brief?.actions && (
-              <View className="flex-row flex-wrap gap-2 pt-3">
-                {brief.actions.map((action) => (
-                  <Button
-                    key={action.label}
-                    appearance="subtle"
-                    size="sm"
-                    disabled={!actionsReady}
-                    onPress={() => {
-                      if (canAct()) onAction(action);
-                    }}
-                  >
-                    {action.label}
-                  </Button>
-                ))}
-              </View>
-            )}
-            {error && (
-              <Button
-                appearance="subtle"
-                style={RETRY_STYLE}
-                disabled={!actionsReady}
-                onPress={() => void regenerate()}
-              >
-                {t('common.retry')}
-              </Button>
-            )}
-          </CardBody>
-        )}
-        {!error &&
-          brief?.items.map((item) => (
-            <BriefMessageRow
-              key={item.messageId}
-              item={item}
-              message={messages.find((message) => message._id === item.messageId)}
-              renderMessage={renderMessage}
-              actionsReady={actionsReady}
-              onOpen={() => {
-                if (!canAct()) return;
-                markOpened(item.messageId);
-                if (canAct()) onOpenMessage(item.messageId);
-              }}
-            />
-          ))}
-      </Card>
-    </View>
+  return toElement(
+    VStack(
+      LCard(
+        Embed(
+          (status || summary || !actionsReady) && (
+            <CardBody>
+              {(status || summary) && (
+                <Text
+                  variant={status ? 'body-regular' : 'title-3-regular'}
+                  accessibilityLiveRegion="polite"
+                >
+                  {status ?? summary}
+                </Text>
+              )}
+              {!actionsReady && (
+                <Text accessibilityLiveRegion="polite">{t('home.brief.sessionUnavailable')}</Text>
+              )}
+              {!error &&
+                brief?.actions &&
+                toElement(
+                  HStack(
+                    Embed(
+                      brief.actions.map((action) => (
+                        <Button
+                          key={action.label}
+                          appearance="subtle"
+                          size="sm"
+                          disabled={!actionsReady}
+                          onPress={() => {
+                            if (canAct()) onAction(action);
+                          }}
+                        >
+                          {action.label}
+                        </Button>
+                      )),
+                    ),
+                  )
+                    .padding('top', 'md')
+                    .wrap()
+                    .spacing('sm'),
+                )}
+              {error && (
+                <Button
+                  appearance="subtle"
+                  style={RETRY_STYLE}
+                  disabled={!actionsReady}
+                  onPress={() => void regenerate()}
+                >
+                  {t('common.retry')}
+                </Button>
+              )}
+            </CardBody>
+          ),
+        ),
+        Embed(
+          !error &&
+            brief?.items.map((item) => (
+              <BriefMessageRow
+                key={item.messageId}
+                item={item}
+                message={messages.find((message) => message._id === item.messageId)}
+                renderMessage={renderMessage}
+                actionsReady={actionsReady}
+                onOpen={() => {
+                  if (!canAct()) return;
+                  markOpened(item.messageId);
+                  if (canAct()) onOpenMessage(item.messageId);
+                }}
+              />
+            )),
+        ),
+      ),
+    )
+      .padding('horizontal', 'md')
+      .padding('bottom', 'md'),
   );
 }
 

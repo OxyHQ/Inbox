@@ -26,12 +26,12 @@ import { RiArrowUpSLine } from '@oxy.so/bloom/icons/RiArrowUpSLine';
 import { RiDeleteBin6Line } from '@oxy.so/bloom/icons/RiDeleteBin6Line';
 import { RiEditLine } from '@oxy.so/bloom/icons/RiEditLine';
 import { SettingsProfilePage, SettingsSelect } from '@oxy.so/bloom/settings-modal';
-import { Switch } from '@oxy.so/bloom/switch';
 import { Textarea } from '@oxy.so/bloom/textarea';
 import { toast } from '@oxy.so/bloom/toast';
 import { EMAIL_FILTER_CONDITION_FIELDS, EMAIL_FILTER_CONDITION_OPERATORS } from '@oxy.so/contracts';
 import { useCallback, useMemo, useState } from 'react';
-import { Platform, View } from 'react-native';
+import { Platform } from 'react-native';
+import { Button as LButton, Embed, HStack, Text, Toggle, toElement } from '@oxy.so/bloom-language';
 
 type FilterField = EmailFilterCondition['field'];
 type FilterOperator = EmailFilterCondition['operator'];
@@ -359,30 +359,32 @@ export function AdvancedSection() {
                 conditions: filter.conditions.length,
                 actions: filter.actions.length,
               }),
-              control: (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Switch
-                    accessibilityLabel={filter.name}
-                    checked={filter.enabled}
-                    onCheckedChange={(v) => handleToggleFilter(filter._id, v)}
-                  />
-                  <Button
-                    appearance="outline"
-                    tone="neutral"
-                    iconOnly
-                    accessibilityLabel={t('ui.settings.advanced.deleteFilter', {
-                      name: filter.name,
-                    })}
-                    icon={<RiDeleteBin6Line />}
-                    onPress={() => {
-                      setFilterPendingDelete({
-                        id: filter._id,
+              control: toElement(
+                HStack(
+                  Toggle([filter.enabled, (v) => handleToggleFilter(filter._id, v)]).label(
+                    filter.name,
+                  ),
+                  Embed(
+                    <Button
+                      appearance="outline"
+                      tone="neutral"
+                      iconOnly
+                      accessibilityLabel={t('ui.settings.advanced.deleteFilter', {
                         name: filter.name,
-                      });
-                      filterDelete.open();
-                    }}
-                  />
-                </View>
+                      })}
+                      icon={<RiDeleteBin6Line />}
+                      onPress={() => {
+                        setFilterPendingDelete({
+                          id: filter._id,
+                          name: filter.name,
+                        });
+                        filterDelete.open();
+                      }}
+                    />,
+                  ),
+                )
+                  .align('center')
+                  .spacing('sm'),
               ),
             })),
           },
@@ -485,42 +487,46 @@ export function AdvancedSection() {
               key: template._id,
               label: template.name,
               description: `${template.subject ? `${template.subject} — ` : ''}${template.body.replace(/\n/g, ' ').slice(0, 60)}`,
-              control: (
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <Button
-                    appearance="outline"
-                    tone="neutral"
-                    iconOnly
-                    accessibilityLabel={t('ui.settings.advanced.editTemplate', {
-                      name: template.name,
-                    })}
-                    icon={<RiEditLine />}
-                    onPress={() =>
-                      handleEditTemplate(
-                        template._id,
-                        template.name,
-                        template.subject,
-                        template.body,
-                      )
-                    }
-                  />
-                  <Button
-                    appearance="outline"
-                    tone="neutral"
-                    iconOnly
-                    accessibilityLabel={t('ui.settings.advanced.deleteTemplate', {
-                      name: template.name,
-                    })}
-                    icon={<RiDeleteBin6Line />}
-                    onPress={() => {
-                      setTemplatePendingDelete({
-                        id: template._id,
+              control: toElement(
+                HStack(
+                  Embed(
+                    <Button
+                      appearance="outline"
+                      tone="neutral"
+                      iconOnly
+                      accessibilityLabel={t('ui.settings.advanced.editTemplate', {
                         name: template.name,
-                      });
-                      templateDelete.open();
-                    }}
-                  />
-                </View>
+                      })}
+                      icon={<RiEditLine />}
+                      onPress={() =>
+                        handleEditTemplate(
+                          template._id,
+                          template.name,
+                          template.subject,
+                          template.body,
+                        )
+                      }
+                    />,
+                  ),
+                  Embed(
+                    <Button
+                      appearance="outline"
+                      tone="neutral"
+                      iconOnly
+                      accessibilityLabel={t('ui.settings.advanced.deleteTemplate', {
+                        name: template.name,
+                      })}
+                      icon={<RiDeleteBin6Line />}
+                      onPress={() => {
+                        setTemplatePendingDelete({
+                          id: template._id,
+                          name: template.name,
+                        });
+                        templateDelete.open();
+                      }}
+                    />,
+                  ),
+                ).spacing('sm'),
               ),
             })),
           },
@@ -574,25 +580,26 @@ export function AdvancedSection() {
                     ? 'ui.settings.advanced.saveChanges'
                     : 'ui.settings.advanced.addTemplate',
                 ),
-                control: (
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <Button
-                      onPress={handleSubmitTemplate}
-                      disabled={!templateName.trim() || !templateBody.trim() || templateSubmitting}
-                      loading={templateSubmitting}
-                    >
-                      {t(
-                        editingTemplateId
-                          ? 'ui.settings.advanced.saveChanges'
-                          : 'ui.settings.advanced.addTemplate',
-                      )}
-                    </Button>
-                    {editingTemplateId ? (
-                      <Button appearance="subtle" onPress={resetTemplateForm}>
-                        {t('common.cancel')}
-                      </Button>
-                    ) : null}
-                  </View>
+                control: toElement(
+                  HStack(
+                    LButton(
+                      Text(
+                        t(
+                          editingTemplateId
+                            ? 'ui.settings.advanced.saveChanges'
+                            : 'ui.settings.advanced.addTemplate',
+                        ),
+                      ),
+                    )
+                      .onPress(handleSubmitTemplate)
+                      .disabled(!templateName.trim() || !templateBody.trim() || templateSubmitting)
+                      .loading(templateSubmitting),
+                    editingTemplateId
+                      ? LButton(Text(t('common.cancel')))
+                          .style('subtle')
+                          .onPress(resetTemplateForm)
+                      : null,
+                  ).spacing('sm'),
                 ),
               },
             ],
@@ -606,57 +613,55 @@ export function AdvancedSection() {
                   rows: sortedBundles.map((bundle, index) => ({
                     key: bundle._id,
                     label: bundle.name,
-                    control: (
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          gap: 8,
-                        }}
-                      >
-                        <Button
-                          appearance="outline"
-                          tone="neutral"
-                          iconOnly
-                          accessibilityLabel={t('ui.settings.advanced.moveUp', {
-                            name: bundle.name,
-                          })}
-                          icon={<RiArrowUpSLine />}
-                          disabled={index === 0}
-                          onPress={() =>
-                            reorderBundle.mutate({
-                              bundleId: bundle._id,
-                              direction: 'up',
-                            })
-                          }
-                        />
-                        <Button
-                          appearance="outline"
-                          tone="neutral"
-                          iconOnly
-                          accessibilityLabel={t('ui.settings.advanced.moveDown', {
-                            name: bundle.name,
-                          })}
-                          icon={<RiArrowDownSLine />}
-                          disabled={index === sortedBundles.length - 1}
-                          onPress={() =>
-                            reorderBundle.mutate({
-                              bundleId: bundle._id,
-                              direction: 'down',
-                            })
-                          }
-                        />
-                        <Switch
-                          accessibilityLabel={bundle.name}
-                          checked={bundle.enabled}
-                          onCheckedChange={(v) =>
+                    control: toElement(
+                      HStack(
+                        Embed(
+                          <Button
+                            appearance="outline"
+                            tone="neutral"
+                            iconOnly
+                            accessibilityLabel={t('ui.settings.advanced.moveUp', {
+                              name: bundle.name,
+                            })}
+                            icon={<RiArrowUpSLine />}
+                            disabled={index === 0}
+                            onPress={() =>
+                              reorderBundle.mutate({
+                                bundleId: bundle._id,
+                                direction: 'up',
+                              })
+                            }
+                          />,
+                        ),
+                        Embed(
+                          <Button
+                            appearance="outline"
+                            tone="neutral"
+                            iconOnly
+                            accessibilityLabel={t('ui.settings.advanced.moveDown', {
+                              name: bundle.name,
+                            })}
+                            icon={<RiArrowDownSLine />}
+                            disabled={index === sortedBundles.length - 1}
+                            onPress={() =>
+                              reorderBundle.mutate({
+                                bundleId: bundle._id,
+                                direction: 'down',
+                              })
+                            }
+                          />,
+                        ),
+                        Toggle([
+                          bundle.enabled,
+                          (v) =>
                             updateBundle.mutate({
                               bundleId: bundle._id,
                               enabled: v,
-                            })
-                          }
-                        />
-                      </View>
+                            }),
+                        ]).label(bundle.name),
+                      )
+                        .align('center')
+                        .spacing('sm'),
                     ),
                   })),
                 },
@@ -707,7 +712,6 @@ export function AdvancedSection() {
           { label: t('common.cancel'), color: 'cancel' },
         ]}
       />
-
       <Dialog
         control={templateDelete}
         title={t('ui.settings.advanced.deleteTemplateTitle')}

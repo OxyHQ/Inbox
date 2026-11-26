@@ -30,6 +30,8 @@ import { Text } from '@oxy.so/bloom/typography';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 
+import { Embed, HStack, Text as LText, VStack, toElement } from '@oxy.so/bloom-language';
+
 function FilterSelect({
   label,
   value,
@@ -41,28 +43,30 @@ function FilterSelect({
   items: { value: string; label: string }[];
   onChange: (value: string) => void;
 }) {
-  return (
-    <View className="gap-2">
-      <Text variant="body-2-medium">{label}</Text>
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger label={label}>
-          <SelectValue>
-            {() => items.find((item) => item.value === value)?.label ?? value}
-          </SelectValue>
-          <SelectIcon />
-        </SelectTrigger>
-        <SelectContent
-          label={label}
-          items={items}
-          renderItem={(item) => (
-            <SelectItem value={item.value} label={item.label}>
-              <SelectItemIndicator />
-              <SelectItemText>{item.label}</SelectItemText>
-            </SelectItem>
-          )}
-        />
-      </Select>
-    </View>
+  return toElement(
+    VStack(
+      LText(label).font('body-2').weight('medium'),
+      Embed(
+        <Select value={value} onValueChange={onChange}>
+          <SelectTrigger label={label}>
+            <SelectValue>
+              {() => items.find((item) => item.value === value)?.label ?? value}
+            </SelectValue>
+            <SelectIcon />
+          </SelectTrigger>
+          <SelectContent
+            label={label}
+            items={items}
+            renderItem={(item) => (
+              <SelectItem value={item.value} label={item.label}>
+                <SelectItemIndicator />
+                <SelectItemText>{item.label}</SelectItemText>
+              </SelectItem>
+            )}
+          />
+        </Select>,
+      ),
+    ).spacing('sm'),
   );
 }
 
@@ -191,71 +195,95 @@ export function SearchFiltersBar({
   ];
   return (
     <>
-      <View className="gap-2 px-4 pb-3">
-        <View className="flex-row flex-wrap items-center gap-2">
-          <Button
-            appearance={active.length ? 'subtle' : 'outline'}
-            leading={<RiFilterLine />}
-            onPress={open}
-          >
-            {t('search.ui.filtersTitle')}
-            {activeCount ? ` (${activeCount})` : ''}
-          </Button>
-          <Chip
-            appearance="outline"
-            role="checkbox"
-            checked={filters.hasAttachment === true}
-            onCheckedChange={(checked) =>
-              onChange({ ...filters, hasAttachment: checked || undefined })
-            }
-            leadingIcon={RiAttachmentLine}
-          >
-            {t('search.filters.hasAttachment')}
-          </Chip>
-          <Chip
-            appearance="outline"
-            role="checkbox"
-            checked={filters.unread === true}
-            onCheckedChange={(checked) =>
-              onChange({ ...filters, unread: checked ? true : undefined })
-            }
-            leadingIcon={RiMailLine}
-          >
-            {t('search.ui.unread')}
-          </Chip>
-          <Chip
-            appearance="outline"
-            role="checkbox"
-            checked={filters.starred === true}
-            onCheckedChange={(checked) => onChange({ ...filters, starred: checked || undefined })}
-            leadingIcon={RiStarLine}
-          >
-            {t('drawer.starred')}
-          </Chip>
-        </View>
-        {details.length > 0 && (
-          <View className="flex-row flex-wrap gap-2">
-            {details.map(({ key, label }) => (
-              <Chip
-                key={key}
-                selected
+      {toElement(
+        VStack(
+          HStack(
+            Embed(
+              <Button
+                appearance={active.length ? 'subtle' : 'outline'}
+                leading={<RiFilterLine />}
                 onPress={open}
-                onClose={() =>
-                  onChange({
-                    ...filters,
-                    [key]: undefined,
-                    ...(key === 'dateAfter' && filters.dateBefore ? { dateBefore: undefined } : {}),
-                  })
-                }
-                closeLabel={`${t('common.remove')} ${label}`}
-                style={{ maxWidth: '100%' }}
               >
-                {label}
-              </Chip>
-            ))}
-          </View>
-        )}
-      </View>
+                {t('search.ui.filtersTitle')}
+                {activeCount ? ` (${activeCount})` : ''}
+              </Button>,
+            ),
+            Embed(
+              <Chip
+                appearance="outline"
+                role="checkbox"
+                checked={filters.hasAttachment === true}
+                onCheckedChange={(checked) =>
+                  onChange({ ...filters, hasAttachment: checked || undefined })
+                }
+                leadingIcon={RiAttachmentLine}
+              >
+                {t('search.filters.hasAttachment')}
+              </Chip>,
+            ),
+            Embed(
+              <Chip
+                appearance="outline"
+                role="checkbox"
+                checked={filters.unread === true}
+                onCheckedChange={(checked) =>
+                  onChange({ ...filters, unread: checked ? true : undefined })
+                }
+                leadingIcon={RiMailLine}
+              >
+                {t('search.ui.unread')}
+              </Chip>,
+            ),
+            Embed(
+              <Chip
+                appearance="outline"
+                role="checkbox"
+                checked={filters.starred === true}
+                onCheckedChange={(checked) =>
+                  onChange({ ...filters, starred: checked || undefined })
+                }
+                leadingIcon={RiStarLine}
+              >
+                {t('drawer.starred')}
+              </Chip>,
+            ),
+          )
+            .wrap()
+            .align('center')
+            .spacing('sm'),
+          details.length > 0
+            ? HStack(
+                Embed(
+                  details.map(({ key, label }) => (
+                    <Chip
+                      key={key}
+                      selected
+                      onPress={open}
+                      onClose={() =>
+                        onChange({
+                          ...filters,
+                          [key]: undefined,
+                          ...(key === 'dateAfter' && filters.dateBefore
+                            ? { dateBefore: undefined }
+                            : {}),
+                        })
+                      }
+                      closeLabel={`${t('common.remove')} ${label}`}
+                      style={{ maxWidth: '100%' }}
+                    >
+                      {label}
+                    </Chip>
+                  )),
+                ),
+              )
+                .wrap()
+                .spacing('sm')
+            : null,
+        )
+          .padding('horizontal', 'lg')
+          .padding('bottom', 'md')
+          .spacing('sm'),
+      )}
       <Dialog
         open={pending !== null}
         onClose={closeDraft}
@@ -343,17 +371,21 @@ export function SearchFiltersBar({
                 { value: 'read', label: t('search.ui.read') },
               ]}
             />
-            <View className="gap-2">
-              <Text variant="body-2-medium">{t('search.ui.dateRange')}</Text>
-              <DateRangePicker
-                value={filtersDateRange(draft)}
-                onChange={(range) => updateDraft(dateRangeFilters(range))}
-                locale={locale}
-                placeholder={t('search.ui.dateRange')}
-                accessibilityLabel={t('search.ui.dateRange')}
-                testID="search-date-range"
-              />
-            </View>
+            {toElement(
+              VStack(
+                LText(t('search.ui.dateRange')).font('body-2').weight('medium'),
+                Embed(
+                  <DateRangePicker
+                    value={filtersDateRange(draft)}
+                    onChange={(range) => updateDraft(dateRangeFilters(range))}
+                    locale={locale}
+                    placeholder={t('search.ui.dateRange')}
+                    accessibilityLabel={t('search.ui.dateRange')}
+                    testID="search-date-range"
+                  />,
+                ),
+              ).spacing('sm'),
+            )}
             <Field label={t('message.actions.label')}>
               <TextFieldInput
                 label={t('message.actions.label')}
@@ -361,26 +393,36 @@ export function SearchFiltersBar({
                 onChangeText={(label) => updateDraft({ label: label.trim() ? label : undefined })}
               />
             </Field>
-            <View className="flex-row flex-wrap gap-2">
-              <Chip
-                appearance="outline"
-                role="checkbox"
-                checked={draft.hasAttachment === true}
-                onCheckedChange={(checked) => updateDraft({ hasAttachment: checked || undefined })}
-                leadingIcon={RiAttachmentLine}
-              >
-                {t('search.filters.hasAttachment')}
-              </Chip>
-              <Chip
-                appearance="outline"
-                role="checkbox"
-                checked={draft.starred === true}
-                onCheckedChange={(checked) => updateDraft({ starred: checked || undefined })}
-                leadingIcon={RiStarLine}
-              >
-                {t('drawer.starred')}
-              </Chip>
-            </View>
+            {toElement(
+              HStack(
+                Embed(
+                  <Chip
+                    appearance="outline"
+                    role="checkbox"
+                    checked={draft.hasAttachment === true}
+                    onCheckedChange={(checked) =>
+                      updateDraft({ hasAttachment: checked || undefined })
+                    }
+                    leadingIcon={RiAttachmentLine}
+                  >
+                    {t('search.filters.hasAttachment')}
+                  </Chip>,
+                ),
+                Embed(
+                  <Chip
+                    appearance="outline"
+                    role="checkbox"
+                    checked={draft.starred === true}
+                    onCheckedChange={(checked) => updateDraft({ starred: checked || undefined })}
+                    leadingIcon={RiStarLine}
+                  >
+                    {t('drawer.starred')}
+                  </Chip>,
+                ),
+              )
+                .wrap()
+                .spacing('sm'),
+            )}
             <Button
               appearance="plain"
               onPress={() => {

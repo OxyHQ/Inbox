@@ -20,6 +20,8 @@ import { ScrollView, View } from 'react-native';
 
 import { useAiCompose, type ComposeTone } from '@/hooks/mutations/useAiCompose';
 
+import { Embed, HStack, Text as LText, VStack, toElement } from '@oxy.so/bloom-language';
+
 type MaterialCommunityIconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 /**
@@ -298,14 +300,18 @@ export function AiComposeToolbar({
           </Button>
         )}
       </View>
-      {isCurrentStream && draftPreview ? (
-        <View>
-          <Text>{t('ai.draftDialog.preview')}</Text>
-          <ScrollView style={{ maxHeight: 160 }} nestedScrollEnabled>
-            <Text selectable>{draftPreview}</Text>
-          </ScrollView>
-        </View>
-      ) : null}
+      {isCurrentStream && draftPreview
+        ? toElement(
+            VStack(
+              LText(t('ai.draftDialog.preview')),
+              Embed(
+                <ScrollView style={{ maxHeight: 160 }} nestedScrollEnabled>
+                  <Text selectable>{draftPreview}</Text>
+                </ScrollView>,
+              ),
+            ),
+          )
+        : null}
       {subjectSuggestion && isOwnerVisible(subjectSuggestion.owner) ? (
         <View>
           <Text>{t('ai.subjectSuggestion.title')}</Text>
@@ -338,18 +344,24 @@ export function AiComposeToolbar({
             multiline
             autoFocus
           />
-          <View className="flex-row flex-wrap gap-2">
-            {TONE_OPTIONS.map((tone) => (
-              <Button
-                key={tone.value}
-                appearance="subtle"
-                pressed={selectedTone === tone.value}
-                onPress={() => setSelectedTone(tone.value)}
-              >
-                {t(`ai.tones.${tone.value}`)}
-              </Button>
-            ))}
-          </View>
+          {toElement(
+            HStack(
+              Embed(
+                TONE_OPTIONS.map((tone) => (
+                  <Button
+                    key={tone.value}
+                    appearance="subtle"
+                    pressed={selectedTone === tone.value}
+                    onPress={() => setSelectedTone(tone.value)}
+                  >
+                    {t(`ai.tones.${tone.value}`)}
+                  </Button>
+                )),
+              ),
+            )
+              .wrap()
+              .spacing('sm'),
+          )}
           <Button
             onPress={executeDraft}
             disabled={!draftPrompt.trim() || isLoading}
@@ -360,18 +372,22 @@ export function AiComposeToolbar({
         </View>
       </Dialog>
       <Dialog control={toneControl} title={t('ai.toneMenu.title')}>
-        <View style={{ gap: 8 }}>
-          {TONE_OPTIONS.map((tone) => (
-            <Button
-              key={tone.value}
-              appearance="subtle"
-              pressed={selectedTone === tone.value}
-              onPress={() => handleToneChange(tone.value)}
-            >
-              {t(`ai.tones.${tone.value}`)}
-            </Button>
-          ))}
-        </View>
+        {toElement(
+          VStack(
+            Embed(
+              TONE_OPTIONS.map((tone) => (
+                <Button
+                  key={tone.value}
+                  appearance="subtle"
+                  pressed={selectedTone === tone.value}
+                  onPress={() => handleToneChange(tone.value)}
+                >
+                  {t(`ai.tones.${tone.value}`)}
+                </Button>
+              )),
+            ),
+          ).spacing('sm'),
+        )}
       </Dialog>
     </View>
   );

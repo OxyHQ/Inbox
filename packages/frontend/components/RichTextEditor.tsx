@@ -27,6 +27,8 @@ import { useColors } from '@/constants/theme';
 import { useTranslation } from '@/lib/i18n';
 import { editorDomValue } from '@/utils/composeBody';
 
+import { Embed, VStack, toElement } from '@oxy.so/bloom-language';
+
 export interface RichTextEditorProps {
   value: string;
   onChange: (content: string) => void;
@@ -332,31 +334,36 @@ function WebRichTextEditor(
           },
         ]}
       />
-
       {/* Editable area */}
-      <View style={webStyles.editorWrapper}>
-        {isEmpty && placeholder && (
-          <Text style={[webStyles.placeholder, { color: colors.searchPlaceholder }]}>
-            {placeholder}
-          </Text>
-        )}
-        <div
-          ref={setEditorRef}
-          contentEditable
-          suppressContentEditableWarning
-          style={{
-            flex: 1,
-            minHeight: 200,
-            padding: 16,
-            fontSize: 15,
-            lineHeight: '24px',
-            color: colors.text,
-            outline: 'none',
-            overflowY: 'auto' as const,
-            wordBreak: 'break-word' as const,
-          }}
-        />
-      </View>
+      {toElement(
+        VStack(
+          Embed(
+            isEmpty && placeholder && (
+              <Text style={[webStyles.placeholder, { color: colors.searchPlaceholder }]}>
+                {placeholder}
+              </Text>
+            ),
+          ),
+          Embed(
+            <div
+              ref={setEditorRef}
+              contentEditable
+              suppressContentEditableWarning
+              style={{
+                flex: 1,
+                minHeight: 200,
+                padding: 16,
+                fontSize: 15,
+                lineHeight: '24px',
+                color: colors.text,
+                outline: 'none',
+                overflowY: 'auto' as const,
+                wordBreak: 'break-word' as const,
+              }}
+            />,
+          ),
+        ).grow(),
+      )}
     </View>
   );
 }
@@ -420,10 +427,7 @@ const webStyles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  editorWrapper: {
-    flex: 1,
-    position: 'relative',
-  },
+
   placeholder: {
     position: 'absolute',
     top: 16,

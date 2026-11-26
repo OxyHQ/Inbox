@@ -58,6 +58,15 @@ import {
 } from '@/utils/threadGrouping';
 import { useOxy } from '@oxy.so/services/ui/client';
 
+import {
+  Button as LButton,
+  Embed,
+  HStack,
+  Text as LText,
+  VStack,
+  toElement,
+} from '@oxy.so/bloom-language';
+
 interface SearchListProps {
   replaceNavigation?: boolean;
 }
@@ -615,27 +624,35 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
           title={t('search.empty.idle')}
           description={t('empty.searchDescription')}
           footer={
-            recentSearches.length > 0 ? (
-              <View style={styles.recentSearches}>
-                <Text variant="caption-1-medium">{t('search.ui.recentSearches')}</Text>
-                {recentSearches.map((recent) => (
-                  <Button
-                    key={recent}
-                    appearance="outline"
-                    onPress={() => {
-                      cancelPendingSearch();
-                      setQuery(recent);
-                      void runSearch(recent, { allowAI: false });
-                    }}
-                  >
-                    {recent}
-                  </Button>
-                ))}
-                <Button appearance="plain" onPress={clearRecentSearches}>
-                  {t('search.clear')}
-                </Button>
-              </View>
-            ) : undefined
+            recentSearches.length > 0
+              ? toElement(
+                  VStack(
+                    LText(t('search.ui.recentSearches')).font('caption-1').weight('medium'),
+                    Embed(
+                      recentSearches.map((recent) => (
+                        <Button
+                          key={recent}
+                          appearance="outline"
+                          onPress={() => {
+                            cancelPendingSearch();
+                            setQuery(recent);
+                            void runSearch(recent, { allowAI: false });
+                          }}
+                        >
+                          {recent}
+                        </Button>
+                      )),
+                    ),
+                    LButton(LText(t('search.clear')))
+                      .style('plain')
+                      .onPress(clearRecentSearches),
+                  )
+                    .padding('horizontal', '2xl')
+                    .frame({ width: 'full', maxWidth: '420' })
+                    .align('stretch')
+                    .spacing('sm'),
+                )
+              : undefined
           }
         />
       );
@@ -732,101 +749,122 @@ export function SearchList({ replaceNavigation }: SearchListProps) {
       <VirtualList
         ref={listRef}
         screen={{ active: focused, restoration }}
-        ListHeaderComponent={
-          <View>
-            {/* Filters scroll so short mobile screens always have room for results. */}
-            <SearchFiltersBar
-              filters={{
-                ...pickSearchFilters(searchOptions),
-                mailbox:
-                  requestedMailbox && !mailboxIdFromName ? requestedMailbox : searchOptions.mailbox,
-              }}
-              mailboxes={mailboxes}
-              onChange={handleFiltersChange}
-              scope={naturalSearchBinding}
-              isScopeCurrent={isNaturalSearchBindingCurrent}
-            />
-
-            <SavedSearchBar
-              scope={naturalSearchBinding}
-              isScopeCurrent={isNaturalSearchBindingCurrent}
-              query={query}
-              filters={searchOptions}
-              enabled={
-                hasSearched &&
-                !invalidDate &&
-                !mailboxUnresolved &&
+        ListHeaderComponent={toElement(
+          VStack(
+            /* Filters scroll so short mobile screens always have room for results. */ Embed(
+              <SearchFiltersBar
+                filters={{
+                  ...pickSearchFilters(searchOptions),
+                  mailbox:
+                    requestedMailbox && !mailboxIdFromName
+                      ? requestedMailbox
+                      : searchOptions.mailbox,
+                }}
+                mailboxes={mailboxes}
+                onChange={handleFiltersChange}
+                scope={naturalSearchBinding}
+                isScopeCurrent={isNaturalSearchBindingCurrent}
+              />,
+            ),
+            Embed(
+              <SavedSearchBar
+                scope={naturalSearchBinding}
+                isScopeCurrent={isNaturalSearchBindingCurrent}
+                query={query}
+                filters={searchOptions}
+                enabled={
+                  hasSearched &&
+                  !invalidDate &&
+                  !mailboxUnresolved &&
+                  !searching &&
+                  !nlParsing &&
+                  (query.trim() === submittedQuery.trim() || Boolean(nlParsedOptions))
+                }
+                onApply={handleApplySavedSearch}
+              />,
+            ),
+            Embed(
+              invalidDate &&
+                toElement(
+                  VStack(LText(t('search.ui.invalidDate')).font('body-2').liveRegion('polite'))
+                    .padding('horizontal', 'lg')
+                    .padding('bottom', 'md'),
+                ),
+            ),
+            Embed(
+              mailboxUnresolved &&
+                toElement(
+                  VStack(LText(mailboxNotice).font('body-2').liveRegion('polite'))
+                    .padding('horizontal', 'lg')
+                    .padding('bottom', 'md'),
+                ),
+            ),
+            /* Explain AI interpretation after explicit submit; filters are already chips. */ Embed(
+              (nlInterpretation || nlParsing) &&
+                toElement(
+                  VStack(
+                    HStack(
+                      Embed(
+                        nlParsing ? (
+                          <Loading
+                            variant="inline"
+                            size="sm"
+                            text={t('search.nl.understanding')}
+                            accessibilityLabel={t('search.nl.understanding')}
+                            style={styles.nlParsingRow}
+                          />
+                        ) : (
+                          <Text
+                            variant="body-2-regular"
+                            style={styles.nlText}
+                            accessibilityLiveRegion="polite"
+                          >
+                            {nlInterpretation}
+                          </Text>
+                        ),
+                      ),
+                      Embed(
+                        nlInterpretation && !nlParsing && (
+                          <Button
+                            appearance="outline"
+                            tone="neutral"
+                            iconOnly
+                            icon={<RiCloseLine />}
+                            accessibilityLabel={t('common.close')}
+                            onPress={() => {
+                              setNlInterpretation('');
+                              setNlParsedOptions(null);
+                              setSubmittedQuery(query.trim());
+                            }}
+                          />
+                        ),
+                      ),
+                    )
+                      .align('center')
+                      .spacing('sm'),
+                  )
+                    .padding('horizontal', 'lg')
+                    .padding('bottom', 'md'),
+                ),
+            ),
+            /* Result count */ Embed(
+              hasSearched &&
                 !searching &&
-                !nlParsing &&
-                (query.trim() === submittedQuery.trim() || Boolean(nlParsedOptions))
-              }
-              onApply={handleApplySavedSearch}
-            />
-
-            {invalidDate && (
-              <View className="px-4 pb-3">
-                <Text accessibilityLiveRegion="polite" variant="body-2-regular">
-                  {t('search.ui.invalidDate')}
-                </Text>
-              </View>
-            )}
-            {mailboxUnresolved && (
-              <View className="px-4 pb-3">
-                <Text accessibilityLiveRegion="polite" variant="body-2-regular">
-                  {mailboxNotice}
-                </Text>
-              </View>
-            )}
-
-            {/* Explain AI interpretation after explicit submit; filters are already chips. */}
-            {(nlInterpretation || nlParsing) && (
-              <View className="px-4 pb-3">
-                <View className="flex-row items-center gap-2">
-                  {nlParsing ? (
-                    <Loading
-                      variant="inline"
-                      size="sm"
-                      text={t('search.nl.understanding')}
-                      accessibilityLabel={t('search.nl.understanding')}
-                      style={styles.nlParsingRow}
-                    />
-                  ) : (
-                    <Text
-                      variant="body-2-regular"
-                      style={styles.nlText}
-                      accessibilityLiveRegion="polite"
-                    >
-                      {nlInterpretation}
-                    </Text>
-                  )}
-                  {nlInterpretation && !nlParsing && (
-                    <Button
-                      appearance="outline"
-                      tone="neutral"
-                      iconOnly
-                      icon={<RiCloseLine />}
-                      accessibilityLabel={t('common.close')}
-                      onPress={() => {
-                        setNlInterpretation('');
-                        setNlParsedOptions(null);
-                        setSubmittedQuery(query.trim());
-                      }}
-                    />
-                  )}
-                </View>
-              </View>
-            )}
-
-            {/* Result count */}
-            {hasSearched && !searching && items.length > 0 && (
-              <View style={styles.resultCount}>
-                <Text variant="caption-1-medium" style={{ color: colors.secondaryText }}>
-                  {t('search.results', { count: total })}
-                </Text>
-              </View>
-            )}
-          </View>
-        }
+                items.length > 0 &&
+                toElement(
+                  VStack(
+                    Embed(
+                      <Text variant="caption-1-medium" style={{ color: colors.secondaryText }}>
+                        {t('search.results', { count: total })}
+                      </Text>,
+                    ),
+                  )
+                    .padding('horizontal', 'lg')
+                    .padding('bottom', 'sm'),
+                ),
+            ),
+          ),
+        )}
         data={searching ? [] : items}
         renderItem={renderItem}
         keyExtractor={searchItemKey}
@@ -851,40 +889,36 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+
   unreadableItem: {
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs,
   },
+
   listContent: {
     width: '100%',
     alignSelf: 'center',
   },
-  resultCount: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
+
   loadingContainer: {
     flex: 1,
     paddingTop: 40,
     alignItems: 'center',
   },
-  recentSearches: {
-    width: '100%',
-    maxWidth: 420,
-    alignItems: 'stretch',
-    gap: 8,
-    paddingHorizontal: 24,
-  },
+
   emptyListContent: {
     flexGrow: 1,
   },
+
   footerLoading: {
     alignItems: 'center',
     paddingVertical: 18,
   },
+
   nlText: {
     flex: 1,
   },
+
   nlParsingRow: {
     flex: 1,
     flexDirection: 'row',

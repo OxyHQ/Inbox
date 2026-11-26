@@ -15,7 +15,16 @@ import { toast } from '@oxy.so/bloom/toast';
 import { Card, CardBody, CardHeader, CardTitle } from '@oxy.so/bloom/card';
 import { Text } from '@oxy.so/bloom/typography';
 import { useCallback, useMemo } from 'react';
-import { Linking, Platform, StyleSheet, View } from 'react-native';
+import { Linking, Platform, StyleSheet } from 'react-native';
+
+import {
+  Button as LButton,
+  Embed,
+  HStack,
+  Text as LText,
+  VStack,
+  toElement,
+} from '@oxy.so/bloom-language';
 
 interface EventCardProps {
   data: CardData;
@@ -109,78 +118,114 @@ export function EventCard({ data }: EventCardProps) {
         <CardTitle>{t('cards.event.header')}</CardTitle>
       </CardHeader>
       <CardBody>
-        <View style={styles.body}>
-          {data.title && <Text style={[styles.title, { color: colors.text }]}>{data.title}</Text>}
-          {startTime && (
-            <View style={styles.row}>
-              <MaterialCommunityIcons name="clock-outline" size={14} color={colors.secondaryText} />
-              <Text style={[styles.time, { color: colors.secondaryText }]}>
-                {startTime}
-                {endTime ? ` – ${endTime}` : ''}
-              </Text>
-            </View>
-          )}
-          {data.location && (
-            <View style={styles.row}>
-              <MaterialCommunityIcons
-                name="map-marker-outline"
-                size={14}
-                color={colors.secondaryText}
-              />
-              <Text style={[styles.location, { color: colors.secondaryText }]}>
-                {data.location}
-              </Text>
-            </View>
-          )}
-          {data.organizer && (
-            <View style={styles.row}>
-              <MaterialCommunityIcons
-                name="account-outline"
-                size={14}
-                color={colors.secondaryText}
-              />
-              <Text style={[styles.organizer, { color: colors.secondaryText }]}>
-                {data.organizer}
-              </Text>
-            </View>
-          )}
-
-          {startTime && !times && (
-            <Text accessibilityLiveRegion="polite">{t('cards.event.exportUnavailable')}</Text>
-          )}
-
-          {/* Calendar actions require a representable interval. */}
-          {times && (
-            <View style={styles.actions}>
-              <Button
-                appearance="subtle"
-                leading={<RiCalendarLine />}
-                onPress={handleAddToCalendar}
-              >
-                {t('cards.event.addToCalendar')}
-              </Button>
-              <Button appearance="subtle" onPress={handleOpenGoogleCalendar}>
-                {t('cards.event.googleCalendar')}
-              </Button>
-            </View>
-          )}
-        </View>
+        {toElement(
+          VStack(
+            Embed(
+              data.title && (
+                <Text style={[styles.title, { color: colors.text }]}>{data.title}</Text>
+              ),
+            ),
+            Embed(
+              startTime &&
+                toElement(
+                  HStack(
+                    Embed(
+                      <MaterialCommunityIcons
+                        name="clock-outline"
+                        size={14}
+                        color={colors.secondaryText}
+                      />,
+                    ),
+                    Embed(
+                      <Text style={[styles.time, { color: colors.secondaryText }]}>
+                        {startTime}
+                        {endTime ? ` – ${endTime}` : ''}
+                      </Text>,
+                    ),
+                  )
+                    .align('center')
+                    .spacing('6'),
+                ),
+            ),
+            Embed(
+              data.location &&
+                toElement(
+                  HStack(
+                    Embed(
+                      <MaterialCommunityIcons
+                        name="map-marker-outline"
+                        size={14}
+                        color={colors.secondaryText}
+                      />,
+                    ),
+                    Embed(
+                      <Text style={[styles.location, { color: colors.secondaryText }]}>
+                        {data.location}
+                      </Text>,
+                    ),
+                  )
+                    .align('center')
+                    .spacing('6'),
+                ),
+            ),
+            Embed(
+              data.organizer &&
+                toElement(
+                  HStack(
+                    Embed(
+                      <MaterialCommunityIcons
+                        name="account-outline"
+                        size={14}
+                        color={colors.secondaryText}
+                      />,
+                    ),
+                    Embed(
+                      <Text style={[styles.organizer, { color: colors.secondaryText }]}>
+                        {data.organizer}
+                      </Text>,
+                    ),
+                  )
+                    .align('center')
+                    .spacing('6'),
+                ),
+            ),
+            Embed(
+              startTime && !times && (
+                <Text accessibilityLiveRegion="polite">{t('cards.event.exportUnavailable')}</Text>
+              ),
+            ),
+            /* Calendar actions require a representable interval. */ Embed(
+              times &&
+                toElement(
+                  HStack(
+                    Embed(
+                      <Button
+                        appearance="subtle"
+                        leading={<RiCalendarLine />}
+                        onPress={handleAddToCalendar}
+                      >
+                        {t('cards.event.addToCalendar')}
+                      </Button>,
+                    ),
+                    LButton(LText(t('cards.event.googleCalendar')))
+                      .style('subtle')
+                      .onPress(handleOpenGoogleCalendar),
+                  )
+                    .spacing('sm')
+                    .margin('top', 'xs')
+                    .wrap(),
+                ),
+            ),
+          ).spacing('sm'),
+        )}
       </CardBody>
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  body: { gap: 8 },
   title: { fontSize: 15, fontWeight: '600' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   time: { fontSize: 13 },
   location: { fontSize: 13, flex: 1 },
   organizer: { fontSize: 13 },
-  actions: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 4,
-    flexWrap: 'wrap',
-  },
 });

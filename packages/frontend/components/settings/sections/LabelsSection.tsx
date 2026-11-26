@@ -19,7 +19,7 @@ import {
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { toast } from '@oxy.so/bloom/toast';
 import { useCallback, useState } from 'react';
-import { View } from 'react-native';
+import { Embed, HStack, toElement } from '@oxy.so/bloom-language';
 const LABEL_COLORS = [
   '#4285f4',
   '#ea4335',
@@ -144,55 +144,63 @@ export function LabelsSection() {
               control: label.system ? (
                 <SettingsValueField muted>{t('ui.settings.labels.builtIn')}</SettingsValueField>
               ) : (
-                <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-                  {editingLabelId === label._id ? (
-                    <>
-                      <TextFieldInput
-                        size="sm"
-                        label={t('ui.settings.labels.labelName')}
-                        value={editingLabelName}
-                        onChangeText={setEditingLabelName}
-                        onSubmitEditing={() => handleUpdateName(label._id)}
-                      />
+                toElement(
+                  HStack(
+                    Embed(
+                      editingLabelId === label._id ? (
+                        <>
+                          <TextFieldInput
+                            size="sm"
+                            label={t('ui.settings.labels.labelName')}
+                            value={editingLabelName}
+                            onChangeText={setEditingLabelName}
+                            onSubmitEditing={() => handleUpdateName(label._id)}
+                          />
+                          <Button
+                            onPress={() => handleUpdateName(label._id)}
+                            disabled={updateLabel.isPending}
+                          >
+                            {t('ui.settings.labels.saveName')}
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          appearance="outline"
+                          tone="neutral"
+                          iconOnly
+                          accessibilityLabel={t('ui.settings.labels.rename', {
+                            name: label.name,
+                          })}
+                          icon={<RiEditLine />}
+                          onPress={() => {
+                            setEditingLabelId(label._id);
+                            setEditingLabelName(label.name);
+                          }}
+                        />
+                      ),
+                    ),
+                    Embed(
                       <Button
-                        onPress={() => handleUpdateName(label._id)}
-                        disabled={updateLabel.isPending}
-                      >
-                        {t('ui.settings.labels.saveName')}
-                      </Button>
-                    </>
-                  ) : (
-                    <Button
-                      appearance="outline"
-                      tone="neutral"
-                      iconOnly
-                      accessibilityLabel={t('ui.settings.labels.rename', {
-                        name: label.name,
-                      })}
-                      icon={<RiEditLine />}
-                      onPress={() => {
-                        setEditingLabelId(label._id);
-                        setEditingLabelName(label.name);
-                      }}
-                    />
-                  )}
-                  <Button
-                    appearance="outline"
-                    tone="neutral"
-                    iconOnly
-                    accessibilityLabel={t('ui.settings.labels.delete', {
-                      name: label.name,
-                    })}
-                    icon={<RiDeleteBin6Line />}
-                    onPress={() => {
-                      setLabelPendingDelete({
-                        id: label._id,
-                        name: label.name,
-                      });
-                      deleteConfirm.open();
-                    }}
-                  />
-                </View>
+                        appearance="outline"
+                        tone="neutral"
+                        iconOnly
+                        accessibilityLabel={t('ui.settings.labels.delete', {
+                          name: label.name,
+                        })}
+                        icon={<RiDeleteBin6Line />}
+                        onPress={() => {
+                          setLabelPendingDelete({
+                            id: label._id,
+                            name: label.name,
+                          });
+                          deleteConfirm.open();
+                        }}
+                      />,
+                    ),
+                  )
+                    .spacing('sm')
+                    .align('center'),
+                )
               ),
             })),
           },

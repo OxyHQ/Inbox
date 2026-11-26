@@ -5,6 +5,8 @@ import { GroupedSection, GroupedSectionItem } from '@oxy.so/bloom/grouped-sectio
 import { Switch } from '@oxy.so/bloom/switch';
 import { Platform, View } from 'react-native';
 
+import { Admonition as LAdmonition, Text, VStack, toElement } from '@oxy.so/bloom-language';
+
 /**
  * Push is native-only: the browser has no push subscription wired (no VAPID
  * key, no `pushManager.subscribe`), and `usePushRegistration` skips the web.
@@ -16,10 +18,10 @@ export function NotificationsSection() {
   const { t } = useTranslation();
 
   if (Platform.OS === 'web') {
-    return (
-      <View style={{ gap: 24 }}>
-        <Admonition type="info">{t('ui.settings.notifications.webNotice')}</Admonition>
-      </View>
+    return toElement(
+      VStack(LAdmonition(Text(t('ui.settings.notifications.webNotice'))).style('info')).spacing(
+        '2xl',
+      ),
     );
   }
 

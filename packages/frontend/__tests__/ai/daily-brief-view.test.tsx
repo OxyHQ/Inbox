@@ -39,7 +39,6 @@ jest.mock('@/hooks/queries/useDailyBrief', () => ({
   }),
 }));
 jest.mock('@oxy.so/bloom/card', () => ({
-  Card: ({ children }: Children) => <div data-testid="brief-card">{children}</div>,
   CardBody: ({ children }: Children) => <div>{children}</div>,
 }));
 jest.mock('@oxy.so/bloom/list', () => ({
@@ -108,7 +107,9 @@ describe('DailyBrief', () => {
       'home.brief.sections.earlier',
     ];
     for (const header of headers) expect(screen.queryByText(header)).toBeNull();
-    const card = screen.getByTestId('brief-card');
+    // The brief's Card is a Bloom language node (`__mocks__/bloom-language.tsx` marks its kind).
+    const card = document.querySelector('[data-node="Card"]') as HTMLElement;
+    expect(card).toBeTruthy();
     expect(card.contains(screen.getByText('NVIDIA wants a reply about the AWS credits.'))).toBe(
       true,
     );

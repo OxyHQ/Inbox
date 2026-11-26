@@ -11,5 +11,3 @@ export const SPECIAL_USE = {
   ARCHIVE: '\\Archive',
   SNOOZED: '\\Snoozed',
 } as const;
-
-export type SpecialUse = (typeof SPECIAL_USE)[keyof typeof SPECIAL_USE];

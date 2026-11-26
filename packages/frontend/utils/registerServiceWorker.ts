@@ -55,24 +55,3 @@ export function registerServiceWorker(onUpdate?: () => void): void {
   if (document.readyState === 'complete') void register();
   else window.addEventListener('load', () => void register(), { once: true });
 }
-
-/**
- * Tell the waiting service worker to skip waiting and take over.
- */
-export function applyServiceWorkerUpdate(): void {
-  if (Platform.OS !== 'web') return;
-  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
-
-  navigator.serviceWorker.ready.then((registration) => {
-    registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
-  });
-
-  // Reload after the new SW takes over
-  let refreshing = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!refreshing) {
-      refreshing = true;
-      window.location.reload();
-    }
-  });
-}

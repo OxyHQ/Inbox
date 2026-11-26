@@ -112,10 +112,6 @@ export interface BundledMessages {
   pagination: Pagination;
 }
 
-export interface EmailSendOptions {
-  idempotencyKey?: string;
-}
-
 function readString(value: unknown, key: string): string | null {
   if (typeof value !== 'object' || value === null) return null;
   const field = (value as Record<string, unknown>)[key];

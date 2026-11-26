@@ -1,83 +1,62 @@
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
 import { useTranslation } from '@/lib/i18n';
-import { Admonition } from '@oxy.so/bloom/admonition';
-import { GroupedSection, GroupedSectionItem } from '@oxy.so/bloom/grouped-section';
-import { Switch } from '@oxy.so/bloom/switch';
-import { View } from 'react-native';
+import {
+  Admonition,
+  GroupedSection,
+  GroupedSectionItem,
+  Text,
+  Toggle,
+  toElement,
+  VStack,
+} from '@oxy.so/bloom-language';
+
+type AIPref = 'aiBrief' | 'aiSmartReply' | 'aiThreadSummary' | 'aiCategorization';
+
+/** Each AI feature: its preference, the section's title and the row's title and description. */
+const FEATURES: readonly { pref: AIPref; section: string; title: string; description: string }[] = [
+  {
+    pref: 'aiBrief',
+    section: 'dailyBrief',
+    title: 'recap',
+    description: 'recapDescription',
+  },
+  {
+    pref: 'aiSmartReply',
+    section: 'smartReply',
+    title: 'suggestions',
+    description: 'suggestionsDescription',
+  },
+  {
+    pref: 'aiThreadSummary',
+    section: 'summary',
+    title: 'summaryTitle',
+    description: 'summaryDescription',
+  },
+  {
+    pref: 'aiCategorization',
+    section: 'priority',
+    title: 'priorityTitle',
+    description: 'priorityDescription',
+  },
+];
+
 export function AISection() {
   const { prefs, setPref } = useInboxPrefs();
   const { t } = useTranslation();
-  return (
-    <View style={{ gap: 24 }}>
-      <GroupedSection title={t('ui.settings.ai.dailyBrief')}>
-        <GroupedSectionItem
-          titleNumberOfLines={0}
-          descriptionLines={0}
-          wrapControl
-          key="aiBrief"
-          title={t('ui.settings.ai.recap')}
-          description={t('ui.settings.ai.recapDescription')}
-          rightElement={
-            <Switch
-              accessibilityLabel={t('ui.settings.ai.recap')}
-              checked={prefs.aiBrief}
-              onCheckedChange={(v) => setPref('aiBrief', v)}
-            />
-          }
-        />
-      </GroupedSection>
-      <GroupedSection title={t('ui.settings.ai.smartReply')}>
-        <GroupedSectionItem
-          titleNumberOfLines={0}
-          descriptionLines={0}
-          wrapControl
-          key="aiSmartReply"
-          title={t('ui.settings.ai.suggestions')}
-          description={t('ui.settings.ai.suggestionsDescription')}
-          rightElement={
-            <Switch
-              accessibilityLabel={t('ui.settings.ai.suggestions')}
-              checked={prefs.aiSmartReply}
-              onCheckedChange={(v) => setPref('aiSmartReply', v)}
-            />
-          }
-        />
-      </GroupedSection>
-      <GroupedSection title={t('ui.settings.ai.summary')}>
-        <GroupedSectionItem
-          titleNumberOfLines={0}
-          descriptionLines={0}
-          wrapControl
-          key="aiThreadSummary"
-          title={t('ui.settings.ai.summaryTitle')}
-          description={t('ui.settings.ai.summaryDescription')}
-          rightElement={
-            <Switch
-              accessibilityLabel={t('ui.settings.ai.summaryTitle')}
-              checked={prefs.aiThreadSummary}
-              onCheckedChange={(v) => setPref('aiThreadSummary', v)}
-            />
-          }
-        />
-      </GroupedSection>
-      <GroupedSection title={t('ui.settings.ai.priority')}>
-        <GroupedSectionItem
-          titleNumberOfLines={0}
-          descriptionLines={0}
-          wrapControl
-          key="aiCategorization"
-          title={t('ui.settings.ai.priorityTitle')}
-          description={t('ui.settings.ai.priorityDescription')}
-          rightElement={
-            <Switch
-              accessibilityLabel={t('ui.settings.ai.priorityTitle')}
-              checked={prefs.aiCategorization}
-              onCheckedChange={(v) => setPref('aiCategorization', v)}
-            />
-          }
-        />
-      </GroupedSection>
-      <Admonition type="tip">{t('ui.settings.ai.tip')}</Admonition>
-    </View>
+  const row = ({ pref, section, title, description }: (typeof FEATURES)[number]) => {
+    const label = t(`ui.settings.ai.${title}`);
+    return GroupedSection(
+      GroupedSectionItem(label)
+        .lines(0)
+        .descriptionLines(0)
+        .wrapControl()
+        .description(t(`ui.settings.ai.${description}`))
+        .trailing(Toggle([prefs[pref], (v: boolean) => setPref(pref, v)]).label(label)),
+    ).title(t(`ui.settings.ai.${section}`));
+  };
+  return toElement(
+    VStack(...FEATURES.map(row), Admonition(Text(t('ui.settings.ai.tip'))).style('tip')).spacing(
+      '2xl',
+    ),
   );
 }

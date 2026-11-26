@@ -1,11 +1,15 @@
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
 import { useTranslation } from '@/lib/i18n';
-import { Admonition } from '@oxy.so/bloom/admonition';
-import { GroupedSection, GroupedSectionItem } from '@oxy.so/bloom/grouped-section';
-import { Switch } from '@oxy.so/bloom/switch';
-import { Platform, View } from 'react-native';
-
-import { Admonition as LAdmonition, Text, VStack, toElement } from '@oxy.so/bloom-language';
+import {
+  Admonition,
+  GroupedSection,
+  GroupedSectionItem,
+  Text,
+  Toggle,
+  toElement,
+  VStack,
+} from '@oxy.so/bloom-language';
+import { Platform } from 'react-native';
 
 /**
  * Push is native-only: the browser has no push subscription wired (no VAPID
@@ -19,32 +23,29 @@ export function NotificationsSection() {
 
   if (Platform.OS === 'web') {
     return toElement(
-      VStack(LAdmonition(Text(t('ui.settings.notifications.webNotice'))).style('info')).spacing(
+      VStack(Admonition(Text(t('ui.settings.notifications.webNotice'))).style('info')).spacing(
         '2xl',
       ),
     );
   }
 
-  return (
-    <View style={{ gap: 24 }}>
-      <GroupedSection title={t('ui.settings.notifications.alerts')}>
-        <GroupedSectionItem
-          titleNumberOfLines={0}
-          descriptionLines={0}
-          wrapControl
-          key="pushNotifications"
-          title={t('ui.settings.notifications.push')}
-          description={t('ui.settings.notifications.pushDescription')}
-          rightElement={
-            <Switch
-              accessibilityLabel={t('ui.settings.notifications.push')}
-              checked={prefs.pushNotifications}
-              onCheckedChange={(v) => setPref('pushNotifications', v)}
-            />
-          }
-        />
-      </GroupedSection>
-      <Admonition type="info">{t('ui.settings.notifications.deviceNotice')}</Admonition>
-    </View>
+  const push = t('ui.settings.notifications.push');
+  return toElement(
+    VStack(
+      GroupedSection(
+        GroupedSectionItem(push)
+          .lines(0)
+          .descriptionLines(0)
+          .wrapControl()
+          .description(t('ui.settings.notifications.pushDescription'))
+          .trailing(
+            Toggle([
+              prefs.pushNotifications,
+              (v: boolean) => setPref('pushNotifications', v),
+            ]).label(push),
+          ),
+      ).title(t('ui.settings.notifications.alerts')),
+      Admonition(Text(t('ui.settings.notifications.deviceNotice'))).style('info'),
+    ).spacing('2xl'),
   );
 }

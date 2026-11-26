@@ -60,6 +60,8 @@ export const Spacer = nodeOf('Spacer');
 export const Divider = nodeOf('Divider');
 export const Chip = nodeOf('Chip');
 export const TextField = nodeOf('TextField');
+export const GroupedSection = nodeOf('GroupedSection');
+export const GroupedSectionItem = nodeOf('GroupedSectionItem');
 export const Embed = (content: unknown) => node('Embed', [content]);
 export const identity = <T,>(value: T) => value;
 
@@ -129,6 +131,26 @@ function draw(child: unknown, key?: string | number): ReactNode {
         disabled: Boolean(m('disabled')),
         'data-testid': a11y['data-testid'],
       });
+    }
+    case 'GroupedSection':
+      return createElement(
+        'section',
+        { key: id, ...a11y },
+        m('title') === undefined
+          ? null
+          : createElement('h3', { key: 'title' }, m('title') as string),
+        ...children(),
+      );
+    case 'GroupedSectionItem': {
+      // A row: its title (the argument), its description and its trailing control.
+      const press = m('onPress') as (() => void) | undefined;
+      return createElement(
+        'div',
+        { key: id, 'data-node': 'GroupedSectionItem', onClick: press, ...a11y },
+        ...children(),
+        m('description') === undefined ? null : draw(m('description'), 'description'),
+        m('trailing') === undefined ? null : draw(m('trailing'), 'trailing'),
+      );
     }
     case 'Divider':
       return createElement('hr', { key: id });

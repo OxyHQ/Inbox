@@ -5,7 +5,7 @@
  * Triggered by pressing `?` (Shift+/) anywhere outside an input.
  */
 
-import { View } from 'react-native';
+import { type TextStyle, View } from 'react-native';
 import { Kbd } from '@oxy.so/bloom/kbd';
 import { Dialog, type DialogControlProps } from '@oxy.so/bloom/dialog';
 import { Text } from '@oxy.so/bloom/typography';
@@ -48,10 +48,13 @@ export function KeyboardShortcutsHelp({ control }: KeyboardShortcutsHelpProps) {
         {shortcuts.map((row) => (
           <View key={row.key} className="flex-row items-center gap-3">
             <Kbd>{row.key}</Kbd>
-            <Text className="flex-1">{row.action}</Text>
+            <Text style={FILL}>{row.action}</Text>
           </View>
         ))}
       </View>
     </Dialog>
   );
 }
+
+// Bloom 23's Text takes no className; `flex-1` on the same text host.
+const FILL: TextStyle = { flex: 1 };

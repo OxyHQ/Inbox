@@ -27,6 +27,7 @@ import { RiDeleteBin6Line } from '@oxy.so/bloom/icons/RiDeleteBin6Line';
 import { RiEditLine } from '@oxy.so/bloom/icons/RiEditLine';
 import { SettingsProfilePage, SettingsSelect } from '@oxy.so/bloom/settings-modal';
 import { Textarea } from '@oxy.so/bloom/textarea';
+import { MULTILINE_CONTROL } from './styles';
 import { toast } from '@oxy.so/bloom/toast';
 import { EMAIL_FILTER_CONDITION_FIELDS, EMAIL_FILTER_CONDITION_OPERATORS } from '@oxy.so/contracts';
 import { useCallback, useMemo, useState } from 'react';
@@ -569,7 +570,7 @@ export function AdvancedSection() {
                     value={templateBody}
                     onChangeText={setTemplateBody}
                     rows={4}
-                    style={{ width: 202, maxWidth: '100%', flexGrow: 1 }}
+                    style={MULTILINE_CONTROL}
                   />
                 ),
               },

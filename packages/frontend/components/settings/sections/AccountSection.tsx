@@ -8,6 +8,7 @@ import { Dialog, useDialogControl } from '@oxy.so/bloom/dialog';
 import { SettingsProfilePage, SettingsValueField } from '@oxy.so/bloom/settings-modal';
 import { Switch } from '@oxy.so/bloom/switch';
 import { Textarea } from '@oxy.so/bloom/textarea';
+import { MULTILINE_CONTROL } from './styles';
 import { toast } from '@oxy.so/bloom/toast';
 import { getNormalizedUserHandle } from '@oxy.so/core';
 import { useOxy } from '@oxy.so/services/ui/client';
@@ -260,7 +261,7 @@ export function AccountSection() {
                     onChangeText={(v) => setField('signature', v)}
                     placeholder={t('ui.settings.account.signaturePlaceholder')}
                     rows={4}
-                    style={{ width: 202, maxWidth: '100%', flexGrow: 1 }}
+                    style={MULTILINE_CONTROL}
                   />
                 ),
               },
@@ -306,7 +307,7 @@ export function AccountSection() {
                           value={autoReplyBody}
                           onChangeText={(v) => setField('autoReplyBody', v)}
                           rows={4}
-                          style={{ width: 202, maxWidth: '100%', flexGrow: 1 }}
+                          style={MULTILINE_CONTROL}
                         />
                       ),
                     },

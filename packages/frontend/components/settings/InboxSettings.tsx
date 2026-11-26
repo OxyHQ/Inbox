@@ -129,21 +129,19 @@ function SettingsSession({
     noteSettingsOpen(true);
     control.open();
   }, [request.sequence, control]);
-  const sections = SETTINGS_SECTIONS.filter((section) => !section.requiresAuth || isAuthenticated);
+  const sections = useMemo(
+    () => SETTINGS_SECTIONS.filter((section) => !section.requiresAuth || isAuthenticated),
+    [isAuthenticated],
+  );
   const pages = useMemo(
     () =>
       Object.fromEntries(
-        SETTINGS_SECTIONS.filter((section) => !section.requiresAuth || isAuthenticated).map(
-          (section) => [
-            section.key,
-            {
-              title: t(section.labelKey),
-              content: sectionContent[section.key],
-            },
-          ],
-        ),
+        sections.map((section) => [
+          section.key,
+          { title: t(section.labelKey), content: sectionContent[section.key] },
+        ]),
       ),
-    [t, isAuthenticated],
+    [t, sections],
   );
   return (
     <SettingsModal

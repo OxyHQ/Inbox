@@ -60,6 +60,13 @@ jobs:
             exit 1
           }
 
+      # bunfig.toml exempts every first-party package from the install
+      # quarantine by exact name (see scripts/check-release-age-excludes.mjs).
+      - name: First-party packages are exempt from the install quarantine
+        run: |
+          node --test scripts/test-check-release-age-excludes.mjs
+          node scripts/check-release-age-excludes.mjs
+
       - name: Verify Oxy dependency health
         run: bun run doctor:oxy
 

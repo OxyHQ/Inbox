@@ -3,6 +3,7 @@ import { useIsDesktopLayout } from '@/hooks/useIsDesktopLayout';
 
 import { useDialogControl } from '@oxy.so/bloom/dialog';
 import { useOxy } from '@oxy.so/services/ui/client';
+import { useAccountCacheReady } from '@/hooks/useAccountCacheReady';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useCallback, useMemo } from 'react';
 
@@ -19,7 +20,8 @@ import { messageRoute } from '@/utils/messageRoute';
 
 export default function InboxLayout() {
   const router = useRouter();
-  const { user, canUsePrivateApi, isAccountCacheReady } = useOxy();
+  const { user, canUsePrivateApi } = useOxy();
+  const isAccountCacheReady = useAccountCacheReady();
   const isDesktop = useIsDesktopLayout();
   const segments = useSegments();
   const selectedMessageId = useEmailStore((s) => s.selectedMessageId);

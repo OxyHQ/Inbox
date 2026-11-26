@@ -4,6 +4,7 @@ import { useDialogControl } from '@oxy.so/bloom/dialog';
 import { RiAccountCircleLine } from '@oxy.so/bloom/icons/RiAccountCircleLine';
 import { SettingsModal } from '@oxy.so/bloom/settings-modal';
 import { useOxy } from '@oxy.so/services/ui/client';
+import { useAccountCacheReady } from '@/hooks/useAccountCacheReady';
 import {
   createContext,
   useCallback,
@@ -47,8 +48,8 @@ export function useInboxSettings() {
   return open;
 }
 export function InboxSettingsProvider({ children }: { children: ReactNode }) {
-  const { user, isAuthenticated, canUsePrivateApi, isAccountCacheReady, isPrivateApiPending } =
-    useOxy();
+  const { user, isAuthenticated, canUsePrivateApi, isPrivateApiPending } = useOxy();
+  const isAccountCacheReady = useAccountCacheReady();
   const accountReady = canUsePrivateApi && isAccountCacheReady && Boolean(user?.id);
   const available = accountReady || (!isAuthenticated && !isPrivateApiPending);
   const scope = accountReady

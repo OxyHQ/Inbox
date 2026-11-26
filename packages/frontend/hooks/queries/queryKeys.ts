@@ -113,7 +113,7 @@ export const SAVED_SEARCH_MUTATION_KEYS = {
 
 /**
  * Query-key roots that should survive a cold restart (offline persistence),
- * per account, via `OxyProvider`'s `accountQueries`. AI keys are intentionally
+ * per account, via `inboxAccountCache`. AI keys are intentionally
  * excluded — they are cheap to regenerate and can go stale.
  */
 export const PERSISTED_QUERY_ROOTS: ReadonlySet<string> = new Set([

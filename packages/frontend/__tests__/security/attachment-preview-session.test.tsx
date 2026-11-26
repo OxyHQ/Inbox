@@ -48,9 +48,7 @@ async function setup() {
   const { dirname, join } = require('node:path');
   const dir = dirname(require.resolve('@oxy.so/services/package.json'));
   const { createOxyRuntime } = require(join(dir, 'lib/commonjs/ui/runtime/createOxyRuntime.js'));
-  const { createAccountQueryPersistence } = require(
-    join(dir, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-  );
+  const { createAccountQueryPersistence } = require('@/hooks/queries/accountQueryPersistence');
   mockRuntime = createOxyRuntime({
     oxyServices: mockOxy,
     sessionClient: { getState: () => null, getDirectory: () => null, subscribe: () => () => {} },

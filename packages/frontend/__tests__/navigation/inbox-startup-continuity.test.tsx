@@ -1,3 +1,9 @@
+// Services 15 has no `isAccountCacheReady`; Inbox's own readiness hook reads
+// the fixture's flag so the scenario keeps its meaning.
+jest.mock('@/hooks/useAccountCacheReady', () => ({
+  useAccountCacheReady: () =>
+    Boolean(require('@oxy.so/services/ui/client').useOxy().isAccountCacheReady),
+}));
 jest.mock('@/hooks/mutations/ownedEmailMutation', () => ({
   useEmailMutationOwner: () => ({}),
   isCurrentEmailOwner: () => true,
@@ -75,7 +81,7 @@ jest.mock('@oxy.so/services/ui/client', () => ({
     loadingFallback?: ReactNode;
     signedOutFallback?: ReactNode;
   }) =>
-    mockAuth.canUsePrivateApi && mockAuth.isAccountCacheReady
+    mockAuth.canUsePrivateApi
       ? children
       : mockAuth.isPrivateApiPending || mockAuth.isAuthenticated
         ? loadingFallback

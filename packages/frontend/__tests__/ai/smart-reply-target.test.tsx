@@ -209,11 +209,10 @@ it('hides the prior session reply and rejects its retained callback through sess
   jest.spyOn(mockOxy.http, 'post').mockResolvedValueOnce({ replies: ['session A reply'] } as never);
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const { INBOX_ACCOUNT_QUERIES } = require('@/hooks/queries/queryClient');
-  const { dirname, join } = require('node:path');
-  const dir = dirname(require.resolve('@oxy.so/services/package.json'));
-  const { createAccountQueryPersistence, accountQueryOwnership } = require(
-    join(dir, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-  );
+  const {
+    createAccountQueryPersistence,
+    accountQueryOwnership,
+  } = require('@/hooks/queries/accountQueryPersistence');
   const persistence = createAccountQueryPersistence(client, INBOX_ACCOUNT_QUERIES);
   persistence.setStorage({
     getItem: async () => null,

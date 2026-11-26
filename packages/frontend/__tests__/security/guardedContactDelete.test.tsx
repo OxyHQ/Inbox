@@ -162,11 +162,7 @@ afterEach(() => {
   globalThis.fetch = previousFetch;
 });
 function persistenceFor(client: ReturnType<typeof createInboxQueryClient>) {
-  const { dirname, join } = require('node:path');
-  const dir = dirname(require.resolve('@oxy.so/services/package.json'));
-  const { createAccountQueryPersistence } = require(
-    join(dir, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-  );
+  const { createAccountQueryPersistence } = require('@/hooks/queries/accountQueryPersistence');
   const m = new Map<string, string>();
   const p = createAccountQueryPersistence(client, INBOX_ACCOUNT_QUERIES);
   p.setStorage({

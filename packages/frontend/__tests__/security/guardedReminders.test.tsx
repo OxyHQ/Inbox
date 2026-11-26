@@ -34,6 +34,12 @@ const mockReminder = {
   relatedMessageId: null,
 };
 const mockToast = { error: jest.fn() };
+// Services 15 has no `isAccountCacheReady`; Inbox's own readiness hook reads
+// the fixture's flag so the scenario keeps its meaning.
+jest.mock('@/hooks/useAccountCacheReady', () => ({
+  useAccountCacheReady: () =>
+    Boolean(require('@oxy.so/services/ui/client').useOxy().isAccountCacheReady),
+}));
 jest.mock('@oxy.so/services/runtime', () => ({ useOxyRuntime: () => mockRuntime }));
 const mockActions = { isArchived: () => false };
 
@@ -78,7 +84,7 @@ jest.mock('@oxy.so/services/ui/client', () => ({
     loadingFallback?: ReactNode;
     signedOutFallback?: ReactNode;
   }) =>
-    mockAuth.canUsePrivateApi && mockAuth.isAccountCacheReady
+    mockAuth.canUsePrivateApi
       ? children
       : mockAuth.isPrivateApiPending || mockAuth.isAuthenticated
         ? loadingFallback
@@ -341,11 +347,7 @@ afterEach(() => {
   globalThis.fetch = previousFetch;
 });
 function setupPersistence(client: ReturnType<typeof createInboxQueryClient>) {
-  const { dirname, join } = require('node:path');
-  const dir = dirname(require.resolve('@oxy.so/services/package.json'));
-  const { createAccountQueryPersistence } = require(
-    join(dir, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-  );
+  const { createAccountQueryPersistence } = require('@/hooks/queries/accountQueryPersistence');
   const m = new Map<string, string>();
   const p = createAccountQueryPersistence(client, INBOX_ACCOUNT_QUERIES);
   p.setStorage({

@@ -9,6 +9,7 @@ import { RiInbox2Line } from '@oxy.so/bloom/icons/RiInbox2Line';
 import { RiSearchLine } from '@oxy.so/bloom/icons/RiSearchLine';
 import { RiSettings3Line } from '@oxy.so/bloom/icons/RiSettings3Line';
 import { useOxy } from '@oxy.so/services/ui/client';
+import { useAccountCacheReady } from '@/hooks/useAccountCacheReady';
 import { useRouter } from 'expo-router';
 import { useShellPathname } from '@/hooks/useShellPathname';
 import { useKeyboardState } from 'react-native-keyboard-controller';
@@ -20,7 +21,8 @@ export function InboxBottomBar() {
   const pathname = useShellPathname();
   const openSettings = useInboxSettings();
   const { focusInput } = useSearchFocus();
-  const { canUsePrivateApi, isAccountCacheReady } = useOxy();
+  const { canUsePrivateApi } = useOxy();
+  const isAccountCacheReady = useAccountCacheReady();
   const accountReady = canUsePrivateApi && isAccountCacheReady;
   const selecting = useEmailStore((state) => state.isSelectionMode);
   const keyboardVisible = useKeyboardState((state) => state.isVisible);

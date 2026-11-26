@@ -17,6 +17,12 @@ let mockOxy: OxyServices;
 let mockRuntime: ReturnType<typeof import('@oxy.so/services/runtime').useOxyRuntime>;
 const mockRuntimeContext = createContext<typeof mockRuntime | null>(null);
 let mockPick: ((item: Suggestion) => void) | undefined;
+// Services 15 has no `isAccountCacheReady`; Inbox's own readiness hook reads
+// the fixture's flag so the scenario keeps its meaning.
+jest.mock('@/hooks/useAccountCacheReady', () => ({
+  useAccountCacheReady: () =>
+    Boolean(require('@oxy.so/services/ui/client').useOxy().isAccountCacheReady),
+}));
 jest.mock('@oxy.so/services/ui/client', () => ({
   useOxy: () => ({
     oxyServices: mockOxy,
@@ -96,9 +102,7 @@ async function setup(transport = true, beforeRender?: () => void, enableCache = 
   const { dirname, join } = require('node:path');
   const dir = dirname(require.resolve('@oxy.so/services/package.json'));
   const { createOxyRuntime } = require(join(dir, 'lib/commonjs/ui/runtime/createOxyRuntime.js'));
-  const { createAccountQueryPersistence } = require(
-    join(dir, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-  );
+  const { createAccountQueryPersistence } = require('@/hooks/queries/accountQueryPersistence');
   mockRuntime = createOxyRuntime({
     oxyServices: mockOxy,
     sessionClient: { getState: () => null, getDirectory: () => null, subscribe: () => () => {} },

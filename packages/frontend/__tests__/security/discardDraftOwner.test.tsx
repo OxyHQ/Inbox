@@ -97,11 +97,7 @@ afterEach(() => {
   globalThis.fetch = previousFetch;
 });
 function persistenceFor(client: ReturnType<typeof createInboxQueryClient>) {
-  const { dirname, join } = require('node:path');
-  const dir = dirname(require.resolve('@oxy.so/services/package.json'));
-  const { createAccountQueryPersistence } = require(
-    join(dir, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-  );
+  const { createAccountQueryPersistence } = require('@/hooks/queries/accountQueryPersistence');
   const map = new Map<string, string>();
   const storage = {
     getItem: async (k: string) => map.get(k) ?? null,
@@ -514,11 +510,7 @@ it('does not serialize owner credentials or register the unkeyed discard for rep
   const state = dehydrate(client, { shouldDehydrateMutation: () => true });
   expect(state.mutations[0].state.variables).toEqual({ input: 'synthetic-draft-A' });
   expect(JSON.stringify(state)).not.toContain(token('alice', 'a-session'));
-  const { dirname, join } = require('node:path');
-  const dir = dirname(require.resolve('@oxy.so/services/package.json'));
-  const { accountQueryOwnership } = require(
-    join(dir, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-  );
+  const { accountQueryOwnership } = require('@/hooks/queries/accountQueryPersistence');
   const ownership = accountQueryOwnership(INBOX_ACCOUNT_QUERIES);
   expect(ownership.persistsMutation(mutation)).toBe(false);
   expect(ownership.ownsMutation(mutation)).toBe(false);

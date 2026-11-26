@@ -7,6 +7,9 @@
  * the query does not spend its retries on a row that will fail the same way.
  */
 
+// The private-read gate is Inbox's own since Services 15; these fixtures never
+// marked the account's cache restored, so neither does this.
+jest.mock('@/hooks/useAccountCacheReady', () => ({ useAccountCacheReady: () => false }));
 jest.mock('@/utils/inboxTelemetry', () => ({ recordInboxMetric: jest.fn() }));
 
 const mockUseQuery = jest.fn();

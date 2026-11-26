@@ -42,6 +42,7 @@ import { RiTimeLine } from '@oxy.so/bloom/icons/RiTimeLine';
 import type { SidebarNavItem, SidebarProps } from '@oxy.so/bloom/sidebar';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { ProfileButton, useOxy } from '@oxy.so/services/ui/client';
+import { useAccountCacheReady } from '@/hooks/useAccountCacheReady';
 import { useRouter } from 'expo-router';
 import { useShellPathname } from '@/hooks/useShellPathname';
 import { Fragment, useCallback, useMemo, useState, type ReactNode } from 'react';
@@ -67,7 +68,8 @@ export function MailboxShell({ children }: { children: ReactNode }) {
   const openSettings = useInboxSettings();
   const colors = useColors();
   const { t } = useTranslation();
-  const { user, canUsePrivateApi, isAccountCacheReady, openAccountDialog } = useOxy();
+  const { user, canUsePrivateApi, openAccountDialog } = useOxy();
+  const isAccountCacheReady = useAccountCacheReady();
   const accountReady = canUsePrivateApi && isAccountCacheReady;
   const accountScope = accountReady ? (user?.id ?? null) : null;
   const router = useRouter();

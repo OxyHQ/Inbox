@@ -84,11 +84,7 @@ const cases = [
 
 describe.each(cases)('$name', ({ flag, key, useFlag }) => {
   it('prevents late retry, rollback and callbacks after the real persister switches A to B', async () => {
-    const { dirname, join } = require('node:path');
-    const dir = dirname(require.resolve('@oxy.so/services/package.json'));
-    const { createAccountQueryPersistence } = require(
-      join(dir, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-    );
+    const { createAccountQueryPersistence } = require('@/hooks/queries/accountQueryPersistence');
     const { INBOX_ACCOUNT_QUERIES } = require('@/hooks/queries/queryClient');
     const values = new Map<string, string>();
     const storage = {

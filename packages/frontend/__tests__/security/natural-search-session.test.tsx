@@ -369,11 +369,7 @@ it('does not persist the live AI mutation or serialize its owner', async () => {
   const { client, submit, cleanup } = await setup();
   await submit();
   const mutation = client.getMutationCache().getAll()[0];
-  const { dirname, join } = require('node:path');
-  const dir = dirname(require.resolve('@oxy.so/services/package.json'));
-  const { accountQueryOwnership } = require(
-    join(dir, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-  );
+  const { accountQueryOwnership } = require('@/hooks/queries/accountQueryPersistence');
   expect(accountQueryOwnership(INBOX_ACCOUNT_QUERIES).persistsMutation(mutation)).toBe(false);
   const forced = JSON.stringify(dehydrate(client, { shouldDehydrateMutation: () => true }));
   expect(forced).not.toContain(token('session-a'));

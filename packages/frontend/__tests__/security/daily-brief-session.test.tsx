@@ -9,6 +9,12 @@ let mockOxy: OxyServices;
 let mockRuntime: ReturnType<typeof import('@oxy.so/services/runtime').useOxyRuntime>;
 let mockRowPress: (() => void) | undefined;
 let mockActionPress: (() => void) | undefined;
+// Services 15 has no `isAccountCacheReady`; Inbox's own readiness hook reads
+// the fixture's flag so the scenario keeps its meaning.
+jest.mock('@/hooks/useAccountCacheReady', () => ({
+  useAccountCacheReady: () =>
+    Boolean(require('@oxy.so/services/ui/client').useOxy().isAccountCacheReady),
+}));
 jest.mock('@oxy.so/services/ui/client', () => ({
   useOxy: () => ({
     oxyServices: mockOxy,
@@ -120,11 +126,7 @@ function brief() {
 }
 async function setup() {
   const client = createInboxQueryClient();
-  const { dirname, join } = require('node:path');
-  const dir = dirname(require.resolve('@oxy.so/services/package.json'));
-  const { createAccountQueryPersistence } = require(
-    join(dir, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-  );
+  const { createAccountQueryPersistence } = require('@/hooks/queries/accountQueryPersistence');
   const persistence = createAccountQueryPersistence(client, INBOX_ACCOUNT_QUERIES);
   persistence.setStorage({
     getItem: async () => null,
@@ -281,11 +283,7 @@ it('keeps the persisted key/data and disables actions when the current projectio
   );
   await waitFor(() => expect(mockRowPress).toBeDefined());
   const oldRow = mockRowPress;
-  const { dirname, join } = require('node:path');
-  const dir = dirname(require.resolve('@oxy.so/services/package.json'));
-  const { accountQueryOwnership } = require(
-    join(dir, 'lib/commonjs/ui/hooks/accountQueryPersistence.js'),
-  );
+  const { accountQueryOwnership } = require('@/hooks/queries/accountQueryPersistence');
   const before = client.getQueryData(key);
   const query = client.getQueryCache().find({ queryKey: key });
   expect(accountQueryOwnership(INBOX_ACCOUNT_QUERIES).persistsQuery(query)).toBe(true);

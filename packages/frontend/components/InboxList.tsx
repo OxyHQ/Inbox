@@ -19,6 +19,7 @@ import { HeaderActions, PageHeader } from '@oxy.so/bloom/page-header';
 
 import { toast } from '@oxy.so/bloom/toast';
 import { OxySignInButton, useOxy } from '@oxy.so/services/ui/client';
+import { useAccountCacheReady } from '@/hooks/useAccountCacheReady';
 import { useQueryClient } from '@tanstack/react-query';
 import { useIsFocused, useRouter } from 'expo-router';
 
@@ -129,7 +130,8 @@ export function InboxList({ replaceNavigation }: InboxListProps) {
   const drawerAvailable = shell.drawerAvailable;
   const colors = useColors();
   const { t } = useTranslation();
-  const { isAuthenticated, user, canUsePrivateApi, isAccountCacheReady } = useOxy();
+  const { isAuthenticated, user, canUsePrivateApi } = useOxy();
+  const isAccountCacheReady = useAccountCacheReady();
   const accountReady = canUsePrivateApi && isAccountCacheReady;
   const accountScope = accountReady ? (user?.id ?? null) : null;
   const [aliaRequest, setAliaRequest] = useScopedState<InboxAliaRequest | null>(

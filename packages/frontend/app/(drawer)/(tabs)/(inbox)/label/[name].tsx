@@ -12,6 +12,7 @@
 
 import { Redirect, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { useOxy } from '@oxy.so/services/ui/client';
+import { useAccountCacheReady } from '@/hooks/useAccountCacheReady';
 import Head from 'expo-router/head';
 import { useEffect, useMemo } from 'react';
 
@@ -23,7 +24,8 @@ import { useEmailStore } from '@/hooks/useEmail';
 export default function LabelViewRoute() {
   const { name } = useLocalSearchParams<{ name: string }>();
   const { data: labels, isSuccess } = useLabels();
-  const { canUsePrivateApi, isAccountCacheReady } = useOxy();
+  const { canUsePrivateApi } = useOxy();
+  const isAccountCacheReady = useAccountCacheReady();
   const accountReady = canUsePrivateApi && isAccountCacheReady;
 
   const selectLabel = useEmailStore((s) => s.selectLabel);

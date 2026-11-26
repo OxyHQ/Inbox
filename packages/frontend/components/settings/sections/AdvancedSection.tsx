@@ -32,7 +32,8 @@ import { toast } from '@oxy.so/bloom/toast';
 import { EMAIL_FILTER_CONDITION_FIELDS, EMAIL_FILTER_CONDITION_OPERATORS } from '@oxy.so/contracts';
 import { useCallback, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
-import { Button as LButton, Embed, HStack, Text, Toggle, toElement } from '@oxy.so/bloom-language';
+import { Button as LButton, Embed, HStack, Text, toElement } from '@oxy.so/bloom-language';
+import { Toggle } from '@oxy.so/bloom-language/inputs';
 
 type FilterField = EmailFilterCondition['field'];
 type FilterOperator = EmailFilterCondition['operator'];

@@ -45,14 +45,8 @@ import { useAccountCacheReady } from '@/hooks/useAccountCacheReady';
 import { useRouter } from 'expo-router';
 import { useShellPathname } from '@/hooks/useShellPathname';
 import { Fragment, useCallback, useMemo, useState, type ReactNode } from 'react';
-import {
-  Button as LButton,
-  Embed,
-  Text,
-  TextField,
-  VStack,
-  toElement,
-} from '@oxy.so/bloom-language';
+import { Button as LButton, Embed, Text, VStack, toElement } from '@oxy.so/bloom-language';
+import { TextField } from '@oxy.so/bloom-language/inputs';
 
 const PRIMARY_SPECIAL_USE: Set<string> = new Set([
   SPECIAL_USE.INBOX,

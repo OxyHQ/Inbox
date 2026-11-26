@@ -25,10 +25,10 @@
         "@lottiefiles/dotlottie-react-native": "^0.12.1",
         "@lottiefiles/dotlottie-web": "0.81.0",
         "@oxy.so/app-preset": "6.9.1",
-        "@oxy.so/bloom": "23.9.1",
+        "@oxy.so/bloom": "23.10.0",
         "@oxy.so/bloom-data": "0.1.2",
-        "@oxy.so/bloom-language": "1.7.0",
-        "@oxy.so/bloom-language-compiler": "1.5.0",
+        "@oxy.so/bloom-language": "2.0.0",
+        "@oxy.so/bloom-language-compiler": "1.6.0",
         "@oxy.so/bloom-lens": "1.2.0",
         "@oxy.so/contracts": "7.5.0",
         "@oxy.so/core": "7.55.0",
@@ -125,7 +125,7 @@
   "overrides": {
     "@expo/cli": "58.1.19",
     "@expo/router-server": "58.0.21",
-    "@oxy.so/bloom": "23.9.1",
+    "@oxy.so/bloom": "23.10.0",
     "@oxy.so/contracts": "7.5.0",
     "@oxy.so/core": "7.55.0",
     "@oxy.so/protocol": "1.11.1",
@@ -585,25 +585,25 @@
 
     "@oxy.so/app-preset": ["@oxy.so/app-preset@6.9.1", "", { "dependencies": { "parse5": "8.1.0" }, "peerDependencies": { "@expo/router-server": "<59.0.0", "@oxy.so/bloom": "^2.0.0 || ^3.0.0 || ^4.2.0 || ^5.1.0 || >=6.0.0", "@oxy.so/services": ">=13.4.0", "babel-preset-expo": "*", "eslint": ">=9.0.0", "eslint-config-expo": "*", "expo": ">=56.0.0", "expo-build-properties": "*", "expo-font": "<59.0.0", "expo-router": "<59.0.0", "expo-server": "<59.0.0", "nativewind": ">=5.0.0-preview.0", "react": ">=19.0.0 <20.0.0", "react-dom": ">=19.0.0 <20.0.0", "react-native-webgpu": ">=0.5.18 <1.0.0", "react-native-worklets": "*", "sharp": ">=0.33.0", "tailwindcss": ">=4.0.0" }, "optionalPeers": ["@expo/router-server", "@oxy.so/bloom", "babel-preset-expo", "eslint", "eslint-config-expo", "expo-build-properties", "expo-font", "expo-router", "expo-server", "nativewind", "react", "react-dom", "react-native-webgpu", "react-native-worklets", "sharp", "tailwindcss"], "bin": { "oxy-web-pwa": "bin/oxy-web-pwa.js", "oxy-check-keychain-entitlements": "bin/oxy-check-keychain-entitlements.js" } }, "sha512-InuLSUuY4I1OoOu/PaUY1xdwOMau6QavZkvvJWUn7H3tiuocxRffiyrN0f98cOUyALRmwXKxZzLevlv+Z5BBPQ=="],
 
-    "@oxy.so/bloom": ["@oxy.so/bloom@23.9.1", "", { "dependencies": { "@tanstack/react-virtual": "^3.14.23", "react-remove-scroll-bar": "^2.3.8" }, "peerDependencies": { "@lottiefiles/dotlottie-react": ">=0.13.0", "@oxy.so/bloom-lens": ">=1.0.0", "@react-native-community/netinfo": ">=11.1.0", "@shopify/flash-list": ">=2.0.0", "expo": "*", "expo-blur": "*", "expo-clipboard": "*", "expo-font": "*", "expo-haptics": "*", "expo-image": "*", "expo-router": ">=3.0.0", "expo-sharing": "*", "expo-video": "*", "expo-web-browser": "*", "lottie-react-native": ">=7.0.0", "react": ">=19.0.0", "react-dom": ">=19.0.0", "react-native": ">=0.73.0", "react-native-gesture-handler": ">=3.3.0", "react-native-keyboard-controller": ">=1.11.4", "react-native-pager-view": ">=6.0.0", "react-native-reanimated": ">=4.6.0", "react-native-safe-area-context": ">=5.0.0", "react-native-screens": ">=3.16.0", "react-native-svg": ">=13.0.0" }, "optionalPeers": ["@lottiefiles/dotlottie-react", "@oxy.so/bloom-lens", "@react-native-community/netinfo", "@shopify/flash-list", "expo", "expo-clipboard", "expo-font", "expo-haptics", "expo-router", "expo-sharing", "expo-video", "expo-web-browser", "lottie-react-native", "react-dom", "react-native-keyboard-controller", "react-native-pager-view"] }, "sha512-aX025x9CAHb+4vFnDiPpicvFQYJGu71NW7sAvWrkOssWRlF8SgoqMe6wyE0kla1f2kJMKrjCi6l611/EW/URjg=="],
+    "@oxy.so/bloom": ["@oxy.so/bloom@23.10.0", "", { "dependencies": { "@tanstack/react-virtual": "^3.14.23", "react-remove-scroll-bar": "^2.3.8" }, "peerDependencies": { "@lottiefiles/dotlottie-react": ">=0.13.0", "@oxy.so/bloom-lens": ">=1.0.0", "@react-native-community/netinfo": ">=11.1.0", "@shopify/flash-list": ">=2.0.0", "expo": "*", "expo-blur": "*", "expo-clipboard": "*", "expo-font": "*", "expo-haptics": "*", "expo-image": "*", "expo-router": ">=3.0.0", "expo-sharing": "*", "expo-video": "*", "expo-web-browser": "*", "lottie-react-native": ">=7.0.0", "react": ">=19.0.0", "react-dom": ">=19.0.0", "react-native": ">=0.73.0", "react-native-gesture-handler": ">=3.3.0", "react-native-keyboard-controller": ">=1.11.4", "react-native-pager-view": ">=6.0.0", "react-native-reanimated": ">=4.6.0", "react-native-safe-area-context": ">=5.0.0", "react-native-screens": ">=3.16.0", "react-native-svg": ">=13.0.0" }, "optionalPeers": ["@lottiefiles/dotlottie-react", "@oxy.so/bloom-lens", "@react-native-community/netinfo", "@shopify/flash-list", "expo", "expo-clipboard", "expo-font", "expo-haptics", "expo-router", "expo-sharing", "expo-video", "expo-web-browser", "lottie-react-native", "react-dom", "react-native-keyboard-controller", "react-native-pager-view"] }, "sha512-Y6g/EedsY9bQP97FNHdOuIGWUOqfJ+VMZW0n1sxgX5bpcpuh0vWWpwHRdtAPyiXh5D5dLprBKB/pYRQptt7cjQ=="],
 
     "@oxy.so/bloom-data": ["@oxy.so/bloom-data@0.1.2", "", { "peerDependencies": { "react": ">=19.0.0" } }, "sha512-9Ja6weKfKEULgZCOgHSPIDnjcwdDj49OxiG9nPx3XM2A97752mYhvttHdR+qtWpk3HIRkQ57YEfEijeiEOq8WA=="],
 
-    "@oxy.so/bloom-language": ["@oxy.so/bloom-language@1.7.0", "", { "peerDependencies": { "@expo/ui": ">=58.0.0", "@oxy.so/bloom": ">=23.9.1", "expo": "*", "expo-blur": "*", "expo-glass-effect": ">=58.0.0", "expo-router": ">=58.0.0", "react": ">=19.0.0", "react-native": ">=0.81.0", "react-native-reanimated": ">=4.6.0", "react-native-safe-area-context": ">=5.0.0" }, "optionalPeers": ["@expo/ui", "expo", "expo-blur", "expo-glass-effect", "expo-router"] }, "sha512-L88VptsGenGyBGNr37BSxaj3Dpx2Ea3CBmgd4RQiNVVb51hxQ4UncyD8fpL5ypMAKOlNfp72BoLmU4cCgHMF3g=="],
+    "@oxy.so/bloom-language": ["@oxy.so/bloom-language@2.0.0", "", { "peerDependencies": { "@expo/ui": ">=58.0.0", "@oxy.so/bloom": ">=23.9.1", "expo": "*", "expo-blur": "*", "expo-glass-effect": ">=58.0.0", "expo-router": ">=58.0.0", "react": ">=19.0.0", "react-native": ">=0.81.0", "react-native-reanimated": ">=4.6.0", "react-native-safe-area-context": ">=5.0.0" }, "optionalPeers": ["@expo/ui", "expo", "expo-blur", "expo-glass-effect", "expo-router"] }, "sha512-ONNPPHI/uQ/tOMrrBvtVkTwt4fAorUfgRbq6Yfbe5MuJPJgwQPzhg42rDA1yt2SLwEaY0vXhzWDzu6THmgpQbg=="],
 
-    "@oxy.so/bloom-language-compiler": ["@oxy.so/bloom-language-compiler@1.5.0", "", { "dependencies": { "@jridgewell/trace-mapping": "0.3.31" }, "optionalDependencies": { "@oxy.so/bloom-language-compiler-darwin-arm64": "1.5.0", "@oxy.so/bloom-language-compiler-darwin-x64": "1.5.0", "@oxy.so/bloom-language-compiler-linux-arm64-gnu": "1.5.0", "@oxy.so/bloom-language-compiler-linux-x64-gnu": "1.5.0", "@oxy.so/bloom-language-compiler-wasm32-wasi": "1.5.0", "@oxy.so/bloom-language-compiler-win32-x64-msvc": "1.5.0" }, "peerDependencies": { "metro-source-map": ">=0.83.0" } }, "sha512-859hPE6YbEYkliJKZhO+//7FOSDCFLrBLqWkaM9m8Xa1YFT1w9NoO/mFCWG0EuzxphhRYRiW5ozFU1U7dSF8VA=="],
+    "@oxy.so/bloom-language-compiler": ["@oxy.so/bloom-language-compiler@1.6.0", "", { "dependencies": { "@jridgewell/trace-mapping": "0.3.31" }, "optionalDependencies": { "@oxy.so/bloom-language-compiler-darwin-arm64": "1.6.0", "@oxy.so/bloom-language-compiler-darwin-x64": "1.6.0", "@oxy.so/bloom-language-compiler-linux-arm64-gnu": "1.6.0", "@oxy.so/bloom-language-compiler-linux-x64-gnu": "1.6.0", "@oxy.so/bloom-language-compiler-wasm32-wasi": "1.6.0", "@oxy.so/bloom-language-compiler-win32-x64-msvc": "1.6.0" }, "peerDependencies": { "metro-source-map": ">=0.83.0" }, "bin": { "bloom-lang-dts": "js/dts.js" } }, "sha512-Sk85vnRwGAoClUcB7USmqIcXA5UoMVqelMz5KrQY88wc2hLIAsCQ/jQh8nT5m7BodeROCo0LA4qcug2fkSvepQ=="],
 
-    "@oxy.so/bloom-language-compiler-darwin-arm64": ["@oxy.so/bloom-language-compiler-darwin-arm64@1.5.0", "", { "os": "darwin", "cpu": "arm64" }, "sha512-pAHSI+iWy9laEUpxPPKRRd8py1KZNlowmsh/cP4OZ0Ei2pWjj5yQvoFvb/xi92UYTqG4zXL4cxynKp9a6q3Ylg=="],
+    "@oxy.so/bloom-language-compiler-darwin-arm64": ["@oxy.so/bloom-language-compiler-darwin-arm64@1.6.0", "", { "os": "darwin", "cpu": "arm64" }, "sha512-gsAO3oIAP1NVMC7g8WwB9fzAtSDwOKCeJL7v8La6Blu0NG4GsPUNgmYizFLq0ji156C10TYMNw7lno2/YFt22A=="],
 
-    "@oxy.so/bloom-language-compiler-darwin-x64": ["@oxy.so/bloom-language-compiler-darwin-x64@1.5.0", "", { "os": "darwin", "cpu": "x64" }, "sha512-wsaRsndBvT8IkJVaCj2Z+gLn4ktiweSBKIi+o1Jet7tAO4KmfO+iXP53gFCH6ILEmgL+UwJaRtyYiXOJ4Hf2Aw=="],
+    "@oxy.so/bloom-language-compiler-darwin-x64": ["@oxy.so/bloom-language-compiler-darwin-x64@1.6.0", "", { "os": "darwin", "cpu": "x64" }, "sha512-IH4OjceIDq3FbldltTqoZukSN8r1ti/58+blkS/MZd9Fhf1e1vKerTsGxCBVOujtqh+h9iKtDqT7QivgCgEKBw=="],
 
-    "@oxy.so/bloom-language-compiler-linux-arm64-gnu": ["@oxy.so/bloom-language-compiler-linux-arm64-gnu@1.5.0", "", { "os": "linux", "cpu": "arm64" }, "sha512-QGCHqBZD1hKW9chsweD+QLgQ1a8HGgN3G2Ws5zS5lPiWX4MIFjn1IzJ5XVySZFUW9xqC+WujGjgtxiDX0laOVQ=="],
+    "@oxy.so/bloom-language-compiler-linux-arm64-gnu": ["@oxy.so/bloom-language-compiler-linux-arm64-gnu@1.6.0", "", { "os": "linux", "cpu": "arm64" }, "sha512-JRRiLPWj/DMV98X9spIJ3dLuoKYOT48J6C9k+g+oZIjiDuWdywk+WyZ9CWkUWBuTOIIR3OfzWXjEWYCOX1nxTw=="],
 
-    "@oxy.so/bloom-language-compiler-linux-x64-gnu": ["@oxy.so/bloom-language-compiler-linux-x64-gnu@1.5.0", "", { "os": "linux", "cpu": "x64" }, "sha512-fUZxbkqXmTjRv7TyY/8SHIpxQEU5qOxoyaOQs842rPDhyizQyuCMLyC8zbMbCb5r2Psib7zSYDpiRBDMqE66Pg=="],
+    "@oxy.so/bloom-language-compiler-linux-x64-gnu": ["@oxy.so/bloom-language-compiler-linux-x64-gnu@1.6.0", "", { "os": "linux", "cpu": "x64" }, "sha512-++vp4u55ZBrYFu+P1ru/M08inQAzDe8qDoMBO+0QNhbs2Q3yLC/LtZlsyyp6ZTsPDcGNbseJsq+xNvOFHu1QAQ=="],
 
-    "@oxy.so/bloom-language-compiler-wasm32-wasi": ["@oxy.so/bloom-language-compiler-wasm32-wasi@1.5.0", "", { "dependencies": { "@emnapi/core": "2.0.0-beta.3", "@emnapi/runtime": "2.0.0-beta.3", "@napi-rs/wasm-runtime": "~1.2.7" }, "cpu": "none" }, "sha512-SP2Ph9dA6ev5fptI/GrU1OtWyQPklLykP7SJsF6OT1KpAZJRangaUBAQqu+q75WPmHh2C4hC/PBQ8TOtHcyyOA=="],
+    "@oxy.so/bloom-language-compiler-wasm32-wasi": ["@oxy.so/bloom-language-compiler-wasm32-wasi@1.6.0", "", { "dependencies": { "@emnapi/core": "2.0.0-beta.3", "@emnapi/runtime": "2.0.0-beta.3", "@napi-rs/wasm-runtime": "~1.2.7" }, "cpu": "none" }, "sha512-+Gnwe+/SIvFf1puel8HGR05EvN2YzXd+vWxCaEKkknWMhxCklKm4DHO0jfsYCqSpRqbhlFfRdY2Jt0obBdTSQw=="],
 
-    "@oxy.so/bloom-language-compiler-win32-x64-msvc": ["@oxy.so/bloom-language-compiler-win32-x64-msvc@1.5.0", "", { "os": "win32", "cpu": "x64" }, "sha512-4+pOEX0zvWoOi4l9zJof5BKomrH8AJMTMaX7gK6vwyMyuPPW6KVqQXyQ4kO+RYiM2oTbwJIXSEPeR54UEuBHxg=="],
+    "@oxy.so/bloom-language-compiler-win32-x64-msvc": ["@oxy.so/bloom-language-compiler-win32-x64-msvc@1.6.0", "", { "os": "win32", "cpu": "x64" }, "sha512-6slgBSpx2ozDB1CrUjU/QBlvlcc9rBwxXXHEOYHG8K0oKXeAAWEVjpUt6ZzuXiYemty92yYeDUmhzkefH74cbw=="],
 
     "@oxy.so/bloom-lens": ["@oxy.so/bloom-lens@1.2.0", "", { "peerDependencies": { "expo": "*", "react": "*", "react-native": "*" } }, "sha512-37nnn2FcUamjahsf9ljUX1Bcznl+fJqCrQRBKaOe65z1p91MO0ZclbJ41VuXHS7hcorKVW6i8zAJ1uuD1EhfDw=="],
 

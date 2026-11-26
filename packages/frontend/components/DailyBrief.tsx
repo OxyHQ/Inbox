@@ -14,7 +14,8 @@ import { useTranslation } from '@/lib/i18n';
 import type { InboxDailyBriefAction } from '@/services/inboxInferenceApi';
 import { formatRowTime } from '@/utils/dateFormat';
 
-import { Card as LCard, Embed, HStack, VStack, toElement } from '@oxy.so/bloom-language';
+import { Embed, HStack, VStack, toElement } from '@oxy.so/bloom-language';
+import { Card as LCard } from '@oxy.so/bloom-language/containers';
 
 /** A summary and its messages in one card, without extra section headings. */
 export function DailyBrief({

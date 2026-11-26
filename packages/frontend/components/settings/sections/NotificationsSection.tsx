@@ -1,14 +1,8 @@
 import { useInboxPrefs } from '@/contexts/inbox-prefs-context';
 import { useTranslation } from '@/lib/i18n';
-import {
-  Admonition,
-  GroupedSection,
-  GroupedSectionItem,
-  Text,
-  Toggle,
-  toElement,
-  VStack,
-} from '@oxy.so/bloom-language';
+import { Text, toElement, VStack } from '@oxy.so/bloom-language';
+import { Admonition, GroupedSection, GroupedSectionItem } from '@oxy.so/bloom-language/containers';
+import { Toggle } from '@oxy.so/bloom-language/inputs';
 import { Platform } from 'react-native';
 
 /**

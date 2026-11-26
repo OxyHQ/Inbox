@@ -5,14 +5,8 @@ import { ThreadSummary } from '@/components/ThreadSummary';
 import type { SentimentResult } from '@/hooks/queries/useSentimentAnalysis';
 import { useTranslation } from '@/lib/i18n';
 import type { Message } from '@/services/emailApi';
-import {
-  Chip as LChip,
-  Embed,
-  HStack,
-  Text as LText,
-  VStack,
-  toElement,
-} from '@oxy.so/bloom-language';
+import { Embed, HStack, Text as LText, VStack, toElement } from '@oxy.so/bloom-language';
+import { Chip as LChip } from '@oxy.so/bloom-language/containers';
 
 interface ThreadOverviewProps {
   messageId: string;

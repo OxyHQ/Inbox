@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { accountStorageKey } from './accountStorageKey';
 
 const STORAGE_PREFIX = 'inbox-compose-recovery-v1:';
 const MAX_RECOVERY_BODY_LENGTH = 250_000;
@@ -36,7 +37,7 @@ export function composeRecoveryStorageKey(
   scope: string | null | undefined,
   identity: string,
 ): string {
-  return `${STORAGE_PREFIX}${encodeURIComponent(scope ?? 'anonymous')}:${encodeURIComponent(identity)}`;
+  return `${accountStorageKey(STORAGE_PREFIX, scope)}:${encodeURIComponent(identity)}`;
 }
 
 function webStorage(): Storage | null {

@@ -3,24 +3,32 @@ module.exports = {
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
+  // The Bloom language compiler runs in front of ts-jest on the app's own
+  // TypeScript, so a test fails on the same chain the build would (an unknown
+  // modifier or token is a compile error) and renders the compiled module.
   transform: {
     '^.+\\.(ts|tsx)$': [
-      'ts-jest',
+      '@oxy.so/bloom-language-compiler/jest',
       {
-        diagnostics: false,
-        tsconfig: {
-          jsx: 'react-jsx',
-          module: 'commonjs',
-          moduleResolution: 'node',
-          esModuleInterop: true,
-          allowSyntheticDefaultImports: true,
-          strict: true,
-          skipLibCheck: true,
-          resolveJsonModule: true,
-          isolatedModules: true,
-          target: 'es2020',
-          lib: ['es2020', 'dom'],
-        },
+        upstream: [
+          'ts-jest',
+          {
+            diagnostics: false,
+            tsconfig: {
+              jsx: 'react-jsx',
+              module: 'commonjs',
+              moduleResolution: 'node',
+              esModuleInterop: true,
+              allowSyntheticDefaultImports: true,
+              strict: true,
+              skipLibCheck: true,
+              resolveJsonModule: true,
+              isolatedModules: true,
+              target: 'es2020',
+              lib: ['es2020', 'dom'],
+            },
+          },
+        ],
       },
     ],
     '^.+\\.js$': [

@@ -12,6 +12,7 @@ import { toast } from '@oxy.so/bloom/toast';
 import { ImageResolverProvider } from '@oxy.so/bloom/image-resolver';
 import type { ImageResolver } from '@oxy.so/bloom/image-resolver';
 import { BloomProvider } from '@oxy.so/bloom/provider';
+import { BloomNativeWindTheme } from '@oxy.so/app-preset/nativewind-theme';
 import { INBOX_THEME_BOOTSTRAP } from '@/constants/theme-bootstrap';
 import { INBOX_THEME_STORAGE } from '@/constants/theme-storage';
 import { BloomScope } from '@oxy.so/bloom/appearance';
@@ -70,9 +71,13 @@ function ThemedRoot() {
       storage={INBOX_THEME_STORAGE}
       awaitHydration={false}
     >
-      <BloomScope size="md">
-        <RootLayoutContent />
-      </BloomScope>
+      {/* Bloom 23 no longer publishes its tokens to NativeWind; the app's own
+          classes (and the SDKs') read them on native through this. */}
+      <BloomNativeWindTheme>
+        <BloomScope size="md">
+          <RootLayoutContent />
+        </BloomScope>
+      </BloomNativeWindTheme>
     </BloomProvider>
   );
 }

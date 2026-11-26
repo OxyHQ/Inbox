@@ -185,11 +185,23 @@ it does not recalculate panel margins, surfaces or safe areas.
 
 ## Shared library dependency
 
-Both manifests and the lockfile pin published Bloom **22.1.5**, Services **14.23.0**
-and Gemies SDK **9.1.0**. There are no local Bloom copies, export shims or package patches.
-Services and the Gemies SDK resolve the same Bloom package as the application.
-The shared Doctor CLI checks dependency health; the repository retains its
-release-age policy (explicit release installs use only a command-line exception).
+Both manifests and the lockfile pin published Bloom **23.9.1**, Services **14.24.3**
+and Gemies SDK **9.1.0**, with the Bloom language (`@oxy.so/bloom-language` 1.7.0,
+its compiler 1.5.0, `@oxy.so/bloom-data` and `@oxy.so/bloom-lens`). There are no
+local Bloom copies, export shims or package patches. Services and the Gemies SDK
+resolve the same Bloom package as the application. The shared Doctor CLI checks
+dependency health; the repository retains its release-age policy, which exempts
+first-party packages.
+
+Bloom 23 has no `className` (Bloom `docs/no-nativewind.mdx`). Inbox's remaining
+classes keep working on native through app-preset's `BloomNativeWindTheme`, mounted
+once inside `BloomProvider` in `app/_layout.tsx`. Services 14 and Gemies 9 still
+hand `className` to Bloom components; Bloom 23 ignores it, so those SDK surfaces
+lose that styling until Services 15 and a Gemies SDK built for it (which pass none).
+
+The Bloom language compiler runs in front of Metro's transformer on every platform
+(`metro.config.js`) and in front of ts-jest (`jest.config.js`), so a test fails on
+the chain the build would.
 
 ## Validation
 

@@ -45,7 +45,22 @@ dependency the fix removed.
 the OLD version, silently, with no error and no warning: measured 2026-09-19,
 when the frontend asked for `@oxy.so/bloom@^3.1.0` and `bun install` kept
 installing 2.0.0 because the override still said `^2.0.0`. Both places move
-together or neither does.
+together or neither does. It happened again on 2026-11-24: dependabot's `oxy`
+group PR (#266) moved the frontend to Bloom 23.3.0 but not the root override, so
+the lock and production stayed on 22.1.11 while the manifest said 23.3.0.
+
+## `typecheck` and the SDKs' own sources
+
+Expo's tsconfig base resolves the `react-native` export condition, under which
+`@oxy.so/services` 14 and `@gemies/sdk` 9 publish raw `.tsx`, so tsc checks those
+files like the app's and `skipLibCheck` cannot skip them. Both still pass
+`className` to Bloom components, a prop Bloom 23 removed, so their own sources do
+not type-check against Bloom 23. `bun run typecheck` is therefore
+`scripts/typecheck.mjs`: `tsc --noEmit`, failing on every error except those
+inside `node_modules/@oxy.so/services/src/` and `node_modules/@gemies/sdk/src/`
+(the count it ignores is printed). An Inbox call into either SDK with the wrong
+types still fails. It goes back to plain `tsc --noEmit` with Services 15 and a
+Gemies SDK built for it.
 
 ## Updates
 

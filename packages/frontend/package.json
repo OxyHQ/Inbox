@@ -15,7 +15,7 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "@gemies/sdk": "10.0.0",
+    "@gemies/sdk": "10.0.3",
     "@clarity.surf/sdk": "^0.12.0",
     "@expo/app-integrity": "~58.0.2",
     "@expo/metro-runtime": "~58.0.17",

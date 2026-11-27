@@ -17,9 +17,10 @@ import { RiEditLine } from '@oxy.so/bloom/icons/RiEditLine';
 import { SettingsProfilePage } from '@oxy.so/bloom/settings-modal';
 import { Switch } from '@oxy.so/bloom/switch';
 import { Textarea } from '@oxy.so/bloom/textarea';
+import { MULTILINE_CONTROL } from './styles';
 import { toast } from '@oxy.so/bloom/toast';
 import { useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { Button as LButton, Embed, HStack, Text, toElement } from '@oxy.so/bloom-language';
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 type ContactFormBinding = {
   owner: ReturnType<typeof useEmailMutationOwner>;
@@ -86,6 +87,20 @@ export function ContactsSection() {
   } | null>(null);
 
   const resetForm = () => setForm(emptyContactForm());
+  /** A typed field: the form binds to the account it was started under, once. */
+  const setField = <K extends 'name' | 'email' | 'company' | 'notes' | 'starred'>(
+    key: K,
+    value: ContactForm[K],
+  ) =>
+    setForm((current) => ({
+      ...current,
+      [key]: value,
+      binding: current.binding ?? {
+        owner: contactOwner,
+        create: createContact.mutate,
+        update: updateContact.mutate,
+      },
+    }));
   const startEdit = (
     contact: Pick<Contact, '_id' | 'name' | 'email' | 'company' | 'notes' | 'starred'>,
   ) => {
@@ -207,39 +222,43 @@ export function ContactsSection() {
                 description: contact.company
                   ? `${contact.email} · ${contact.company}`
                   : contact.email,
-                control: (
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <Button
-                      appearance="outline"
-                      tone="neutral"
-                      iconOnly
-                      accessibilityLabel={t('ui.settings.contacts.edit', {
-                        name: contact.name,
-                      })}
-                      icon={<RiEditLine />}
-                      disabled={formUnavailable || accountUnavailable}
-                      onPress={() => startEdit(contact)}
-                    />
-                    <Button
-                      appearance="outline"
-                      tone="neutral"
-                      iconOnly
-                      accessibilityLabel={t('ui.settings.contacts.delete', {
-                        name: contact.name,
-                      })}
-                      icon={<RiDeleteBin6Line />}
-                      onPress={() => {
-                        setPendingDelete({
-                          id: contact._id,
+                control: toElement(
+                  HStack(
+                    Embed(
+                      <Button
+                        appearance="outline"
+                        tone="neutral"
+                        iconOnly
+                        accessibilityLabel={t('ui.settings.contacts.edit', {
                           name: contact.name,
-                          form,
-                          owner: contactOwner,
-                          mutate: deleteContact.mutate,
-                        });
-                        deleteConfirm.open();
-                      }}
-                    />
-                  </View>
+                        })}
+                        icon={<RiEditLine />}
+                        disabled={formUnavailable || accountUnavailable}
+                        onPress={() => startEdit(contact)}
+                      />,
+                    ),
+                    Embed(
+                      <Button
+                        appearance="outline"
+                        tone="neutral"
+                        iconOnly
+                        accessibilityLabel={t('ui.settings.contacts.delete', {
+                          name: contact.name,
+                        })}
+                        icon={<RiDeleteBin6Line />}
+                        onPress={() => {
+                          setPendingDelete({
+                            id: contact._id,
+                            name: contact.name,
+                            form,
+                            owner: contactOwner,
+                            mutate: deleteContact.mutate,
+                          });
+                          deleteConfirm.open();
+                        }}
+                      />,
+                    ),
+                  ).spacing('sm'),
                 ),
               })),
               ...(hasNextPage
@@ -294,17 +313,7 @@ export function ContactsSection() {
                   <TextFieldInput
                     label={t('ui.settings.contacts.name')}
                     value={name}
-                    onChangeText={(value) =>
-                      setForm((current) => ({
-                        ...current,
-                        name: value,
-                        binding: current.binding ?? {
-                          owner: contactOwner,
-                          create: createContact.mutate,
-                          update: updateContact.mutate,
-                        },
-                      }))
-                    }
+                    onChangeText={(value) => setField('name', value)}
                   />
                 ),
               },
@@ -315,17 +324,7 @@ export function ContactsSection() {
                   <TextFieldInput
                     label={t('ui.settings.contacts.email')}
                     value={email}
-                    onChangeText={(value) =>
-                      setForm((current) => ({
-                        ...current,
-                        email: value,
-                        binding: current.binding ?? {
-                          owner: contactOwner,
-                          create: createContact.mutate,
-                          update: updateContact.mutate,
-                        },
-                      }))
-                    }
+                    onChangeText={(value) => setField('email', value)}
                     keyboardType="email-address"
                   />
                 ),
@@ -337,17 +336,7 @@ export function ContactsSection() {
                   <TextFieldInput
                     label={t('ui.settings.contacts.company')}
                     value={company}
-                    onChangeText={(value) =>
-                      setForm((current) => ({
-                        ...current,
-                        company: value,
-                        binding: current.binding ?? {
-                          owner: contactOwner,
-                          create: createContact.mutate,
-                          update: updateContact.mutate,
-                        },
-                      }))
-                    }
+                    onChangeText={(value) => setField('company', value)}
                   />
                 ),
               },
@@ -358,19 +347,9 @@ export function ContactsSection() {
                   <Textarea
                     accessibilityLabel={t('ui.settings.contacts.notes')}
                     value={notes}
-                    onChangeText={(value) =>
-                      setForm((current) => ({
-                        ...current,
-                        notes: value,
-                        binding: current.binding ?? {
-                          owner: contactOwner,
-                          create: createContact.mutate,
-                          update: updateContact.mutate,
-                        },
-                      }))
-                    }
+                    onChangeText={(value) => setField('notes', value)}
                     rows={3}
-                    style={{ width: 202, maxWidth: '100%', flexGrow: 1 }}
+                    style={MULTILINE_CONTROL}
                   />
                 ),
               },
@@ -381,17 +360,7 @@ export function ContactsSection() {
                   <Switch
                     accessibilityLabel={t('ui.settings.contacts.star')}
                     checked={starred}
-                    onCheckedChange={(value) =>
-                      setForm((current) => ({
-                        ...current,
-                        starred: value,
-                        binding: current.binding ?? {
-                          owner: contactOwner,
-                          create: createContact.mutate,
-                          update: updateContact.mutate,
-                        },
-                      }))
-                    }
+                    onCheckedChange={(value) => setField('starred', value)}
                   />
                 ),
               },
@@ -402,25 +371,28 @@ export function ContactsSection() {
                     ? 'ui.settings.contacts.saveChanges'
                     : 'ui.settings.contacts.addContact',
                 ),
-                control: (
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <Button
-                      onPress={handleSubmit}
-                      disabled={!formValid || submitting || formUnavailable}
-                      loading={submitting}
-                    >
-                      {t(
-                        editingId
-                          ? 'ui.settings.contacts.saveChanges'
-                          : 'ui.settings.contacts.addContact',
-                      )}
-                    </Button>
-                    {editingId || formUnavailable ? (
-                      <Button appearance="subtle" onPress={resetForm}>
-                        {t(formUnavailable ? 'contacts.form.discard' : 'common.cancel')}
-                      </Button>
-                    ) : null}
-                  </View>
+                control: toElement(
+                  HStack(
+                    LButton(
+                      Text(
+                        t(
+                          editingId
+                            ? 'ui.settings.contacts.saveChanges'
+                            : 'ui.settings.contacts.addContact',
+                        ),
+                      ),
+                    )
+                      .onPress(handleSubmit)
+                      .disabled(!formValid || submitting || formUnavailable)
+                      .loading(submitting),
+                    editingId || formUnavailable
+                      ? LButton(
+                          Text(t(formUnavailable ? 'contacts.form.discard' : 'common.cancel')),
+                        )
+                          .style('subtle')
+                          .onPress(resetForm)
+                      : null,
+                  ).spacing('sm'),
                 ),
               },
             ],

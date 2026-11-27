@@ -5,7 +5,9 @@ import { Button } from '@oxy.so/bloom/button';
 import { MailRecipientField, type MailRecipient } from '@oxy.so/bloom/mail-compose';
 import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { useLayoutEffect, useRef, useState } from 'react';
-import { type TextInput, View } from 'react-native';
+import type { TextInput } from 'react-native';
+
+import { Embed, VStack, toElement } from '@oxy.so/bloom-language';
 
 /** Retain the unfinished address in the draft on every keystroke, including send/blur. */
 export function splitRecipientInput(value: string) {
@@ -99,51 +101,62 @@ export function MailAddressFields(props: MailAddressFieldsProps) {
   const { t } = useTranslation();
   const [revealed, setRevealed] = useState(false);
   const copies = revealed || !!props.cc || !!props.bcc;
-  return (
-    <View>
-      <RecipientField
-        label={t('compose.fields.to')}
-        value={props.to}
-        onChange={props.onToChange}
-        trailing={
-          !copies ? (
-            <Button appearance="plain" onPress={() => setRevealed(true)}>
-              {/* biome-ignore lint/correctness/noReactNativeRawText: Bloom Button wraps string children in Text (renderTextContent) */}
-              {`${t('compose.fields.cc')} / ${t('compose.fields.bcc')}`}
-            </Button>
-          ) : undefined
-        }
-      />
-      {copies && (
-        <>
-          <RecipientField
-            label={t('compose.fields.cc')}
-            value={props.cc}
-            onChange={props.onCcChange}
-          />
-          <RecipientField
-            label={t('compose.fields.bcc')}
-            value={props.bcc}
-            onChange={props.onBccChange}
-          />
-        </>
-      )}
-      {props.onSubjectChange && (
-        <View className="px-4 py-2">
-          <TextFieldInput
-            label={t('compose.placeholders.subject')}
-            value={props.subject}
-            inputRef={props.subjectInputRef}
-            onChangeText={props.onSubjectChange}
-            onFocus={props.onSubjectFocus}
-            onBlur={(event) => {
-              const text = (event.nativeEvent as { text?: unknown }).text;
-              props.onSubjectBlur?.(typeof text === 'string' ? text : undefined);
-            }}
-            onEndEditing={(event) => props.onSubjectEndEditing?.(event.nativeEvent.text)}
-          />
-        </View>
-      )}
-    </View>
+  return toElement(
+    VStack(
+      Embed(
+        <RecipientField
+          label={t('compose.fields.to')}
+          value={props.to}
+          onChange={props.onToChange}
+          trailing={
+            !copies ? (
+              <Button appearance="plain" onPress={() => setRevealed(true)}>
+                {/* biome-ignore lint/correctness/noReactNativeRawText: Bloom Button wraps string children in Text (renderTextContent) */}
+                {`${t('compose.fields.cc')} / ${t('compose.fields.bcc')}`}
+              </Button>
+            ) : undefined
+          }
+        />,
+      ),
+      Embed(
+        copies && (
+          <>
+            <RecipientField
+              label={t('compose.fields.cc')}
+              value={props.cc}
+              onChange={props.onCcChange}
+            />
+            <RecipientField
+              label={t('compose.fields.bcc')}
+              value={props.bcc}
+              onChange={props.onBccChange}
+            />
+          </>
+        ),
+      ),
+      Embed(
+        props.onSubjectChange &&
+          toElement(
+            VStack(
+              Embed(
+                <TextFieldInput
+                  label={t('compose.placeholders.subject')}
+                  value={props.subject}
+                  inputRef={props.subjectInputRef}
+                  onChangeText={props.onSubjectChange}
+                  onFocus={props.onSubjectFocus}
+                  onBlur={(event) => {
+                    const text = (event.nativeEvent as { text?: unknown }).text;
+                    props.onSubjectBlur?.(typeof text === 'string' ? text : undefined);
+                  }}
+                  onEndEditing={(event) => props.onSubjectEndEditing?.(event.nativeEvent.text)}
+                />,
+              ),
+            )
+              .padding('horizontal', 'lg')
+              .padding('vertical', 'sm'),
+          ),
+      ),
+    ),
   );
 }

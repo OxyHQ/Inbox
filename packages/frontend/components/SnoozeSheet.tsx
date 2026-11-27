@@ -1,7 +1,6 @@
 import { useTranslation } from '@/lib/i18n';
 import { presetsThatMakeSense } from '@/utils/timePresets';
 import { Button } from '@oxy.so/bloom/button';
-import { Text as BloomText } from '@oxy.so/bloom/typography';
 /**
  * Snooze picker overlay.
  *
@@ -13,7 +12,7 @@ import { Text as BloomText } from '@oxy.so/bloom/typography';
 import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheet, type BottomSheetRef } from '@oxy.so/bloom/bottom-sheet';
 import { useCallback, useEffect, useRef } from 'react';
-import { View } from 'react-native';
+import { Embed, Text, VStack, toElement } from '@oxy.so/bloom-language';
 
 interface SnoozeOption {
   label: string;
@@ -118,15 +117,21 @@ export function SnoozeSheet({ visible, onClose, onSnooze }: SnoozeSheetProps) {
 
   return (
     <BottomSheet ref={sheetRef} onDismiss={onClose} detached>
-      <View className="gap-2 p-4">
-        <BloomText variant="body-semibold">{t('snooze.title')}</BloomText>
-        {options.map((option) => (
-          <Button key={option.label} appearance="subtle" onPress={() => handleSelect(option)}>
-            {/* biome-ignore lint/correctness/noReactNativeRawText: Bloom Button wraps string children in Text (renderTextContent) */}
-            {`${t(option.label)} · ${option.sublabel}`}
-          </Button>
-        ))}
-      </View>
+      {toElement(
+        VStack(
+          Text(t('snooze.title')).font('body').weight('semibold'),
+          Embed(
+            options.map((option) => (
+              <Button key={option.label} appearance="subtle" onPress={() => handleSelect(option)}>
+                {/* biome-ignore lint/correctness/noReactNativeRawText: Bloom Button wraps string children in Text (renderTextContent) */}
+                {`${t(option.label)} · ${option.sublabel}`}
+              </Button>
+            )),
+          ),
+        )
+          .padding('all', 'lg')
+          .spacing('sm'),
+      )}
     </BottomSheet>
   );
 }

@@ -44,14 +44,13 @@ import { HeaderActions, PageHeader } from '@oxy.so/bloom/page-header';
  */
 
 import { toast } from '@oxy.so/bloom/toast';
-import { Loading } from '@oxy.so/bloom/loading';
 import { useOxy } from '@oxy.so/services/ui/client';
 import * as Print from 'expo-print';
 import { useIsFocused, usePathname, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
-
+import { Platform, StyleSheet } from 'react-native';
 import { CreateReminderSheet } from '@/components/CreateReminderSheet';
+
 import { useCreateReminder } from '@/hooks/mutations/useReminderMutations';
 import { isCurrentEmailOwner, useEmailMutationOwner } from '@/hooks/mutations/ownedEmailMutation';
 import { HtmlBody } from '@/components/HtmlBody';
@@ -91,6 +90,16 @@ import { useOpenAttachment } from '@/hooks/useOpenAttachment';
 import { emlFilename, saveEmlFile } from '@/utils/saveEml';
 import { buildThreadEntries } from '@/utils/threadEntries';
 import { splitHtmlQuote, splitTextQuote } from '@/utils/messageQuotes';
+import {
+  Button as LButton,
+  Embed,
+  HStack,
+  Icon,
+  Loading as LLoading,
+  Text as LText,
+  VStack,
+  toElement,
+} from '@oxy.so/bloom-language';
 
 function formatFullDate(dateStr: string, locale: string): string {
   const date = new Date(dateStr);
@@ -538,9 +547,14 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   if (isLoading || (!emailApi && !currentMessage)) {
     return (
       <Screen active={focused} scroll="none" header={standaloneToolbar}>
-        <View style={styles.loadingContainer}>
-          <Loading />
-        </View>
+        {toElement(
+          VStack(LLoading())
+            .padding('horizontal', '3xl')
+            .align('center')
+            .justify('center')
+            .spacing('sm')
+            .grow(),
+        )}
       </Screen>
     );
   }
@@ -550,17 +564,21 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
   // error it used to show offered a retry that parsed the same row again.
   if (error instanceof UnreadableMessageError) {
     const row = error.unreadable;
-    return (
-      <View className="flex-1">
-        {standaloneToolbar}
-        <View className="flex-1 justify-center">
-          <UnreadableThreadEntry
-            row={{ ...row, _id: row._id ?? messageId }}
-            onRetry={() => void refetch()}
-            onOpenRaw={(id) => void downloadSource(id, row.subject)}
-          />
-        </View>
-      </View>
+    return toElement(
+      VStack(
+        Embed(standaloneToolbar),
+        VStack(
+          Embed(
+            <UnreadableThreadEntry
+              row={{ ...row, _id: row._id ?? messageId }}
+              onRetry={() => void refetch()}
+              onOpenRaw={(id) => void downloadSource(id, row.subject)}
+            />,
+          ),
+        )
+          .flex('1')
+          .justify('center'),
+      ).flex('1'),
     );
   }
 
@@ -688,13 +706,16 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
           ) : parts.quoted ? null : (
             <Text>{t('message.detail.emptyMessage')}</Text>
           )}
-          {msg.flags.draft && (
-            <View style={{ alignItems: 'flex-start', marginTop: tokens.space.sm }}>
-              <Button leadingIcon={RiDraftLine} onPress={() => handleEditDraft(msg)}>
-                {t('message.actions.editDraft')}
-              </Button>
-            </View>
-          )}
+          {msg.flags.draft &&
+            toElement(
+              VStack(
+                LButton(Icon(RiDraftLine), LText(t('message.actions.editDraft'))).onPress(() =>
+                  handleEditDraft(msg),
+                ),
+              )
+                .align('start')
+                .margin('top', 'sm'),
+            )}
         </>
       ),
       trimmed: parts.quoted ? renderBody(parts.quoted) : undefined,
@@ -955,25 +976,36 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
         />
 
         {/* Rich card for structured data (flights, orders, etc.) */}
-        {currentMessage.card && (
-          <View style={styles.cardSection}>
-            <CardRenderer card={currentMessage.card} />
-          </View>
-        )}
+        {currentMessage.card &&
+          toElement(
+            VStack(Embed(<CardRenderer card={currentMessage.card} />))
+              .padding('horizontal', 'lg')
+              .margin('bottom', 'md'),
+          )}
 
         {/* Highlights (key data points) */}
         {currentMessage.highlights && currentMessage.highlights.length > 0 && (
           <Card appearance="outline">
             <CardBody>
-              {currentMessage.highlights.map((h, i) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: a read-only list that never reorders; labels can repeat.
-                <View key={i} style={styles.highlightRow}>
-                  <Text style={[styles.highlightLabel, { color: colors.secondaryText }]}>
-                    {h.label}
-                  </Text>
-                  <Text style={[styles.highlightValue, { color: colors.text }]}>{h.value}</Text>
-                </View>
-              ))}
+              {currentMessage.highlights.map((h, i) =>
+                toElement(
+                  HStack(
+                    Embed(
+                      <Text style={[styles.highlightLabel, { color: colors.secondaryText }]}>
+                        {h.label}
+                      </Text>,
+                    ),
+                    Embed(
+                      <Text style={[styles.highlightValue, { color: colors.text }]}>
+                        {h.value}
+                      </Text>,
+                    ),
+                  )
+                    .align('center')
+                    .spacing('sm'),
+                  i,
+                ),
+              )}
             </CardBody>
           </Card>
         )}
@@ -991,45 +1023,55 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
             strings={threadStrings}
           />
         ) : (
-          <View style={{ gap: tokens.space.md }}>
-            {threadEntries.map((entry) =>
-              entry.kind === 'unreadable' ? (
-                <UnreadableThreadEntry
-                  key={entry.key}
-                  row={entry.row}
-                  onRetry={() => void refetchThread()}
-                  onOpenRaw={handleOpenRaw}
-                />
-              ) : (
-                <MailMessage
-                  key={entry.message._id}
-                  {...toThreadMessage(entry.message)}
-                  expanded={expandedMessages.has(entry.message._id)}
-                  onExpandedChange={() => toggleMessageExpanded(entry.message._id)}
-                  strings={threadStrings}
-                />
+          toElement(
+            VStack(
+              Embed(
+                threadEntries.map((entry) =>
+                  entry.kind === 'unreadable' ? (
+                    <UnreadableThreadEntry
+                      key={entry.key}
+                      row={entry.row}
+                      onRetry={() => void refetchThread()}
+                      onOpenRaw={handleOpenRaw}
+                    />
+                  ) : (
+                    <MailMessage
+                      key={entry.message._id}
+                      {...toThreadMessage(entry.message)}
+                      expanded={expandedMessages.has(entry.message._id)}
+                      onExpandedChange={() => toggleMessageExpanded(entry.message._id)}
+                      strings={threadStrings}
+                    />
+                  ),
+                ),
               ),
-            )}
-          </View>
+            ).spacing('md'),
+          )
         )}
 
         {/* Inline reply - appears at bottom of thread, inside scroll area */}
-        {replyMode && (
-          <View style={[styles.inlineReplyWrapper, { marginTop: tokens.space.md }]}>
-            <InlineReply
-              key={`${replyMode}:${replyTargetId ?? currentMessage._id}`}
-              message={
-                (replyTargetId ? sortedThread.find((m) => m._id === replyTargetId) : undefined) ??
-                (currentMessage.flags.draft ? replyableMessage : currentMessage) ??
-                currentMessage
-              }
-              mode={replyMode}
-              onClose={handleCloseReply}
-            />
-          </View>
-        )}
+        {replyMode &&
+          toElement(
+            VStack(
+              Embed(
+                <InlineReply
+                  key={`${replyMode}:${replyTargetId ?? currentMessage._id}`}
+                  message={
+                    (replyTargetId
+                      ? sortedThread.find((m) => m._id === replyTargetId)
+                      : undefined) ??
+                    (currentMessage.flags.draft ? replyableMessage : currentMessage) ??
+                    currentMessage
+                  }
+                  mode={replyMode}
+                  onClose={handleCloseReply}
+                />,
+              ),
+            )
+              .frame({ width: 'full' })
+              .margin('top', 'md'),
+          )}
       </ScreenScrollView>
-
       <CreateReminderSheet
         key={reminderTarget?.key ?? 'closed-reminder'}
         visible={reminderTarget?.id === currentMessage._id}
@@ -1044,7 +1086,6 @@ function MessageDetailInner({ mode, messageId }: MessageDetailProps) {
             : undefined
         }
       />
-
       {/* Snooze sheet */}
       <SnoozeSheet
         visible={snoozeVisible}
@@ -1059,36 +1100,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-    gap: 8,
-  },
+
   body: {
     flex: 1,
   },
-  cardSection: {
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  highlightRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
+
   highlightLabel: {
     fontSize: 12,
     fontWeight: '500',
     minWidth: 80,
   },
+
   highlightValue: {
     fontSize: 13,
     fontWeight: '600',
     flex: 1,
-  },
-  inlineReplyWrapper: {
-    width: '100%',
   },
 });

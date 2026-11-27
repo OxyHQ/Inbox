@@ -1,5 +1,4 @@
 import { EmptyState } from '@oxy.so/bloom/empty-state';
-import { Loading } from '@oxy.so/bloom/loading';
 /**
  * The full composer: a new message, a reply, a forward, or a saved draft
  * reopened to finish and send.
@@ -11,7 +10,7 @@ import { Loading } from '@oxy.so/bloom/loading';
  */
 
 import { useMemo } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, type ViewStyle } from 'react-native';
 
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
 import { MailComposer } from '@/components/MailComposer';
@@ -25,6 +24,8 @@ import type { Message } from '@/services/emailApi';
 import { forwardedAttachments, forwardedBody, textToEditorContent } from '@/utils/composeBody';
 import { formatQuoteDate } from '@/utils/quoteDate';
 import { draftReplyHeaders } from '@/utils/replyHeaders';
+
+import { Embed, Loading as LLoading, VStack, toElement } from '@oxy.so/bloom-language';
 
 const isWeb = Platform.OS === 'web';
 
@@ -58,11 +59,7 @@ export function ComposeForm({ draftId, forward, ...props }: ComposeFormProps) {
         />
       );
     }
-    return (
-      <View style={styles.centered}>
-        <Loading />
-      </View>
-    );
+    return toElement(VStack(LLoading()).align('center').justify('center').grow());
   }
 
   if (draftId && draftQuery.data && !draftQuery.data.flags.draft) {
@@ -90,18 +87,20 @@ function ComposeLoadError({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
-  return (
-    <View className="flex-1">
-      <EmptyState
-        illustration={<EmptyStateSticker name={onRetry ? 'loadError' : 'notFound'} />}
-        title={title}
-        action={
-          onRetry
-            ? { label: t('common.retry'), onPress: onRetry }
-            : { label: t('common.close'), onPress: onClose }
-        }
-      />
-    </View>
+  return toElement(
+    VStack(
+      Embed(
+        <EmptyState
+          illustration={<EmptyStateSticker name={onRetry ? 'loadError' : 'notFound'} />}
+          title={title}
+          action={
+            onRetry
+              ? { label: t('common.retry'), onPress: onRetry }
+              : { label: t('common.close'), onPress: onClose }
+          }
+        />,
+      ),
+    ).flex('1'),
   );
 }
 
@@ -187,7 +186,7 @@ function ComposeSessionForm({
 
   return (
     <KeyboardAvoidingView
-      className="flex-1"
+      style={rootStyle}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <MailComposer
@@ -211,10 +210,4 @@ function ComposeSessionForm({
   );
 }
 
-const styles = StyleSheet.create({
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+const rootStyle: ViewStyle = { flexGrow: 1, flexShrink: 1, flexBasis: '0%' };

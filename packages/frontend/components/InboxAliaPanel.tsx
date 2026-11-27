@@ -1,8 +1,8 @@
 import { GemieChatContent } from '@gemies/sdk';
 import { AgentAvatarProvider } from '@oxy.so/bloom/agent-avatar';
 import { useMemo } from 'react';
-import { View } from 'react-native';
 import { useTranslation } from '@/lib/i18n';
+import { Embed, VStack, toElement } from '@oxy.so/bloom-language';
 
 /** Alia's own conversation screen (the SDK's `GemieChatContent`), where no message is open. */
 export default function InboxAliaPanel() {
@@ -17,13 +17,17 @@ export default function InboxAliaPanel() {
   );
   return (
     <AgentAvatarProvider>
-      <View className="flex-1">
-        <GemieChatContent
-          app="inbox"
-          clientContext={t('inbox.aliaClientContext')}
-          welcomeSuggestions={welcomeSuggestions}
-        />
-      </View>
+      {toElement(
+        VStack(
+          Embed(
+            <GemieChatContent
+              app="inbox"
+              clientContext={t('inbox.aliaClientContext')}
+              welcomeSuggestions={welcomeSuggestions}
+            />,
+          ),
+        ).flex('1'),
+      )}
     </AgentAvatarProvider>
   );
 }

@@ -40,13 +40,13 @@ import { RiSpamLine } from '@oxy.so/bloom/icons/RiSpamLine';
 import { RiStarLine } from '@oxy.so/bloom/icons/RiStarLine';
 import { RiTimeLine } from '@oxy.so/bloom/icons/RiTimeLine';
 import type { SidebarNavItem, SidebarProps } from '@oxy.so/bloom/sidebar';
-import { TextFieldInput } from '@oxy.so/bloom/text-field';
 import { ProfileButton, useOxy } from '@oxy.so/services/ui/client';
 import { useAccountCacheReady } from '@/hooks/useAccountCacheReady';
 import { useRouter } from 'expo-router';
 import { useShellPathname } from '@/hooks/useShellPathname';
 import { Fragment, useCallback, useMemo, useState, type ReactNode } from 'react';
-import { View } from 'react-native';
+import { Button as LButton, Embed, Text, VStack, toElement } from '@oxy.so/bloom-language';
+import { TextField } from '@oxy.so/bloom-language/inputs';
 
 const PRIMARY_SPECIAL_USE: Set<string> = new Set([
   SPECIAL_USE.INBOX,
@@ -503,46 +503,45 @@ export function MailboxShell({ children }: { children: ReactNode }) {
             title={t('ui.drawer.newFolder')}
             label={t('ui.drawer.newFolder')}
           >
-            <View style={{ gap: 12 }}>
-              <TextFieldInput
-                label={t('ui.drawer.folderName')}
-                value={newFolderName}
-                onChangeText={setNewFolderName}
-                autoFocus
-                onSubmitEditing={handleCreateFolder}
-                returnKeyType="done"
-              />
-              <Button
-                onPress={handleCreateFolder}
-                disabled={!newFolderName.trim() || createMailbox.isPending}
-                loading={createMailbox.isPending}
-              >
-                {t('ui.drawer.createFolderButton')}
-              </Button>
-            </View>
+            {toElement(
+              VStack(
+                TextField([newFolderName, setNewFolderName], t('ui.drawer.folderName'))
+                  .autoFocus()
+                  .onSubmit(handleCreateFolder)
+                  .submitLabel('done'),
+                LButton(Text(t('ui.drawer.createFolderButton')))
+                  .onPress(handleCreateFolder)
+                  .disabled(!newFolderName.trim() || createMailbox.isPending)
+                  .loading(createMailbox.isPending),
+              ).spacing('md'),
+            )}
           </Dialog>
           <Dialog control={manageFoldersControl} title={t('ui.drawer.folders')}>
-            <View style={{ gap: 8 }}>
-              {customFolders.map((folder) => (
-                <Button
-                  key={folder._id}
-                  appearance="subtle"
-                  onPress={() => {
-                    manageFoldersControl.close();
-                    setFolderPendingDelete({
-                      id: folder._id,
-                      name: folder.name,
-                      owner: folderOwner,
-                      mutate: deleteMailbox.mutate,
-                    });
-                    deleteFolderControl.open();
-                  }}
-                >
-                  {/* biome-ignore lint/correctness/noReactNativeRawText: Bloom Button wraps string children in Text (renderTextContent) */}
-                  {t('common.delete')} · {folder.name}
-                </Button>
-              ))}
-            </View>
+            {toElement(
+              VStack(
+                Embed(
+                  customFolders.map((folder) => (
+                    <Button
+                      key={folder._id}
+                      appearance="subtle"
+                      onPress={() => {
+                        manageFoldersControl.close();
+                        setFolderPendingDelete({
+                          id: folder._id,
+                          name: folder.name,
+                          owner: folderOwner,
+                          mutate: deleteMailbox.mutate,
+                        });
+                        deleteFolderControl.open();
+                      }}
+                    >
+                      {/* biome-ignore lint/correctness/noReactNativeRawText: Bloom Button wraps string children in Text (renderTextContent) */}
+                      {t('common.delete')} · {folder.name}
+                    </Button>
+                  )),
+                ),
+              ).spacing('sm'),
+            )}
           </Dialog>
           <Dialog
             control={deleteFolderControl}

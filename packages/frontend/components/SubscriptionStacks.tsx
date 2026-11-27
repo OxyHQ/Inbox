@@ -18,11 +18,11 @@ import { View, Image, StyleSheet } from 'react-native';
 import { Card, CardHeader } from '@oxy.so/bloom/card';
 import { Carousel, CarouselItem } from '@oxy.so/bloom/carousel';
 import { useTranslation } from '@/lib/i18n';
-import { Text } from '@oxy.so/bloom/typography';
 import { SPACING as BLOOM_SPACING } from '@oxy.so/bloom/design-tokens';
-
 import { Avatar } from './Avatar';
+
 import type { Subscription } from '@/services/emailApi';
+import { Embed, Text as LText, VStack, toElement } from '@oxy.so/bloom-language';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://api.oxy.so';
 
@@ -110,30 +110,41 @@ function SubscriptionColumn({
 }) {
   const handlePress = useCallback(() => onSelect?.(subscription._id), [onSelect, subscription._id]);
 
-  return (
-    <View style={styles.column}>
-      <Card
-        appearance="plain"
-        onPress={handlePress}
-        accessibilityRole="button"
-        accessibilityLabel={`${subscription.name}, ${subscription.messageCount} messages`}
-      >
-        <CardHeader>
-          <View className="items-center gap-1">
-            <Avatar
-              name={subscription.name}
-              size={40}
-              avatarUrl={
-                subscription.senderAvatarPath ? `${API_URL}${subscription.senderAvatarPath}` : null
-              }
-            />
-            <Text variant="body-2-medium">{subscription.messageCount}</Text>
-          </View>
-        </CardHeader>
-      </Card>
-
-      <EnvelopePile count={subscription.messageCount} />
-    </View>
+  return toElement(
+    VStack(
+      Embed(
+        <Card
+          appearance="plain"
+          onPress={handlePress}
+          accessibilityRole="button"
+          accessibilityLabel={`${subscription.name}, ${subscription.messageCount} messages`}
+        >
+          <CardHeader>
+            {toElement(
+              VStack(
+                Embed(
+                  <Avatar
+                    name={subscription.name}
+                    size={40}
+                    avatarUrl={
+                      subscription.senderAvatarPath
+                        ? `${API_URL}${subscription.senderAvatarPath}`
+                        : null
+                    }
+                  />,
+                ),
+                LText(subscription.messageCount).font('body-2').weight('medium'),
+              )
+                .align('center')
+                .spacing('xs'),
+            )}
+          </CardHeader>
+        </Card>,
+      ),
+      Embed(<EnvelopePile count={subscription.messageCount} />),
+    )
+      .shrink('never')
+      .align('center'),
   );
 }
 
@@ -142,18 +153,17 @@ const styles = StyleSheet.create({
     // The viewport fills the panel; Bloom keeps first/last spacing inside it.
     paddingTop: BLOOM_SPACING['space-32'],
   },
+
   slide: {
     // Stretch the slide, then align its pile to the shared baseline.
     justifyContent: 'flex-end',
   },
-  column: {
-    flexShrink: 0,
-    alignItems: 'center',
-  },
+
   pile: {
     width: ENVELOPE_WIDTH,
     pointerEvents: 'none',
   },
+
   envelope: {
     position: 'absolute',
     left: 0,

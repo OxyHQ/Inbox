@@ -5,11 +5,11 @@
  * Triggered by pressing `?` (Shift+/) anywhere outside an input.
  */
 
-import { type TextStyle, View } from 'react-native';
 import { Kbd } from '@oxy.so/bloom/kbd';
 import { Dialog, type DialogControlProps } from '@oxy.so/bloom/dialog';
-import { Text } from '@oxy.so/bloom/typography';
 import { useTranslation } from '@/lib/i18n';
+
+import { Embed, HStack, Text as LText, VStack, toElement } from '@oxy.so/bloom-language';
 
 interface ShortcutRow {
   key: string;
@@ -44,17 +44,20 @@ export function KeyboardShortcutsHelp({ control }: KeyboardShortcutsHelpProps) {
       title={t('shortcuts.title')}
       actions={[{ label: t('shortcuts.close'), color: 'cancel' }]}
     >
-      <View className="gap-2">
-        {shortcuts.map((row) => (
-          <View key={row.key} className="flex-row items-center gap-3">
-            <Kbd>{row.key}</Kbd>
-            <Text style={FILL}>{row.action}</Text>
-          </View>
-        ))}
-      </View>
+      {toElement(
+        VStack(
+          Embed(
+            shortcuts.map((row) =>
+              toElement(
+                HStack(Embed(<Kbd>{row.key}</Kbd>), LText(row.action).grow())
+                  .align('center')
+                  .spacing('md'),
+                row.key,
+              ),
+            ),
+          ),
+        ).spacing('sm'),
+      )}
     </Dialog>
   );
 }
-
-// Bloom 23's Text takes no className; `flex-1` on the same text host.
-const FILL: TextStyle = { flex: 1 };

@@ -4,8 +4,10 @@ import type { CardData } from '@/services/emailApi';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Card, CardBody, CardHeader, CardTitle } from '@oxy.so/bloom/card';
 import { Text } from '@oxy.so/bloom/typography';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { useTranslation } from '@/lib/i18n';
+
+import { Embed, HStack, VStack, toElement } from '@oxy.so/bloom-language';
 
 interface BillCardProps {
   data: CardData;
@@ -34,49 +36,73 @@ export function BillCard({ data }: BillCardProps) {
         <CardTitle>{t('cards.bill.header')}</CardTitle>
       </CardHeader>
       <CardBody>
-        <View style={styles.body}>
-          {data.biller && (
-            <Text style={[styles.biller, { color: colors.text }]}>{data.biller}</Text>
-          )}
-          {formattedAmount && (
-            <Text style={[styles.amount, { color: colors.text }]}>{formattedAmount}</Text>
-          )}
-          {dueDate && (
-            <View style={styles.row}>
-              <MaterialCommunityIcons
-                name="calendar-clock"
-                size={14}
-                color={isOverdue ? colors.danger : colors.secondaryText}
-              />
-              <Text
-                style={[
-                  styles.dueDate,
-                  { color: isOverdue ? colors.danger : colors.secondaryText },
-                ]}
-              >
-                {t(isOverdue ? 'cards.bill.overdue' : 'cards.bill.due', { date: dueDate })}
-              </Text>
-            </View>
-          )}
-          {data.accountNumber && (
-            <View style={styles.row}>
-              <Text style={[styles.label, { color: colors.secondaryText }]}>
-                {t('cards.bill.account')}
-              </Text>
-              <Text style={[styles.value, { color: colors.text }]}>{data.accountNumber}</Text>
-            </View>
-          )}
-        </View>
+        {toElement(
+          VStack(
+            Embed(
+              data.biller && (
+                <Text style={[styles.biller, { color: colors.text }]}>{data.biller}</Text>
+              ),
+            ),
+            Embed(
+              formattedAmount && (
+                <Text style={[styles.amount, { color: colors.text }]}>{formattedAmount}</Text>
+              ),
+            ),
+            Embed(
+              dueDate &&
+                toElement(
+                  HStack(
+                    Embed(
+                      <MaterialCommunityIcons
+                        name="calendar-clock"
+                        size={14}
+                        color={isOverdue ? colors.danger : colors.secondaryText}
+                      />,
+                    ),
+                    Embed(
+                      <Text
+                        style={[
+                          styles.dueDate,
+                          { color: isOverdue ? colors.danger : colors.secondaryText },
+                        ]}
+                      >
+                        {t(isOverdue ? 'cards.bill.overdue' : 'cards.bill.due', { date: dueDate })}
+                      </Text>,
+                    ),
+                  )
+                    .align('center')
+                    .spacing('6'),
+                ),
+            ),
+            Embed(
+              data.accountNumber &&
+                toElement(
+                  HStack(
+                    Embed(
+                      <Text style={[styles.label, { color: colors.secondaryText }]}>
+                        {t('cards.bill.account')}
+                      </Text>,
+                    ),
+                    Embed(
+                      <Text style={[styles.value, { color: colors.text }]}>
+                        {data.accountNumber}
+                      </Text>,
+                    ),
+                  )
+                    .align('center')
+                    .spacing('6'),
+                ),
+            ),
+          ).spacing('6'),
+        )}
       </CardBody>
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  body: { gap: 6 },
   biller: { fontSize: 15, fontWeight: '600' },
   amount: { fontSize: 20, fontWeight: '700' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dueDate: { fontSize: 13, fontWeight: '500' },
   label: { fontSize: 12 },
   value: { fontSize: 13, fontWeight: '600' },

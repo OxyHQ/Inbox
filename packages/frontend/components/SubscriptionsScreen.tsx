@@ -13,7 +13,6 @@ import { useOxy } from '@oxy.so/services/ui/client';
 
 import { useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View } from 'react-native';
 
 import { SubscriptionRow } from '@/components/SubscriptionRow';
 import { SubscriptionStacks } from '@/components/SubscriptionStacks';
@@ -28,8 +27,9 @@ import { EmptyState } from '@oxy.so/bloom/empty-state';
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
 import { RiMenuLine } from '@oxy.so/bloom/icons/RiMenuLine';
 import { Loading } from '@oxy.so/bloom/loading';
-import { Text } from '@oxy.so/bloom/typography';
 import { useTranslation } from '@/lib/i18n';
+
+import { Loading as LLoading, Text as LText, VStack, toElement } from '@oxy.so/bloom-language';
 
 export function SubscriptionsScreen() {
   const shell = useAppShell();
@@ -183,9 +183,7 @@ export function SubscriptionsScreen() {
       }
     >
       {isLoading ? (
-        <View className="flex-1 justify-center">
-          <Loading />
-        </View>
+        toElement(VStack(LLoading()).flex('1').justify('center'))
       ) : (
         <VirtualList
           testID="subscriptions-list"
@@ -202,11 +200,12 @@ export function SubscriptionsScreen() {
               />
               {/* Scrolls with the list rather than sitting in a fixed band:
                   only the header stays put, same as the inbox. */}
-              {subscriptions.length > 0 && (
-                <View className="px-4 py-3">
-                  <Text variant="caption-1-regular">{t('subscriptions.delayNotice')}</Text>
-                </View>
-              )}
+              {subscriptions.length > 0 &&
+                toElement(
+                  VStack(LText(t('subscriptions.delayNotice')).font('caption-1'))
+                    .padding('horizontal', 'lg')
+                    .padding('vertical', 'md'),
+                )}
             </>
           }
           ListEmptyComponent={renderEmpty}

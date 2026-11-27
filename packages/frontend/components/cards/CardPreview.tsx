@@ -8,7 +8,6 @@ import type { MessageCard } from '@/services/emailApi';
 import { Card } from '@oxy.so/bloom/card';
 import { Text } from '@oxy.so/bloom/typography';
 import { useTheme } from '@oxy.so/bloom/theme';
-import { View } from 'react-native';
 import { RiSendPlaneLine } from '@oxy.so/bloom/icons/RiSendPlaneLine';
 import { RiShoppingBag3Line } from '@oxy.so/bloom/icons/RiShoppingBag3Line';
 import { RiCalendarLine } from '@oxy.so/bloom/icons/RiCalendarLine';
@@ -18,6 +17,7 @@ import { RiFileTextLine } from '@oxy.so/bloom/icons/RiFileTextLine';
 import type { BloomIconComponent } from '@oxy.so/bloom/icons';
 import type { BloomTone } from '@oxy.so/bloom/appearance';
 import { useTranslation, type TranslateFn } from '@/lib/i18n';
+import { Embed, VStack, toElement } from '@oxy.so/bloom-language';
 
 interface CardPreviewProps {
   card: MessageCard;
@@ -99,9 +99,12 @@ export function CardPreview({ card }: CardPreviewProps) {
       style={{ width: 256, height: 88, flexShrink: 0 }}
       contentStyle={{ flexDirection: 'row', alignItems: 'center' }}
     >
-      <View style={{ width: 64, alignItems: 'center', justifyContent: 'center' }}>
-        <Icon width={32} height={32} fill={colors.textSecondary} />
-      </View>
+      {toElement(
+        VStack(Embed(<Icon width={32} height={32} fill={colors.textSecondary} />))
+          .frame({ width: '64' })
+          .align('center')
+          .justify('center'),
+      )}
       <Text variant="body-2-regular" numberOfLines={3} style={{ flex: 1, padding: 12 }}>
         {summary}
       </Text>

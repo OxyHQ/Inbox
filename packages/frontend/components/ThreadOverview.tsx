@@ -1,11 +1,12 @@
 import { Chip } from '@oxy.so/bloom/chip';
 import { Text } from '@oxy.so/bloom/typography';
-import { View } from 'react-native';
 import { SentimentIndicator } from '@/components/SentimentIndicator';
 import { ThreadSummary } from '@/components/ThreadSummary';
 import type { SentimentResult } from '@/hooks/queries/useSentimentAnalysis';
 import { useTranslation } from '@/lib/i18n';
 import type { Message } from '@/services/emailApi';
+import { Embed, HStack, Text as LText, VStack, toElement } from '@oxy.so/bloom-language';
+import { Chip as LChip } from '@oxy.so/bloom-language/containers';
 
 interface ThreadOverviewProps {
   messageId: string;
@@ -28,27 +29,40 @@ export function ThreadOverview({
   onRemoveLabel,
 }: ThreadOverviewProps) {
   const { t } = useTranslation();
-  return (
-    <View className="gap-4 px-4 pb-6" testID="thread-overview">
-      <View className="flex-row flex-wrap items-center gap-2">
-        <Chip testID="thread-count">{t('ui.message.conversationMessages', { count })}</Chip>
-        {sentiment && <SentimentIndicator sentiment={sentiment} size="medium" showLabel />}
-      </View>
-      <View className="w-full max-w-2xl">
-        <Text variant="display-4-medium" role="heading" aria-level={1} testID="thread-subject">
-          {subject}
-        </Text>
-      </View>
-      {labels.length > 0 && (
-        <View className="flex-row flex-wrap gap-2">
-          {labels.map((label) => (
-            <Chip key={label._id} variant="subtle" onClose={() => onRemoveLabel(label.name)}>
-              {label.name}
-            </Chip>
-          ))}
-        </View>
-      )}
-      <ThreadSummary messageId={messageId} messages={messages} />
-    </View>
+  return toElement(
+    VStack(
+      HStack(
+        LChip(LText(t('ui.message.conversationMessages', { count }))).testID('thread-count'),
+        Embed(sentiment && <SentimentIndicator sentiment={sentiment} size="medium" showLabel />),
+      )
+        .wrap()
+        .align('center')
+        .spacing('sm'),
+      VStack(
+        Embed(
+          <Text variant="display-4-medium" role="heading" aria-level={1} testID="thread-subject">
+            {subject}
+          </Text>,
+        ),
+      ).frame({ width: 'full', maxWidth: '672' }),
+      labels.length > 0
+        ? HStack(
+            Embed(
+              labels.map((label) => (
+                <Chip key={label._id} variant="subtle" onClose={() => onRemoveLabel(label.name)}>
+                  {label.name}
+                </Chip>
+              )),
+            ),
+          )
+            .wrap()
+            .spacing('sm')
+        : null,
+      Embed(<ThreadSummary messageId={messageId} messages={messages} />),
+    )
+      .padding('horizontal', 'lg')
+      .padding('bottom', '2xl')
+      .spacing('lg')
+      .testID('thread-overview'),
   );
 }

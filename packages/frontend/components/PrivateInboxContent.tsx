@@ -4,8 +4,8 @@ import { useAccountCacheReady } from '@/hooks/useAccountCacheReady';
 import { EmptyState } from '@oxy.so/bloom/empty-state';
 import { Image } from 'expo-image';
 import { Fragment, type ReactNode } from 'react';
-import { View } from 'react-native';
 import { useTranslation } from '@/lib/i18n';
+import { Embed, VStack, toElement } from '@oxy.so/bloom-language';
 
 /**
  * Private content resets with its account; surrounding page chrome stays mounted.
@@ -21,27 +21,31 @@ export function PrivateInboxContent({ children }: { children: ReactNode }) {
   const scope = canUsePrivateApi && isAccountCacheReady ? user?.id : null;
   return (
     <RequireOxyAuth
-      loadingFallback={<View />}
-      signedOutFallback={
-        <View className="flex-1 justify-center">
-          <EmptyState
-            illustration={
-              <Image
-                source={require('@/assets/images/welcome-compose.png')}
-                style={{ width: 240, height: 240 }}
-                contentFit="contain"
-                accessible={false}
-              />
-            }
-            title={t('auth.gate.title')}
-            description={t('auth.gate.subtitle')}
-            footer={<OxySignInButton variant="contained" />}
-          />
-        </View>
-      }
+      loadingFallback={toElement(VStack())}
+      signedOutFallback={toElement(
+        VStack(
+          Embed(
+            <EmptyState
+              illustration={
+                <Image
+                  source={require('@/assets/images/welcome-compose.png')}
+                  style={{ width: 240, height: 240 }}
+                  contentFit="contain"
+                  accessible={false}
+                />
+              }
+              title={t('auth.gate.title')}
+              description={t('auth.gate.subtitle')}
+              footer={<OxySignInButton variant="contained" />}
+            />,
+          ),
+        )
+          .flex('1')
+          .justify('center'),
+      )}
     >
       {canUsePrivateApi && !isAccountCacheReady ? (
-        <View />
+        toElement(VStack())
       ) : (
         <Fragment key={scope}>{children}</Fragment>
       )}

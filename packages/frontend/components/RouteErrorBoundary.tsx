@@ -11,21 +11,23 @@
 
 import { EmptyState } from '@oxy.so/bloom/empty-state';
 import type { ErrorBoundaryProps } from 'expo-router';
-import { View } from 'react-native';
-
 import { EmptyStateSticker } from '@/components/EmptyStateSticker';
+
 import { useTranslation } from '@/lib/i18n';
+import { Embed, VStack, toElement } from '@oxy.so/bloom-language';
 
 export function RouteErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   const { t } = useTranslation();
-  return (
-    <View className="flex-1">
-      <EmptyState
-        illustration={<EmptyStateSticker name="loadError" />}
-        title={t('ui.error.title')}
-        description={__DEV__ ? error.message : t('ui.error.description')}
-        action={{ label: t('common.retry'), onPress: () => void retry() }}
-      />
-    </View>
+  return toElement(
+    VStack(
+      Embed(
+        <EmptyState
+          illustration={<EmptyStateSticker name="loadError" />}
+          title={t('ui.error.title')}
+          description={__DEV__ ? error.message : t('ui.error.description')}
+          action={{ label: t('common.retry'), onPress: () => void retry() }}
+        />,
+      ),
+    ).flex('1'),
   );
 }

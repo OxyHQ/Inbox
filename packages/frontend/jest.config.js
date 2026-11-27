@@ -89,6 +89,9 @@ module.exports = {
     // `jest.mock('@oxy.so/services/ui/client', ...)` — keyed by the resolved
     // path — still replaces whichever entry the code used.
     '^@oxy.so/services/ui(/client)?$': '<rootDir>/__mocks__/oxyhq-services.ts',
+    // The Bloom language loads every Bloom family and Reanimated; the suites draw its
+    // chains as plain DOM (`__mocks__/bloom-language.tsx`), as they do Bloom's components.
+    '^@oxy\\.so/bloom-language(/(containers|inputs))?$': '<rootDir>/__mocks__/bloom-language.tsx',
     '^@oxy.so/bloom/icons/[^/]+$': '<rootDir>/__mocks__/bloom-icon.cjs',
     '^@oxy.so/bloom/tab-bar$': '<rootDir>/__mocks__/bloom-tab-bar.tsx',
     '^expo-image$': '<rootDir>/__mocks__/expo-image.tsx',

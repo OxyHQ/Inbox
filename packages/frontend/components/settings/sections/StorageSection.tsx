@@ -25,6 +25,7 @@ export function formatQuotaPercent(percentage: number, locale: string): string {
 export function StorageSection() {
   const { t, locale } = useTranslation();
   const { data: quota, isLoading } = useQuota();
+  const free = quota ? formatBytes(Math.max(0, quota.limit - quota.used)) : '';
   return (
     <SettingsGeneralPage
       sections={[
@@ -56,14 +57,8 @@ export function StorageSection() {
               ? [
                   {
                     key: 'free',
-                    label: t('ui.settings.storage.free', {
-                      value: formatBytes(Math.max(0, quota.limit - quota.used)),
-                    }),
-                    control: (
-                      <SettingsValueField>
-                        {formatBytes(Math.max(0, quota.limit - quota.used))}
-                      </SettingsValueField>
-                    ),
+                    label: t('ui.settings.storage.free', { value: free }),
+                    control: <SettingsValueField>{free}</SettingsValueField>,
                   },
                 ]
               : []),

@@ -25,7 +25,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { View } from 'react-native';
+import { Embed, HStack, Text as LText, VStack, toElement } from '@oxy.so/bloom-language';
 
 interface SavedSearchBarProps {
   query: string;
@@ -156,63 +156,82 @@ export function SavedSearchBar({
 
   return (
     <>
-      {(savedSearches.length > 0 || enabled || showStatus || saving || deleting) && (
-        <View className="gap-2 px-4 pb-3">
-          <View className="flex-row flex-wrap items-center justify-between gap-2">
-            {(savedSearches.length > 0 || showStatus) && (
-              <Text variant="caption-1-medium">{t('search.ui.savedSearches')}</Text>
-            )}
-            {enabled && (
-              <Button
-                appearance="plain"
-                leading={<RiBookmarkLine />}
-                onPress={() => {
-                  if (!isScopeCurrent() || pendingRef.current) return;
-                  const name =
-                    closedDraftRef.current?.scope === scope ? closedDraftRef.current.name : '';
-                  const next = { id: {}, scope, isCurrent: isScopeCurrent, name };
-                  pendingRef.current = next;
-                  setPending(next);
-                }}
-              >
-                {t('search.ui.saveSearch')}
-              </Button>
-            )}
-          </View>
-          {savedSearches.length > 0 && (
-            <View className="flex-row flex-wrap gap-2">
-              {savedSearches.map((saved) => (
-                <Chip
-                  tone="neutral"
-                  appearance="outline"
-                  key={saved.id}
-                  onPress={() => {
-                    if (isScopeCurrent()) onApply(saved);
-                  }}
-                  accessibilityLabel={t('search.ui.runSaved', {
-                    name: saved.name,
-                  })}
-                  onClose={deleting ? undefined : () => handleDelete(saved.id)}
-                  closeLabel={t('search.ui.deleteSaved', { name: saved.name })}
-                  style={{ maxWidth: '100%' }}
-                >
-                  {saved.name}
-                </Chip>
-              ))}
-            </View>
-          )}
-          {showStatus && (
-            <View className="flex-row items-center gap-2">
-              <View className="flex-1">
-                <Text accessibilityLiveRegion="polite">{status}</Text>
-              </View>
-            </View>
-          )}
-          {(saving || deleting) && (
-            <Text accessibilityLiveRegion="polite">{t('common.loading')}</Text>
-          )}
-        </View>
-      )}
+      {(savedSearches.length > 0 || enabled || showStatus || saving || deleting) &&
+        toElement(
+          VStack(
+            HStack(
+              Embed(
+                (savedSearches.length > 0 || showStatus) && (
+                  <Text variant="caption-1-medium">{t('search.ui.savedSearches')}</Text>
+                ),
+              ),
+              Embed(
+                enabled && (
+                  <Button
+                    appearance="plain"
+                    leading={<RiBookmarkLine />}
+                    onPress={() => {
+                      if (!isScopeCurrent() || pendingRef.current) return;
+                      const name =
+                        closedDraftRef.current?.scope === scope ? closedDraftRef.current.name : '';
+                      const next = { id: {}, scope, isCurrent: isScopeCurrent, name };
+                      pendingRef.current = next;
+                      setPending(next);
+                    }}
+                  >
+                    {t('search.ui.saveSearch')}
+                  </Button>
+                ),
+              ),
+            )
+              .wrap()
+              .align('center')
+              .justify('between')
+              .spacing('sm'),
+            savedSearches.length > 0
+              ? HStack(
+                  Embed(
+                    savedSearches.map((saved) => (
+                      <Chip
+                        tone="neutral"
+                        appearance="outline"
+                        key={saved.id}
+                        onPress={() => {
+                          if (isScopeCurrent()) onApply(saved);
+                        }}
+                        accessibilityLabel={t('search.ui.runSaved', {
+                          name: saved.name,
+                        })}
+                        onClose={deleting ? undefined : () => handleDelete(saved.id)}
+                        closeLabel={t('search.ui.deleteSaved', { name: saved.name })}
+                        style={{ maxWidth: '100%' }}
+                      >
+                        {saved.name}
+                      </Chip>
+                    )),
+                  ),
+                )
+                  .wrap()
+                  .spacing('sm')
+              : null,
+            Embed(
+              showStatus &&
+                toElement(
+                  HStack(VStack(LText(status).liveRegion('polite')).flex('1'))
+                    .align('center')
+                    .spacing('sm'),
+                ),
+            ),
+            Embed(
+              (saving || deleting) && (
+                <Text accessibilityLiveRegion="polite">{t('common.loading')}</Text>
+              ),
+            ),
+          )
+            .padding('horizontal', 'lg')
+            .padding('bottom', 'md')
+            .spacing('sm'),
+        )}
       <Dialog
         open={pending !== null}
         onClose={closeDraft}

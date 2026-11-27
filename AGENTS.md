@@ -21,13 +21,13 @@ bun run build        # expo export, web
 ## Conventions
 
 - Client only: mailbox, SMTP and federation logic live in OxyHQ/oxy; origins named there stay.
-- `linker = "hoisted"` stays in `bunfig.toml`; isolated linking drops SDK CSS silently.
+- `linker = "hoisted"` stays in `bunfig.toml` until an isolated install is proven.
 - `bun run test`, never `bun test` (refused by `bunfig.toml`).
 - No `catalog:` or `workspace:*` specifiers; commit `bun.lock` with any `package.json` change.
 - Import `@oxy.so/services/ui/client`, not the root barrel (first-paint cost).
 - One `OxyProvider`; sign-in is `OxyAccountDialog`, never a redirect.
 - Config from `@oxy.so/app-preset`; fix the preset upstream.
-- Bloom tokens + NativeWind only; no hardcoded brand colours.
+- Bloom tokens, the Bloom language and RN styles; no NativeWind, no hardcoded brand colours.
 - Realtime via `useOxyEvent`; never a second `io()`.
 
 ## Boundaries

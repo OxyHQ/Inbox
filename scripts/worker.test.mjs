@@ -55,3 +55,35 @@ test('frontend Worker sends the old host to inbo.sh with the path and query, and
   assert.equal(await home.text(), 'asset');
   assert.equal(served, 1);
 });
+
+const HASHED = 'https://inbo.sh/_expo/static/js/web/entry-0123456789abcdef0123456789abcdef.js';
+const shell = () =>
+  new Response('<!doctype html>', { headers: { 'content-type': 'text/html; charset=utf-8' } });
+
+test('frontend Worker answers a hashed-asset miss with an uncached 404, never the SPA shell', async () => {
+  const result = await worker0.fetch(
+    new Request(HASHED),
+    { ASSETS: { fetch: async () => shell() } },
+    {},
+  );
+  assert.equal(result.status, 404);
+  assert.equal(result.headers.get('cache-control'), 'no-store');
+  assert.equal(result.headers.get('content-type'), 'text/plain');
+});
+
+test('frontend Worker returns a hashed asset that exists untouched, and the shell on an app route', async () => {
+  const asset = new Response('js', { headers: { 'content-type': 'application/javascript' } });
+  assert.equal(
+    await worker0.fetch(new Request(HASHED), { ASSETS: { fetch: async () => asset } }, {}),
+    asset,
+  );
+  const page = shell();
+  assert.equal(
+    await worker0.fetch(
+      new Request('https://inbo.sh/conversation/abc'),
+      { ASSETS: { fetch: async () => page } },
+      {},
+    ),
+    page,
+  );
+});

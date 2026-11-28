@@ -60,11 +60,20 @@ function readBuiltHtml(directory: string): string[] {
 // no HTML yet, so it intentionally receives only the baseline policy.
 const html = outputDir === resolve(projectRoot, 'dist') ? readBuiltHtml(outputDir) : [];
 
+// Content-hashed: every file the Expo export writes under /_expo/static/ is
+// named by a hash of its bytes, so a browser keeps it for a year and never
+// revalidates; the asset server's default (`max-age=0, must-revalidate`) made
+// every return visit re-ask for each one. Entry files keep that default. A miss
+// under this prefix never leaves as HTML: worker/index.js turns the SPA
+// fallback into an uncached 404. Its own rule after `/*`, which sets no
+// Cache-Control here.
+const IMMUTABLE_RULE = '\n/_expo/static/*\n  Cache-Control: public, max-age=31536000, immutable\n';
+
 const outputPath = resolve(outputDir, '_headers');
 mkdirSync(outputDir, { recursive: true });
 writeFileSync(
   outputPath,
-  buildOxyPagesHeaders({ ...config, csp: withGemiesSdkCsp(config.csp), html }),
+  buildOxyPagesHeaders({ ...config, csp: withGemiesSdkCsp(config.csp), html }) + IMMUTABLE_RULE,
   'utf8',
 );
 process.stdout.write(`Wrote ${outputPath}\n`);
